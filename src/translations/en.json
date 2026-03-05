@@ -1,6 +1,6 @@
 {
   "onboarding": {
-    "message": "Welcome to avy-erp app site"
+    "message": "Welcome to the app"
   },
   "settings": {
     "about": "About",
@@ -29,5 +29,5 @@
     "version": "Version",
     "website": "Website"
   },
-  "welcome": "Welcome to avy-erp app site"
+  "welcome": "Welcome to the app"
 }

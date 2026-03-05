@@ -1,33 +1,33 @@
 {
   "onboarding": {
-    "message": "مرحبا بكم في موقع تطبيق avy-erp"
+    "message": "مرحبا بك في التطبيق"
   },
   "settings": {
-    "about": "حول التطبيق ",
-    "app_name": "اسم التطبيق",
+    "about": "حول التطبيق",
+    "app_name": "تطبيقي",
     "arabic": "عربي",
     "english": "إنجليزي",
     "generale": "عام",
     "github": "جيثب",
-    "language": "لغة",
+    "language": "اللغة",
     "links": "الروابط",
-    "logout": "تسجيل خروج",
-    "more": "أكثر",
+    "logout": "تسجيل الخروج",
+    "more": "المزيد",
     "privacy": "سياسة الخصوصية",
     "rate": "تقييم",
-    "share": "شارك",
+    "share": "مشاركة",
     "support": "الدعم",
     "support_us": "ادعمنا",
     "terms": "شروط الخدمة",
     "theme": {
       "dark": "مظلم",
-      "light": "خفيفة",
-      "system": "System",
-      "title": "سمة"
+      "light": "فاتح",
+      "system": "النظام",
+      "title": "السمة"
     },
-    "title": "إعدادات",
-    "version": "إصدار",
-    "website": "موقع الكتروني"
+    "title": "الإعدادات",
+    "version": "الإصدار",
+    "website": "الموقع الإلكتروني"
   },
-  "welcome": "test arabic"
+  "welcome": "مرحبا بك في التطبيق"
 }

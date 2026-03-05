@@ -9,7 +9,7 @@ import FlashMessage from 'react-native-flash-message';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useThemeConfig } from '@/components/ui/use-theme-config';
-import { hydrateAuth } from '@/features/auth/use-auth-store';
+import { hydrateAuth, useAuthStore } from '@/features/auth/use-auth-store';
 
 import { APIProvider } from '@/lib/api';
 import { loadSelectedTheme } from '@/lib/hooks/use-selected-theme';
@@ -34,6 +34,17 @@ SplashScreen.setOptions({
 });
 
 export default function RootLayout() {
+  const status = useAuthStore.use.status();
+
+  React.useEffect(() => {
+    if (status !== 'idle') {
+      const timer = setTimeout(async () => {
+        await SplashScreen.hideAsync();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
   return (
     <Providers>
       <Stack>

@@ -8,8 +8,8 @@ import 'tsx/cjs';
 // eslint-disable-next-line perfectionist/sort-imports
 import Env from './env';
 
-const EXPO_ACCOUNT_OWNER = 'avy-erp';
-const EAS_PROJECT_ID = 'c3e1075b-6fe7-4686-aa49-35b46a229044';
+const EXPO_ACCOUNT_OWNER = 'avyrentechnologies';
+const EAS_PROJECT_ID = 'f53c2a58-f3c7-4947-8fb7-9820829c8b63';
 
 const appIconBadgeConfig: AppIconBadgeConfig = {
   enabled: Env.EXPO_PUBLIC_APP_ENV !== 'production',
@@ -56,7 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#2E3C4B',
+      backgroundColor: '#312E81',
     },
     package: Env.EXPO_PUBLIC_PACKAGE,
   },
@@ -68,7 +68,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#2E3C4B',
+        backgroundColor: '#312E81',
         image: './assets/splash-icon.png',
         imageWidth: 150,
       },

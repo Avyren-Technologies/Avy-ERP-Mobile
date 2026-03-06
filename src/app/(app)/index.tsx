@@ -1,1 +1,1 @@
-export { FeedScreen as default } from '@/features/feed/feed-screen';
+export { SuperAdminDashboard as default } from '@/features/super-admin/dashboard-screen';

@@ -56,7 +56,7 @@ const updateProjectConfig = async (projectName) => {
   });
   const replaced = contents
     .replace(/avy-erpApp/gi, projectName)
-    .replace(/com.avy-erp/gi, `com.${projectName.toLowerCase()}`)
+    .replace(/com.avy_erp/gi, `com.${projectName.toLowerCase()}`)
     .replace(/avy-erp/gi, 'expo-owner');
 
   fs.writeFileSync(configPath, replaced, { spaces: 2 });

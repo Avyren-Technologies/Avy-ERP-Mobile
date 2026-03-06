@@ -24,24 +24,24 @@ const EXPO_PUBLIC_APP_ENV = (process.env.EXPO_PUBLIC_APP_ENV
   ?? 'development') as z.infer<typeof envSchema>['EXPO_PUBLIC_APP_ENV'];
 
 const BUNDLE_IDS = {
-  development: 'com.avy-erp.development',
-  preview: 'com.avy-erp.preview',
-  production: 'com.avy-erp',
+  development: 'com.avyren.erp.development',
+  preview: 'com.avyren.erp.preview',
+  production: 'com.avyren.erp',
 } as const;
 
 const PACKAGES = {
-  development: 'com.avy-erp.development',
-  preview: 'com.avy-erp.preview',
-  production: 'com.avy-erp',
+  development: 'com.avyren.erp.development',
+  preview: 'com.avyren.erp.preview',
+  production: 'com.avyren.erp',
 } as const;
 
 const SCHEMES = {
-  development: 'avy-erpApp',
-  preview: 'avy-erpApp.preview',
-  production: 'avy-erpApp',
+  development: 'avy-erpapp',
+  preview: 'avy-erpapp-preview',
+  production: 'avy-erpapp',
 } as const;
 
-const NAME = 'avy-erpApp';
+const NAME = 'Avy ERP';
 
 // Check if strict validation is required (before prebuild)
 const STRICT_ENV_VALIDATION = process.env.STRICT_ENV_VALIDATION === '1';
@@ -66,8 +66,7 @@ function getValidatedEnv(env: z.infer<typeof envSchema>) {
 
   if (parsed.success === false) {
     const errorMessage
-      = `❌ Invalid environment variables:${
-        JSON.stringify(parsed.error.flatten().fieldErrors, null, 2)
+      = `❌ Invalid environment variables:${JSON.stringify(parsed.error.flatten().fieldErrors, null, 2)
       }\n❌ Missing variables in .env file for APP_ENV=${EXPO_PUBLIC_APP_ENV}`
       + `\n💡 Tip: If you recently updated the .env file, try restarting with -c flag to clear the cache.`;
 

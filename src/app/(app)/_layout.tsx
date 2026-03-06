@@ -1,17 +1,16 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, SplashScreen, Tabs } from 'expo-router';
 import * as React from 'react';
 import { useCallback, useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useAuthStore as useAuth } from '@/features/auth/use-auth-store';
 import { useIsFirstTime } from '@/lib/hooks/use-is-first-time';
 
-// Custom Tab Bar Icon Components
+// ============ TAB ICON COMPONENTS ============
+
 function DashboardIcon({ color, focused }: { color: string; focused: boolean }) {
   return (
     <View style={styles.tabIconContainer}>
@@ -44,31 +43,41 @@ function CompaniesIcon({ color, focused }: { color: string; focused: boolean }) 
   );
 }
 
-function SettingsIcon({ color, focused }: { color: string; focused: boolean }) {
+function BillingIcon({ color, focused }: { color: string; focused: boolean }) {
   return (
     <View style={styles.tabIconContainer}>
       {focused && <View style={styles.tabActiveIndicator} />}
       <Svg width={24} height={24} viewBox="0 0 24 24">
-        <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
-        <Path
-          d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-          stroke={color}
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <Rect x="1" y="4" width="22" height="16" rx="2" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
+        <Path d="M1 10h22" stroke={focused ? 'rgba(255,255,255,0.5)' : color} strokeWidth="1.8" />
       </Svg>
     </View>
   );
 }
 
+function MoreIcon({ color, focused }: { color: string; focused: boolean }) {
+  return (
+    <View style={styles.tabIconContainer}>
+      {focused && <View style={styles.tabActiveIndicator} />}
+      <Svg width={24} height={24} viewBox="0 0 24 24">
+        <Circle cx="12" cy="5" r="2" fill={color} />
+        <Circle cx="12" cy="12" r="2" fill={color} />
+        <Circle cx="12" cy="19" r="2" fill={color} />
+      </Svg>
+    </View>
+  );
+}
+
+// ============ TAB LAYOUT ============
+
 export default function TabLayout() {
   const status = useAuth.use.status();
   const [isFirstTime] = useIsFirstTime();
+
   const hideSplash = useCallback(async () => {
     await SplashScreen.hideAsync();
   }, []);
+
   useEffect(() => {
     if (status !== 'idle') {
       const timer = setTimeout(() => {
@@ -84,6 +93,7 @@ export default function TabLayout() {
   if (status === 'signOut') {
     return <Redirect href="/login" />;
   }
+
   return (
     <Tabs
       screenOptions={{
@@ -132,13 +142,49 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="billing"
+        options={{
+          title: 'Billing',
+          tabBarIcon: ({ color, focused }) => (
+            <BillingIcon color={color} focused={focused} />
+          ),
+          tabBarButtonTestID: 'billing-tab',
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ color, focused }) => (
+            <MoreIcon color={color} focused={focused} />
+          ),
+          tabBarButtonTestID: 'more-tab',
+        }}
+      />
+
+      {/* Hidden screens (accessible via navigation but not shown in tab bar) */}
+      <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, focused }) => (
-            <SettingsIcon color={color} focused={focused} />
-          ),
-          tabBarButtonTestID: 'settings-tab',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="tenant/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="tenant/add-company"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="tenant/module-assignment"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

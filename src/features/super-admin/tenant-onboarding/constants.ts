@@ -1,6 +1,6 @@
 // ============ WIZARD CONFIG ============
 
-export const TOTAL_STEPS = 13;
+export const TOTAL_STEPS = 16;
 
 export const STEP_META = [
     { title: 'Company Identity', subtitle: 'Basic info & status' },
@@ -8,6 +8,9 @@ export const STEP_META = [
     { title: 'Address', subtitle: 'Registered & corporate' },
     { title: 'Fiscal & Calendar', subtitle: 'FY, payroll, working days' },
     { title: 'Preferences', subtitle: 'Currency, language, integrations' },
+    { title: 'Backend Endpoint', subtitle: 'Default or custom connection' },
+    { title: 'Module Selection', subtitle: 'Catalogue with pricing' },
+    { title: 'User Tier & Pricing', subtitle: 'Plan, billing, trial' },
     { title: 'Key Contacts', subtitle: 'HR, Finance, IT contacts' },
     { title: 'Plants & Branches', subtitle: 'Locations & geo-fencing' },
     { title: 'Shifts & Time', subtitle: 'Shift master & downtime' },
@@ -149,6 +152,177 @@ export const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Kannada', 'Telugu', 'Mal
 export const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 export const NUMBER_FORMATS = ['Indian (2,00,000)', 'International (200,000)'];
 export const TIME_FORMATS = ['12-hour (AM/PM)', '24-hour'];
+
+// ============ MODULE CATALOGUE ============
+
+export const MODULE_CATALOGUE = [
+    {
+        id: 'hr',
+        name: 'HR Management',
+        icon: '👥',
+        description: 'Employee directory, attendance, leave, payroll, incentives',
+        price: 2999,
+        dependencies: ['security'],
+    },
+    {
+        id: 'security',
+        name: 'Security',
+        icon: '🔒',
+        description: 'Gate attendance, goods verification, visitor management',
+        price: 1499,
+        dependencies: [],
+    },
+    {
+        id: 'production',
+        name: 'Production',
+        icon: '🏭',
+        description: 'OEE dashboard, production logging, scrap & NC tracking',
+        price: 3499,
+        dependencies: ['machine-maintenance', 'masters'],
+    },
+    {
+        id: 'machine-maintenance',
+        name: 'Machine Maintenance',
+        icon: '🔧',
+        description: 'PM scheduling, breakdown management, spare parts, OEE data',
+        price: 2499,
+        dependencies: ['masters'],
+    },
+    {
+        id: 'inventory',
+        name: 'Inventory',
+        icon: '📦',
+        description: 'Stock management, goods receipt, material requests & issues',
+        price: 1999,
+        dependencies: ['masters'],
+    },
+    {
+        id: 'vendor',
+        name: 'Vendor Management',
+        icon: '🤝',
+        description: 'Vendor directory, purchase orders, ASN/GRN, delivery ratings',
+        price: 2499,
+        dependencies: ['inventory', 'masters'],
+    },
+    {
+        id: 'sales',
+        name: 'Sales & Invoicing',
+        icon: '📊',
+        description: 'Quotes, GST invoices, customer ledger, payment tracking',
+        price: 2999,
+        dependencies: ['finance', 'masters'],
+    },
+    {
+        id: 'finance',
+        name: 'Finance',
+        icon: '💰',
+        description: 'Payables, receivables, payments, P&L, balance sheet, cash flow',
+        price: 2999,
+        dependencies: ['masters'],
+    },
+    {
+        id: 'visitor',
+        name: 'Visitor Management',
+        icon: '🪪',
+        description: 'Pre-registration, QR self-check-in, visit history & audit trail',
+        price: 999,
+        dependencies: ['security'],
+    },
+    {
+        id: 'masters',
+        name: 'Masters',
+        icon: '📋',
+        description: 'Item, shift, machine, operation & part masters',
+        price: 499,
+        dependencies: [],
+    },
+];
+
+// ============ USER TIERS ============
+
+export const USER_TIERS = [
+    {
+        key: 'starter',
+        label: 'Starter',
+        range: '50 – 100 users',
+        description: 'Entry tier for small factories',
+        minUsers: 50,
+        maxUsers: 100,
+        basePrice: 4999,
+        perUserPrice: 49,
+        popular: false,
+    },
+    {
+        key: 'growth',
+        label: 'Growth',
+        range: '101 – 200 users',
+        description: 'Mid-sized manufacturing operations',
+        minUsers: 101,
+        maxUsers: 200,
+        basePrice: 8999,
+        perUserPrice: 44,
+        popular: true,
+    },
+    {
+        key: 'scale',
+        label: 'Scale',
+        range: '201 – 500 users',
+        description: 'Multi-shift, multi-line facilities',
+        minUsers: 201,
+        maxUsers: 500,
+        basePrice: 18999,
+        perUserPrice: 38,
+        popular: false,
+    },
+    {
+        key: 'enterprise',
+        label: 'Enterprise',
+        range: '501 – 1,000 users',
+        description: 'Large manufacturing complexes',
+        minUsers: 501,
+        maxUsers: 1000,
+        basePrice: 34999,
+        perUserPrice: 32,
+        popular: false,
+    },
+    {
+        key: 'custom',
+        label: 'Custom',
+        range: '1,000+ users',
+        description: 'Negotiated directly with Avyren',
+        minUsers: 1001,
+        maxUsers: null,
+        basePrice: 0,
+        perUserPrice: 0,
+        popular: false,
+    },
+];
+
+// ============ MODULE DEPENDENCIES ============
+
+export function resolveModuleDependencies(selectedIds: string[]) {
+    const auto = new Set<string>();
+    const expanded = new Set(selectedIds);
+
+    const resolve = (id: string) => {
+        const mod = MODULE_CATALOGUE.find((item) => item.id === id);
+        if (!mod) return;
+        for (const dep of mod.dependencies ?? []) {
+            if (!expanded.has(dep)) {
+                expanded.add(dep);
+                auto.add(dep);
+                resolve(dep);
+            }
+        }
+    };
+
+    for (const id of selectedIds) resolve(id);
+
+    return {
+        resolved: Array.from(expanded),
+        auto: Array.from(auto),
+    };
+}
 
 // ============ LOCATIONS ============
 

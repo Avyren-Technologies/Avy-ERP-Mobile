@@ -36,6 +36,9 @@ import type {
     Step3Form,
     Step4Form,
     Step5Form,
+    Step6EndpointForm,
+    Step7ModulesForm,
+    Step8TierForm,
     Step7Form,
     Step8Form,
     Step11Form,
@@ -47,6 +50,9 @@ import { Step2Statutory } from './steps/step02-statutory';
 import { Step3Address } from './steps/step03-address';
 import { Step4Fiscal } from './steps/step04-fiscal';
 import { Step5Preferences } from './steps/step05-preferences';
+import { Step6Endpoint } from './steps/step06-endpoint';
+import { Step7Modules } from './steps/step07-modules';
+import { Step8UserTier } from './steps/step08-user-tier';
 import { Step6Contacts } from './steps/step06-contacts';
 import { Step7PlantsBranches } from './steps/step07-plants-branches';
 import { Step8Shifts } from './steps/step08-shifts';
@@ -101,17 +107,35 @@ export function TenantOnboardingScreen() {
         emailNotif: false, whatsapp: false,
     });
 
+    const [step6, setStep6] = React.useState<Step6EndpointForm>({
+        endpointType: 'default',
+        customBaseUrl: '',
+    });
+
+    const [step7Modules, setStep7Modules] = React.useState<Step7ModulesForm>({
+        selectedModuleIds: [],
+        customModulePricing: {},
+    });
+
+    const [step8Tier, setStep8Tier] = React.useState<Step8TierForm>({
+        userTier: 'starter',
+        customUserLimit: '',
+        customTierPrice: '',
+        billingCycle: 'monthly',
+        trialDays: '14',
+    });
+
     const [contacts, setContacts] = React.useState<Contact[]>([
         { id: '1', name: '', designation: '', department: '', countryCode: '+91', mobile: '', email: '', type: 'Primary', linkedin: '' },
     ]);
 
-    const [step7, setStep7] = React.useState<Step7Form>({
+    const [plantsStep, setPlantsStep] = React.useState<Step7Form>({
         multiLocationMode: false,
         locationConfig: 'common',
     });
     const [locations, setLocations] = React.useState<PlantBranch[]>([]);
 
-    const [step8, setStep8] = React.useState<Step8Form>({
+    const [shiftsStep, setShiftsStep] = React.useState<Step8Form>({
         dayStartTime: '', dayEndTime: '', weeklyOffs: ['Sunday'],
     });
     const [shifts, setShifts] = React.useState<Shift[]>([]);
@@ -135,8 +159,11 @@ export function TenantOnboardingScreen() {
     const merge3 = (u: Partial<Step3Form>) => setStep3((p) => ({ ...p, ...u }));
     const merge4 = (u: Partial<Step4Form>) => setStep4((p) => ({ ...p, ...u }));
     const merge5 = (u: Partial<Step5Form>) => setStep5((p) => ({ ...p, ...u }));
-    const merge7 = (u: Partial<Step7Form>) => setStep7((p) => ({ ...p, ...u }));
-    const merge8 = (u: Partial<Step8Form>) => setStep8((p) => ({ ...p, ...u }));
+    const merge6 = (u: Partial<Step6EndpointForm>) => setStep6((p) => ({ ...p, ...u }));
+    const merge7Modules = (u: Partial<Step7ModulesForm>) => setStep7Modules((p) => ({ ...p, ...u }));
+    const merge8Tier = (u: Partial<Step8TierForm>) => setStep8Tier((p) => ({ ...p, ...u }));
+    const mergePlants = (u: Partial<Step7Form>) => setPlantsStep((p) => ({ ...p, ...u }));
+    const mergeShifts = (u: Partial<Step8Form>) => setShiftsStep((p) => ({ ...p, ...u }));
     const merge11 = (u: Partial<Step11Form>) => setStep11((p) => ({ ...p, ...u }));
 
     // ---- Navigation ----
@@ -185,28 +212,42 @@ export function TenantOnboardingScreen() {
             case 3: return <Step3Address form={step3} setForm={merge3} />;
             case 4: return <Step4Fiscal form={step4} setForm={merge4} />;
             case 5: return <Step5Preferences form={step5} setForm={merge5} />;
-            case 6: return <Step6Contacts contacts={contacts} setContacts={setContacts} />;
+            case 6: return <Step6Endpoint form={step6} setForm={merge6} />;
             case 7: return (
+                <Step7Modules
+                    form={step7Modules}
+                    setForm={merge7Modules}
+                />
+            );
+            case 8: return (
+                <Step8UserTier
+                    form={step8Tier}
+                    setForm={merge8Tier}
+                    modules={step7Modules}
+                />
+            );
+            case 9: return <Step6Contacts contacts={contacts} setContacts={setContacts} />;
+            case 10: return (
                 <Step7PlantsBranches
-                    form={step7}
-                    setForm={merge7}
+                    form={plantsStep}
+                    setForm={mergePlants}
                     locations={locations}
                     setLocations={setLocations}
                 />
             );
-            case 8: return (
+            case 11: return (
                 <Step8Shifts
-                    form={step8}
-                    setForm={merge8}
+                    form={shiftsStep}
+                    setForm={mergeShifts}
                     shifts={shifts}
                     setShifts={setShifts}
                 />
             );
-            case 9: return <Step9NoSeries noSeries={noSeries} setNoSeries={setNoSeries} />;
-            case 10: return <Step10IOTReasons reasons={iotReasons} setReasons={setIotReasons} />;
-            case 11: return <Step11Controls form={step11} setForm={merge11} />;
-            case 12: return <Step12Users users={users} setUsers={setUsers} />;
-            case 13: return (
+            case 12: return <Step9NoSeries noSeries={noSeries} setNoSeries={setNoSeries} />;
+            case 13: return <Step10IOTReasons reasons={iotReasons} setReasons={setIotReasons} />;
+            case 14: return <Step11Controls form={step11} setForm={merge11} />;
+            case 15: return <Step12Users users={users} setUsers={setUsers} />;
+            case 16: return (
                 <Step13Activation
                     companyName={step1.displayName}
                     currentStatus={step1.status}

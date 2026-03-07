@@ -33,6 +33,10 @@ const CHECKLIST_PHASES = [
         items: ['Currency & language set', 'Compliance toggles reviewed', 'Integrations configured'],
     },
     {
+        phase: 'Infrastructure & Pricing',
+        items: ['Endpoint type configured', 'Modules selected with pricing', 'User tier, billing, and trial confirmed'],
+    },
+    {
         phase: 'Locations',
         items: ['Locations/Plants added', 'Key contacts added', 'Geo-fencing configured (if applicable)'],
     },

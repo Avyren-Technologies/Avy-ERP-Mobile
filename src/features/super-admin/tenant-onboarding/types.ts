@@ -175,6 +175,26 @@ export interface Step5Form {
     whatsapp: boolean;
 }
 
+export interface Step6EndpointForm {
+    endpointType: 'default' | 'custom';
+    customBaseUrl: string;
+}
+
+export interface Step7ModulesForm {
+    selectedModuleIds: string[];
+    customModulePricing: Record<string, number>;
+}
+
+export type UserTierKey = 'starter' | 'growth' | 'scale' | 'enterprise' | 'custom';
+
+export interface Step8TierForm {
+    userTier: UserTierKey;
+    customUserLimit: string;
+    customTierPrice: string;
+    billingCycle: 'monthly' | 'annual';
+    trialDays: string;
+}
+
 export interface Step7Form {
     multiLocationMode: boolean;
     locationConfig: 'common' | 'per-location';

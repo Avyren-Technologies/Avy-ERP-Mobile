@@ -1,7 +1,9 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import * as React from 'react';
-import { Pressable, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
@@ -19,31 +21,185 @@ export function Step1Identity({
     form: Step1Form;
     setForm: (f: Partial<Step1Form>) => void;
 }) {
+    const [showOptions, setShowOptions] = React.useState(false);
+    const [permissionError, setPermissionError] = React.useState('');
+
+    const pickFromGallery = async () => {
+        setShowOptions(false);
+        setPermissionError('');
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            setPermissionError('Photo library access is required. Please enable it in Settings.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images',
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled) {
+            setForm({ logoUri: result.assets[0].uri });
+        }
+    };
+
+    const takePhoto = async () => {
+        setShowOptions(false);
+        setPermissionError('');
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            setPermissionError('Camera access is required. Please enable it in Settings.');
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled) {
+            setForm({ logoUri: result.assets[0].uri });
+        }
+    };
+
+    const removeLogo = () => {
+        setForm({ logoUri: '' });
+        setShowOptions(false);
+    };
+
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <SectionCard title="Company Logo">
-                <Pressable style={S.logoUpload}>
+                {/* ---- Original upload button (now functional) ---- */}
+                <Pressable
+                    style={S.logoUpload}
+                    onPress={() => setShowOptions((v) => !v)}
+                >
                     <View style={S.logoPlaceholder}>
-                        <Svg width={28} height={28} viewBox="0 0 24 24">
-                            <Path
-                                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
-                                stroke={colors.primary[400]}
-                                strokeWidth="1.8"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                        {form.logoUri ? (
+                            <Image
+                                source={{ uri: form.logoUri }}
+                                style={ls.logoThumb}
+                                contentFit="cover"
                             />
-                        </Svg>
+                        ) : (
+                            <Svg width={28} height={28} viewBox="0 0 24 24">
+                                <Path
+                                    d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                                    stroke={colors.primary[400]}
+                                    strokeWidth="1.8"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </Svg>
+                        )}
                     </View>
                     <View style={S.logoUploadText}>
-                        <Text className="font-inter text-sm font-semibold text-primary-600">
-                            Upload Company Logo
-                        </Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-400">
-                            PNG, JPG or SVG · Max 2MB · 200×200px Recommended
+                        {form.logoUri ? (
+                            <>
+                                <Text className="font-inter text-sm font-semibold text-success-600">
+                                    Logo Uploaded
+                                </Text>
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-400">
+                                    Tap to change or remove
+                                </Text>
+                            </>
+                        ) : (
+                            <>
+                                <Text className="font-inter text-sm font-semibold text-primary-600">
+                                    Upload Company Logo
+                                </Text>
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-400">
+                                    PNG, JPG · Max 2MB · 200×200px Recommended
+                                </Text>
+                            </>
+                        )}
+                    </View>
+                    {/* Chevron to indicate tappable */}
+                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                        <Path
+                            d={showOptions ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                            stroke={colors.neutral[400]}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </Svg>
+                </Pressable>
+
+                {/* ---- Inline options panel ---- */}
+                {showOptions && (
+                    <Animated.View entering={FadeIn.duration(180)} style={ls.optionsPanel}>
+                        <Pressable style={ls.optionRow} onPress={pickFromGallery}>
+                            <Svg width={18} height={18} viewBox="0 0 24 24">
+                                <Path
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    stroke={colors.primary[600]}
+                                    strokeWidth="1.8"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </Svg>
+                            <Text className="font-inter text-sm font-semibold text-primary-800">
+                                Photo Library
+                            </Text>
+                        </Pressable>
+
+                        <View style={ls.divider} />
+
+                        <Pressable style={ls.optionRow} onPress={takePhoto}>
+                            <Svg width={18} height={18} viewBox="0 0 24 24">
+                                <Path
+                                    d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+                                    stroke={colors.primary[600]}
+                                    strokeWidth="1.8"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                                <Path
+                                    d="M12 17a4 4 0 100-8 4 4 0 000 8z"
+                                    stroke={colors.primary[600]}
+                                    strokeWidth="1.8"
+                                    fill="none"
+                                />
+                            </Svg>
+                            <Text className="font-inter text-sm font-semibold text-primary-800">
+                                Take Photo
+                            </Text>
+                        </Pressable>
+
+                        {form.logoUri && (
+                            <>
+                                <View style={ls.divider} />
+                                <Pressable style={ls.optionRow} onPress={removeLogo}>
+                                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                                        <Path
+                                            d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                                            stroke={colors.danger[500]}
+                                            strokeWidth="1.8"
+                                            fill="none"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </Svg>
+                                    <Text className="font-inter text-sm font-semibold text-danger-600">
+                                        Remove Logo
+                                    </Text>
+                                </Pressable>
+                            </>
+                        )}
+                    </Animated.View>
+                )}
+
+                {permissionError ? (
+                    <View style={S.logoPermissionError}>
+                        <Text className="font-inter text-xs text-danger-700">
+                            {permissionError}
                         </Text>
                     </View>
-                </Pressable>
+                ) : null}
             </SectionCard>
 
             <SectionCard title="Core Identity">
@@ -146,3 +302,36 @@ export function Step1Identity({
         </Animated.View>
     );
 }
+
+const ls = StyleSheet.create({
+    logoThumb: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+    },
+    optionsPanel: {
+        marginTop: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.primary[100],
+        backgroundColor: colors.white,
+        overflow: 'hidden',
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.neutral[100],
+        marginHorizontal: 16,
+    },
+});

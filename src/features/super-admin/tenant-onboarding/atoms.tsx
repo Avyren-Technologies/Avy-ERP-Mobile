@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
     FlatList,
     Modal,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -659,7 +660,7 @@ export function GeoFencingModal({
                     {/* Real Google Map */}
                     <MapView
                         ref={mapRef}
-                        provider={PROVIDER_GOOGLE}
+                        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                         style={StyleSheet.absoluteFill}
                         initialRegion={initialRegion}
                         onRegionChangeComplete={handleRegionChangeComplete}

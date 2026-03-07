@@ -49,6 +49,7 @@ export function FormInput({
     autoCapitalize = 'sentences',
     multiline = false,
     hint,
+    error,
     secureTextEntry,
     rightElement,
 }: {
@@ -61,6 +62,7 @@ export function FormInput({
     autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
     multiline?: boolean;
     hint?: string;
+    error?: string;
     secureTextEntry?: boolean;
     rightElement?: React.ReactNode;
 }) {
@@ -72,6 +74,7 @@ export function FormInput({
                     S.fieldInput,
                     multiline ? { height: 80, alignItems: 'flex-start' } : undefined,
                     rightElement ? { flexDirection: 'row', alignItems: 'center' } : undefined,
+                    error ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined,
                 ]}
             >
                 <TextInput
@@ -88,9 +91,11 @@ export function FormInput({
                 />
                 {rightElement}
             </View>
-            {hint && (
+            {error ? (
+                <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>
+            ) : hint ? (
                 <Text className="mt-1 font-inter text-[10px] text-neutral-400">{hint}</Text>
-            )}
+            ) : null}
         </View>
     );
 }
@@ -104,6 +109,7 @@ export function SecretInput({
     onChangeText,
     required,
     hint,
+    error,
 }: {
     label: string;
     placeholder: string;
@@ -111,13 +117,14 @@ export function SecretInput({
     onChangeText: (t: string) => void;
     required?: boolean;
     hint?: string;
+    error?: string;
 }) {
     const [visible, setVisible] = React.useState(false);
 
     return (
         <View style={S.fieldWrap}>
             <FormLabel text={label} required={required} />
-            <View style={S.secretInputRow}>
+            <View style={[S.secretInputRow, error ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined]}>
                 <TextInput
                     style={[S.textInput]}
                     placeholder={placeholder}
@@ -150,9 +157,11 @@ export function SecretInput({
                     </Svg>
                 </Pressable>
             </View>
-            {hint && (
+            {error ? (
+                <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>
+            ) : hint ? (
                 <Text className="mt-1 font-inter text-[10px] text-neutral-400">{hint}</Text>
-            )}
+            ) : null}
         </View>
     );
 }
@@ -166,6 +175,7 @@ export function ChipSelector({
     onSelect,
     required,
     hint,
+    error,
 }: {
     label: string;
     options: string[];
@@ -173,6 +183,7 @@ export function ChipSelector({
     onSelect: (v: string) => void;
     required?: boolean;
     hint?: string;
+    error?: string;
 }) {
     return (
         <View style={S.fieldWrap}>
@@ -194,9 +205,11 @@ export function ChipSelector({
                     ))}
                 </View>
             </ScrollView>
-            {hint && (
+            {error ? (
+                <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>
+            ) : hint ? (
                 <Text className="mt-1 font-inter text-[10px] text-neutral-400">{hint}</Text>
-            )}
+            ) : null}
         </View>
     );
 }
@@ -208,11 +221,13 @@ export function MultiChipSelector({
     options,
     selected,
     onToggle,
+    error,
 }: {
     label: string;
     options: string[];
     selected: string[];
     onToggle: (v: string) => void;
+    error?: string;
 }) {
     return (
         <View style={S.fieldWrap}>
@@ -235,6 +250,9 @@ export function MultiChipSelector({
                     );
                 })}
             </View>
+            {error ? (
+                <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>
+            ) : null}
         </View>
     );
 }
@@ -511,6 +529,7 @@ export function PhoneInput({
     onPhoneChange,
     required,
     hint,
+    error,
 }: {
     label: string;
     countryCode: string;
@@ -519,13 +538,14 @@ export function PhoneInput({
     onPhoneChange: (p: string) => void;
     required?: boolean;
     hint?: string;
+    error?: string;
 }) {
     return (
         <View style={S.fieldWrap}>
             <FormLabel text={label} required={required} />
             <View style={S.phoneInputRow}>
                 <CountryCodePicker value={countryCode} onChange={onCountryCodeChange} />
-                <View style={[S.fieldInput, { flex: 1 }]}>
+                <View style={[S.fieldInput, { flex: 1 }, error ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined]}>
                     <TextInput
                         style={S.textInput}
                         placeholder="98765 43210"
@@ -536,9 +556,11 @@ export function PhoneInput({
                     />
                 </View>
             </View>
-            {hint && (
+            {error ? (
+                <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>
+            ) : hint ? (
                 <Text className="mt-1 font-inter text-[10px] text-neutral-400">{hint}</Text>
-            )}
+            ) : null}
         </View>
     );
 }

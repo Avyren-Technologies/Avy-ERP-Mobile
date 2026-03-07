@@ -248,6 +248,7 @@ function PlantBranchCard({
     onUpdate,
     onSetHQ,
     onRemove,
+    errors,
 }: {
     item: PlantBranch;
     index: number;
@@ -255,6 +256,7 @@ function PlantBranchCard({
     onUpdate: (updates: Partial<PlantBranch>) => void;
     onSetHQ: () => void;
     onRemove: () => void;
+    errors?: Record<string, string>;
 }) {
     return (
         <Animated.View
@@ -296,6 +298,7 @@ function PlantBranchCard({
                 onChangeText={(v) => onUpdate({ name: v })}
                 required
                 autoCapitalize="words"
+                error={errors?.name}
             />
 
             <View style={S.twoColumn}>
@@ -307,6 +310,7 @@ function PlantBranchCard({
                         onChangeText={(v) => onUpdate({ code: v })}
                         required
                         autoCapitalize="none"
+                        error={errors?.code}
                     />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -350,6 +354,7 @@ function PlantBranchCard({
                 value={item.addressLine1}
                 onChangeText={(v) => onUpdate({ addressLine1: v })}
                 required
+                error={errors?.addressLine1}
             />
             <FormInput
                 label="Address Line 2"
@@ -366,6 +371,7 @@ function PlantBranchCard({
                         onChangeText={(v) => onUpdate({ city: v })}
                         required
                         autoCapitalize="words"
+                        error={errors?.city}
                     />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -375,6 +381,7 @@ function PlantBranchCard({
                         value={item.pin}
                         onChangeText={(v) => onUpdate({ pin: v })}
                         keyboardType="number-pad"
+                        error={errors?.pin}
                     />
                 </View>
             </View>
@@ -383,6 +390,7 @@ function PlantBranchCard({
                 options={INDIAN_STATES}
                 selected={item.state}
                 onSelect={(v) => onUpdate({ state: v })}
+                error={errors?.state}
             />
 
             {/* ---- Contact Person ---- */}
@@ -452,11 +460,13 @@ export function Step7PlantsBranches({
     setForm,
     locations,
     setLocations,
+    errors,
 }: {
     form: Step7Form;
     setForm: (f: Partial<Step7Form>) => void;
     locations: PlantBranch[];
     setLocations: (p: PlantBranch[]) => void;
+    errors?: Record<string, string>;
 }) {
     const addLocation = () => {
         setLocations([
@@ -546,17 +556,30 @@ export function Step7PlantsBranches({
                 )}
             </SectionCard>
 
-            {locations.map((location, idx) => (
-                <PlantBranchCard
-                    key={location.id}
-                    item={location}
-                    index={idx}
-                    isHQ={location.isHQ}
-                    onUpdate={(updates) => updateLocation(location.id, updates)}
-                    onSetHQ={() => setHQ(location.id)}
-                    onRemove={() => removeLocation(location.id)}
-                />
-            ))}
+            {locations.map((location, idx) => {
+                // Extract per-card errors: keys like name_0, code_0 → name, code for this card
+                const cardErrors: Record<string, string> = {};
+                if (errors) {
+                    for (const [key, msg] of Object.entries(errors)) {
+                        const suffix = `_${idx}`;
+                        if (key.endsWith(suffix)) {
+                            cardErrors[key.slice(0, -suffix.length)] = msg;
+                        }
+                    }
+                }
+                return (
+                    <PlantBranchCard
+                        key={location.id}
+                        item={location}
+                        index={idx}
+                        isHQ={location.isHQ}
+                        onUpdate={(updates) => updateLocation(location.id, updates)}
+                        onSetHQ={() => setHQ(location.id)}
+                        onRemove={() => removeLocation(location.id)}
+                        errors={Object.keys(cardErrors).length > 0 ? cardErrors : undefined}
+                    />
+                );
+            })}
 
             <AddButton onPress={addLocation} label="Add Location / Plant / Branch" />
         </Animated.View>

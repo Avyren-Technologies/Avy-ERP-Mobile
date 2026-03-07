@@ -25,6 +25,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
+const QUICK_ACTION_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12 * 3) / 4;
 
 // ============ TYPES ============
 
@@ -424,7 +425,12 @@ function QuickActionsSection() {
                             >
                                 <QuickActionIcon type={action.iconType} />
                             </LinearGradient>
-                            <Text className="mt-2 font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">
+                            <Text
+                                style={styles.quickActionTitle}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.85}
+                            >
                                 {action.title}
                             </Text>
                         </Pressable>
@@ -760,7 +766,7 @@ const styles = StyleSheet.create({
     },
     quickActionCard: {
         alignItems: 'center',
-        width: (SCREEN_WIDTH - 48 - 36) / 4,
+        width: QUICK_ACTION_WIDTH,
     },
     quickActionIcon: {
         width: 52,
@@ -773,6 +779,15 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 4,
+    },
+    quickActionTitle: {
+        marginTop: 8,
+        width: '100%',
+        textAlign: 'center',
+        fontFamily: 'Inter',
+        fontSize: 11,
+        fontWeight: '600',
+        color: colors.primary[900],
     },
     // Tenant Overview
     tenantCard: {

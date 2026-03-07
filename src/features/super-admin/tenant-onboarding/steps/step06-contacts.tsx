@@ -19,9 +19,11 @@ import type { Contact } from '../types';
 export function Step6Contacts({
     contacts,
     setContacts,
+    errors,
 }: {
     contacts: Contact[];
     setContacts: (c: Contact[]) => void;
+    errors?: Record<string, string>;
 }) {
     const addContact = () => {
         setContacts([
@@ -72,6 +74,7 @@ export function Step6Contacts({
                         onChangeText={(v) => update(contact.id, { name: v })}
                         required
                         autoCapitalize="words"
+                        error={errors?.[`name_${idx}`]}
                     />
 
                     <View style={S.twoColumn}>
@@ -102,6 +105,7 @@ export function Step6Contacts({
                         onCountryCodeChange={(c) => update(contact.id, { countryCode: c })}
                         onPhoneChange={(p) => update(contact.id, { mobile: p })}
                         required
+                        error={errors?.[`mobile_${idx}`]}
                     />
 
                     <FormInput
@@ -112,6 +116,7 @@ export function Step6Contacts({
                         required
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        error={errors?.[`email_${idx}`]}
                     />
 
                     <ChipSelector
@@ -128,6 +133,7 @@ export function Step6Contacts({
                         onChangeText={(v) => update(contact.id, { linkedin: v })}
                         keyboardType="url"
                         autoCapitalize="none"
+                        error={errors?.[`linkedin_${idx}`]}
                     />
                 </Animated.View>
             ))}

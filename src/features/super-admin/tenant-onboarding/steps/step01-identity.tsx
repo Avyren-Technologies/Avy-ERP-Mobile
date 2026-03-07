@@ -17,9 +17,11 @@ import type { Step1Form } from '../types';
 export function Step1Identity({
     form,
     setForm,
+    errors,
 }: {
     form: Step1Form;
     setForm: (f: Partial<Step1Form>) => void;
+    errors?: Record<string, string>;
 }) {
     const [showOptions, setShowOptions] = React.useState(false);
     const [permissionError, setPermissionError] = React.useState('');
@@ -209,6 +211,7 @@ export function Step1Identity({
                     value={form.displayName}
                     onChangeText={(v) => setForm({ displayName: v })}
                     required
+                    error={errors?.displayName}
                 />
                 <FormInput
                     label="Legal / Registered Name"
@@ -216,6 +219,7 @@ export function Step1Identity({
                     value={form.legalName}
                     onChangeText={(v) => setForm({ legalName: v })}
                     required
+                    error={errors?.legalName}
                 />
                 <ChipSelector
                     label="Business Type"
@@ -223,6 +227,7 @@ export function Step1Identity({
                     selected={form.businessType}
                     onSelect={(v) => setForm({ businessType: v })}
                     required
+                    error={errors?.businessType}
                 />
                 <ChipSelector
                     label="Nature of Industry"
@@ -230,6 +235,7 @@ export function Step1Identity({
                     selected={form.industry}
                     onSelect={(v) => setForm({ industry: v })}
                     required
+                    error={errors?.industry}
                 />
                 <FormInput
                     label="Company Code"
@@ -239,6 +245,7 @@ export function Step1Identity({
                     required
                     autoCapitalize="none"
                     hint="Auto-generated based on company name. Override if needed."
+                    error={errors?.companyCode}
                 />
                 <FormInput
                     label="Short Name"
@@ -252,6 +259,7 @@ export function Step1Identity({
                     value={form.incorporationDate}
                     onChangeText={(v) => setForm({ incorporationDate: v })}
                     required
+                    error={errors?.incorporationDate}
                 />
                 <FormInput
                     label="Number of Employees (approx.)"
@@ -260,6 +268,7 @@ export function Step1Identity({
                     onChangeText={(v) => setForm({ employees: v })}
                     keyboardType="number-pad"
                     hint="Used for PF, ESI, PT compliance threshold checks."
+                    error={errors?.employees}
                 />
                 <FormInput
                     label="CIN Number"
@@ -267,6 +276,7 @@ export function Step1Identity({
                     value={form.cin}
                     onChangeText={(v) => setForm({ cin: v })}
                     autoCapitalize="none"
+                    error={errors?.cin}
                 />
                 <FormInput
                     label="Official Website"
@@ -275,6 +285,7 @@ export function Step1Identity({
                     onChangeText={(v) => setForm({ website: v })}
                     keyboardType="url"
                     autoCapitalize="none"
+                    error={errors?.website}
                 />
                 <FormInput
                     label="Corporate Email Domain"
@@ -285,6 +296,7 @@ export function Step1Identity({
                     keyboardType="email-address"
                     autoCapitalize="none"
                     hint="Used for auto-provisioning employee email IDs."
+                    error={errors?.emailDomain}
                 />
             </SectionCard>
 

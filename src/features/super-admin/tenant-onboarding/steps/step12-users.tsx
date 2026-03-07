@@ -18,9 +18,11 @@ const USER_ROLES = [
 export function Step12Users({
     users,
     setUsers,
+    errors,
 }: {
     users: UserItem[];
     setUsers: (u: UserItem[]) => void;
+    errors?: Record<string, string>;
 }) {
     const addUser = () => {
         setUsers([
@@ -74,6 +76,7 @@ export function Step12Users({
                         onChangeText={(v) => update(user.id, { fullName: v })}
                         required
                         autoCapitalize="words"
+                        error={errors?.[`fullName_${idx}`]}
                     />
                     <FormInput
                         label="Username / Email"
@@ -83,6 +86,7 @@ export function Step12Users({
                         required
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        error={errors?.[`username_${idx}`]}
                     />
                     <FormInput
                         label="Password"
@@ -93,6 +97,7 @@ export function Step12Users({
                         autoCapitalize="none"
                         secureTextEntry
                         hint="Employee must reset on first login"
+                        error={errors?.[`password_${idx}`]}
                     />
                     <ChipSelector
                         label="Role"
@@ -100,6 +105,7 @@ export function Step12Users({
                         selected={user.role}
                         onSelect={(v) => update(user.id, { role: v })}
                         required
+                        error={errors?.[`role_${idx}`]}
                     />
                     <FormInput
                         label="Email"
@@ -108,6 +114,7 @@ export function Step12Users({
                         onChangeText={(v) => update(user.id, { email: v })}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        error={errors?.[`email_${idx}`]}
                     />
                     <FormInput
                         label="Mobile"
@@ -115,6 +122,7 @@ export function Step12Users({
                         value={user.mobile}
                         onChangeText={(v) => update(user.id, { mobile: v })}
                         keyboardType="phone-pad"
+                        error={errors?.[`mobile_${idx}`]}
                     />
                     <FormInput
                         label="Department"

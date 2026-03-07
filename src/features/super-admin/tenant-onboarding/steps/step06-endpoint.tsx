@@ -22,9 +22,11 @@ function buildHealthUrl(baseUrl: string) {
 export function Step6Endpoint({
     form,
     setForm,
+    errors,
 }: {
     form: Step6EndpointForm;
     setForm: (f: Partial<Step6EndpointForm>) => void;
+    errors?: Record<string, string>;
 }) {
     const [verifyState, setVerifyState] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [verifyMessage, setVerifyMessage] = React.useState('');
@@ -166,6 +168,7 @@ export function Step6Endpoint({
                             keyboardType="url"
                             autoCapitalize="none"
                             hint="HTTPS endpoint used for tenant API requests"
+                            error={errors?.customBaseUrl}
                         />
 
                         <View style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 10 }}>

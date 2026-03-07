@@ -21,9 +21,11 @@ function getPreview(item: NoSeriesItem): string {
 export function Step9NoSeries({
     noSeries,
     setNoSeries,
+    errors,
 }: {
     noSeries: NoSeriesItem[];
     setNoSeries: (ns: NoSeriesItem[]) => void;
+    errors?: Record<string, string>;
 }) {
     const addSeries = () => {
         setNoSeries([
@@ -78,6 +80,7 @@ export function Step9NoSeries({
                                 onChangeText={(v) => update(item.id, { code: v.toUpperCase() })}
                                 required
                                 autoCapitalize="none"
+                                error={errors?.[`code_${idx}`]}
                             />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -87,6 +90,7 @@ export function Step9NoSeries({
                                 value={item.startNumber}
                                 onChangeText={(v) => update(item.id, { startNumber: v })}
                                 keyboardType="number-pad"
+                                error={errors?.[`startNumber_${idx}`]}
                             />
                         </View>
                     </View>
@@ -104,6 +108,7 @@ export function Step9NoSeries({
                         selected={item.linkedScreen}
                         onSelect={(v) => update(item.id, { linkedScreen: v })}
                         required
+                        error={errors?.[`linkedScreen_${idx}`]}
                     />
 
                     <View style={S.twoColumn}>
@@ -114,6 +119,7 @@ export function Step9NoSeries({
                                 value={item.prefix}
                                 onChangeText={(v) => update(item.id, { prefix: v })}
                                 autoCapitalize="none"
+                                error={errors?.[`prefix_${idx}`]}
                             />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -134,6 +140,7 @@ export function Step9NoSeries({
                         onChangeText={(v) => update(item.id, { numberCount: v })}
                         keyboardType="number-pad"
                         hint="The number will be zero-padded to this length"
+                        error={errors?.[`numberCount_${idx}`]}
                     />
 
                     {/* Live Preview */}

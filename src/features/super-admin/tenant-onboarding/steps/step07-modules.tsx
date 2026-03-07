@@ -14,9 +14,11 @@ import type { Step7ModulesForm } from '../types';
 export function Step7Modules({
     form,
     setForm,
+    errors,
 }: {
     form: Step7ModulesForm;
     setForm: (f: Partial<Step7ModulesForm>) => void;
+    errors?: Record<string, string>;
 }) {
     const { resolved, auto } = React.useMemo(
         () => resolveModuleDependencies(form.selectedModuleIds),
@@ -63,6 +65,14 @@ export function Step7Modules({
                     your selection.
                 </Text>
             </View>
+
+            {errors?.selectedModuleIds ? (
+                <View style={{ marginBottom: 10, paddingHorizontal: 4 }}>
+                    <Text className="font-inter text-xs text-danger-600">
+                        {errors.selectedModuleIds}
+                    </Text>
+                </View>
+            ) : null}
 
             <View
                 style={{

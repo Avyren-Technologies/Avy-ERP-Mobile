@@ -15,10 +15,12 @@ export function Step8UserTier({
     form,
     setForm,
     modules,
+    errors,
 }: {
     form: Step8TierForm;
     setForm: (f: Partial<Step8TierForm>) => void;
     modules: Step7ModulesForm;
+    errors?: Record<string, string>;
 }) {
     const currentTier = USER_TIERS.find((tier) => tier.key === form.userTier);
 
@@ -140,6 +142,7 @@ export function Step8UserTier({
                                 onChangeText={(v) => setForm({ customUserLimit: v })}
                                 keyboardType="number-pad"
                                 required
+                                error={errors?.customUserLimit}
                             />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -150,6 +153,7 @@ export function Step8UserTier({
                                 onChangeText={(v) => setForm({ customTierPrice: v })}
                                 keyboardType="number-pad"
                                 required
+                                error={errors?.customTierPrice}
                             />
                         </View>
                     </View>
@@ -218,6 +222,7 @@ export function Step8UserTier({
                     onChangeText={(v) => setForm({ trialDays: v })}
                     keyboardType="number-pad"
                     hint="Set 0 to skip trial and start billing immediately"
+                    error={errors?.trialDays}
                 />
             </SectionCard>
 

@@ -15,9 +15,11 @@ import type { IOTReason } from '../types';
 export function Step10IOTReasons({
     reasons,
     setReasons,
+    errors,
 }: {
     reasons: IOTReason[];
     setReasons: (r: IOTReason[]) => void;
+    errors?: Record<string, string>;
 }) {
     const addReason = () => {
         setReasons([
@@ -68,6 +70,7 @@ export function Step10IOTReasons({
                         selected={item.reasonType}
                         onSelect={(v) => update(item.id, { reasonType: v, planned: false })}
                         required
+                        error={errors?.[`reasonType_${idx}`]}
                     />
                     <FormInput
                         label="Reason"
@@ -76,6 +79,7 @@ export function Step10IOTReasons({
                         onChangeText={(v) => update(item.id, { reason: v.toUpperCase() })}
                         required
                         autoCapitalize="characters"
+                        error={errors?.[`reason_${idx}`]}
                     />
                     <FormInput
                         label="Description"

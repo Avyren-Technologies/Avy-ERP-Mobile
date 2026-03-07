@@ -29,9 +29,11 @@ import type { Step5Form } from '../types';
 function RazorpayXSection({
     form,
     setForm,
+    errors,
 }: {
     form: Step5Form;
     setForm: (f: Partial<Step5Form>) => void;
+    errors?: Record<string, string>;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(200)}>
@@ -127,6 +129,7 @@ function RazorpayXSection({
                     onChangeText={(v) => setForm({ razorpayKeyId: v })}
                     autoCapitalize="none"
                     hint="From Razorpay Dashboard → Settings → API Keys"
+                    error={errors?.razorpayKeyId}
                 />
                 <SecretInput
                     label="RazorpayX Key Secret"
@@ -134,6 +137,7 @@ function RazorpayXSection({
                     value={form.razorpayKeySecret}
                     onChangeText={(v) => setForm({ razorpayKeySecret: v })}
                     hint="Never share this. Stored encrypted in Avy ERP."
+                    error={errors?.razorpayKeySecret}
                 />
                 <SecretInput
                     label="Webhook Secret"
@@ -149,6 +153,7 @@ function RazorpayXSection({
                     onChangeText={(v) => setForm({ razorpayAccountNumber: v })}
                     keyboardType="number-pad"
                     hint="The source account from which salary payouts are debited"
+                    error={errors?.razorpayAccountNumber}
                 />
 
                 {/* Settings */}
@@ -175,9 +180,11 @@ function RazorpayXSection({
 export function Step5Preferences({
     form,
     setForm,
+    errors,
 }: {
     form: Step5Form;
     setForm: (f: Partial<Step5Form>) => void;
+    errors?: Record<string, string>;
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
@@ -188,12 +195,14 @@ export function Step5Preferences({
                     selected={form.currency}
                     onSelect={(v) => setForm({ currency: v })}
                     required
+                    error={errors?.currency}
                 />
                 <ChipSelector
                     label="Language"
                     options={LANGUAGES}
                     selected={form.language}
                     onSelect={(v) => setForm({ language: v })}
+                    error={errors?.language}
                 />
                 <ChipSelector
                     label="Date Format"
@@ -282,7 +291,7 @@ export function Step5Preferences({
                             onToggle={(v) => setForm({ razorpayEnabled: v })}
                         />
                         {form.razorpayEnabled && (
-                            <RazorpayXSection form={form} setForm={setForm} />
+                            <RazorpayXSection form={form} setForm={setForm} errors={errors} />
                         )}
                     </View>
                 )}

@@ -15,9 +15,11 @@ import type { Step2Form } from '../types';
 export function Step2Statutory({
     form,
     setForm,
+    errors,
 }: {
     form: Step2Form;
     setForm: (f: Partial<Step2Form>) => void;
+    errors?: Record<string, string>;
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
@@ -46,6 +48,7 @@ export function Step2Statutory({
                     required
                     autoCapitalize="none"
                     hint="Required for TDS, Form 16, Form 24Q"
+                    error={errors?.pan}
                 />
                 <FormInput
                     label="TAN"
@@ -55,6 +58,7 @@ export function Step2Statutory({
                     required
                     autoCapitalize="none"
                     hint="Required for TDS deduction and quarterly returns"
+                    error={errors?.tan}
                 />
                 <FormInput
                     label="GSTIN"
@@ -63,6 +67,7 @@ export function Step2Statutory({
                     onChangeText={(v) => setForm({ gstin: v.toUpperCase() })}
                     autoCapitalize="none"
                     hint="Required if GST-registered. State code auto-prefixed."
+                    error={errors?.gstin}
                 />
                 <FormInput
                     label="PF Registration No."
@@ -72,6 +77,7 @@ export function Step2Statutory({
                     required
                     autoCapitalize="none"
                     hint="Required for PF deductions and ECR uploads"
+                    error={errors?.pfRegNo}
                 />
                 <FormInput
                     label="ESI Employer Code"
@@ -80,6 +86,7 @@ export function Step2Statutory({
                     onChangeText={(v) => setForm({ esiCode: v })}
                     autoCapitalize="none"
                     hint="Required if any employee earns ≤ ₹21,000/month gross"
+                    error={errors?.esiCode}
                 />
                 <FormInput
                     label="PT Registration No."
@@ -102,6 +109,7 @@ export function Step2Statutory({
                     selected={form.rocState}
                     onSelect={(v) => setForm({ rocState: v })}
                     required
+                    error={errors?.rocState}
                 />
             </SectionCard>
         </Animated.View>

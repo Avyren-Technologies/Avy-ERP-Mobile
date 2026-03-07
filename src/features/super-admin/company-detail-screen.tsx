@@ -23,28 +23,50 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { StatusBadge } from '@/components/ui/status-badge';
 
+import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
+import type { UserTierKey } from './tenant-onboarding/types';
+
 // ============ TYPES ============
+
+type WizardStatus = 'Draft' | 'Pilot' | 'Active' | 'Inactive';
 
 interface CompanyDetail {
     id: string;
-    name: string;
+    displayName: string;
+    legalName: string;
+    businessType: string;
     industry: string;
-    status: 'active' | 'trial' | 'suspended' | 'expired';
+    status: WizardStatus;
+    // Statutory
+    pan: string;
+    gstin: string;
+    pfRegNo: string;
+    // Address
+    hqAddress: string;
+    city: string;
+    state: string;
+    // Contacts
     adminEmail: string;
     adminPhone: string;
-    hqAddress: string;
-    gst: string;
-    tier: string;
+    // Fiscal
+    fyType: string;
+    payrollFreq: string;
+    // Modules & tier
+    selectedModuleIds: string[];
+    userTier: UserTierKey;
+    // Users
     userCount: number;
     maxUsers: number;
-    moduleCount: number;
-    activeModules: string[];
+    // Billing
     billingCycle: 'monthly' | 'annual';
     nextRenewal: string;
     monthlyAmount: string;
     customPricing: boolean;
-    serverType: 'default' | 'custom';
-    serverUrl: string;
+    trialDays: number;
+    // Endpoint
+    endpointType: 'default' | 'custom';
+    endpointUrl: string;
+    // Meta
     createdAt: string;
     lastActive: string;
 }
@@ -53,41 +75,65 @@ interface CompanyDetail {
 
 const MOCK_DETAIL: CompanyDetail = {
     id: '1',
-    name: 'Apex Manufacturing Pvt. Ltd',
+    displayName: 'Apex Manufacturing Pvt. Ltd',
+    legalName: 'Apex Manufacturing Private Limited',
+    businessType: 'Private Limited',
     industry: 'Automotive',
-    status: 'active',
+    status: 'Active',
+    pan: 'AABCA1234H',
+    gstin: '27AABCA1234H1Z5',
+    pfRegNo: 'MH/PUN/0112345',
+    hqAddress: 'Plot 45, MIDC Industrial Area',
+    city: 'Pune',
+    state: 'Maharashtra',
     adminEmail: 'admin@apexmfg.com',
     adminPhone: '+91 98765 43210',
-    hqAddress: 'Plot 45, MIDC Industrial Area, Pune, Maharashtra 411057',
-    gst: '27AABCA1234H1Z5',
-    tier: 'Growth',
+    fyType: 'apr-mar',
+    payrollFreq: 'Monthly',
+    selectedModuleIds: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'vendor', 'finance'],
+    userTier: 'growth',
     userCount: 156,
-    maxUsers: 200,
-    moduleCount: 7,
-    activeModules: ['Masters', 'HR Management', 'Security', 'Production', 'Machine Maintenance', 'Inventory', 'Sales & Invoicing'],
+    maxUsers: 500,
     billingCycle: 'annual',
     nextRenewal: '2026-06-15',
     monthlyAmount: '₹1,84,500',
     customPricing: false,
-    serverType: 'default',
-    serverUrl: 'https://api.avyerp.com',
+    trialDays: 0,
+    endpointType: 'default',
+    endpointUrl: 'https://api.avyerp.com',
     createdAt: '2025-06-15',
     lastActive: '2 hours ago',
 };
 
-const ALL_MODULES = [
-    'Masters', 'Security', 'HR Management', 'Production',
-    'Machine Maintenance', 'Inventory', 'Vendor Management',
-    'Sales & Invoicing', 'Finance', 'Visitor Management',
-];
+// ============ HELPERS ============
 
-// ============ ICON HELPERS ============
+function toBadgeStatus(status: WizardStatus) {
+    switch (status) {
+        case 'Active': return 'active' as const;
+        case 'Pilot': return 'trial' as const;
+        case 'Inactive': return 'suspended' as const;
+        case 'Draft': return 'pending' as const;
+    }
+}
+
+// ============ UI COMPONENTS ============
 
 function BackButton({ onPress }: { onPress: () => void }) {
     return (
         <Pressable onPress={onPress} style={styles.backButton}>
             <ChevronLeft size={22} color={colors.white} strokeWidth={2} />
         </Pressable>
+    );
+}
+
+function SectionHeader({ title, iconType }: { title: string; iconType: string }) {
+    return (
+        <View style={styles.sectionHeader}>
+            <SectionIcon type={iconType} color={colors.primary[500]} />
+            <Text className="font-inter text-sm font-bold text-primary-900">
+                {title}
+            </Text>
+        </View>
     );
 }
 
@@ -98,6 +144,32 @@ function SectionIcon({ type, color }: { type: string; color: string }) {
                 <Svg width={18} height={18} viewBox="0 0 24 24">
                     <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="1.5" fill="none" />
                     <Path d="M12 16v-4M12 8h.01" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+                </Svg>
+            );
+        case 'statutory':
+            return (
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Path
+                        d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
+                        stroke={color}
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </Svg>
+            );
+        case 'address':
+            return (
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Path
+                        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                        stroke={color}
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                    />
+                    <Circle cx="12" cy="9" r="2.5" stroke={color} strokeWidth="1.5" fill="none" />
                 </Svg>
             );
         case 'server':
@@ -147,26 +219,13 @@ function SectionIcon({ type, color }: { type: string; color: string }) {
     }
 }
 
-// ============ SECTION COMPONENTS ============
-
-function SectionHeader({ title, iconType }: { title: string; iconType: string }) {
-    return (
-        <View style={styles.sectionHeader}>
-            <SectionIcon type={iconType} color={colors.primary[500]} />
-            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-200">
-                {title}
-            </Text>
-        </View>
-    );
-}
-
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <View style={styles.infoRow}>
             <Text className="font-inter text-xs font-medium text-neutral-500">
                 {label}
             </Text>
-            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={2}>
+            <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
                 {value}
             </Text>
         </View>
@@ -180,13 +239,15 @@ export function CompanyDetailScreen() {
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [company] = React.useState(MOCK_DETAIL);
-    const [serverType, setServerType] = React.useState<'default' | 'custom'>(company.serverType);
-    const [customUrl, setCustomUrl] = React.useState(company.serverType === 'custom' ? company.serverUrl : '');
+    const [endpointType, setEndpointType] = React.useState<'default' | 'custom'>(company.endpointType);
+    const [customUrl, setCustomUrl] = React.useState(company.endpointType === 'custom' ? company.endpointUrl : '');
     const [isVerifying, setIsVerifying] = React.useState(false);
     const [maxUsers, setMaxUsers] = React.useState(String(company.maxUsers));
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const usagePercent = company.maxUsers > 0 ? (company.userCount / company.maxUsers) * 100 : 0;
+    const tier = USER_TIERS.find((t) => t.key === company.userTier);
+    const badgeStatus = toBadgeStatus(company.status);
 
     const handleVerifyEndpoint = () => {
         setIsVerifying(true);
@@ -196,7 +257,7 @@ export function CompanyDetailScreen() {
     const handleSuspend = () => {
         showConfirm({
             title: 'Suspend Tenant',
-            message: `Are you sure you want to suspend ${company.name}? All users will immediately lose access.`,
+            message: `Are you sure you want to suspend ${company.displayName}? All users will immediately lose access.`,
             variant: 'warning',
             confirmText: 'Suspend',
             onConfirm: () => {
@@ -205,10 +266,22 @@ export function CompanyDetailScreen() {
         });
     };
 
+    const handleActivate = () => {
+        showConfirm({
+            title: 'Activate Tenant',
+            message: `Activate ${company.displayName}? Users will regain access immediately.`,
+            variant: 'primary',
+            confirmText: 'Activate',
+            onConfirm: () => {
+                // TODO: API call to activate tenant
+            },
+        });
+    };
+
     const handleDelete = () => {
         showConfirm({
             title: 'Delete Tenant',
-            message: `This will permanently delete ${company.name} and all associated data. This action cannot be undone.`,
+            message: `This will permanently delete ${company.displayName} and all associated data. This action cannot be undone.`,
             variant: 'danger',
             confirmText: 'Delete Forever',
             onConfirm: () => {
@@ -225,7 +298,7 @@ export function CompanyDetailScreen() {
                 contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
                 bounces={false}
             >
-                {/* Header */}
+                {/* ---- Header ---- */}
                 <Animated.View entering={FadeInDown.duration(400)}>
                     <LinearGradient
                         colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
@@ -244,27 +317,36 @@ export function CompanyDetailScreen() {
                             <View style={{ width: 36 }} />
                         </View>
 
-                        {/* Company Info */}
                         <View style={styles.companyHeaderInfo}>
                             <LinearGradient
                                 colors={[colors.accent[300], colors.primary[400]]}
                                 style={styles.companyLargeAvatar}
                             >
                                 <Text className="font-inter text-xl font-bold text-white">
-                                    {company.name.substring(0, 2).toUpperCase()}
+                                    {company.displayName.substring(0, 2).toUpperCase()}
                                 </Text>
                             </LinearGradient>
 
                             <Text className="mt-3 font-inter text-xl font-bold text-white">
-                                {company.name}
+                                {company.displayName}
+                            </Text>
+                            <Text className="mt-0.5 font-inter text-xs text-primary-200">
+                                {company.legalName}
                             </Text>
                             <View style={styles.headerBadgeRow}>
-                                <StatusBadge status={company.status} />
+                                <StatusBadge status={badgeStatus} />
                                 <View style={styles.industryTag}>
                                     <Text className="font-inter text-xs font-semibold text-white/80">
                                         {company.industry}
                                     </Text>
                                 </View>
+                                {company.businessType ? (
+                                    <View style={styles.industryTag}>
+                                        <Text className="font-inter text-xs font-semibold text-white/80">
+                                            {company.businessType}
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
                         </View>
 
@@ -281,10 +363,19 @@ export function CompanyDetailScreen() {
                             <View style={styles.quickStatDivider} />
                             <View style={styles.quickStat}>
                                 <Text className="font-inter text-lg font-bold text-white">
-                                    {company.moduleCount}
+                                    {company.selectedModuleIds.length}
                                 </Text>
                                 <Text className="font-inter text-[10px] font-medium text-primary-200">
                                     Modules
+                                </Text>
+                            </View>
+                            <View style={styles.quickStatDivider} />
+                            <View style={styles.quickStat}>
+                                <Text className="font-inter text-lg font-bold text-white">
+                                    {tier?.label ?? company.userTier}
+                                </Text>
+                                <Text className="font-inter text-[10px] font-medium text-primary-200">
+                                    User Tier
                                 </Text>
                             </View>
                             <View style={styles.quickStatDivider} />
@@ -301,52 +392,70 @@ export function CompanyDetailScreen() {
                 </Animated.View>
 
                 <View style={styles.body}>
-                    {/* Company Info Section */}
+                    {/* ---- Company Information ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(100)} style={styles.section}>
                         <SectionHeader title="Company Information" iconType="info" />
                         <View style={styles.sectionCard}>
                             <InfoRow label="Admin Email" value={company.adminEmail} />
                             <InfoRow label="Admin Phone" value={company.adminPhone} />
-                            <InfoRow label="HQ Address" value={company.hqAddress} />
-                            <InfoRow label="GST Number" value={company.gst} />
                             <InfoRow label="Registered" value={company.createdAt} />
+                            <InfoRow label="FY Type" value={company.fyType === 'apr-mar' ? 'April–March (India)' : company.fyType} />
+                            <InfoRow label="Payroll Frequency" value={company.payrollFreq} />
                         </View>
                     </Animated.View>
 
-                    {/* Server Endpoint Section */}
-                    <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.section}>
-                        <SectionHeader title="Server Endpoint" iconType="server" />
+                    {/* ---- Statutory & Tax ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(150)} style={styles.section}>
+                        <SectionHeader title="Statutory & Tax" iconType="statutory" />
                         <View style={styles.sectionCard}>
-                            {/* Toggle */}
+                            <InfoRow label="PAN" value={company.pan} />
+                            <InfoRow label="GSTIN" value={company.gstin || '—'} />
+                            <InfoRow label="PF Registration" value={company.pfRegNo || '—'} />
+                        </View>
+                    </Animated.View>
+
+                    {/* ---- Address ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.section}>
+                        <SectionHeader title="Registered Address" iconType="address" />
+                        <View style={styles.sectionCard}>
+                            <InfoRow label="Address" value={company.hqAddress} />
+                            <InfoRow label="City" value={company.city} />
+                            <InfoRow label="State" value={company.state} />
+                        </View>
+                    </Animated.View>
+
+                    {/* ---- Server Endpoint ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(250)} style={styles.section}>
+                        <SectionHeader title="Backend Endpoint" iconType="server" />
+                        <View style={styles.sectionCard}>
                             <View style={styles.serverToggleRow}>
                                 <Pressable
-                                    onPress={() => setServerType('default')}
+                                    onPress={() => setEndpointType('default')}
                                     style={[
                                         styles.serverToggle,
-                                        serverType === 'default' && styles.serverToggleActive,
+                                        endpointType === 'default' && styles.serverToggleActive,
                                     ]}
                                 >
                                     <View style={[styles.serverDot, { backgroundColor: colors.success[500] }]} />
-                                    <Text className={`font-inter text-xs font-semibold ${serverType === 'default' ? 'text-primary-700' : 'text-neutral-500'}`}>
+                                    <Text className={`font-inter text-xs font-semibold ${endpointType === 'default' ? 'text-primary-700' : 'text-neutral-500'}`}>
                                         Default (Avyren)
                                     </Text>
                                 </Pressable>
                                 <Pressable
-                                    onPress={() => setServerType('custom')}
+                                    onPress={() => setEndpointType('custom')}
                                     style={[
                                         styles.serverToggle,
-                                        serverType === 'custom' && styles.serverToggleActive,
+                                        endpointType === 'custom' && styles.serverToggleActive,
                                     ]}
                                 >
                                     <View style={[styles.serverDot, { backgroundColor: colors.info[500] }]} />
-                                    <Text className={`font-inter text-xs font-semibold ${serverType === 'custom' ? 'text-primary-700' : 'text-neutral-500'}`}>
+                                    <Text className={`font-inter text-xs font-semibold ${endpointType === 'custom' ? 'text-primary-700' : 'text-neutral-500'}`}>
                                         Custom URL
                                     </Text>
                                 </Pressable>
                             </View>
 
-                            {/* URL Display / Input */}
-                            {serverType === 'default' ? (
+                            {endpointType === 'default' ? (
                                 <View style={styles.serverUrlDisplay}>
                                     <Text className="font-inter text-sm font-medium text-success-700">
                                         https://api.avyerp.com
@@ -386,9 +495,9 @@ export function CompanyDetailScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* User Limits Section */}
+                    {/* ---- User Limits ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(300)} style={styles.section}>
-                        <SectionHeader title="User Limits" iconType="users" />
+                        <SectionHeader title="User Tier & Limits" iconType="users" />
                         <View style={styles.sectionCard}>
                             <View style={styles.userLimitsRow}>
                                 <View style={styles.userLimitInfo}>
@@ -423,7 +532,7 @@ export function CompanyDetailScreen() {
                                     </View>
                                 </View>
                             </View>
-                            {/* Usage bar */}
+
                             <View style={styles.usageSection}>
                                 <View style={styles.usageBarBg}>
                                     <View
@@ -437,37 +546,31 @@ export function CompanyDetailScreen() {
                                     />
                                 </View>
                                 <Text className="font-inter text-[10px] font-medium text-neutral-400">
-                                    {Math.round(usagePercent)}% capacity used • Tier: {company.tier}
+                                    {Math.round(usagePercent)}% capacity · {tier?.label ?? company.userTier} tier · {tier?.range ?? ''}
                                 </Text>
                             </View>
                         </View>
                     </Animated.View>
 
-                    {/* Active Modules Section */}
-                    <Animated.View entering={FadeInUp.duration(400).delay(400)} style={styles.section}>
+                    {/* ---- Modules ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(350)} style={styles.section}>
                         <SectionHeader title="Active Modules" iconType="modules" />
                         <View style={styles.sectionCard}>
                             <View style={styles.modulesGrid}>
-                                {ALL_MODULES.map((mod) => {
-                                    const isActive = company.activeModules.includes(mod);
+                                {MODULE_CATALOGUE.map((mod) => {
+                                    const isActive = company.selectedModuleIds.includes(mod.id);
                                     return (
                                         <View
-                                            key={mod}
+                                            key={mod.id}
                                             style={[
                                                 styles.moduleChip,
                                                 isActive ? styles.moduleChipActive : styles.moduleChipInactive,
                                             ]}
                                         >
-                                            <View
-                                                style={[
-                                                    styles.moduleChipDot,
-                                                    { backgroundColor: isActive ? colors.success[500] : colors.neutral[300] },
-                                                ]}
-                                            />
                                             <Text
                                                 className={`font-inter text-xs font-semibold ${isActive ? 'text-primary-800' : 'text-neutral-400'}`}
                                             >
-                                                {mod}
+                                                {mod.icon} {mod.name}
                                             </Text>
                                         </View>
                                     );
@@ -484,21 +587,21 @@ export function CompanyDetailScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* Subscription Section */}
-                    <Animated.View entering={FadeInUp.duration(400).delay(500)} style={styles.section}>
+                    {/* ---- Subscription & Billing ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(400)} style={styles.section}>
                         <SectionHeader title="Subscription & Billing" iconType="billing" />
                         <View style={styles.sectionCard}>
                             <View style={styles.billingGrid}>
                                 <View style={styles.billingItem}>
                                     <Text className="font-inter text-xs text-neutral-500">Plan</Text>
                                     <Text className="font-inter text-sm font-bold text-primary-950">
-                                        {company.tier}
+                                        {tier?.label ?? company.userTier}
                                     </Text>
                                 </View>
                                 <View style={styles.billingItem}>
                                     <Text className="font-inter text-xs text-neutral-500">Billing</Text>
                                     <Text className="font-inter text-sm font-bold text-primary-950">
-                                        {company.billingCycle === 'annual' ? 'Annual' : 'Monthly'}
+                                        {company.billingCycle === 'annual' ? 'Annual (2 months free)' : 'Monthly'}
                                     </Text>
                                 </View>
                                 <View style={styles.billingItem}>
@@ -513,6 +616,14 @@ export function CompanyDetailScreen() {
                                         {company.nextRenewal}
                                     </Text>
                                 </View>
+                                {company.trialDays > 0 ? (
+                                    <View style={styles.billingItem}>
+                                        <Text className="font-inter text-xs text-neutral-500">Trial Period</Text>
+                                        <Text className="font-inter text-sm font-bold text-info-600">
+                                            {company.trialDays} days
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
                             {company.customPricing && (
                                 <View style={styles.customPricingBadge}>
@@ -524,13 +635,13 @@ export function CompanyDetailScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* Tenant Actions */}
-                    <Animated.View entering={FadeIn.duration(400).delay(600)} style={styles.section}>
+                    {/* ---- Tenant Actions ---- */}
+                    <Animated.View entering={FadeIn.duration(400).delay(500)} style={styles.section}>
                         <Text className="mb-3 font-inter text-sm font-bold text-neutral-500">
                             Tenant Actions
                         </Text>
                         <View style={styles.actionsRow}>
-                            {company.status === 'active' && (
+                            {company.status === 'Active' && (
                                 <Pressable onPress={handleSuspend} style={styles.actionButton}>
                                     <LinearGradient
                                         colors={[colors.warning[500], colors.warning[600]]}
@@ -544,8 +655,8 @@ export function CompanyDetailScreen() {
                                     </LinearGradient>
                                 </Pressable>
                             )}
-                            {company.status === 'suspended' && (
-                                <Pressable style={styles.actionButton}>
+                            {company.status === 'Inactive' && (
+                                <Pressable onPress={handleActivate} style={styles.actionButton}>
                                     <LinearGradient
                                         colors={[colors.success[500], colors.success[600]]}
                                         style={styles.actionGradient}
@@ -554,6 +665,19 @@ export function CompanyDetailScreen() {
                                             <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                         </Svg>
                                         <Text className="ml-2 font-inter text-xs font-bold text-white">Activate</Text>
+                                    </LinearGradient>
+                                </Pressable>
+                            )}
+                            {company.status === 'Draft' && (
+                                <Pressable onPress={handleActivate} style={styles.actionButton}>
+                                    <LinearGradient
+                                        colors={[colors.primary[500], colors.primary[700]]}
+                                        style={styles.actionGradient}
+                                    >
+                                        <Svg width={18} height={18} viewBox="0 0 24 24">
+                                            <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </Svg>
+                                        <Text className="ml-2 font-inter text-xs font-bold text-white">Provision</Text>
                                     </LinearGradient>
                                 </Pressable>
                             )}
@@ -591,7 +715,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.gradient.surface,
     },
-    // Header
     headerGradient: {
         paddingBottom: 24,
         paddingHorizontal: 24,
@@ -648,7 +771,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 10,
-        gap: 8,
+        gap: 6,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
     },
     industryTag: {
         paddingHorizontal: 10,
@@ -663,7 +788,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 16,
         paddingVertical: 14,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     quickStat: {
         flex: 1,
@@ -674,7 +799,6 @@ const styles = StyleSheet.create({
         height: 30,
         backgroundColor: 'rgba(255,255,255,0.2)',
     },
-    // Body
     body: {
         paddingHorizontal: 24,
         marginTop: 20,
@@ -700,13 +824,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.primary[50],
     },
-    // Info rows
     infoRow: {
         paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
-    // Server Endpoint
     serverToggleRow: {
         flexDirection: 'row',
         gap: 8,
@@ -768,7 +890,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: colors.primary[50],
     },
-    // User Limits
     userLimitsRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -814,19 +935,15 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 3,
     },
-    // Modules
     modulesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
     },
     moduleChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 7,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         borderRadius: 10,
-        gap: 6,
     },
     moduleChipActive: {
         backgroundColor: colors.primary[50],
@@ -838,11 +955,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.neutral[200],
     },
-    moduleChipDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
     manageModulesButton: {
         marginTop: 14,
         paddingVertical: 10,
@@ -850,7 +962,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: colors.primary[50],
     },
-    // Billing
     billingGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -868,7 +979,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: colors.accent[50],
     },
-    // Actions
     actionsRow: {
         flexDirection: 'row',
         gap: 10,

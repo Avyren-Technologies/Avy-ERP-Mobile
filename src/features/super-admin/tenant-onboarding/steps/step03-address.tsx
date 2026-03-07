@@ -15,9 +15,11 @@ import type { Step3Form } from '../types';
 export function Step3Address({
     form,
     setForm,
+    errors,
 }: {
     form: Step3Form;
     setForm: (f: Partial<Step3Form>) => void;
+    errors?: Record<string, string>;
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
@@ -28,6 +30,7 @@ export function Step3Address({
                     value={form.regLine1}
                     onChangeText={(v) => setForm({ regLine1: v })}
                     required
+                    error={errors?.regLine1}
                 />
                 <FormInput
                     label="Address Line 2"
@@ -42,6 +45,7 @@ export function Step3Address({
                     onChangeText={(v) => setForm({ regCity: v })}
                     required
                     autoCapitalize="words"
+                    error={errors?.regCity}
                 />
                 <FormInput
                     label="District"
@@ -56,6 +60,7 @@ export function Step3Address({
                     selected={form.regState}
                     onSelect={(v) => setForm({ regState: v })}
                     required
+                    error={errors?.regState}
                 />
                 <FormInput
                     label="PIN Code"
@@ -64,6 +69,7 @@ export function Step3Address({
                     onChangeText={(v) => setForm({ regPin: v })}
                     required
                     keyboardType="number-pad"
+                    error={errors?.regPin}
                 />
                 <FormInput
                     label="STD Code"
@@ -116,6 +122,7 @@ export function Step3Address({
                             placeholder="Corporate office address"
                             value={form.corpLine1}
                             onChangeText={(v) => setForm({ corpLine1: v })}
+                            error={errors?.corpLine1}
                         />
                         <FormInput
                             label="City"
@@ -123,12 +130,14 @@ export function Step3Address({
                             value={form.corpCity}
                             onChangeText={(v) => setForm({ corpCity: v })}
                             autoCapitalize="words"
+                            error={errors?.corpCity}
                         />
                         <ChipSelector
                             label="State"
                             options={INDIAN_STATES}
                             selected={form.corpState}
                             onSelect={(v) => setForm({ corpState: v })}
+                            error={errors?.corpState}
                         />
                         <FormInput
                             label="PIN Code"
@@ -136,6 +145,7 @@ export function Step3Address({
                             value={form.corpPin}
                             onChangeText={(v) => setForm({ corpPin: v })}
                             keyboardType="number-pad"
+                            error={errors?.corpPin}
                         />
                     </Animated.View>
                 )}

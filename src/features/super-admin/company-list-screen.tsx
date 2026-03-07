@@ -23,24 +23,40 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { StatusBadge } from '@/components/ui/status-badge';
 
+import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
+import type { UserTierKey } from './tenant-onboarding/types';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ============ TYPES ============
 
-type TenantStatus = 'active' | 'trial' | 'suspended' | 'expired';
+type WizardStatus = 'Draft' | 'Pilot' | 'Active' | 'Inactive';
 
 interface CompanyItem {
     id: string;
-    name: string;
+    displayName: string;
+    legalName: string;
+    businessType: string;
     industry: string;
-    status: TenantStatus;
+    status: WizardStatus;
     userCount: number;
     maxUsers: number;
-    moduleCount: number;
-    tier: string;
+    selectedModuleIds: string[];
+    userTier: UserTierKey;
+    billingCycle: 'monthly' | 'annual';
     adminEmail: string;
-    serverType: 'default' | 'custom';
+    endpointType: 'default' | 'custom';
     createdAt: string;
+}
+
+// Maps wizard status to StatusBadge variant
+function toBadgeStatus(status: WizardStatus) {
+    switch (status) {
+        case 'Active': return 'active' as const;
+        case 'Pilot': return 'trial' as const;
+        case 'Inactive': return 'suspended' as const;
+        case 'Draft': return 'pending' as const;
+    }
 }
 
 // ============ MOCK DATA ============
@@ -48,116 +64,140 @@ interface CompanyItem {
 const MOCK_COMPANIES: CompanyItem[] = [
     {
         id: '1',
-        name: 'Apex Manufacturing Pvt. Ltd',
+        displayName: 'Apex Manufacturing Pvt. Ltd',
+        legalName: 'Apex Manufacturing Private Limited',
+        businessType: 'Private Limited',
         industry: 'Automotive',
-        status: 'active',
+        status: 'Active',
         userCount: 156,
-        maxUsers: 200,
-        moduleCount: 7,
-        tier: 'Growth',
+        maxUsers: 500,
+        selectedModuleIds: ['hr', 'production', 'machine-maintenance', 'inventory', 'vendor', 'finance', 'masters'],
+        userTier: 'growth',
+        billingCycle: 'annual',
         adminEmail: 'admin@apexmfg.com',
-        serverType: 'default',
+        endpointType: 'default',
         createdAt: '2025-06-15',
     },
     {
         id: '2',
-        name: 'Steel Dynamics Industries',
+        displayName: 'Steel Dynamics Industries',
+        legalName: 'Steel Dynamics Industries Ltd',
+        businessType: 'Public Limited',
         industry: 'Steel & Metal',
-        status: 'active',
+        status: 'Active',
         userCount: 412,
-        maxUsers: 500,
-        moduleCount: 9,
-        tier: 'Scale',
+        maxUsers: 1000,
+        selectedModuleIds: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'vendor', 'sales', 'finance', 'masters'],
+        userTier: 'scale',
+        billingCycle: 'annual',
         adminEmail: 'it@steeldynamics.in',
-        serverType: 'custom',
+        endpointType: 'custom',
         createdAt: '2025-03-22',
     },
     {
         id: '3',
-        name: 'Sahara Industries Ltd',
+        displayName: 'Sahara Industries Ltd',
+        legalName: 'Sahara Industries Limited',
+        businessType: 'Public Limited',
         industry: 'Textiles',
-        status: 'trial',
+        status: 'Pilot',
         userCount: 23,
         maxUsers: 100,
-        moduleCount: 4,
-        tier: 'Starter',
+        selectedModuleIds: ['hr', 'inventory', 'finance', 'masters'],
+        userTier: 'starter',
+        billingCycle: 'monthly',
         adminEmail: 'ops@saharaindustries.co.in',
-        serverType: 'default',
+        endpointType: 'default',
         createdAt: '2026-02-28',
     },
     {
         id: '4',
-        name: 'Indo Metals Corporation',
+        displayName: 'Indo Metals Corporation',
+        legalName: 'Indo Metals Corporation Pvt. Ltd',
+        businessType: 'Private Limited',
         industry: 'Metal Fabrication',
-        status: 'active',
+        status: 'Active',
         userCount: 89,
         maxUsers: 100,
-        moduleCount: 6,
-        tier: 'Starter',
+        selectedModuleIds: ['hr', 'production', 'inventory', 'vendor', 'finance', 'masters'],
+        userTier: 'starter',
+        billingCycle: 'monthly',
         adminEmail: 'admin@indometals.com',
-        serverType: 'default',
+        endpointType: 'default',
         createdAt: '2025-09-10',
     },
     {
         id: '5',
-        name: 'Precision Machining Corp',
+        displayName: 'Precision Machining Corp',
+        legalName: 'Precision Machining Corporation Pvt. Ltd',
+        businessType: 'Private Limited',
         industry: 'CNC Machining',
-        status: 'suspended',
+        status: 'Inactive',
         userCount: 0,
-        maxUsers: 200,
-        moduleCount: 5,
-        tier: 'Growth',
+        maxUsers: 500,
+        selectedModuleIds: ['hr', 'production', 'machine-maintenance', 'inventory', 'finance', 'masters'],
+        userTier: 'growth',
+        billingCycle: 'monthly',
         adminEmail: 'info@precmach.in',
-        serverType: 'default',
+        endpointType: 'default',
         createdAt: '2025-01-05',
     },
     {
         id: '6',
-        name: 'GreenTech Polymers',
-        industry: 'Plastics',
-        status: 'expired',
+        displayName: 'GreenTech Polymers',
+        legalName: 'GreenTech Polymers Pvt. Ltd',
+        businessType: 'Private Limited',
+        industry: 'Plastics & Rubber',
+        status: 'Draft',
         userCount: 0,
         maxUsers: 100,
-        moduleCount: 3,
-        tier: 'Starter',
+        selectedModuleIds: ['hr', 'inventory', 'masters'],
+        userTier: 'starter',
+        billingCycle: 'monthly',
         adminEmail: 'admin@greentechpoly.com',
-        serverType: 'default',
-        createdAt: '2024-11-20',
+        endpointType: 'default',
+        createdAt: '2026-02-20',
     },
     {
         id: '7',
-        name: 'Rathi Engineering Works',
+        displayName: 'Rathi Engineering Works',
+        legalName: 'Rathi Engineering Works Pvt. Ltd',
+        businessType: 'Private Limited',
         industry: 'Heavy Engineering',
-        status: 'active',
+        status: 'Active',
         userCount: 245,
-        maxUsers: 500,
-        moduleCount: 8,
-        tier: 'Scale',
+        maxUsers: 1000,
+        selectedModuleIds: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'vendor', 'sales', 'masters'],
+        userTier: 'scale',
+        billingCycle: 'annual',
         adminEmail: 'erp@rathiengg.com',
-        serverType: 'custom',
+        endpointType: 'custom',
         createdAt: '2025-04-18',
     },
     {
         id: '8',
-        name: 'Vishwa Electronics',
-        industry: 'Electronics',
-        status: 'trial',
+        displayName: 'Vishwa Electronics',
+        legalName: 'Vishwa Electronics Pvt. Ltd',
+        businessType: 'Private Limited',
+        industry: 'Electronics & Semiconductors',
+        status: 'Pilot',
         userCount: 12,
-        maxUsers: 50,
-        moduleCount: 3,
-        tier: 'Starter',
+        maxUsers: 100,
+        selectedModuleIds: ['hr', 'inventory', 'masters'],
+        userTier: 'starter',
+        billingCycle: 'monthly',
         adminEmail: 'cto@vishwaelec.in',
-        serverType: 'default',
+        endpointType: 'default',
         createdAt: '2026-03-01',
     },
 ];
 
 const FILTER_CHIPS = [
     { key: 'all', label: 'All', count: MOCK_COMPANIES.length },
-    { key: 'active', label: 'Active', count: MOCK_COMPANIES.filter(c => c.status === 'active').length },
-    { key: 'trial', label: 'Trial', count: MOCK_COMPANIES.filter(c => c.status === 'trial').length },
-    { key: 'suspended', label: 'Suspended', count: MOCK_COMPANIES.filter(c => c.status === 'suspended').length },
-    { key: 'expired', label: 'Expired', count: MOCK_COMPANIES.filter(c => c.status === 'expired').length },
+    { key: 'Active', label: 'Active', count: MOCK_COMPANIES.filter(c => c.status === 'Active').length },
+    { key: 'Pilot', label: 'Pilot', count: MOCK_COMPANIES.filter(c => c.status === 'Pilot').length },
+    { key: 'Draft', label: 'Draft', count: MOCK_COMPANIES.filter(c => c.status === 'Draft').length },
+    { key: 'Inactive', label: 'Inactive', count: MOCK_COMPANIES.filter(c => c.status === 'Inactive').length },
 ];
 
 // ============ COMPANY CARD ============
@@ -172,6 +212,11 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
     const usagePercent = company.maxUsers > 0 ? (company.userCount / company.maxUsers) * 100 : 0;
     const usageColor = usagePercent > 80 ? colors.warning[500] : colors.success[500];
 
+    const tier = USER_TIERS.find((t) => t.key === company.userTier);
+    const moduleCount = company.selectedModuleIds.length;
+    const badgeStatus = toBadgeStatus(company.status);
+    const isLive = company.status === 'Active' || company.status === 'Pilot';
+
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable
@@ -184,18 +229,17 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                 {/* Header Row */}
                 <View style={styles.cardHeader}>
                     <View style={styles.companyInfo}>
-                        {/* Company Initial Avatar */}
                         <LinearGradient
-                            colors={company.status === 'active'
+                            colors={company.status === 'Active'
                                 ? [colors.primary[500], colors.accent[500]] as const
-                                : company.status === 'trial'
+                                : company.status === 'Pilot'
                                     ? [colors.info[400], colors.info[600]] as const
                                     : [colors.neutral[400], colors.neutral[500]] as const
                             }
                             style={styles.companyAvatar}
                         >
                             <Text className="font-inter text-sm font-bold text-white">
-                                {company.name.substring(0, 2).toUpperCase()}
+                                {company.displayName.substring(0, 2).toUpperCase()}
                             </Text>
                         </LinearGradient>
 
@@ -204,13 +248,13 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                                 className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                                 numberOfLines={1}
                             >
-                                {company.name}
+                                {company.displayName}
                             </Text>
                             <View style={styles.industryRow}>
                                 <Text className="font-inter text-xs text-neutral-500">
                                     {company.industry}
                                 </Text>
-                                {company.serverType === 'custom' && (
+                                {company.endpointType === 'custom' && (
                                     <View style={styles.customServerTag}>
                                         <Text className="font-inter text-[9px] font-bold text-info-700">
                                             SELF-HOSTED
@@ -220,7 +264,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             </View>
                         </View>
                     </View>
-                    <StatusBadge status={company.status} size="sm" />
+                    <StatusBadge status={badgeStatus} size="sm" />
                 </View>
 
                 {/* Stats Row */}
@@ -244,7 +288,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                         </Text>
                     </View>
 
-                    <View style={[styles.statDivider]} />
+                    <View style={styles.statDivider} />
 
                     <View style={styles.statItem}>
                         <Svg width={14} height={14} viewBox="0 0 24 24">
@@ -254,7 +298,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             <Rect x="14" y="14" width="7" height="7" rx="1" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                         </Svg>
                         <Text className="font-inter text-xs font-semibold text-neutral-600">
-                            {company.moduleCount} modules
+                            {moduleCount} modules
                         </Text>
                     </View>
 
@@ -262,13 +306,20 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
 
                     <View style={styles.statItem}>
                         <Text className="font-inter text-xs font-semibold text-primary-500">
-                            {company.tier}
+                            {tier?.label ?? company.userTier}
                         </Text>
+                        {company.billingCycle === 'annual' ? (
+                            <View style={styles.annualBadge}>
+                                <Text className="font-inter text-[8px] font-bold text-success-700">
+                                    YR
+                                </Text>
+                            </View>
+                        ) : null}
                     </View>
                 </View>
 
                 {/* User Usage Bar */}
-                {company.status === 'active' || company.status === 'trial' ? (
+                {isLive ? (
                     <View style={styles.usageBarContainer}>
                         <View style={styles.usageBarBg}>
                             <View
@@ -282,10 +333,34 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             />
                         </View>
                         <Text className="font-inter text-[10px] font-medium text-neutral-400">
-                            {Math.round(usagePercent)}% users
+                            {Math.round(usagePercent)}% capacity
                         </Text>
                     </View>
                 ) : null}
+
+                {/* Module chips (first 4) */}
+                {company.selectedModuleIds.length > 0 && (
+                    <View style={styles.moduleChips}>
+                        {company.selectedModuleIds.slice(0, 4).map((id) => {
+                            const mod = MODULE_CATALOGUE.find((m) => m.id === id);
+                            if (!mod) return null;
+                            return (
+                                <View key={id} style={styles.moduleChip}>
+                                    <Text className="font-inter text-[9px] font-semibold text-primary-700">
+                                        {mod.icon} {mod.name}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                        {company.selectedModuleIds.length > 4 ? (
+                            <View style={styles.moduleChipMore}>
+                                <Text className="font-inter text-[9px] font-semibold text-neutral-500">
+                                    +{company.selectedModuleIds.length - 4}
+                                </Text>
+                            </View>
+                        ) : null}
+                    </View>
+                )}
             </Pressable>
         </Animated.View>
     );
@@ -310,7 +385,8 @@ export function CompanyListScreen() {
             const q = search.toLowerCase();
             list = list.filter(
                 c =>
-                    c.name.toLowerCase().includes(q) ||
+                    c.displayName.toLowerCase().includes(q) ||
+                    c.legalName.toLowerCase().includes(q) ||
                     c.industry.toLowerCase().includes(q) ||
                     c.adminEmail.toLowerCase().includes(q),
             );
@@ -327,21 +403,21 @@ export function CompanyListScreen() {
         <CompanyCard company={item} index={index} />
     );
 
+    const activeCount = MOCK_COMPANIES.filter(c => c.status === 'Active').length;
+
     const renderHeader = () => (
         <>
-            {/* Header */}
             <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
                 <View>
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                         Companies
                     </Text>
                     <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        {MOCK_COMPANIES.length} tenants on the platform
+                        {MOCK_COMPANIES.length} tenants · {activeCount} active
                     </Text>
                 </View>
             </Animated.View>
 
-            {/* Search & Filters */}
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>
                 <SearchBar
                     value={search}
@@ -423,7 +499,6 @@ const styles = StyleSheet.create({
     listContent: {
         paddingHorizontal: 24,
     },
-    // Card
     card: {
         backgroundColor: colors.white,
         borderRadius: 20,
@@ -475,7 +550,6 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
         borderRadius: 4,
     },
-    // Stats
     statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -495,7 +569,12 @@ const styles = StyleSheet.create({
         height: 14,
         backgroundColor: colors.neutral[200],
     },
-    // Usage bar
+    annualBadge: {
+        backgroundColor: colors.success[100],
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+    },
     usageBarContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -513,7 +592,24 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 2,
     },
-    // Empty
+    moduleChips: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 4,
+        marginTop: 10,
+    },
+    moduleChip: {
+        backgroundColor: colors.primary[50],
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
+    moduleChipMore: {
+        backgroundColor: colors.neutral[100],
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
     emptyContainer: {
         alignItems: 'center',
         justifyContent: 'center',

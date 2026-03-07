@@ -17,11 +17,13 @@ export function Step8Shifts({
     setForm,
     shifts,
     setShifts,
+    errors,
 }: {
     form: Step8Form;
     setForm: (f: Partial<Step8Form>) => void;
     shifts: Shift[];
     setShifts: (s: Shift[]) => void;
+    errors?: Record<string, string>;
 }) {
     const toggleWeeklyOff = (day: string) => {
         const updated = form.weeklyOffs.includes(day)
@@ -97,6 +99,7 @@ export function Step8Shifts({
                             value={form.dayStartTime}
                             onChangeText={(v) => setForm({ dayStartTime: v })}
                             required
+                            error={errors?.dayStartTime}
                         />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -106,6 +109,7 @@ export function Step8Shifts({
                             value={form.dayEndTime}
                             onChangeText={(v) => setForm({ dayEndTime: v })}
                             required
+                            error={errors?.dayEndTime}
                         />
                     </View>
                 </View>
@@ -158,6 +162,7 @@ export function Step8Shifts({
                         onChangeText={(v) => updateShift(shift.id, { name: v })}
                         required
                         autoCapitalize="words"
+                        error={errors?.[`name_${idx}`]}
                     />
                     <View style={S.twoColumn}>
                         <View style={{ flex: 1 }}>
@@ -167,6 +172,7 @@ export function Step8Shifts({
                                 value={shift.fromTime}
                                 onChangeText={(v) => updateShift(shift.id, { fromTime: v })}
                                 required
+                                error={errors?.[`fromTime_${idx}`]}
                             />
                         </View>
                         <View style={{ flex: 1 }}>
@@ -176,6 +182,7 @@ export function Step8Shifts({
                                 value={shift.toTime}
                                 onChangeText={(v) => updateShift(shift.id, { toTime: v })}
                                 required
+                                error={errors?.[`toTime_${idx}`]}
                             />
                         </View>
                     </View>

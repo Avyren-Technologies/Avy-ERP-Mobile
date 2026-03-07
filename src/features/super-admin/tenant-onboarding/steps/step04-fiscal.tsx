@@ -71,11 +71,15 @@ function CustomFYPicker({
     endMonth,
     onStartChange,
     onEndChange,
+    startError,
+    endError,
 }: {
     startMonth: string;
     endMonth: string;
     onStartChange: (m: string) => void;
     onEndChange: (m: string) => void;
+    startError?: string;
+    endError?: string;
 }) {
     const startLabel = MONTHS.find((m) => m.key === startMonth)?.label ?? 'Select';
     const endLabel = MONTHS.find((m) => m.key === endMonth)?.label ?? 'Select';
@@ -137,12 +141,18 @@ function CustomFYPicker({
                     onSelect={onStartChange}
                     highlightColor={colors.primary[600]}
                 />
+                {startError ? (
+                    <Text className="mb-1 font-inter text-[10px] text-danger-600">{startError}</Text>
+                ) : null}
                 <MonthGridPicker
                     label="FY End Month"
                     selectedMonth={endMonth}
                     onSelect={onEndChange}
                     highlightColor={colors.accent[600]}
                 />
+                {endError ? (
+                    <Text className="mb-1 font-inter text-[10px] text-danger-600">{endError}</Text>
+                ) : null}
                 <Text className="mt-2 font-inter text-[10px] text-neutral-400">
                     Select the month your financial year starts and ends. These months define payroll cycles, compliance deadlines, and audit periods.
                 </Text>
@@ -156,9 +166,11 @@ function CustomFYPicker({
 export function Step4Fiscal({
     form,
     setForm,
+    errors,
 }: {
     form: Step4Form;
     setForm: (f: Partial<Step4Form>) => void;
+    errors?: Record<string, string>;
 }) {
     const toggleWorkingDay = (day: string) => {
         const updated = form.workingDays.includes(day)
@@ -188,6 +200,8 @@ export function Step4Fiscal({
                         endMonth={form.fyCustomEndMonth}
                         onStartChange={(m) => setForm({ fyCustomStartMonth: m })}
                         onEndChange={(m) => setForm({ fyCustomEndMonth: m })}
+                        startError={errors?.fyCustomStartMonth}
+                        endError={errors?.fyCustomEndMonth}
                     />
                 )}
             </SectionCard>
@@ -200,6 +214,7 @@ export function Step4Fiscal({
                     selected={form.payrollFreq}
                     onSelect={(v) => setForm({ payrollFreq: v })}
                     hint="Monthly is standard for most Indian companies. Semi-Monthly = twice a month."
+                    error={errors?.payrollFreq}
                 />
                 <ChipSelector
                     label="Cut-off Day"
@@ -207,6 +222,7 @@ export function Step4Fiscal({
                     selected={form.cutoffDay}
                     onSelect={(v) => setForm({ cutoffDay: v })}
                     hint="Day when attendance & leave data is frozen for payroll processing"
+                    error={errors?.cutoffDay}
                 />
                 <ChipSelector
                     label="Disbursement Day"
@@ -214,6 +230,7 @@ export function Step4Fiscal({
                     selected={form.disbursementDay}
                     onSelect={(v) => setForm({ disbursementDay: v })}
                     hint="Day salaries are transferred to employee accounts"
+                    error={errors?.disbursementDay}
                 />
             </SectionCard>
 
@@ -225,6 +242,7 @@ export function Step4Fiscal({
                     selected={form.weekStart}
                     onSelect={(v) => setForm({ weekStart: v })}
                     hint="Affects shift rotation, attendance calendar, and OT calculations"
+                    error={errors?.weekStart}
                 />
                 <ChipSelector
                     label="Timezone"
@@ -232,6 +250,7 @@ export function Step4Fiscal({
                     selected={form.timezone}
                     onSelect={(v) => setForm({ timezone: v })}
                     required
+                    error={errors?.timezone}
                 />
             </SectionCard>
 
@@ -240,6 +259,11 @@ export function Step4Fiscal({
                 <Text className="mb-3 font-inter text-xs text-neutral-500">
                     Toggle each day as working or weekly off
                 </Text>
+                {errors?.workingDays ? (
+                    <Text className="mb-2 font-inter text-[10px] text-danger-600">
+                        {errors.workingDays}
+                    </Text>
+                ) : null}
                 {DAYS_OF_WEEK.map((day) => {
                     const isWorking = form.workingDays.includes(day);
                     return (

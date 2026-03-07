@@ -17,6 +17,7 @@ import Animated, {
     FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChevronLeft } from 'lucide-react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
@@ -230,15 +231,7 @@ export function AddCompanyScreen() {
                     style={[styles.header, { paddingTop: insets.top + 12 }]}
                 >
                     <Pressable onPress={handleBack} style={styles.headerBackBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24">
-                            <Path
-                                d="M19 12H5M12 19l-7-7 7-7"
-                                stroke={colors.primary[600]}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </Svg>
+                        <ChevronLeft size={20} color={colors.primary[600]} strokeWidth={2} />
                     </Pressable>
                     <View style={styles.headerCenter}>
                         <Text className="font-inter text-base font-bold text-primary-950">

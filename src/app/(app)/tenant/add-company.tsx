@@ -1,1 +1,1 @@
-export { AddCompanyScreen as default } from '@/features/super-admin/add-company-screen';
+export { TenantOnboardingScreen as default } from '@/features/super-admin/tenant-onboarding';

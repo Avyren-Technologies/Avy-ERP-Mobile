@@ -20,6 +20,8 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HamburgerButton } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
@@ -296,6 +298,7 @@ function ActivityTypeIcon({ type }: { type: string }) {
 
 function HeaderSection() {
     const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
 
     return (
         <Animated.View entering={FadeInDown.duration(500)}>
@@ -311,21 +314,15 @@ function HeaderSection() {
 
                 <View style={styles.headerContent}>
                     <View style={styles.headerLeft}>
-                        <View style={styles.avatarContainer}>
-                            <LinearGradient
-                                colors={[colors.accent[300], colors.primary[400]]}
-                                style={styles.avatar}
-                            >
-                                <Text className="font-inter text-lg font-bold text-white">SA</Text>
-                            </LinearGradient>
-                            <View style={styles.onlineDot} />
-                        </View>
+                        {/* Hamburger Menu */}
+                        <HamburgerButton onPress={toggle} />
+
                         <View style={styles.headerTextContainer}>
                             <Text className="font-inter text-sm font-medium text-primary-200">
                                 Super Admin
                             </Text>
                             <Text className="font-inter text-xl font-bold text-white">
-                                Welcome back 👋
+                                Welcome back
                             </Text>
                         </View>
                     </View>

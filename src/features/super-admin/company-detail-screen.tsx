@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    Alert,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -16,10 +15,12 @@ import Animated, {
     FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChevronLeft } from 'lucide-react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { StatusBadge } from '@/components/ui/status-badge';
 
 // ============ TYPES ============
@@ -85,15 +86,7 @@ const ALL_MODULES = [
 function BackButton({ onPress }: { onPress: () => void }) {
     return (
         <Pressable onPress={onPress} style={styles.backButton}>
-            <Svg width={22} height={22} viewBox="0 0 24 24">
-                <Path
-                    d="M19 12H5M12 19l-7-7 7-7"
-                    stroke={colors.white}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
+            <ChevronLeft size={22} color={colors.white} strokeWidth={2} />
         </Pressable>
     );
 }
@@ -191,6 +184,7 @@ export function CompanyDetailScreen() {
     const [customUrl, setCustomUrl] = React.useState(company.serverType === 'custom' ? company.serverUrl : '');
     const [isVerifying, setIsVerifying] = React.useState(false);
     const [maxUsers, setMaxUsers] = React.useState(String(company.maxUsers));
+    const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const usagePercent = company.maxUsers > 0 ? (company.userCount / company.maxUsers) * 100 : 0;
 
@@ -200,25 +194,28 @@ export function CompanyDetailScreen() {
     };
 
     const handleSuspend = () => {
-        Alert.alert(
-            'Suspend Tenant',
-            `Are you sure you want to suspend ${company.name}? All users will lose access.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Suspend', style: 'destructive', onPress: () => { } },
-            ],
-        );
+        showConfirm({
+            title: 'Suspend Tenant',
+            message: `Are you sure you want to suspend ${company.name}? All users will immediately lose access.`,
+            variant: 'warning',
+            confirmText: 'Suspend',
+            onConfirm: () => {
+                // TODO: API call to suspend tenant
+            },
+        });
     };
 
     const handleDelete = () => {
-        Alert.alert(
-            'Delete Tenant',
-            `This will permanently delete ${company.name} and all associated data. This cannot be undone.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => { } },
-            ],
-        );
+        showConfirm({
+            title: 'Delete Tenant',
+            message: `This will permanently delete ${company.name} and all associated data. This action cannot be undone.`,
+            variant: 'danger',
+            confirmText: 'Delete Forever',
+            onConfirm: () => {
+                // TODO: API call to delete tenant
+                router.back();
+            },
+        });
     };
 
     return (
@@ -581,6 +578,8 @@ export function CompanyDetailScreen() {
                     </Animated.View>
                 </View>
             </ScrollView>
+
+            <ConfirmModal {...confirmModalProps} />
         </View>
     );
 }

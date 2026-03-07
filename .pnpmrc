@@ -1,0 +1,17 @@
+# Force strict pnpm usage
+auto-install-peers=true
+node-linker=hoisted
+resolution-mode=highest
+strict-peer-dependencies=false
+
+# Prevent accidental usage of other package managers
+ignore-scripts=false
+enable-pre-post-scripts=true
+
+# Security and performance
+ignore-deprecated=false
+save-workspace-protocol=rolling
+
+# Strict mode - prevent npm/yarn lock files
+package-manager-strict=true
+package-manager-strict-version=true

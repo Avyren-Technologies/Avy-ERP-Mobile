@@ -29,6 +29,26 @@ When creating this starter kit, we had several guiding principles in mind::
 - **🧩 Minimal code and dependencies**: We aimed to keep the codebase and dependencies as small as possible.
 - **💪 Well-maintained third-party libraries**: We included only well-maintained and reliable third-party libraries, to provide stability and support for our projects.
 
+## 📋 Prerequisites
+
+### Package Manager
+This project **strictly requires pnpm**. Using npm or yarn will fail during installation.
+
+```bash
+# Install pnpm if you don't have it
+npm install -g pnpm
+
+# Verify pnpm installation
+pnpm --version
+```
+
+**Why pnpm?** This project uses advanced pnpm features for workspace management, strict peer dependency handling, and performance optimizations that are not available in npm or yarn.
+
+```bash
+# Verify your environment is set up correctly
+pnpm run verify-setup
+```
+
 ## ⭐ Key Features
 
 - ✅ Latest Expo SDK with Custom Dev Client: Leverage the best of the Expo ecosystem while maintaining full control over your app.

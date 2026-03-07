@@ -48,6 +48,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: Env.EXPO_PUBLIC_BUNDLE_ID,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSLocationWhenInUseUsageDescription: 'Allow Avy ERP to use your location to set geofencing areas.',
+      NSPhotoLibraryUsageDescription: 'Allow Avy ERP to access your photos to upload company logos.',
+      NSCameraUsageDescription: 'Allow Avy ERP to use the camera to photograph company logos.',
+    },
+    config: {
+      googleMapsApiKey: Env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
     },
   },
   experiments: {
@@ -59,6 +65,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#312E81',
     },
     package: Env.EXPO_PUBLIC_PACKAGE,
+    config: {
+      googleMaps: {
+        apiKey: Env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
+      },
+    },
   },
   web: {
     favicon: './assets/favicon.png',
@@ -115,10 +126,24 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     ['app-icon-badge', appIconBadgeConfig],
     ['react-native-edge-to-edge'],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow Avy ERP to access your photos to upload company logos.',
+        cameraPermission: 'Allow Avy ERP to use the camera to photograph company logos.',
+      },
+    ],
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission: 'Allow Avy ERP to use your location to set geofencing areas.',
+      },
+    ],
   ],
   extra: {
     eas: {
       projectId: EAS_PROJECT_ID,
     },
+    googleMapsApiKey: Env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
   },
 });

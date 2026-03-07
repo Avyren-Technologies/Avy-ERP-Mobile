@@ -8,6 +8,7 @@ import {
     View,
 } from 'react-native';
 import Animated, {
+    Easing,
     interpolate,
     runOnJS,
     useAnimatedStyle,
@@ -196,22 +197,36 @@ export function Sidebar({
 }: SidebarProps) {
     const insets = useSafeAreaInsets();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const [isVisible, setIsVisible] = React.useState(isOpen);
 
-    const translateX = useSharedValue(-SIDEBAR_FULL_WIDTH);
-    const backdropOpacity = useSharedValue(0);
+    const openProgress = useSharedValue(isOpen ? 1 : 0);
     const sidebarWidth = useSharedValue(SIDEBAR_FULL_WIDTH);
 
-    const ANIM_DURATION = 250;
+    const OPEN_ANIM_DURATION = 280;
+    const CLOSE_ANIM_DURATION = 220;
 
     React.useEffect(() => {
         if (isOpen) {
-            translateX.value = withTiming(0, { duration: ANIM_DURATION });
-            backdropOpacity.value = withTiming(1, { duration: ANIM_DURATION });
+            setIsVisible(true);
+            openProgress.value = withTiming(1, {
+                duration: OPEN_ANIM_DURATION,
+                easing: Easing.out(Easing.cubic),
+            });
         } else {
-            translateX.value = withTiming(-SIDEBAR_FULL_WIDTH, { duration: ANIM_DURATION });
-            backdropOpacity.value = withTiming(0, { duration: ANIM_DURATION });
+            openProgress.value = withTiming(
+                0,
+                {
+                    duration: CLOSE_ANIM_DURATION,
+                    easing: Easing.in(Easing.cubic),
+                },
+                (finished) => {
+                    if (finished) {
+                        runOnJS(setIsVisible)(false);
+                    }
+                }
+            );
         }
-    }, [isOpen, translateX, backdropOpacity]);
+    }, [isOpen, openProgress]);
 
     React.useEffect(() => {
         if (collapsible) {
@@ -223,11 +238,19 @@ export function Sidebar({
     }, [isCollapsed, collapsible, sidebarWidth]);
 
     const backdropStyle = useAnimatedStyle(() => ({
-        opacity: backdropOpacity.value,
+        opacity: interpolate(openProgress.value, [0, 1], [0, 1]),
     }));
 
     const sidebarStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: translateX.value }],
+        transform: [
+            {
+                translateX: interpolate(
+                    openProgress.value,
+                    [0, 1],
+                    [-SIDEBAR_FULL_WIDTH - 8, 0]
+                ),
+            },
+        ],
         width: sidebarWidth.value,
     }));
 
@@ -241,7 +264,7 @@ export function Sidebar({
             : 1,
     }));
 
-    if (!isOpen) return null;
+    if (!isVisible) return null;
 
     return (
         <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

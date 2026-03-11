@@ -1,0 +1,29 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Pressable",
+    "Avyren",
+    "autofill",
+    "hitslop",
+    "reanimated",
+    "nativewind",
+    "expo",
+    "zustand",
+    "Flashlist",
+    "Lato",
+    "tsdk",
+    "cspell",
+    "husky",
+    "pnpm",
+    "commitlint",
+    "tailwindcss",
+    "importantForAutofill"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "pnpm-lock.yaml",
+    "*.lock",
+    ".expo"
+  ]
+}

@@ -35,11 +35,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: Env.EXPO_PUBLIC_SCHEME,
   slug: 'avy-erpapp',
   version: Env.EXPO_PUBLIC_VERSION.toString(),
+  runtimeVersion: {
+    policy: 'appVersion',
+  },
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   updates: {
+    url: 'https://u.expo.dev/f53c2a58-f3c7-4947-8fb7-9820829c8b63',
     fallbackToCacheTimeout: 0,
   },
   assetBundlePatterns: ['**/*'],

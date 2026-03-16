@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import * as Location from 'expo-location';
 import * as React from 'react';
 import {
     FlatList,
@@ -13,12 +12,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import MapView, { Circle as MapCircle, PROVIDER_GOOGLE } from 'react-native-maps';
-import type { Region } from 'react-native-maps';
+
+import Constants from 'expo-constants';
+import * as Location from 'expo-location';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import type { Region } from 'react-native-maps';
+import MapView, { Circle as MapCircle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
-import Constants from 'expo-constants';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
@@ -210,6 +211,235 @@ export function ChipSelector({
             ) : hint ? (
                 <Text className="mt-1 font-inter text-[10px] text-neutral-400">{hint}</Text>
             ) : null}
+        </View>
+    );
+}
+
+// ============ FORM SELECT (INLINE DROPDOWN) ============
+
+export function FormSelect({
+    label,
+    options,
+    selected,
+    onSelect,
+    placeholder = 'Select...',
+    required,
+    hint,
+    error,
+    direction = 'down',
+}: {
+    label: string;
+    options: string[];
+    selected: string;
+    onSelect: (v: string) => void;
+    placeholder?: string;
+    required?: boolean;
+    hint?: string;
+    error?: string;
+    direction?: 'up' | 'down';
+}) {
+    const [visible, setVisible] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const inputRef = React.useRef<TextInput>(null);
+
+    React.useEffect(() => {
+        let timer: any;
+        if (visible) {
+            timer = setTimeout(() => inputRef.current?.focus(), 150);
+        }
+        return () => {
+            if (timer) clearTimeout(timer);
+            setSearchQuery('');
+        };
+    }, [visible]);
+
+    const filteredOptions = searchQuery
+        ? options.filter((opt) => opt.toLowerCase().startsWith(searchQuery.toLowerCase()))
+        : options;
+
+    return (
+        <View style={[S.fieldWrap, { zIndex: visible ? 200 : 1 }]}>
+            <FormLabel text={label} required={required} />
+            <Pressable
+                onPress={() => setVisible((v) => !v)}
+                style={[
+                    S.fieldInput,
+                    error ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined,
+                    visible ? { borderColor: colors.primary[400] } : undefined,
+                    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+                ]}
+            >
+                <Text
+                    className={`flex-1 font-inter text-sm ${selected ? 'text-primary-950' : 'text-neutral-400'}`}
+                    numberOfLines={1}
+                >
+                    {selected || placeholder}
+                </Text>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path
+                        d={
+                            visible
+                                ? direction === 'up'
+                                    ? 'M6 9l6 6 6-6'
+                                    : 'M18 15l-6-6-6 6'
+                                : direction === 'up'
+                                  ? 'M18 15l-6-6-6 6'
+                                  : 'M6 9l6 6 6-6'
+                        }
+                        stroke={visible ? colors.primary[500] : colors.neutral[400]}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </Svg>
+            </Pressable>
+            {error ? (
+                <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>
+            ) : hint ? (
+                <Text className="mt-1 font-inter text-[10px] text-neutral-400">{hint}</Text>
+            ) : null}
+
+            {/* Inline dropdown list */}
+            {visible && (
+                <>
+                    {/* Backdrop to dismiss */}
+                    <Pressable
+                        onPress={() => setVisible(false)}
+                        style={{
+                            position: 'absolute',
+                            top: -3000,
+                            left: -3000,
+                            right: -3000,
+                            bottom: -3000,
+                            zIndex: 99,
+                        }}
+                    />
+                    <View
+                        style={{
+                            position: 'absolute',
+                            [direction === 'up' ? 'bottom' : 'top']: '102%',
+                            left: 0,
+                            right: 0,
+                            zIndex: 200,
+                            backgroundColor: '#fff',
+                            borderRadius: 10,
+                            borderWidth: 1,
+                            borderColor: colors.primary[200],
+                            maxHeight: 220,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: direction === 'up' ? -4 : 4 },
+                            shadowOpacity: 0.12,
+                            shadowRadius: 10,
+                            elevation: 8,
+                            overflow: 'hidden',
+                        }}
+                    >
+                        {/* Quick Jump Input for long lists (e.g. States) */}
+                        {options.length > 8 && (
+                            <View
+                                style={{
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 8,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: colors.neutral[100],
+                                    backgroundColor: colors.neutral[50],
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                }}
+                            >
+                                <Svg width={14} height={14} viewBox="0 0 24 24">
+                                    <Path
+                                        d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35"
+                                        stroke={colors.neutral[400]}
+                                        strokeWidth="2"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </Svg>
+                                <TextInput
+                                    ref={inputRef}
+                                    style={{
+                                        flex: 1,
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: colors.primary[950],
+                                        padding: 0,
+                                        height: 20,
+                                    }}
+                                    placeholder="Type to jump..."
+                                    placeholderTextColor={colors.neutral[400]}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                />
+                                {searchQuery.length > 0 && (
+                                    <Pressable onPress={() => setSearchQuery('')}>
+                                        <Text className="font-inter text-[10px] font-bold text-neutral-400">
+                                            CLEAR
+                                        </Text>
+                                    </Pressable>
+                                )}
+                            </View>
+                        )}
+
+                        <ScrollView
+                            showsVerticalScrollIndicator
+                            keyboardShouldPersistTaps="handled"
+                            nestedScrollEnabled
+                        >
+                            {filteredOptions.length > 0 ? (
+                                filteredOptions.map((item, idx) => {
+                                    const isSelected = item === selected;
+                                    return (
+                                        <Pressable
+                                            key={item}
+                                            onPress={() => {
+                                                onSelect(item);
+                                                setVisible(false);
+                                            }}
+                                            style={{
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                paddingHorizontal: 14,
+                                                paddingVertical: 11,
+                                                backgroundColor: isSelected ? colors.primary[50] : '#fff',
+                                                borderTopWidth: idx === 0 ? 0 : 1,
+                                                borderTopColor: colors.neutral[100],
+                                            }}
+                                        >
+                                            <Text
+                                                className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
+                                            >
+                                                {item}
+                                            </Text>
+                                            {isSelected && (
+                                                <Svg width={15} height={15} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d="M5 12l5 5L20 7"
+                                                        stroke={colors.primary[600]}
+                                                        strokeWidth="2.5"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </Svg>
+                                            )}
+                                        </Pressable>
+                                    );
+                                })
+                            ) : (
+                                <View style={{ padding: 20, alignItems: 'center' }}>
+                                    <Text className="font-inter text-xs text-neutral-400">
+                                        No matches found
+                                    </Text>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </>
+            )}
         </View>
     );
 }

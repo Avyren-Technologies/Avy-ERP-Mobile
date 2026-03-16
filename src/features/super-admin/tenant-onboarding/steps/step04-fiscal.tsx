@@ -1,12 +1,14 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { Step4Form } from '../types';
+
 import * as React from 'react';
 import { Pressable, View } from 'react-native';
+
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { ChipSelector, RadioOption, SectionCard } from '../atoms';
+import { FormSelect, RadioOption, SectionCard } from '../atoms';
 import {
     CUTOFF_DAYS,
     DAYS_OF_WEEK,
@@ -18,150 +20,6 @@ import {
     WEEK_STARTS,
 } from '../constants';
 import { S } from '../shared-styles';
-import type { Step4Form } from '../types';
-
-// ============ MONTH GRID PICKER ============
-
-function MonthGridPicker({
-    label,
-    selectedMonth,
-    onSelect,
-    highlightColor,
-}: {
-    label: string;
-    selectedMonth: string;
-    onSelect: (key: string) => void;
-    highlightColor: string;
-}) {
-    return (
-        <View style={{ marginBottom: 12 }}>
-            <Text className="mb-2 font-inter text-xs font-bold text-neutral-500">{label}</Text>
-            <View style={S.monthGrid}>
-                {MONTHS.map((m) => {
-                    const isSelected = m.key === selectedMonth;
-                    return (
-                        <Pressable
-                            key={m.key}
-                            style={[
-                                S.monthCell,
-                                isSelected && {
-                                    backgroundColor: highlightColor,
-                                    borderColor: highlightColor,
-                                },
-                            ]}
-                            onPress={() => onSelect(m.key)}
-                        >
-                            <Text
-                                className={`font-inter text-xs font-bold ${isSelected ? 'text-white' : 'text-neutral-600'}`}
-                            >
-                                {m.short}
-                            </Text>
-                        </Pressable>
-                    );
-                })}
-            </View>
-        </View>
-    );
-}
-
-// ============ CUSTOM FY RANGE PICKER ============
-
-function CustomFYPicker({
-    startMonth,
-    endMonth,
-    onStartChange,
-    onEndChange,
-    startError,
-    endError,
-}: {
-    startMonth: string;
-    endMonth: string;
-    onStartChange: (m: string) => void;
-    onEndChange: (m: string) => void;
-    startError?: string;
-    endError?: string;
-}) {
-    const startLabel = MONTHS.find((m) => m.key === startMonth)?.label ?? 'Select';
-    const endLabel = MONTHS.find((m) => m.key === endMonth)?.label ?? 'Select';
-
-    return (
-        <Animated.View entering={FadeIn.duration(200)}>
-            <View
-                style={{
-                    backgroundColor: colors.primary[50],
-                    borderRadius: 12,
-                    padding: 14,
-                    marginTop: 8,
-                    borderWidth: 1,
-                    borderColor: colors.primary[200],
-                }}
-            >
-                {/* Summary row */}
-                {startMonth && endMonth && (
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <View
-                            style={{
-                                backgroundColor: colors.primary[600],
-                                borderRadius: 8,
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                            }}
-                        >
-                            <Text className="font-inter text-xs font-bold text-white">
-                                {startLabel}
-                            </Text>
-                        </View>
-                        <Text className="font-inter text-xs text-neutral-400">to</Text>
-                        <View
-                            style={{
-                                backgroundColor: colors.accent[600],
-                                borderRadius: 8,
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                            }}
-                        >
-                            <Text className="font-inter text-xs font-bold text-white">
-                                {endLabel}
-                            </Text>
-                        </View>
-                    </View>
-                )}
-
-                <MonthGridPicker
-                    label="FY Start Month"
-                    selectedMonth={startMonth}
-                    onSelect={onStartChange}
-                    highlightColor={colors.primary[600]}
-                />
-                {startError ? (
-                    <Text className="mb-1 font-inter text-[10px] text-danger-600">{startError}</Text>
-                ) : null}
-                <MonthGridPicker
-                    label="FY End Month"
-                    selectedMonth={endMonth}
-                    onSelect={onEndChange}
-                    highlightColor={colors.accent[600]}
-                />
-                {endError ? (
-                    <Text className="mb-1 font-inter text-[10px] text-danger-600">{endError}</Text>
-                ) : null}
-                <Text className="mt-2 font-inter text-[10px] text-neutral-400">
-                    Select the month your financial year starts and ends. These months define payroll cycles, compliance deadlines, and audit periods.
-                </Text>
-            </View>
-        </Animated.View>
-    );
-}
-
-// ============ MAIN STEP ============
 
 export function Step4Fiscal({
     form,
@@ -172,6 +30,13 @@ export function Step4Fiscal({
     setForm: (f: Partial<Step4Form>) => void;
     errors?: Record<string, string>;
 }) {
+    const [customFY, setCustomFY] = React.useState(form.fyType === 'custom');
+
+    const toggleCustom = (isCustom: boolean) => {
+        setCustomFY(isCustom);
+        setForm({ fyType: isCustom ? 'custom' : 'apr-mar' });
+    };
+
     const toggleWorkingDay = (day: string) => {
         const updated = form.workingDays.includes(day)
             ? form.workingDays.filter((d) => d !== day)
@@ -179,78 +44,108 @@ export function Step4Fiscal({
         setForm({ workingDays: updated });
     };
 
+    const filteredFY = FY_OPTIONS.filter((opt) => opt.key === 'apr-mar' || opt.key === 'custom');
+
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
-            {/* ---- Financial Year ---- */}
-            <SectionCard title="Financial Year">
-                {FY_OPTIONS.map((opt) => (
+            <SectionCard title="Financial Year Setup">
+                <Text className="mb-4 font-inter text-sm text-neutral-600">
+                    Define the accounting period for the company.
+                </Text>
+
+                {filteredFY.map((opt) => (
                     <RadioOption
                         key={opt.key}
                         label={opt.label}
-                        subtitle={opt.subtitle}
                         selected={form.fyType === opt.key}
-                        onSelect={() => setForm({ fyType: opt.key })}
-                        badge={opt.key === 'apr-mar' ? 'INDIA DEFAULT' : undefined}
+                        onSelect={() => toggleCustom(opt.key === 'custom')}
+                        subtitle={opt.subtitle}
                     />
                 ))}
 
-                {form.fyType === 'custom' && (
-                    <CustomFYPicker
-                        startMonth={form.fyCustomStartMonth}
-                        endMonth={form.fyCustomEndMonth}
-                        onStartChange={(m) => setForm({ fyCustomStartMonth: m })}
-                        onEndChange={(m) => setForm({ fyCustomEndMonth: m })}
-                        startError={errors?.fyCustomStartMonth}
-                        endError={errors?.fyCustomEndMonth}
-                    />
+                {customFY && (
+                    <Animated.View entering={FadeIn.duration(200)} style={{ marginTop: 12 }}>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={{ flex: 1 }}>
+                                <FormSelect
+                                    label="Start Month"
+                                    options={MONTHS.map((m) => m.label)}
+                                    selected={form.fyCustomStartMonth}
+                                    onSelect={(v) => setForm({ fyCustomStartMonth: v })}
+                                    required
+                                    direction="up"
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <FormSelect
+                                    label="End Month"
+                                    options={MONTHS.map((m) => m.label)}
+                                    selected={form.fyCustomEndMonth}
+                                    onSelect={(v) => setForm({ fyCustomEndMonth: v })}
+                                    required
+                                    direction="up"
+                                />
+                            </View>
+                        </View>
+                        <View style={S.infoCard}>
+                            <Text className="font-inter text-xs text-primary-600">
+                                Common cycles: Jan–Dec, July–June, Oct–Sept.
+                            </Text>
+                        </View>
+                    </Animated.View>
                 )}
             </SectionCard>
 
             {/* ---- Payroll Cycle ---- */}
             <SectionCard title="Payroll Cycle">
-                <ChipSelector
+                <FormSelect
                     label="Frequency"
                     options={PAYROLL_FREQ}
                     selected={form.payrollFreq}
                     onSelect={(v) => setForm({ payrollFreq: v })}
                     hint="Monthly is standard for most Indian companies. Semi-Monthly = twice a month."
                     error={errors?.payrollFreq}
+                    direction="up"
                 />
-                <ChipSelector
+                <FormSelect
                     label="Cut-off Day"
                     options={CUTOFF_DAYS}
                     selected={form.cutoffDay}
                     onSelect={(v) => setForm({ cutoffDay: v })}
                     hint="Day when attendance & leave data is frozen for payroll processing"
                     error={errors?.cutoffDay}
+                    direction="up"
                 />
-                <ChipSelector
+                <FormSelect
                     label="Disbursement Day"
                     options={DISBURSEMENT_DAYS}
                     selected={form.disbursementDay}
                     onSelect={(v) => setForm({ disbursementDay: v })}
                     hint="Day salaries are transferred to employee accounts"
                     error={errors?.disbursementDay}
+                    direction="up"
                 />
             </SectionCard>
 
             {/* ---- Week & Timezone ---- */}
             <SectionCard title="Week & Timezone">
-                <ChipSelector
+                <FormSelect
                     label="Week Start Day"
                     options={WEEK_STARTS}
                     selected={form.weekStart}
                     onSelect={(v) => setForm({ weekStart: v })}
                     hint="Affects shift rotation, attendance calendar, and OT calculations"
                     error={errors?.weekStart}
+                    direction="up"
                 />
-                <ChipSelector
+                <FormSelect
                     label="Timezone"
                     options={TIMEZONES}
                     selected={form.timezone}
                     onSelect={(v) => setForm({ timezone: v })}
                     required
                     error={errors?.timezone}
+                    direction="up"
                 />
             </SectionCard>
 

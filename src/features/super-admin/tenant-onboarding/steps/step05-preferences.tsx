@@ -1,15 +1,14 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { Step5Form } from '../types';
 import * as React from 'react';
 import { View } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
-import colors from '@/components/ui/colors';
 
 import {
-    ChipSelector,
     FormInput,
+    FormSelect,
     SecretInput,
     SectionCard,
     ToggleRow,
@@ -22,7 +21,6 @@ import {
     TIME_FORMATS,
 } from '../constants';
 import { S } from '../shared-styles';
-import type { Step5Form } from '../types';
 
 // ============ RAZORPAYX SECTION ============
 
@@ -189,7 +187,7 @@ export function Step5Preferences({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <SectionCard title="Locale & Format">
-                <ChipSelector
+                <FormSelect
                     label="Currency"
                     options={CURRENCIES}
                     selected={form.currency}
@@ -197,30 +195,31 @@ export function Step5Preferences({
                     required
                     error={errors?.currency}
                 />
-                <ChipSelector
+                <FormSelect
                     label="Language"
                     options={LANGUAGES}
                     selected={form.language}
                     onSelect={(v) => setForm({ language: v })}
                     error={errors?.language}
                 />
-                <ChipSelector
+                <FormSelect
                     label="Date Format"
                     options={DATE_FORMATS}
                     selected={form.dateFormat}
                     onSelect={(v) => setForm({ dateFormat: v })}
                 />
-                <ChipSelector
+                <FormSelect
                     label="Number Format"
                     options={NUMBER_FORMATS}
                     selected={form.numberFormat}
                     onSelect={(v) => setForm({ numberFormat: v })}
                 />
-                <ChipSelector
+                <FormSelect
                     label="Time Format"
                     options={TIME_FORMATS}
                     selected={form.timeFormat}
                     onSelect={(v) => setForm({ timeFormat: v })}
+                    direction="up"
                 />
             </SectionCard>
 

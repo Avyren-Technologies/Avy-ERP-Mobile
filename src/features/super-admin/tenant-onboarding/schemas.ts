@@ -210,7 +210,7 @@ export type Step6EndpointErrors = Partial<Record<keyof z.infer<typeof step6Endpo
 
 export const step7ModulesSchema = z.object({
     selectedModuleIds: z.array(z.string()).min(1, 'Select at least one module'),
-    customModulePricing: z.record(z.number()).optional(),
+    customModulePricing: z.record(z.string(), z.number()).optional(),
 });
 
 export type Step7ModulesErrors = Partial<Record<keyof z.infer<typeof step7ModulesSchema>, string>>;
@@ -486,7 +486,7 @@ export function validateArrayStep(
             if (!errors[key]) errors[key] = issue.message;
         } else {
             // path[0] = array index, path[1] = field name
-            const key = `${path[1]}_${path[0]}`;
+            const key = `${String(path[1])}_${String(path[0])}`;
             if (!errors[key]) errors[key] = issue.message;
         }
     }

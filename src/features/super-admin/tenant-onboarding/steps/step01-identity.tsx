@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import * as React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -9,10 +9,10 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { ChipSelector, FormInput, RadioOption, SectionCard } from '../atoms';
+import { FormInput, FormSelect, RadioOption, SectionCard } from '../atoms';
+import type { Step1Form } from '../types';
 import { BUSINESS_TYPES, COMPANY_STATUSES, INDUSTRIES } from '../constants';
 import { S } from '../shared-styles';
-import type { Step1Form } from '../types';
 
 export function Step1Identity({
     form,
@@ -221,7 +221,7 @@ export function Step1Identity({
                     required
                     error={errors?.legalName}
                 />
-                <ChipSelector
+                <FormSelect
                     label="Business Type"
                     options={BUSINESS_TYPES}
                     selected={form.businessType}
@@ -229,7 +229,7 @@ export function Step1Identity({
                     required
                     error={errors?.businessType}
                 />
-                <ChipSelector
+                <FormSelect
                     label="Nature of Industry"
                     options={INDUSTRIES}
                     selected={form.industry}

@@ -1,4 +1,4 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { Step2Form } from '../types';
 import * as React from 'react';
 import { View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -7,10 +7,9 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { ChipSelector, FormInput, SectionCard } from '../atoms';
+import { FormInput, FormSelect, SectionCard } from '../atoms';
 import { INDIAN_STATES } from '../constants';
 import { S } from '../shared-styles';
-import type { Step2Form } from '../types';
 
 export function Step2Statutory({
     form,
@@ -103,13 +102,14 @@ export function Step2Statutory({
                     onChangeText={(v) => setForm({ lwfrNo: v })}
                     autoCapitalize="none"
                 />
-                <ChipSelector
+                <FormSelect
                     label="ROC Filing State"
                     options={INDIAN_STATES}
                     selected={form.rocState}
                     onSelect={(v) => setForm({ rocState: v })}
                     required
                     error={errors?.rocState}
+                    direction="up"
                 />
             </SectionCard>
         </Animated.View>

@@ -1,4 +1,4 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { Contact } from '../types';
 import * as React from 'react';
 import { View } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
@@ -7,14 +7,13 @@ import { Text } from '@/components/ui';
 
 import {
     AddButton,
-    ChipSelector,
     DeleteButton,
     FormInput,
+    FormSelect,
     PhoneInput,
 } from '../atoms';
 import { CONTACT_TYPES } from '../constants';
 import { S } from '../shared-styles';
-import type { Contact } from '../types';
 
 export function Step6Contacts({
     contacts,
@@ -119,11 +118,12 @@ export function Step6Contacts({
                         error={errors?.[`email_${idx}`]}
                     />
 
-                    <ChipSelector
+                    <FormSelect
                         label="Contact Type"
                         options={CONTACT_TYPES}
                         selected={contact.type}
                         onSelect={(v) => update(contact.id, { type: v })}
+                        direction="up"
                     />
 
                     <FormInput

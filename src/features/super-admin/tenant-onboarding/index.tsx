@@ -181,14 +181,14 @@ export function TenantOnboardingScreen() {
     // ---- Validation ----
     const validateCurrentStep = (): StepErrors => {
         switch (step) {
-            case 1: return validateStep(1, step1 as Record<string, unknown>);
-            case 2: return validateStep(2, step2 as Record<string, unknown>);
-            case 3: return validateStep(3, step3 as Record<string, unknown>);
-            case 4: return validateStep(4, step4 as Record<string, unknown>);
-            case 5: return validateStep(5, step5 as Record<string, unknown>);
-            case 6: return validateStep(6, step6 as Record<string, unknown>);
-            case 7: return validateStep(7, step7Modules as Record<string, unknown>);
-            case 8: return validateStep(8, step8Tier as Record<string, unknown>);
+            case 1: return validateStep(1, step1 as unknown as Record<string, unknown>);
+            case 2: return validateStep(2, step2 as unknown as Record<string, unknown>);
+            case 3: return validateStep(3, step3 as unknown as Record<string, unknown>);
+            case 4: return validateStep(4, step4 as unknown as Record<string, unknown>);
+            case 5: return validateStep(5, step5 as unknown as Record<string, unknown>);
+            case 6: return validateStep(6, step6 as unknown as Record<string, unknown>);
+            case 7: return validateStep(7, step7Modules as unknown as Record<string, unknown>);
+            case 8: return validateStep(8, step8Tier as unknown as Record<string, unknown>);
             case 9: return validateArrayStep(9, contacts);
             case 10: return validateArrayStep(10, locations);
             case 11: {

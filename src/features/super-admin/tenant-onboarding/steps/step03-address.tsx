@@ -5,12 +5,11 @@ import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
-import colors from '@/components/ui/colors';
 
-import { ChipSelector, FormInput, SectionCard } from '../atoms';
+import { FormInput, FormSelect, SectionCard } from '../atoms';
 import { INDIAN_STATES } from '../constants';
-import { S } from '../shared-styles';
 import type { Step3Form } from '../types';
+import { S } from '../shared-styles';
 
 export function Step3Address({
     form,
@@ -54,7 +53,7 @@ export function Step3Address({
                     onChangeText={(v) => setForm({ regDistrict: v })}
                     autoCapitalize="words"
                 />
-                <ChipSelector
+                <FormSelect
                     label="State"
                     options={INDIAN_STATES}
                     selected={form.regState}
@@ -132,7 +131,7 @@ export function Step3Address({
                             autoCapitalize="words"
                             error={errors?.corpCity}
                         />
-                        <ChipSelector
+                        <FormSelect
                             label="State"
                             options={INDIAN_STATES}
                             selected={form.corpState}

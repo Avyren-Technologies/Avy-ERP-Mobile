@@ -1,13 +1,12 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { UserItem } from '../types';
 import * as React from 'react';
 import { View } from 'react-native';
-import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { Text } from '@/components/ui';
 
-import { AddButton, ChipSelector, DeleteButton, FormInput } from '../atoms';
+import { AddButton, DeleteButton, FormInput, FormSelect } from '../atoms';
 import { S } from '../shared-styles';
-import type { UserItem } from '../types';
 
 const USER_ROLES = [
     'Company Admin', 'HR Manager', 'Finance Manager', 'Operations Manager',
@@ -99,13 +98,14 @@ export function Step12Users({
                         hint="Employee must reset on first login"
                         error={errors?.[`password_${idx}`]}
                     />
-                    <ChipSelector
+                    <FormSelect
                         label="Role"
                         options={USER_ROLES}
                         selected={user.role}
                         onSelect={(v) => update(user.id, { role: v })}
                         required
                         error={errors?.[`role_${idx}`]}
+                        direction="up"
                     />
                     <FormInput
                         label="Email"

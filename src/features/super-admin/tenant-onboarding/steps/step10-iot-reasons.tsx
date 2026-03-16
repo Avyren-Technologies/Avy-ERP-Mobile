@@ -7,10 +7,10 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { AddButton, ChipSelector, DeleteButton, FormInput } from '../atoms';
+import { AddButton, DeleteButton, FormInput, FormSelect } from '../atoms';
 import { IOT_REASON_TYPES } from '../constants';
-import { S } from '../shared-styles';
 import type { IOTReason } from '../types';
+import { S } from '../shared-styles';
 
 export function Step10IOTReasons({
     reasons,
@@ -64,7 +64,7 @@ export function Step10IOTReasons({
                         <DeleteButton onPress={() => remove(item.id)} />
                     </View>
 
-                    <ChipSelector
+                    <FormSelect
                         label="Reason Type"
                         options={IOT_REASON_TYPES}
                         selected={item.reasonType}

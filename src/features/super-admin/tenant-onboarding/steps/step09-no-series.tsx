@@ -6,7 +6,7 @@ import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { AddButton, ChipSelector, DeleteButton, FormInput } from '../atoms';
+import { AddButton, DeleteButton, FormInput, FormSelect } from '../atoms';
 import { NO_SERIES_SCREENS } from '../constants';
 import { S } from '../shared-styles';
 import type { NoSeriesItem } from '../types';
@@ -102,7 +102,7 @@ export function Step9NoSeries({
                         onChangeText={(v) => update(item.id, { description: v })}
                     />
 
-                    <ChipSelector
+                    <FormSelect
                         label="Linked Screen"
                         options={NO_SERIES_SCREENS}
                         selected={item.linkedScreen}

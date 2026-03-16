@@ -7,10 +7,10 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { AddButton, ChipSelector, DeleteButton, FormInput, SectionCard } from '../atoms';
+import { AddButton, DeleteButton, FormInput, FormSelect, SectionCard } from '../atoms';
 import { DAYS_OF_WEEK, DOWNTIME_TYPES } from '../constants';
-import { S } from '../shared-styles';
 import type { DowntimeSlot, Shift, Step8Form } from '../types';
+import { S } from '../shared-styles';
 
 export function Step8Shifts({
     form,
@@ -216,7 +216,7 @@ export function Step8Shifts({
                     {shift.downtimeSlots.map((slot) => (
                         <View key={slot.id} style={S.slotRow}>
                             <View style={{ flex: 2 }}>
-                                <ChipSelector
+                                <FormSelect
                                     label="Type"
                                     options={DOWNTIME_TYPES}
                                     selected={slot.type}

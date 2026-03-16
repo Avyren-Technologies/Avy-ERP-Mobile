@@ -9,30 +9,28 @@ import colors from '@/components/ui/colors';
 
 import {
     AddButton,
-    ChipSelector,
     DeleteButton,
     FormInput,
+    FormSelect,
     GeoFencingModal,
     PhoneInput,
     RadioOption,
     SectionCard,
     ToggleRow,
 } from '../atoms';
+import type { PlantBranch, Step7Form } from '../types';
 import { FACILITY_STATUSES, FACILITY_TYPES, INDIAN_STATES } from '../constants';
 import { S } from '../shared-styles';
-import type { PlantBranch, Step7Form } from '../types';
 
 // ============ FACILITY TYPE SELECTOR WITH CUSTOM OPTION ============
 
 function FacilityTypeSelector({
     selected,
-    customValue,
     onSelect,
     onCustomChange,
     onCustomSave,
 }: {
     selected: string;
-    customValue: string;
     onSelect: (v: string) => void;
     onCustomChange: (v: string) => void;
     onCustomSave: () => void;
@@ -70,7 +68,7 @@ function FacilityTypeSelector({
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
                 Facility Type <Text className="text-danger-500">*</Text>
             </Text>
-            <ChipSelector
+            <FormSelect
                 label=""
                 options={[...FACILITY_TYPES]}
                 selected={displaySelected === 'Custom...' ? 'Custom...' : displaySelected}
@@ -314,7 +312,7 @@ function PlantBranchCard({
                     />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <ChipSelector
+                    <FormSelect
                         label="Status"
                         options={FACILITY_STATUSES}
                         selected={item.status}
@@ -325,7 +323,6 @@ function PlantBranchCard({
 
             <FacilityTypeSelector
                 selected={item.facilityType}
-                customValue={item.customFacilityType}
                 onSelect={(v) => onUpdate({ facilityType: v })}
                 onCustomChange={(v) => onUpdate({ customFacilityType: v })}
                 onCustomSave={() => {}}
@@ -385,7 +382,7 @@ function PlantBranchCard({
                     />
                 </View>
             </View>
-            <ChipSelector
+            <FormSelect
                 label="State"
                 options={INDIAN_STATES}
                 selected={item.state}

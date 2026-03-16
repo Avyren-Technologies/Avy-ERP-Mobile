@@ -78,13 +78,13 @@ export function Step12Users({
                         error={errors?.[`fullName_${idx}`]}
                     />
                     <FormInput
-                        label="Username / Email"
-                        placeholder="admin@company.com"
+                        label="Username"
+                        placeholder="e.g. rahul.mehta"
                         value={user.username}
                         onChangeText={(v) => update(user.id, { username: v })}
                         required
-                        keyboardType="email-address"
                         autoCapitalize="none"
+                        hint="Used for login. Alphanumeric, dots and underscores allowed."
                         error={errors?.[`username_${idx}`]}
                     />
                     <FormInput

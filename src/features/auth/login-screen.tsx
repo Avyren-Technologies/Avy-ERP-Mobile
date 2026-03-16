@@ -15,31 +15,16 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-} from 'react-native-reanimated';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { signIn } from '@/features/auth/use-auth-store';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-function AvyLogo() {
-  return (
-    <View style={styles.logoContainer}>
-      <Image
-        source={require('../../../assets/Company-Logo.png')}
-        style={styles.logoImage}
-        resizeMode="contain"
-      />
-    </View>
-  );
-}
 
 type EmailInputProps = {
   email: string;
@@ -49,23 +34,30 @@ type EmailInputProps = {
   onSubmit: () => void;
 };
 
-function EmailInput({ email, emailFocused, setEmail, setEmailFocused, onSubmit }: EmailInputProps) {
+function EmailInput({
+  email,
+  emailFocused,
+  setEmail,
+  setEmailFocused,
+  onSubmit,
+}: EmailInputProps) {
+  const iconColor = emailFocused ? '#63B3FF' : 'rgba(226,233,255,0.7)';
   return (
     <View style={styles.inputGroup}>
-      <Text className="font-inter mb-2 text-sm font-semibold text-primary-900 dark:text-primary-200">
-        Email or Phone
+      <Text className="font-inter mb-2 text-sm font-semibold" style={styles.labelText}>
+        Email
       </Text>
       <View style={[styles.inputWrapper, emailFocused && styles.inputWrapperFocused]}>
         <Svg width={20} height={20} viewBox="0 0 24 24" style={styles.inputIcon}>
           <Path
             d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
-            stroke={emailFocused ? colors.primary[500] : colors.neutral[400]}
+            stroke={iconColor}
             strokeWidth="1.5"
             fill="none"
           />
           <Path
             d="M22 6l-10 7L2 6"
-            stroke={emailFocused ? colors.primary[500] : colors.neutral[400]}
+            stroke={iconColor}
             strokeWidth="1.5"
             fill="none"
             strokeLinecap="round"
@@ -74,8 +66,8 @@ function EmailInput({ email, emailFocused, setEmail, setEmailFocused, onSubmit }
         </Svg>
         <TextInput
           style={styles.input}
-          placeholder="Enter your email or phone"
-          placeholderTextColor={colors.neutral[400]}
+          placeholder="Enter your work email"
+          placeholderTextColor="rgba(226,233,255,0.54)"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -114,16 +106,17 @@ function PasswordInput({
   setIsPasswordVisible,
   onSubmit,
 }: PasswordInputProps) {
+  const iconColor = passwordFocused ? '#63B3FF' : 'rgba(226,233,255,0.7)';
   return (
     <View style={styles.inputGroup}>
-      <Text className="font-inter mb-2 text-sm font-semibold text-primary-900 dark:text-primary-200">
+      <Text className="font-inter mb-2 text-sm font-semibold" style={styles.labelText}>
         Password
       </Text>
       <View style={[styles.inputWrapper, passwordFocused && styles.inputWrapperFocused]}>
         <Svg width={20} height={20} viewBox="0 0 24 24" style={styles.inputIcon}>
           <Path
             d="M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2zM7 11V7a5 5 0 0110 0v4"
-            stroke={passwordFocused ? colors.primary[500] : colors.neutral[400]}
+            stroke={iconColor}
             strokeWidth="1.5"
             fill="none"
             strokeLinecap="round"
@@ -134,7 +127,7 @@ function PasswordInput({
           ref={passwordRef}
           style={styles.input}
           placeholder="Enter your password"
-          placeholderTextColor={colors.neutral[400]}
+          placeholderTextColor="rgba(226,233,255,0.54)"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!isPasswordVisible}
@@ -151,31 +144,41 @@ function PasswordInput({
           hitSlop={10}
         >
           <Svg width={20} height={20} viewBox="0 0 24 24">
-            {isPasswordVisible
-              ? (
-                  <>
-                    <Path
-                      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                      stroke={colors.neutral[400]}
-                      strokeWidth="1.5"
-                      fill="none"
-                    />
-                    <Circle cx="12" cy="12" r="3" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
-                  </>
-                )
-              : (
-                  <>
-                    <Path
-                      d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
-                      stroke={colors.neutral[400]}
-                      strokeWidth="1.5"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path d="M1 1l22 22" stroke={colors.neutral[400]} strokeWidth="1.5" strokeLinecap="round" />
-                  </>
-                )}
+            {isPasswordVisible ? (
+              <>
+                <Path
+                  d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                  stroke="rgba(226,233,255,0.75)"
+                  strokeWidth="1.5"
+                  fill="none"
+                />
+                <Circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  stroke="rgba(226,233,255,0.75)"
+                  strokeWidth="1.5"
+                  fill="none"
+                />
+              </>
+            ) : (
+              <>
+                <Path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                  stroke="rgba(226,233,255,0.75)"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <Path
+                  d="M1 1l22 22"
+                  stroke="rgba(226,233,255,0.75)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </>
+            )}
           </Svg>
         </Pressable>
       </View>
@@ -199,22 +202,20 @@ function SignInButton({ email, password, isLoading, onPress }: SignInButtonProps
       style={[styles.signInButtonWrapper, disabled && styles.signInButtonDisabled]}
     >
       <LinearGradient
-        colors={disabled ? [colors.neutral[300], colors.neutral[300]] : [colors.gradient.start, colors.gradient.end]}
+        colors={disabled ? ['#5F6A84', '#5F6A84'] : ['#2D8CFF', '#3768FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.signInButton}
       >
-        {isLoading
-          ? (
-              <View style={styles.loadingDots}>
-                <View style={[styles.loadingDot, { opacity: 0.3 }]} />
-                <View style={[styles.loadingDot, { opacity: 0.6 }]} />
-                <View style={[styles.loadingDot, { opacity: 1 }]} />
-              </View>
-            )
-          : (
-              <Text className="font-inter text-base font-bold text-white">Sign In</Text>
-            )}
+        {isLoading ? (
+          <View style={styles.loadingDots}>
+            <View style={[styles.loadingDot, { opacity: 0.3 }]} />
+            <View style={[styles.loadingDot, { opacity: 0.6 }]} />
+            <View style={[styles.loadingDot, { opacity: 1 }]} />
+          </View>
+        ) : (
+          <Text className="font-inter text-base font-bold text-white">Sign In</Text>
+        )}
       </LinearGradient>
     </Pressable>
   );
@@ -222,10 +223,12 @@ function SignInButton({ email, password, isLoading, onPress }: SignInButtonProps
 
 function RegisterSection({ onPress }: { onPress: () => void }) {
   return (
-    <Animated.View entering={FadeIn.duration(500).delay(600)} style={styles.registerSection}>
+    <Animated.View entering={FadeIn.duration(500).delay(500)} style={styles.registerSection}>
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
-        <Text className="font-inter mx-4 text-xs font-medium text-neutral-400">NEW TO AVY ERP?</Text>
+        <Text className="font-inter mx-4 text-xs font-semibold" style={styles.dividerText}>
+          NEW TO AVY ERP?
+        </Text>
         <View style={styles.dividerLine} />
       </View>
       <Pressable onPress={onPress} style={styles.registerButtonWrapper}>
@@ -233,15 +236,39 @@ function RegisterSection({ onPress }: { onPress: () => void }) {
           <Svg width={20} height={20} viewBox="0 0 24 24">
             <Path
               d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2M10 21v-4h4v4"
-              stroke={colors.primary[500]}
+              stroke="#DCE8FF"
               strokeWidth="1.5"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </Svg>
-          <Text className="font-inter ml-2 text-sm font-bold text-primary-600">Register Your Company</Text>
+          <Text className="font-inter ml-2 text-sm font-bold" style={styles.registerText}>
+            Register Your Company
+          </Text>
         </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function BackButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Animated.View entering={FadeIn.duration(300)} style={styles.backContainer}>
+      <Pressable onPress={onPress} style={styles.backButton}>
+        <Svg width={18} height={18} viewBox="0 0 24 24">
+          <Polyline
+            points="15 18 9 12 15 6"
+            stroke="#DCE8FF"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+        <Text className="font-inter ml-1 text-sm font-semibold" style={styles.backText}>
+          Back
+        </Text>
       </Pressable>
     </Animated.View>
   );
@@ -249,15 +276,16 @@ function RegisterSection({ onPress }: { onPress: () => void }) {
 
 function FooterSection() {
   return (
-    <Animated.View entering={FadeIn.duration(400).delay(700)} style={styles.footer}>
-      <Text className="font-inter text-center text-xs text-neutral-400">
-        By signing in, you agree to our
-        {' '}
-        <Text className="text-xs font-semibold text-primary-500">Terms of Service</Text>
-        {' '}
-        and
-        {' '}
-        <Text className="text-xs font-semibold text-primary-500">Privacy Policy</Text>
+    <Animated.View entering={FadeIn.duration(350).delay(650)} style={styles.footer}>
+      <Text className="font-inter text-center text-xs" style={styles.footerText}>
+        By signing in, you agree to our{' '}
+        <Text className="font-inter text-xs font-semibold" style={styles.footerLink}>
+          Terms of Service
+        </Text>{' '}
+        and{' '}
+        <Text className="font-inter text-xs font-semibold" style={styles.footerLink}>
+          Privacy Policy
+        </Text>
       </Text>
     </Animated.View>
   );
@@ -290,59 +318,99 @@ export function LoginScreen() {
     // TODO: Navigate to company registration flow
   };
 
+  const handleForgotPassword = () => {
+    router.push('/forgot-password');
+  };
+
+  const handleBackToOnboarding = () => {
+    router.replace('/onboarding');
+  };
+
   return (
     <View style={styles.container}>
+      <Image
+        source={require('../../../assets/illustrations/Login-Screen.png')}
+        style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+        resizeMode="cover"
+      />
       <LinearGradient
-        colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
+        colors={[
+          'rgba(7,20,43,0.05)',
+          'rgba(7,20,43,0.15)',
+          'rgba(7,20,43,0.6)',
+          'rgba(7,20,43,0.92)',
+          'rgba(7,20,43,0.98)',
+        ]}
+        locations={[0, 0.25, 0.45, 0.6, 1]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0, y: 1 }}
       />
-      <View style={styles.bgCircle1} />
-      <View style={styles.bgCircle2} />
-      <View style={styles.bgGlowTop} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'position' : 'height'} style={styles.keyboardView}>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+        style={styles.keyboardView}
+      >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
-            contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top, paddingBottom: insets.bottom + 16 }]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingTop: insets.top + 8,
+                paddingBottom: Math.max(20, insets.bottom + 12),
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            <Animated.View entering={FadeInDown.duration(600)} style={styles.headerSection}>
-              <AvyLogo />
-            </Animated.View>
-            <Animated.View entering={FadeInUp.duration(500).delay(200)} style={styles.welcomeSection}>
-              <Text className="font-inter mb-2 text-3xl font-bold text-primary-950 dark:text-white">Welcome Back</Text>
-              <Text className="font-inter text-base text-neutral-500 dark:text-neutral-400">
-                Sign in to manage your enterprise
-              </Text>
-            </Animated.View>
-            <Animated.View entering={FadeInUp.duration(500).delay(350)} style={styles.formCard}>
-              <EmailInput
-                email={email}
-                emailFocused={emailFocused}
-                setEmail={setEmail}
-                setEmailFocused={setEmailFocused}
-                onSubmit={() => passwordRef.current?.focus()}
-              />
-              <PasswordInput
-                password={password}
-                passwordFocused={passwordFocused}
-                isPasswordVisible={isPasswordVisible}
-                passwordRef={passwordRef}
-                setPassword={setPassword}
-                setPasswordFocused={setPasswordFocused}
-                setIsPasswordVisible={setIsPasswordVisible}
-                onSubmit={handleSignIn}
-              />
-              <Pressable style={styles.forgotPassword}>
-                <Text className="font-inter text-sm font-semibold text-primary-500">Forgot Password?</Text>
-              </Pressable>
-              <SignInButton email={email} password={password} isLoading={isLoading} onPress={handleSignIn} />
-            </Animated.View>
-            <RegisterSection onPress={handleRegisterCompany} />
-            <FooterSection />
+            <BackButton onPress={handleBackToOnboarding} />
+
+            <View style={styles.bottomBlock}>
+              <Animated.View entering={FadeInDown.duration(450)} style={styles.welcomeSection}>
+                <Text className="font-inter text-3xl font-bold" style={styles.welcomeTitle}>
+                  Welcome Back
+                </Text>
+                <Text className="font-inter text-sm" style={styles.welcomeSubtitle}>
+                  Sign in to access your ERP workspace
+                </Text>
+              </Animated.View>
+
+              <Animated.View entering={FadeInUp.duration(520).delay(120)} style={styles.formCard}>
+                <EmailInput
+                  email={email}
+                  emailFocused={emailFocused}
+                  setEmail={setEmail}
+                  setEmailFocused={setEmailFocused}
+                  onSubmit={() => passwordRef.current?.focus()}
+                />
+                <PasswordInput
+                  password={password}
+                  passwordFocused={passwordFocused}
+                  isPasswordVisible={isPasswordVisible}
+                  passwordRef={passwordRef}
+                  setPassword={setPassword}
+                  setPasswordFocused={setPasswordFocused}
+                  setIsPasswordVisible={setIsPasswordVisible}
+                  onSubmit={handleSignIn}
+                />
+                <Pressable onPress={handleForgotPassword} style={styles.forgotPassword}>
+                  <Text className="font-inter text-sm font-semibold" style={styles.forgotText}>
+                    Forgot Password?
+                  </Text>
+                </Pressable>
+                <SignInButton
+                  email={email}
+                  password={password}
+                  isLoading={isLoading}
+                  onPress={handleSignIn}
+                />
+              </Animated.View>
+
+              <RegisterSection onPress={handleRegisterCompany} />
+              <FooterSection />
+            </View>
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -353,93 +421,80 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gradient.surface,
-  },
-  bgCircle1: {
-    position: 'absolute',
-    top: -100,
-    right: -80,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: colors.primary[100],
-    opacity: 0.3,
-  },
-  bgCircle2: {
-    position: 'absolute',
-    bottom: 50,
-    left: -100,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: colors.accent[100],
-    opacity: 0.2,
-  },
-  bgGlowTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: SCREEN_HEIGHT * 0.35,
-    backgroundColor: colors.primary[50],
-    opacity: 0.3,
+    backgroundColor: '#07142B',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    minHeight: SCREEN_HEIGHT,
     paddingHorizontal: 24,
-    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  logoContainer: {
-    width: 300,
-    height: 110,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  logoImage: {
+  backContainer: {
     width: '100%',
-    height: '100%',
+    marginBottom: 14,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(8,20,44,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(167,196,255,0.26)',
+  },
+  backText: {
+    color: '#DCE8FF',
+  },
+  bottomBlock: {
+    width: '100%',
+    marginTop: 22,
   },
   welcomeSection: {
-    alignItems: 'center',
-    marginBottom: 20,
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  welcomeTitle: {
+    color: '#F6F8FF',
+    marginBottom: 4,
+  },
+  welcomeSubtitle: {
+    color: 'rgba(220,232,255,0.74)',
+    lineHeight: 20,
   },
   formCard: {
     width: '100%',
-    backgroundColor: colors.white,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: colors.primary[900],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 3,
+    backgroundColor: 'rgba(10,27,59,0.72)',
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 20,
     borderWidth: 1,
-    borderColor: colors.primary[50],
+    borderColor: 'rgba(167,196,255,0.22)',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  labelText: {
+    color: '#EAF1FF',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: 'rgba(255,255,255,0.10)',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
+    borderColor: 'rgba(167,196,255,0.20)',
     paddingHorizontal: 14,
     height: 52,
   },
   inputWrapperFocused: {
-    borderColor: colors.primary[400],
-    backgroundColor: colors.primary[50],
+    borderColor: '#4EA2FF',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   inputIcon: {
     marginRight: 12,
@@ -447,7 +502,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: colors.primary[950],
+    color: '#F5F8FF',
     height: '100%',
   },
   eyeButton: {
@@ -456,16 +511,19 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
-    marginTop: -8,
+    marginTop: -4,
+    marginBottom: 18,
+  },
+  forgotText: {
+    color: '#77B7FF',
   },
   signInButtonWrapper: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: colors.primary[500],
+    shadowColor: '#2D8CFF',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
     elevation: 8,
   },
   signInButtonDisabled: {
@@ -490,19 +548,22 @@ const styles = StyleSheet.create({
   },
   registerSection: {
     width: '100%',
-    marginTop: 20,
+    marginTop: 16,
     alignItems: 'center',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: 'rgba(182,205,255,0.26)',
+  },
+  dividerText: {
+    color: 'rgba(220,232,255,0.65)',
   },
   registerButtonWrapper: {
     width: '100%',
@@ -512,14 +573,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 52,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.primary[200],
-    borderStyle: 'dashed',
-    backgroundColor: colors.primary[50],
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(182,205,255,0.38)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  registerText: {
+    color: '#E5EEFF',
   },
   footer: {
-    marginTop: 16,
-    paddingHorizontal: 16,
+    marginTop: 14,
+    paddingHorizontal: 8,
+  },
+  footerText: {
+    color: 'rgba(220,232,255,0.62)',
+    lineHeight: 18,
+  },
+  footerLink: {
+    color: '#7FBFFF',
   },
 });

@@ -17,6 +17,11 @@ import Svg, { Path, Polyline } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import {
+  useForgotPasswordMutation,
+  useVerifyResetCodeMutation,
+  useResetPasswordMutation,
+} from '@/features/auth/use-auth-mutations';
 
 type ForgotStep = 'identify' | 'verify' | 'reset' | 'success';
 
@@ -67,7 +72,12 @@ export function ForgotPasswordScreen() {
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [error, setError] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
+
+  const forgotPasswordMutation = useForgotPasswordMutation();
+  const verifyResetCodeMutation = useVerifyResetCodeMutation();
+  const resetPasswordMutation = useResetPasswordMutation();
+
+  const loading = forgotPasswordMutation.isPending || verifyResetCodeMutation.isPending || resetPasswordMutation.isPending;
 
   const handleBack = React.useCallback(() => {
     if (step === 'identify') {
@@ -90,7 +100,7 @@ export function ForgotPasswordScreen() {
     router.replace('/login');
   }, [router, step]);
 
-  const handleSendCode = React.useCallback(() => {
+  const handleSendCode = React.useCallback(async () => {
     const emailValue = email.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -105,28 +115,30 @@ export function ForgotPasswordScreen() {
     }
 
     setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await forgotPasswordMutation.mutateAsync({ email: emailValue });
       setStep('verify');
-    }, 700);
-  }, [email]);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to send code. Please try again.');
+    }
+  }, [email, forgotPasswordMutation]);
 
-  const handleVerifyCode = React.useCallback(() => {
+  const handleVerifyCode = React.useCallback(async () => {
     if (code.trim().length < 6) {
       setError('Enter the 6-digit verification code.');
       return;
     }
 
     setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await verifyResetCodeMutation.mutateAsync({ email: email.trim(), code: code.trim() });
       setStep('reset');
-    }, 700);
-  }, [code]);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Invalid code. Please try again.');
+    }
+  }, [code, email, verifyResetCodeMutation]);
 
-  const handleResetPassword = React.useCallback(() => {
+  const handleResetPassword = React.useCallback(async () => {
     if (newPassword.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
@@ -138,20 +150,22 @@ export function ForgotPasswordScreen() {
     }
 
     setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await resetPasswordMutation.mutateAsync({ email: email.trim(), code: code.trim(), newPassword });
       setStep('success');
-    }, 900);
-  }, [confirmPassword, newPassword]);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to reset password. Please try again.');
+    }
+  }, [confirmPassword, newPassword, email, code, resetPasswordMutation]);
 
-  const handleResend = React.useCallback(() => {
+  const handleResend = React.useCallback(async () => {
     setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
-  }, []);
+    try {
+      await forgotPasswordMutation.mutateAsync({ email: email.trim() });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to resend code.');
+    }
+  }, [email, forgotPasswordMutation]);
 
   const ctaDisabled =
     (step === 'identify' && !email.trim()) ||

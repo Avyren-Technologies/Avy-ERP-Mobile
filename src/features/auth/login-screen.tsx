@@ -23,7 +23,7 @@ import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
-import { signIn } from '@/features/auth/use-auth-store';
+import { useLoginMutation } from '@/features/auth/use-auth-mutations';
 
 
 type EmailInputProps = {
@@ -297,21 +297,28 @@ export function LoginScreen() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
   const [emailFocused, setEmailFocused] = React.useState(false);
   const [passwordFocused, setPasswordFocused] = React.useState(false);
   const passwordRef = React.useRef<TextInput>(null);
+  const loginMutation = useLoginMutation();
 
   const handleSignIn = async () => {
     if (!email || !password) {
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      signIn({ access: 'mock-access-token', refresh: 'mock-refresh-token' }, 'super-admin');
-      setIsLoading(false);
+    setError('');
+    try {
+      await loginMutation.mutateAsync({ email: email.trim(), password });
       router.replace('/(app)');
-    }, 1200);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'Sign in failed. Please try again.';
+      setError(message);
+    }
   };
 
   const handleRegisterCompany = () => {
@@ -403,7 +410,7 @@ export function LoginScreen() {
                 <SignInButton
                   email={email}
                   password={password}
-                  isLoading={isLoading}
+                  isLoading={loginMutation.isPending}
                   onPress={handleSignIn}
                 />
               </Animated.View>

@@ -28,81 +28,102 @@ jest.mock('env', () => ({
 }));
 
 // Mock getToken used by the request interceptor
-const mockGetToken = jest.fn<{ access: string; refresh: string } | null, []>();
-
 jest.mock('@/lib/auth/utils', () => ({
-  getToken: mockGetToken,
+  getToken: jest.fn(),
 }));
 
 // Mock authApi.refreshToken used inside the error interceptor (dynamic import)
-const mockRefreshToken = jest.fn();
-
 jest.mock('@/lib/api/auth', () => ({
   authApi: {
-    refreshToken: mockRefreshToken,
+    refreshToken: jest.fn(),
   },
 }));
 
 // Mock signOut and updateTokens used inside the error interceptor (dynamic import)
-const mockSignOut = jest.fn();
-const mockUpdateTokens = jest.fn();
-
 jest.mock('@/features/auth/use-auth-store', () => ({
-  signOut: mockSignOut,
-  updateTokens: mockUpdateTokens,
+  signOut: jest.fn(),
+  updateTokens: jest.fn(),
 }));
 
 // ---------------------------------------------------------------------------
-// Axios mock — captures interceptor handlers so we can invoke them directly.
+// Axios mock — exposes a stable callable instance with interceptor spies.
 // ---------------------------------------------------------------------------
 
 type RequestHandler = (config: any) => any;
 type ResponseSuccessHandler = (response: any) => any;
 type ResponseErrorHandler = (error: any) => Promise<any>;
 
-let capturedRequestOnFulfilled: RequestHandler;
-let capturedRequestOnRejected: (error: unknown) => Promise<unknown>;
-let capturedResponseOnFulfilled: ResponseSuccessHandler;
-let capturedResponseOnRejected: ResponseErrorHandler;
-
-// The mock axios instance that client.tsx receives from axios.create()
-const mockAxiosInstance = {
-  interceptors: {
-    request: {
-      use: jest.fn((onFulfilled: RequestHandler, onRejected: any) => {
-        capturedRequestOnFulfilled = onFulfilled;
-        capturedRequestOnRejected = onRejected;
-      }),
+jest.mock('axios', () => {
+  const mockAxiosInstance = Object.assign(
+    jest.fn().mockResolvedValue({ data: {} }),
+    {
+      interceptors: {
+        request: {
+          use: jest.fn(),
+        },
+        response: {
+          use: jest.fn(),
+        },
+      },
     },
-    response: {
-      use: jest.fn((onFulfilled: ResponseSuccessHandler, onRejected: ResponseErrorHandler) => {
-        capturedResponseOnFulfilled = onFulfilled;
-        capturedResponseOnRejected = onRejected;
-      }),
+  );
+
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(() => mockAxiosInstance),
     },
-  },
-  // The instance itself is callable (client(config)) — used when retrying requests
-  // and when resolving queued requests.
-} as any;
-
-// Make the mock instance callable: client(config) => Promise
-const callableInstance = jest.fn().mockImplementation(() => Promise.resolve({ data: {} }));
-Object.assign(callableInstance, mockAxiosInstance);
-
-jest.mock('axios', () => ({
-  __esModule: true,
-  default: {
-    create: jest.fn(() => callableInstance),
-  },
-  create: jest.fn(() => callableInstance),
-}));
+    create: jest.fn(() => mockAxiosInstance),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Import the module under test AFTER all jest.mock declarations.
 // Importing it triggers axios.create() and interceptor registration.
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line import/first
+import axios from 'axios';
+import { authApi } from '@/lib/api/auth';
+import { getToken } from '@/lib/auth/utils';
+import { signOut, updateTokens } from '@/features/auth/use-auth-store';
 import { client } from '@/lib/api/client';
+
+type MockAxiosInstance = jest.Mock & {
+  interceptors: {
+    request: {
+      use: jest.Mock;
+    };
+    response: {
+      use: jest.Mock;
+    };
+  };
+};
+
+const mockAxiosCreate = jest.mocked(axios.create);
+const mockAxiosInstance = mockAxiosCreate() as MockAxiosInstance;
+const mockRequestUse = jest.mocked(mockAxiosInstance.interceptors.request.use);
+const mockResponseUse = jest.mocked(mockAxiosInstance.interceptors.response.use);
+const mockCallableInstance = jest.mocked(mockAxiosInstance);
+const mockGetToken = jest.mocked(getToken);
+const mockRefreshToken = jest.mocked(authApi.refreshToken);
+const mockSignOut = jest.mocked(signOut);
+const mockUpdateTokens = jest.mocked(updateTokens);
+
+function getCapturedRequestOnFulfilled() {
+  return mockRequestUse.mock.calls[0]?.[0] as RequestHandler;
+}
+
+function getCapturedRequestOnRejected() {
+  return mockRequestUse.mock.calls[0]?.[1] as (error: unknown) => Promise<unknown>;
+}
+
+function getCapturedResponseOnFulfilled() {
+  return mockResponseUse.mock.calls[0]?.[0] as ResponseSuccessHandler;
+}
+
+function getCapturedResponseOnRejected() {
+  return mockResponseUse.mock.calls[0]?.[1] as ResponseErrorHandler;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -133,9 +154,12 @@ function makeAxiosError(
 
 describe('client (axios interceptors)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset the callable instance mock too
-    callableInstance.mockImplementation(() => Promise.resolve({ data: {} }));
+    mockGetToken.mockReset();
+    mockRefreshToken.mockReset();
+    mockSignOut.mockReset();
+    mockUpdateTokens.mockReset();
+    mockCallableInstance.mockReset();
+    mockCallableInstance.mockResolvedValue({ data: {} });
   });
 
   // =========================================================================
@@ -145,11 +169,11 @@ describe('client (axios interceptors)', () => {
     });
 
     it('registers exactly one request interceptor', () => {
-      expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalledTimes(1);
+      expect(mockRequestUse).toHaveBeenCalledTimes(1);
     });
 
     it('registers exactly one response interceptor', () => {
-      expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalledTimes(1);
+      expect(mockResponseUse).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -159,7 +183,7 @@ describe('client (axios interceptors)', () => {
       mockGetToken.mockReturnValue({ access: 'access-token-123', refresh: 'refresh-token' });
 
       const config = { headers: {} } as any;
-      const result = capturedRequestOnFulfilled(config);
+      const result = getCapturedRequestOnFulfilled()(config);
 
       expect(result.headers.Authorization).toBe('Bearer access-token-123');
     });
@@ -168,7 +192,7 @@ describe('client (axios interceptors)', () => {
       mockGetToken.mockReturnValue(null);
 
       const config = { headers: {} } as any;
-      const result = capturedRequestOnFulfilled(config);
+      const result = getCapturedRequestOnFulfilled()(config);
 
       expect(result.headers.Authorization).toBeUndefined();
     });
@@ -178,7 +202,7 @@ describe('client (axios interceptors)', () => {
       mockGetToken.mockReturnValue({ access: '', refresh: 'refresh-token' });
 
       const config = { headers: {} } as any;
-      const result = capturedRequestOnFulfilled(config);
+      const result = getCapturedRequestOnFulfilled()(config);
 
       expect(result.headers.Authorization).toBeUndefined();
     });
@@ -187,14 +211,14 @@ describe('client (axios interceptors)', () => {
       mockGetToken.mockReturnValue(null);
 
       const config = { headers: { 'Content-Type': 'application/json' } } as any;
-      const result = capturedRequestOnFulfilled(config);
+      const result = getCapturedRequestOnFulfilled()(config);
 
       expect(result).toBe(config);
     });
 
     it('request error handler rejects with the error', async () => {
       const err = new Error('network failure');
-      await expect(capturedRequestOnRejected(err)).rejects.toThrow('network failure');
+      await expect(getCapturedRequestOnRejected()(err)).rejects.toThrow('network failure');
     });
   });
 
@@ -206,7 +230,7 @@ describe('client (axios interceptors)', () => {
         status: 200,
       };
 
-      const result = capturedResponseOnFulfilled(response);
+      const result = getCapturedResponseOnFulfilled()(response);
 
       // The interceptor returns response.data (the ApiResponse object), not the
       // full axios response.
@@ -219,21 +243,21 @@ describe('client (axios interceptors)', () => {
     it('passes non-401 errors through without refresh', async () => {
       const error = makeAxiosError(403, 'FORBIDDEN');
 
-      await expect(capturedResponseOnRejected(error)).rejects.toEqual(error);
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toEqual(error);
       expect(mockRefreshToken).not.toHaveBeenCalled();
     });
 
     it('passes 401 errors WITHOUT TOKEN_EXPIRED code through without refresh', async () => {
       const error = makeAxiosError(401, 'UNAUTHORIZED');
 
-      await expect(capturedResponseOnRejected(error)).rejects.toEqual(error);
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toEqual(error);
       expect(mockRefreshToken).not.toHaveBeenCalled();
     });
 
     it('passes 500 errors through without refresh', async () => {
       const error = makeAxiosError(500);
 
-      await expect(capturedResponseOnRejected(error)).rejects.toEqual(error);
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toEqual(error);
     });
 
     // -----------------------------------------------------------------------
@@ -250,11 +274,11 @@ describe('client (axios interceptors)', () => {
           },
         },
       });
-      callableInstance.mockResolvedValueOnce({ success: true, data: {} });
+      mockCallableInstance.mockResolvedValueOnce({ success: true, data: {} });
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');
 
-      await capturedResponseOnRejected(error);
+      await getCapturedResponseOnRejected()(error);
 
       expect(mockRefreshToken).toHaveBeenCalledWith('old-refresh');
     });
@@ -269,10 +293,10 @@ describe('client (axios interceptors)', () => {
           },
         },
       });
-      callableInstance.mockResolvedValueOnce({ success: true });
+      mockCallableInstance.mockResolvedValueOnce({ success: true });
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');
-      await capturedResponseOnRejected(error);
+      await getCapturedResponseOnRejected()(error);
 
       expect(mockUpdateTokens).toHaveBeenCalledWith({
         access: 'new-access',
@@ -289,20 +313,20 @@ describe('client (axios interceptors)', () => {
           },
         },
       });
-      callableInstance.mockResolvedValueOnce({ success: true });
+      mockCallableInstance.mockResolvedValueOnce({ success: true });
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');
-      await capturedResponseOnRejected(error);
+      await getCapturedResponseOnRejected()(error);
 
       // The retried request should carry the new token
-      const retriedConfig = callableInstance.mock.calls[0][0];
+      const retriedConfig = mockCallableInstance.mock.calls[0][0];
       expect(retriedConfig.headers.Authorization).toBe('Bearer new-access');
     });
 
     it('does not retry a request that already has _retry=true (avoids infinite loops)', async () => {
       const error = makeAxiosError(401, 'TOKEN_EXPIRED', { _retry: true });
 
-      await expect(capturedResponseOnRejected(error)).rejects.toBeDefined();
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toBeDefined();
       expect(mockRefreshToken).not.toHaveBeenCalled();
     });
 
@@ -316,7 +340,7 @@ describe('client (axios interceptors)', () => {
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');
 
-      await expect(capturedResponseOnRejected(error)).rejects.toThrow('refresh failed');
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toThrow('refresh failed');
       expect(mockSignOut).toHaveBeenCalledTimes(1);
     });
 
@@ -326,7 +350,7 @@ describe('client (axios interceptors)', () => {
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');
 
-      await expect(capturedResponseOnRejected(error)).rejects.toThrow(
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toThrow(
         'No refresh token available',
       );
       expect(mockSignOut).toHaveBeenCalledTimes(1);
@@ -341,7 +365,7 @@ describe('client (axios interceptors)', () => {
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');
 
-      await expect(capturedResponseOnRejected(error)).rejects.toThrow(
+      await expect(getCapturedResponseOnRejected()(error)).rejects.toThrow(
         'Invalid refresh response',
       );
       expect(mockSignOut).toHaveBeenCalledTimes(1);
@@ -362,14 +386,14 @@ describe('client (axios interceptors)', () => {
       mockRefreshToken.mockReturnValue(refreshPromise);
 
       // The instance callable resolves all retried requests with success
-      callableInstance.mockResolvedValue({ success: true });
+      mockCallableInstance.mockResolvedValue({ success: true });
 
       const error1 = makeAxiosError(401, 'TOKEN_EXPIRED');
       const error2 = makeAxiosError(401, 'TOKEN_EXPIRED');
 
       // Fire both 401 errors concurrently (do not await yet)
-      const promise1 = capturedResponseOnRejected(error1);
-      const promise2 = capturedResponseOnRejected(error2);
+      const promise1 = getCapturedResponseOnRejected()(error1);
+      const promise2 = getCapturedResponseOnRejected()(error2);
 
       // Now resolve the refresh
       resolveRefresh({
@@ -393,20 +417,21 @@ describe('client (axios interceptors)', () => {
       const refreshPromise = new Promise<any>((_, reject) => {
         rejectRefresh = reject;
       });
+      refreshPromise.catch(() => undefined);
       mockRefreshToken.mockReturnValue(refreshPromise);
 
       const error1 = makeAxiosError(401, 'TOKEN_EXPIRED');
       const error2 = makeAxiosError(401, 'TOKEN_EXPIRED');
 
-      const promise1 = capturedResponseOnRejected(error1);
-      const promise2 = capturedResponseOnRejected(error2);
+      const promise1 = getCapturedResponseOnRejected()(error1).catch((error) => error);
+      const promise2 = getCapturedResponseOnRejected()(error2).catch((error) => error);
 
       const refreshError = new Error('refresh network down');
       rejectRefresh(refreshError);
 
       // Both queued promises must reject
-      await expect(promise1).rejects.toBeDefined();
-      await expect(promise2).rejects.toBeDefined();
+      await expect(promise1).resolves.toBe(refreshError);
+      await expect(promise2).resolves.toBe(refreshError);
     });
   });
 });

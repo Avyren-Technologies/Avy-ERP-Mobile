@@ -76,8 +76,8 @@ client.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        // Import dynamically to avoid circular dependency at module level
-        const { authApi } = await import('@/lib/api/auth');
+        // Require lazily to avoid circular dependency at module level.
+        const { authApi } = require('@/lib/api/auth') as typeof import('@/lib/api/auth');
         const response = await authApi.refreshToken(tokenData.refresh);
         const newTokens = response.data?.data?.tokens;
 
@@ -86,7 +86,7 @@ client.interceptors.response.use(
         }
 
         // Update store with new tokens
-        const { updateTokens } = await import('@/features/auth/use-auth-store');
+        const { updateTokens } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');
         updateTokens({
           access: newTokens.accessToken,
           refresh: newTokens.refreshToken,
@@ -102,7 +102,7 @@ client.interceptors.response.use(
         processQueue(refreshError, null);
 
         // Sign out on refresh failure
-        const { signOut } = await import('@/features/auth/use-auth-store');
+        const { signOut } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');
         signOut();
 
         return Promise.reject(refreshError);

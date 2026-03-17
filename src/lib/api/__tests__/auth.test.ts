@@ -53,16 +53,11 @@ import { authApi } from '@/lib/api/auth';
 // Typed mock references
 const mockClientPost = jest.mocked(client.post);
 const mockClientGet = jest.mocked(client.get);
-
-// Retrieve the refreshClient instance that auth.ts created at module evaluation
-// time. axios.create() was called once when auth.ts was first imported, so
-// mock.results[0].value is that instance.
 const mockAxiosCreate = jest.mocked(axios.create);
-// The refreshClient's post fn is on the instance returned by create()
-function getRefreshPost() {
-  const instance = mockAxiosCreate.mock.results[0]?.value as { post: jest.Mock } | undefined;
-  return instance?.post;
-}
+// The axios mock returns the same instance for every create() call, so this is
+// the same refresh client instance auth.ts uses internally.
+const mockRefreshClient = mockAxiosCreate() as { post: jest.Mock };
+const mockRefreshPost = jest.mocked(mockRefreshClient.post);
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -122,10 +117,9 @@ describe('authApi', () => {
   // =========================================================================
   describe('refreshToken', () => {
     it('uses the separate refreshClient (not the intercepted client) to POST /auth/refresh-token', async () => {
-      const mockRefreshPost = getRefreshPost();
       expect(mockRefreshPost).toBeDefined();
 
-      mockRefreshPost!.mockResolvedValueOnce({
+      mockRefreshPost.mockResolvedValueOnce({
         data: {
           success: true,
           data: {
@@ -146,7 +140,6 @@ describe('authApi', () => {
     });
 
     it('returns the raw axios response (not unwrapped by interceptor)', async () => {
-      const mockRefreshPost = getRefreshPost()!;
       const rawResponse = {
         data: {
           success: true,

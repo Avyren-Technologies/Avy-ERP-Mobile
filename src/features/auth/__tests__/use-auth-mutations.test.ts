@@ -14,41 +14,34 @@
 
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { notifyManager } from '@tanstack/query-core';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
 // ---------------------------------------------------------------------------
 // Mock dependencies
 // ---------------------------------------------------------------------------
 
-const mockLogin = jest.fn();
-const mockLogout = jest.fn();
-const mockForgotPassword = jest.fn();
-const mockVerifyResetCode = jest.fn();
-const mockResetPassword = jest.fn();
-const mockChangePassword = jest.fn();
-
 jest.mock('@/lib/api/auth', () => ({
   authApi: {
-    login: mockLogin,
-    logout: mockLogout,
-    forgotPassword: mockForgotPassword,
-    verifyResetCode: mockVerifyResetCode,
-    resetPassword: mockResetPassword,
-    changePassword: mockChangePassword,
+    login: jest.fn(),
+    logout: jest.fn(),
+    forgotPassword: jest.fn(),
+    verifyResetCode: jest.fn(),
+    resetPassword: jest.fn(),
+    changePassword: jest.fn(),
   },
 }));
 
-const mockSignIn = jest.fn();
-const mockSignOut = jest.fn();
-
 jest.mock('@/features/auth/use-auth-store', () => ({
-  signIn: mockSignIn,
-  signOut: mockSignOut,
+  signIn: jest.fn(),
+  signOut: jest.fn(),
 }));
 
 // ---------------------------------------------------------------------------
 // Imports after mocks
 // ---------------------------------------------------------------------------
+import { authApi } from '@/lib/api/auth';
+import { signIn, signOut } from '@/features/auth/use-auth-store';
 import {
   useLoginMutation,
   useLogoutMutation,
@@ -57,6 +50,29 @@ import {
   useResetPasswordMutation,
   useChangePasswordMutation,
 } from '@/features/auth/use-auth-mutations';
+
+const mockLogin = jest.mocked(authApi.login);
+const mockLogout = jest.mocked(authApi.logout);
+const mockForgotPassword = jest.mocked(authApi.forgotPassword);
+const mockVerifyResetCode = jest.mocked(authApi.verifyResetCode);
+const mockResetPassword = jest.mocked(authApi.resetPassword);
+const mockChangePassword = jest.mocked(authApi.changePassword);
+const mockSignIn = jest.mocked(signIn);
+const mockSignOut = jest.mocked(signOut);
+
+beforeAll(() => {
+  notifyManager.setNotifyFunction((callback) => {
+    act(() => {
+      callback();
+    });
+  });
+});
+
+afterAll(() => {
+  notifyManager.setNotifyFunction((callback) => {
+    callback();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -69,8 +85,8 @@ import {
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      mutations: { retry: false },
-      queries: { retry: false },
+      mutations: { retry: false, gcTime: Infinity },
+      queries: { retry: false, gcTime: Infinity },
     },
   });
 }

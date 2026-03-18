@@ -2,6 +2,9 @@ import { useMutation } from '@tanstack/react-query';
 
 import { authApi } from '@/lib/api/auth';
 import { signIn, signOut } from '@/features/auth/use-auth-store';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AuthMutations');
 
 export function useLoginMutation() {
     return useMutation({
@@ -12,6 +15,7 @@ export function useLoginMutation() {
         onSuccess: (response) => {
             if (response.success && response.data?.user && response.data?.tokens) {
                 const { user, tokens } = response.data;
+                logger.info('Login API success', { email: user.email, role: user.role });
                 signIn(
                     {
                         access: tokens.accessToken,
@@ -30,10 +34,11 @@ export function useLogoutMutation() {
             await authApi.logout();
         },
         onSuccess: () => {
+            logger.info('Logout successful');
             signOut();
         },
         onError: () => {
-            // Even if logout API fails, sign out locally
+            logger.warn('Logout API failed — signing out locally');
             signOut();
         },
     });

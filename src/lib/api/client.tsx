@@ -3,6 +3,9 @@ import axios from 'axios';
 import Env from 'env';
 
 import { getToken } from '@/lib/auth/utils';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ApiClient');
 
 export const client = axios.create({
   baseURL: Env.EXPO_PUBLIC_API_URL,
@@ -54,7 +57,9 @@ client.interceptors.response.use(
       error.response?.data?.code === 'TOKEN_EXPIRED';
 
     if (isTokenExpired && originalRequest && !originalRequest._retry) {
+      logger.warn('Access token expired', { url: originalRequest.url });
       if (isRefreshing) {
+        logger.debug('Token refresh in progress — queuing request', { url: originalRequest.url });
         // Queue this request until refresh completes
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -76,6 +81,8 @@ client.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
+        logger.info('Refreshing access token');
+
         // Require lazily to avoid circular dependency at module level.
         const { authApi } = require('@/lib/api/auth') as typeof import('@/lib/api/auth');
         const response = await authApi.refreshToken(tokenData.refresh);
@@ -84,6 +91,8 @@ client.interceptors.response.use(
         if (!newTokens) {
           throw new Error('Invalid refresh response');
         }
+
+        logger.info('Token refreshed successfully');
 
         // Update store with new tokens
         const { updateTokens } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');
@@ -100,6 +109,8 @@ client.interceptors.response.use(
         return client(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+
+        logger.error('Token refresh failed — signing out', { error: refreshError });
 
         // Sign out on refresh failure
         const { signOut } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');

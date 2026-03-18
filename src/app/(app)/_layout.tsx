@@ -3,6 +3,7 @@ import { Redirect, SplashScreen, Tabs, usePathname, useRouter } from 'expo-route
 import * as React from 'react';
 import { useCallback, useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
@@ -176,6 +177,10 @@ function AppSidebar() {
 function TabLayoutInner() {
     const status = useAuth.use.status();
     const [isFirstTime] = useIsFirstTime();
+    const insets = useSafeAreaInsets();
+    // iOS base: 54px content + dynamic home indicator clearance
+    // Android base: 68px content (larger touch targets) + gesture nav inset if present
+    const TAB_BAR_HEIGHT = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
 
     const hideSplash = useCallback(async () => {
         await SplashScreen.hideAsync();
@@ -209,8 +214,9 @@ function TabLayoutInner() {
                         shadowOffset: { width: 0, height: -4 },
                         shadowOpacity: 0.08,
                         shadowRadius: 16,
-                        height: Platform.OS === 'ios' ? 88 : 68,
+                        height: TAB_BAR_HEIGHT,
                         paddingTop: 8,
+                        paddingBottom: insets.bottom,
                         borderTopLeftRadius: 24,
                         borderTopRightRadius: 24,
                     },

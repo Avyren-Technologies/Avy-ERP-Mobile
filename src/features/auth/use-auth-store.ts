@@ -5,6 +5,9 @@ import { createSelectors } from '@/lib/utils';
 import { getToken, removeToken, setToken } from '@/lib/auth/utils';
 import type { TokenType } from '@/lib/auth/utils';
 import { getItem, removeItem, setItem } from '@/lib/storage';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AuthStore');
 
 type AuthStatus = 'idle' | 'signOut' | 'signIn';
 type UserRole = 'super-admin' | 'company-admin' | 'user';
@@ -45,11 +48,13 @@ const _useAuthStore = create<AuthState>((set) => ({
         const resolvedRole = role ?? mapBackendRole(user.role);
         setToken(token);
         setItem(USER_DATA_KEY, user);
+        logger.info('User signed in', { email: user.email, role: resolvedRole });
         set({ status: 'signIn', token, user, userRole: resolvedRole });
     },
     signOut: () => {
         removeToken();
         removeItem(USER_DATA_KEY);
+        logger.info('User signed out');
         set({ status: 'signOut', token: null, user: null, userRole: null });
     },
     updateTokens: (tokens) => {
@@ -62,11 +67,14 @@ const _useAuthStore = create<AuthState>((set) => ({
             const userData = getItem<AuthUser>(USER_DATA_KEY);
             if (userToken !== null) {
                 const role = userData ? mapBackendRole(userData.role) : null;
+                logger.info('Auth hydrated from storage', { email: userData?.email, role });
                 set({ status: 'signIn', token: userToken, user: userData, userRole: role });
             } else {
+                logger.info('No stored session — showing login');
                 set({ status: 'signOut' });
             }
         } catch {
+            logger.warn('Auth hydration failed — signing out');
             set({ status: 'signOut' });
         }
     },

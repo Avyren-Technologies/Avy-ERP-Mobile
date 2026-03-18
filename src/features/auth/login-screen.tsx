@@ -24,6 +24,9 @@ import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useLoginMutation } from '@/features/auth/use-auth-mutations';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('LoginScreen');
 
 
 type EmailInputProps = {
@@ -308,8 +311,10 @@ export function LoginScreen() {
       return;
     }
     setError('');
+    logger.info('Sign in attempt', { email: email.trim() });
     try {
       await loginMutation.mutateAsync({ email: email.trim(), password });
+      logger.info('Sign in successful — navigating to app');
       router.replace('/(app)');
     } catch (err: any) {
       const message =
@@ -317,6 +322,7 @@ export function LoginScreen() {
         err?.response?.data?.error ||
         err?.message ||
         'Sign in failed. Please try again.';
+      logger.error('Sign in failed', { message });
       setError(message);
     }
   };

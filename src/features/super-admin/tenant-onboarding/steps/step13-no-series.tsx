@@ -15,10 +15,11 @@ function getPreview(item: NoSeriesItem): string {
     const count = parseInt(item.numberCount || '5', 10);
     const start = parseInt(item.startNumber || '1', 10);
     const num = String(start).padStart(count, '0');
-    return `${item.prefix}${num}${item.suffix}`;
+    // Preview format: Prefix + Suffix + Variable Number
+    return `${item.prefix}${item.suffix}${num}`;
 }
 
-export function Step9NoSeries({
+export function Step13NoSeries({
     noSeries,
     setNoSeries,
     errors,
@@ -74,8 +75,8 @@ export function Step9NoSeries({
                     <View style={S.twoColumn}>
                         <View style={{ flex: 1 }}>
                             <FormInput
-                                label="Code"
-                                placeholder="EMP"
+                                label="Series Code"
+                                placeholder="e.g. INV, EMP, WO"
                                 value={item.code}
                                 onChangeText={(v) => update(item.id, { code: v.toUpperCase() })}
                                 required
@@ -97,7 +98,7 @@ export function Step9NoSeries({
 
                     <FormInput
                         label="Description"
-                        placeholder="Employee ID"
+                        placeholder="e.g. Sales Invoice Numbering"
                         value={item.description}
                         onChangeText={(v) => update(item.id, { description: v })}
                     />
@@ -115,7 +116,7 @@ export function Step9NoSeries({
                         <View style={{ flex: 1 }}>
                             <FormInput
                                 label="Prefix"
-                                placeholder="EMP-"
+                                placeholder="e.g. INV-"
                                 value={item.prefix}
                                 onChangeText={(v) => update(item.id, { prefix: v })}
                                 autoCapitalize="none"
@@ -125,7 +126,7 @@ export function Step9NoSeries({
                         <View style={{ flex: 1 }}>
                             <FormInput
                                 label="Suffix"
-                                placeholder="-2026"
+                                placeholder="e.g. -2026"
                                 value={item.suffix}
                                 onChangeText={(v) => update(item.id, { suffix: v })}
                                 autoCapitalize="none"
@@ -135,7 +136,7 @@ export function Step9NoSeries({
 
                     <FormInput
                         label="Number of Digits"
-                        placeholder="5"
+                        placeholder="e.g. 5"
                         value={item.numberCount}
                         onChangeText={(v) => update(item.id, { numberCount: v })}
                         keyboardType="number-pad"
@@ -152,7 +153,13 @@ export function Step9NoSeries({
                             {getPreview(item)}
                         </Text>
                         <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">
-                            Next: {item.prefix}{String(parseInt(item.startNumber || '1') + 1).padStart(parseInt(item.numberCount || '5'), '0')}{item.suffix}
+                            Next:{' '}
+                            {item.prefix}
+                            {item.suffix}
+                            {String(parseInt(item.startNumber || '1') + 1).padStart(
+                                parseInt(item.numberCount || '5'),
+                                '0'
+                            )}
                         </Text>
                     </View>
                 </Animated.View>

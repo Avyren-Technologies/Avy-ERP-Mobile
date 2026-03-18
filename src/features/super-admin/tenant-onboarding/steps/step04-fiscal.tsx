@@ -15,10 +15,11 @@ import {
     DAYS_OF_WEEK,
     FY_OPTIONS,
     MONTHS,
-    TIMEZONES,
     WEEK_STARTS,
 } from '../constants';
 import { S } from '../shared-styles';
+
+const IST_TIMEZONE = 'IST UTC+5:30';
 
 // ============ DAY OF MONTH PICKER ============
 
@@ -115,6 +116,12 @@ export function Step4Fiscal({
     errors?: Record<string, string>;
 }) {
     const [customFY, setCustomFY] = React.useState(form.fyType === 'custom');
+
+    React.useEffect(() => {
+        if (form.timezone !== IST_TIMEZONE) {
+            setForm({ timezone: IST_TIMEZONE });
+        }
+    }, [form.timezone, setForm]);
 
     const toggleCustom = (isCustom: boolean) => {
         setCustomFY(isCustom);
@@ -222,15 +229,19 @@ export function Step4Fiscal({
                     error={errors?.weekStart}
                     direction="up"
                 />
-                <FormSelect
-                    label="Timezone"
-                    options={TIMEZONES}
-                    selected={form.timezone}
-                    onSelect={(v) => setForm({ timezone: v })}
-                    required
-                    error={errors?.timezone}
-                    direction="up"
-                />
+                <View style={S.fieldWrap}>
+                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        Timezone <Text className="text-danger-500">*</Text>
+                    </Text>
+                    <View style={[S.fieldInput, { justifyContent: 'center' }]}>
+                        <Text className="font-inter text-sm text-primary-950">
+                            {IST_TIMEZONE}
+                        </Text>
+                    </View>
+                    <Text className="mt-1 font-inter text-[10px] text-neutral-400">
+                        Locked to IST (UTC+5:30) for now
+                    </Text>
+                </View>
             </SectionCard>
 
             {/* ---- Non-Working Days ---- */}

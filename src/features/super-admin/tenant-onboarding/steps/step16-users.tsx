@@ -14,7 +14,12 @@ const USER_ROLES = [
     'Quality Inspector', 'Auditor',
 ];
 
-export function Step12Users({
+const DEPARTMENTS = [
+    'IT', 'HR', 'Finance', 'Operations', 'Production',
+    'Quality', 'Maintenance', 'Stores', 'Management', 'Other',
+];
+
+export function Step16Users({
     users,
     setUsers,
     errors,
@@ -99,7 +104,7 @@ export function Step12Users({
                         error={errors?.[`password_${idx}`]}
                     />
                     <FormSelect
-                        label="Role"
+                        label="Role / Access Level"
                         options={USER_ROLES}
                         selected={user.role}
                         onSelect={(v) => update(user.id, { role: v })}
@@ -108,7 +113,7 @@ export function Step12Users({
                         direction="up"
                     />
                     <FormInput
-                        label="Email"
+                        label="Email Address"
                         placeholder="user@company.com"
                         value={user.email}
                         onChangeText={(v) => update(user.id, { email: v })}
@@ -117,19 +122,21 @@ export function Step12Users({
                         error={errors?.[`email_${idx}`]}
                     />
                     <FormInput
-                        label="Mobile"
+                        label="Mobile Number"
                         placeholder="+91 98765 43210"
                         value={user.mobile}
                         onChangeText={(v) => update(user.id, { mobile: v })}
                         keyboardType="phone-pad"
                         error={errors?.[`mobile_${idx}`]}
                     />
-                    <FormInput
+                    <FormSelect
                         label="Department"
-                        placeholder="HR, Finance, IT"
-                        value={user.department}
-                        onChangeText={(v) => update(user.id, { department: v })}
-                        autoCapitalize="words"
+                        options={DEPARTMENTS}
+                        selected={user.department}
+                        onSelect={(v) => update(user.id, { department: v })}
+                        placeholder="Select department"
+                        direction="up"
+                        error={errors?.[`department_${idx}`]}
                     />
                 </Animated.View>
             ))}

@@ -62,13 +62,13 @@ import { Step7Strategy } from './steps/step07-strategy';
 import { Step8Locations } from './steps/step08-locations';
 import { Step9PerLocationModules } from './steps/step09-per-location-modules';
 import { Step10PerLocationTier } from './steps/step10-per-location-tier';
-import { Step6Contacts } from './steps/step06-contacts';
-import { Step8Shifts } from './steps/step08-shifts';
-import { Step9NoSeries } from './steps/step09-no-series';
-import { Step10IOTReasons } from './steps/step10-iot-reasons';
-import { Step11Controls } from './steps/step11-controls';
-import { Step12Users } from './steps/step12-users';
-import { Step13Activation } from './steps/step13-activation';
+import { Step11Contacts } from './steps/step11-contacts';
+import { Step12Shifts } from './steps/step12-shifts';
+import { Step13NoSeries } from './steps/step13-no-series';
+import { Step14IOTReasons } from './steps/step14-iot-reasons';
+import { Step15Controls } from './steps/step15-controls';
+import { Step16Users } from './steps/step16-users';
+import { Step17Activation } from './steps/step17-activation';
 
 export function TenantOnboardingScreen() {
     // TEMP: Toggle this to quickly enable/disable step validation during onboarding testing.
@@ -117,6 +117,7 @@ export function TenantOnboardingScreen() {
         currency: 'INR — ₹', language: 'English', dateFormat: 'DD/MM/YYYY',
         numberFormat: 'Indian (2,00,000)', timeFormat: '12-hour (AM/PM)',
         indiaCompliance: true, multiCurrency: false, ess: true, mobileApp: true, webApp: true,
+        systemApp: false,
         aiChatbot: false, eSign: false, biometric: false,
         bankIntegration: false,
         razorpayEnabled: false, razorpayKeyId: '', razorpayKeySecret: '',
@@ -159,7 +160,7 @@ export function TenantOnboardingScreen() {
     const [step11, setStep11] = React.useState<Step11Form>({
         ncEditMode: false, loadUnload: false, cycleTime: false,
         payrollLock: true, leaveCarryForward: true, overtimeApproval: false,
-        mfa: false, backdatedEntry: false, docNumberLock: true,
+        mfa: false,
     });
 
     const [users, setUsers] = React.useState<UserItem[]>([
@@ -328,9 +329,9 @@ export function TenantOnboardingScreen() {
                     errors={stepErrors}
                 />
             );
-            case 11: return <Step6Contacts contacts={contacts} setContacts={setContacts} errors={stepErrors} />;
+            case 11: return <Step11Contacts contacts={contacts} setContacts={setContacts} errors={stepErrors} />;
             case 12: return (
-                <Step8Shifts
+                <Step12Shifts
                     form={shiftsStep}
                     setForm={mergeShifts}
                     shifts={shifts}
@@ -338,12 +339,12 @@ export function TenantOnboardingScreen() {
                     errors={stepErrors}
                 />
             );
-            case 13: return <Step9NoSeries noSeries={noSeries} setNoSeries={setNoSeries} errors={stepErrors} />;
-            case 14: return <Step10IOTReasons reasons={iotReasons} setReasons={setIotReasons} errors={stepErrors} />;
-            case 15: return <Step11Controls form={step11} setForm={merge11} />;
-            case 16: return <Step12Users users={users} setUsers={setUsers} errors={stepErrors} />;
+            case 13: return <Step13NoSeries noSeries={noSeries} setNoSeries={setNoSeries} errors={stepErrors} />;
+            case 14: return <Step14IOTReasons reasons={iotReasons} setReasons={setIotReasons} errors={stepErrors} />;
+            case 15: return <Step15Controls form={step11} setForm={merge11} />;
+            case 16: return <Step16Users users={users} setUsers={setUsers} errors={stepErrors} />;
             case 17: return (
-                <Step13Activation
+                <Step17Activation
                     companyName={step1.displayName}
                     currentStatus={step1.status}
                     onStatusChange={(s) => merge1({ status: s })}

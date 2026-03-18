@@ -70,7 +70,7 @@ function ContactTypeSelector({
     );
 }
 
-export function Step6Contacts({
+export function Step11Contacts({
     contacts,
     setContacts,
     errors,

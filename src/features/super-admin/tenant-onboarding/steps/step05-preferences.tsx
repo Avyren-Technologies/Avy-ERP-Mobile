@@ -177,6 +177,12 @@ export function Step5Preferences({
     setForm: (f: Partial<Step5Form>) => void;
     errors?: Record<string, string>;
 }) {
+    React.useEffect(() => {
+        if (form.razorpayEnabled) {
+            setForm({ razorpayEnabled: false });
+        }
+    }, [form.razorpayEnabled, setForm]);
+
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <SectionCard title="Compliance Toggles">
@@ -196,10 +202,16 @@ export function Step5Preferences({
                     onToggle={(v) => setForm({ mobileApp: v })}
                 />
                 <ToggleRow
-                    label="Web / System Application"
+                    label="Web Application"
                     subtitle="Browser-based ERP access for managers, HR, and admin users — full feature access"
                     value={form.webApp ?? true}
                     onToggle={(v) => setForm({ webApp: v })}
+                />
+                <ToggleRow
+                    label="System Application"
+                    subtitle="Desktop/system application access for users who operate from company systems"
+                    value={form.systemApp}
+                    onToggle={(v) => setForm({ systemApp: v })}
                 />
             </SectionCard>
 
@@ -229,12 +241,28 @@ export function Step5Preferences({
 
                 {form.bankIntegration && (
                     <View style={{ marginTop: 4, marginBottom: 4 }}>
-                        <ToggleRow
-                            label="RazorpayX Payout API"
-                            subtitle="Enable direct salary disbursement via RazorpayX — one-click payroll"
-                            value={form.razorpayEnabled}
-                            onToggle={(v) => setForm({ razorpayEnabled: v })}
-                        />
+                        <View style={{ opacity: 0.55 }} pointerEvents="none">
+                            <ToggleRow
+                                label="RazorpayX Payout API"
+                                subtitle="Enable direct salary disbursement via RazorpayX — one-click payroll"
+                                value={false}
+                                onToggle={() => {}}
+                            />
+                        </View>
+                        <View style={{ marginTop: -8, marginBottom: 4, alignSelf: 'flex-end' }}>
+                            <View
+                                style={{
+                                    backgroundColor: '#FEF3C7',
+                                    borderRadius: 999,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 2,
+                                }}
+                            >
+                                <Text className="font-inter text-[9px] font-bold text-warning-700">
+                                    COMING SOON
+                                </Text>
+                            </View>
+                        </View>
                         {form.razorpayEnabled && (
                             <RazorpayXSection form={form} setForm={setForm} errors={errors} />
                         )}

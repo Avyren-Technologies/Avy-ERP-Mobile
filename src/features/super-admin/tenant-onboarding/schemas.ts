@@ -194,6 +194,8 @@ export const step5Schema = z
         multiCurrency: z.boolean(),
         ess: z.boolean(),
         mobileApp: z.boolean(),
+        webApp: z.boolean(),
+        systemApp: z.boolean(),
         aiChatbot: z.boolean(),
         eSign: z.boolean(),
         biometric: z.boolean(),

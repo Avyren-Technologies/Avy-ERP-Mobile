@@ -50,7 +50,7 @@ const CHECKLIST_PHASES = [
     },
 ];
 
-export function Step13Activation({
+export function Step17Activation({
     companyName,
     currentStatus,
     onStatusChange,

@@ -263,7 +263,7 @@ export function FormSelect({
         : options;
 
     return (
-        <View style={[S.fieldWrap, { zIndex: visible ? 200 : 1 }]}>
+        <View style={[S.fieldWrap, { zIndex: visible ? 1200 : 1, position: 'relative' }]}>
             <FormLabel text={label} required={required} />
             <Pressable
                 onPress={() => setVisible((v) => !v)}
@@ -317,7 +317,7 @@ export function FormSelect({
                             left: -3000,
                             right: -3000,
                             bottom: -3000,
-                            zIndex: 99,
+                            zIndex: 1199,
                         }}
                     />
                     <View
@@ -326,7 +326,7 @@ export function FormSelect({
                             [direction === 'up' ? 'bottom' : 'top']: '102%',
                             left: 0,
                             right: 0,
-                            zIndex: 200,
+                            zIndex: 1200,
                             backgroundColor: '#fff',
                             borderRadius: 10,
                             borderWidth: 1,
@@ -336,7 +336,7 @@ export function FormSelect({
                             shadowOffset: { width: 0, height: direction === 'up' ? -4 : 4 },
                             shadowOpacity: 0.12,
                             shadowRadius: 10,
-                            elevation: 8,
+                            elevation: 20,
                             overflow: 'hidden',
                         }}
                     >

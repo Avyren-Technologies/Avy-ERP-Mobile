@@ -75,6 +75,7 @@ export function Step3Address({
                     options={COUNTRIES}
                     selected={form.regCountry}
                     onSelect={(v) => setForm({ regCountry: v })}
+                    direction="up"
                     required
                     error={errors?.regCountry}
                 />
@@ -176,6 +177,7 @@ export function Step3Address({
                             options={COUNTRIES}
                             selected={form.corpCountry}
                             onSelect={(v) => setForm({ corpCountry: v })}
+                            direction="up"
                             error={errors?.corpCountry}
                         />
                         <FormInput

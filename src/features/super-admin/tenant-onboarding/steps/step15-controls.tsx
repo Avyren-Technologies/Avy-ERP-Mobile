@@ -9,7 +9,7 @@ import { SectionCard, ToggleRow } from '../atoms';
 import { S } from '../shared-styles';
 import type { Step11Form } from '../types';
 
-export function Step11Controls({
+export function Step15Controls({
     form,
     setForm,
 }: {
@@ -76,18 +76,6 @@ export function Step11Controls({
                     subtitle="Require OTP / Authenticator app for login"
                     value={form.mfa}
                     onToggle={(v) => setForm({ mfa: v })}
-                />
-                <ToggleRow
-                    label="Backdated Entry Control"
-                    subtitle="Restrict creation of records with past dates beyond defined window"
-                    value={form.backdatedEntry}
-                    onToggle={(v) => setForm({ backdatedEntry: v })}
-                />
-                <ToggleRow
-                    label="Document Number Edit Lock"
-                    subtitle="Prevent manual editing of auto-generated document numbers"
-                    value={form.docNumberLock}
-                    onToggle={(v) => setForm({ docNumberLock: v })}
                 />
             </SectionCard>
         </Animated.View>

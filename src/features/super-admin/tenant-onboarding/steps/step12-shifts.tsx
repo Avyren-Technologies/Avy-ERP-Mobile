@@ -41,7 +41,7 @@ function TimePicker({
     });
 
     const hours = Array.from({ length: 24 }, (_, i) => i);
-    const minutes = [0, 15, 30, 45];
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
 
     const formatTime = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
@@ -110,23 +110,25 @@ function TimePicker({
                             {/* Minutes */}
                             <View style={{ flex: 1 }}>
                                 <Text className="font-inter text-xs font-bold text-neutral-500 mb-2 text-center">Minute</Text>
-                                {minutes.map(m => (
-                                    <Pressable
-                                        key={m}
-                                        onPress={() => setSelectedMinute(m)}
-                                        style={{
-                                            padding: 10,
-                                            borderRadius: 10,
-                                            marginBottom: 4,
-                                            alignItems: 'center',
-                                            backgroundColor: selectedMinute === m ? colors.primary[600] : colors.neutral[50],
-                                        }}
-                                    >
-                                        <Text className={`font-inter text-sm font-semibold ${selectedMinute === m ? 'text-white' : 'text-primary-900'}`}>
-                                            {String(m).padStart(2, '0')}
-                                        </Text>
-                                    </Pressable>
-                                ))}
+                                <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
+                                    {minutes.map(m => (
+                                        <Pressable
+                                            key={m}
+                                            onPress={() => setSelectedMinute(m)}
+                                            style={{
+                                                padding: 10,
+                                                borderRadius: 10,
+                                                marginBottom: 4,
+                                                alignItems: 'center',
+                                                backgroundColor: selectedMinute === m ? colors.primary[600] : colors.neutral[50],
+                                            }}
+                                        >
+                                            <Text className={`font-inter text-sm font-semibold ${selectedMinute === m ? 'text-white' : 'text-primary-900'}`}>
+                                                {String(m).padStart(2, '0')}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </ScrollView>
                             </View>
                         </View>
 
@@ -153,7 +155,7 @@ function TimePicker({
     );
 }
 
-export function Step8Shifts({
+export function Step12Shifts({
     form,
     setForm,
     shifts,

@@ -30,10 +30,12 @@ import {
     validateStep,
     validateArrayStep,
     step11ShiftsSchema,
+    getStep2Schema,
 } from './schemas';
 import type {
     Contact,
     IOTReason,
+    LocationCommercialEntry,
     NoSeriesItem,
     PlantBranch,
     Shift,
@@ -43,11 +45,10 @@ import type {
     Step4Form,
     Step5Form,
     Step6EndpointForm,
-    Step7ModulesForm,
-    Step8TierForm,
     Step7Form,
     Step8Form,
     Step11Form,
+    StrategyConfig,
     UserItem,
 } from './types';
 
@@ -57,10 +58,11 @@ import { Step3Address } from './steps/step03-address';
 import { Step4Fiscal } from './steps/step04-fiscal';
 import { Step5Preferences } from './steps/step05-preferences';
 import { Step6Endpoint } from './steps/step06-endpoint';
-import { Step7Modules } from './steps/step07-modules';
-import { Step8UserTier } from './steps/step08-user-tier';
+import { Step7Strategy } from './steps/step07-strategy';
+import { Step8Locations } from './steps/step08-locations';
+import { Step9PerLocationModules } from './steps/step09-per-location-modules';
+import { Step10PerLocationTier } from './steps/step10-per-location-tier';
 import { Step6Contacts } from './steps/step06-contacts';
-import { Step7PlantsBranches } from './steps/step07-plants-branches';
 import { Step8Shifts } from './steps/step08-shifts';
 import { Step9NoSeries } from './steps/step09-no-series';
 import { Step10IOTReasons } from './steps/step10-iot-reasons';
@@ -69,6 +71,9 @@ import { Step12Users } from './steps/step12-users';
 import { Step13Activation } from './steps/step13-activation';
 
 export function TenantOnboardingScreen() {
+    // TEMP: Toggle this to quickly enable/disable step validation during onboarding testing.
+    const SKIP_STEP_VALIDATION = true;
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -97,6 +102,7 @@ export function TenantOnboardingScreen() {
         regLine1: '', regLine2: '', regCity: '', regDistrict: '', regState: '',
         regCountry: 'India', regPin: '', regStdCode: '',
         sameAsRegistered: true, corpLine1: '', corpCity: '', corpState: '', corpPin: '',
+        corpLine2: '', corpDistrict: '', corpStdCode: '', corpCountry: 'India',
     });
 
     const [step4, setStep4] = React.useState<Step4Form>({
@@ -110,7 +116,7 @@ export function TenantOnboardingScreen() {
     const [step5, setStep5] = React.useState<Step5Form>({
         currency: 'INR — ₹', language: 'English', dateFormat: 'DD/MM/YYYY',
         numberFormat: 'Indian (2,00,000)', timeFormat: '12-hour (AM/PM)',
-        indiaCompliance: true, multiCurrency: false, ess: true, mobileApp: true,
+        indiaCompliance: true, multiCurrency: false, ess: true, mobileApp: true, webApp: true,
         aiChatbot: false, eSign: false, biometric: false,
         bankIntegration: false,
         razorpayEnabled: false, razorpayKeyId: '', razorpayKeySecret: '',
@@ -124,18 +130,13 @@ export function TenantOnboardingScreen() {
         customBaseUrl: '',
     });
 
-    const [step7Modules, setStep7Modules] = React.useState<Step7ModulesForm>({
-        selectedModuleIds: [],
-        customModulePricing: {},
+    const [strategyConfig, setStrategyConfig] = React.useState<StrategyConfig>({
+        multiLocationMode: false,
+        locationConfig: 'common',
+        billingScope: 'per-location',
     });
 
-    const [step8Tier, setStep8Tier] = React.useState<Step8TierForm>({
-        userTier: 'starter',
-        customUserLimit: '',
-        customTierPrice: '',
-        billingCycle: 'monthly',
-        trialDays: '14',
-    });
+    const [locationCommercial, setLocationCommercial] = React.useState<Record<string, LocationCommercialEntry>>({});
 
     const [contacts, setContacts] = React.useState<Contact[]>([
         { id: '1', name: '', designation: '', department: '', countryCode: '+91', mobile: '', email: '', type: 'Primary', linkedin: '' },
@@ -172,8 +173,21 @@ export function TenantOnboardingScreen() {
     const merge4 = (u: Partial<Step4Form>) => setStep4((p) => ({ ...p, ...u }));
     const merge5 = (u: Partial<Step5Form>) => setStep5((p) => ({ ...p, ...u }));
     const merge6 = (u: Partial<Step6EndpointForm>) => setStep6((p) => ({ ...p, ...u }));
-    const merge7Modules = (u: Partial<Step7ModulesForm>) => setStep7Modules((p) => ({ ...p, ...u }));
-    const merge8Tier = (u: Partial<Step8TierForm>) => setStep8Tier((p) => ({ ...p, ...u }));
+    const mergeStrategy = (u: Partial<StrategyConfig>) => setStrategyConfig((p) => ({ ...p, ...u }));
+    const updateLocationCommercial = (locationId: string, u: Partial<LocationCommercialEntry>) => {
+        setLocationCommercial((p) => ({
+            ...p,
+            [locationId]: { ...(p[locationId] ?? {
+                moduleIds: [],
+                customModulePricing: {},
+                userTier: 'starter',
+                customUserLimit: '',
+                customTierPrice: '',
+                billingCycle: 'monthly',
+                trialDays: '14',
+            }), ...u },
+        }));
+    };
     const mergePlants = (u: Partial<Step7Form>) => setPlantsStep((p) => ({ ...p, ...u }));
     const mergeShifts = (u: Partial<Step8Form>) => setShiftsStep((p) => ({ ...p, ...u }));
     const merge11 = (u: Partial<Step11Form>) => setStep11((p) => ({ ...p, ...u }));
@@ -182,16 +196,28 @@ export function TenantOnboardingScreen() {
     const validateCurrentStep = (): StepErrors => {
         switch (step) {
             case 1: return validateStep(1, step1 as unknown as Record<string, unknown>);
-            case 2: return validateStep(2, step2 as unknown as Record<string, unknown>);
+            case 2: {
+                const schema = getStep2Schema(step1.businessType);
+                const result = schema.safeParse(step2);
+                if (result.success) return {};
+                const errs: StepErrors = {};
+                for (const issue of result.error.issues) {
+                    const key = issue.path.join('_') || '_root';
+                    if (!errs[key]) errs[key] = issue.message;
+                }
+                return errs;
+            }
             case 3: return validateStep(3, step3 as unknown as Record<string, unknown>);
             case 4: return validateStep(4, step4 as unknown as Record<string, unknown>);
             case 5: return validateStep(5, step5 as unknown as Record<string, unknown>);
             case 6: return validateStep(6, step6 as unknown as Record<string, unknown>);
-            case 7: return validateStep(7, step7Modules as unknown as Record<string, unknown>);
-            case 8: return validateStep(8, step8Tier as unknown as Record<string, unknown>);
-            case 9: return validateArrayStep(9, contacts);
-            case 10: return validateArrayStep(10, locations);
-            case 11: {
+            case 7: return validateStep(7, strategyConfig as unknown as Record<string, unknown>);
+            case 8: return validateArrayStep(8, locations);   // Locations Master
+            case 9: return {};                                 // Per-location modules — validated inline
+            case 10: return {};                               // Per-location tier — validated inline
+            case 11: return validateArrayStep(11, contacts);  // Key Contacts
+            case 12: {
+                // Shifts & Time
                 const result = step11ShiftsSchema.safeParse({ ...shiftsStep, shifts });
                 if (result.success) return {};
                 const errors: StepErrors = {};
@@ -209,9 +235,9 @@ export function TenantOnboardingScreen() {
                 }
                 return errors;
             }
-            case 12: return validateArrayStep(12, noSeries);
-            case 13: return validateArrayStep(13, iotReasons);
-            case 15: return validateArrayStep(15, users);
+            case 13: return validateArrayStep(13, noSeries);   // No. Series
+            case 14: return validateArrayStep(14, iotReasons); // IOT Reasons
+            case 16: return validateArrayStep(16, users);      // Users & Access
             default: return {};
         }
     };
@@ -232,10 +258,12 @@ export function TenantOnboardingScreen() {
     };
 
     const handleNext = () => {
-        const errors = validateCurrentStep();
-        if (Object.keys(errors).length > 0) {
-            setStepErrors(errors);
-            return;
+        if (!SKIP_STEP_VALIDATION) {
+            const errors = validateCurrentStep();
+            if (Object.keys(errors).length > 0) {
+                setStepErrors(errors);
+                return;
+            }
         }
         if (step < TOTAL_STEPS) setStep(step + 1);
     };
@@ -263,37 +291,45 @@ export function TenantOnboardingScreen() {
     const renderStep = () => {
         switch (step) {
             case 1: return <Step1Identity form={step1} setForm={merge1} errors={stepErrors} />;
-            case 2: return <Step2Statutory form={step2} setForm={merge2} errors={stepErrors} />;
+            case 2: return <Step2Statutory form={step2} setForm={merge2} errors={stepErrors} businessType={step1.businessType} />;
             case 3: return <Step3Address form={step3} setForm={merge3} errors={stepErrors} />;
             case 4: return <Step4Fiscal form={step4} setForm={merge4} errors={stepErrors} />;
             case 5: return <Step5Preferences form={step5} setForm={merge5} errors={stepErrors} />;
             case 6: return <Step6Endpoint form={step6} setForm={merge6} errors={stepErrors} />;
             case 7: return (
-                <Step7Modules
-                    form={step7Modules}
-                    setForm={merge7Modules}
+                <Step7Strategy
+                    form={strategyConfig}
+                    setForm={mergeStrategy}
                     errors={stepErrors}
                 />
             );
             case 8: return (
-                <Step8UserTier
-                    form={step8Tier}
-                    setForm={merge8Tier}
-                    modules={step7Modules}
-                    errors={stepErrors}
-                />
-            );
-            case 9: return <Step6Contacts contacts={contacts} setContacts={setContacts} errors={stepErrors} />;
-            case 10: return (
-                <Step7PlantsBranches
-                    form={plantsStep}
-                    setForm={mergePlants}
+                <Step8Locations
                     locations={locations}
                     setLocations={setLocations}
                     errors={stepErrors}
                 />
             );
-            case 11: return (
+            case 9: return (
+                <Step9PerLocationModules
+                    strategyConfig={strategyConfig}
+                    locations={locations}
+                    locationCommercial={locationCommercial}
+                    onUpdateLocationCommercial={updateLocationCommercial}
+                    errors={stepErrors}
+                />
+            );
+            case 10: return (
+                <Step10PerLocationTier
+                    strategyConfig={strategyConfig}
+                    locations={locations}
+                    locationCommercial={locationCommercial}
+                    onUpdateLocationCommercial={updateLocationCommercial}
+                    errors={stepErrors}
+                />
+            );
+            case 11: return <Step6Contacts contacts={contacts} setContacts={setContacts} errors={stepErrors} />;
+            case 12: return (
                 <Step8Shifts
                     form={shiftsStep}
                     setForm={mergeShifts}
@@ -302,11 +338,11 @@ export function TenantOnboardingScreen() {
                     errors={stepErrors}
                 />
             );
-            case 12: return <Step9NoSeries noSeries={noSeries} setNoSeries={setNoSeries} errors={stepErrors} />;
-            case 13: return <Step10IOTReasons reasons={iotReasons} setReasons={setIotReasons} errors={stepErrors} />;
-            case 14: return <Step11Controls form={step11} setForm={merge11} />;
-            case 15: return <Step12Users users={users} setUsers={setUsers} errors={stepErrors} />;
-            case 16: return (
+            case 13: return <Step9NoSeries noSeries={noSeries} setNoSeries={setNoSeries} errors={stepErrors} />;
+            case 14: return <Step10IOTReasons reasons={iotReasons} setReasons={setIotReasons} errors={stepErrors} />;
+            case 15: return <Step11Controls form={step11} setForm={merge11} />;
+            case 16: return <Step12Users users={users} setUsers={setUsers} errors={stepErrors} />;
+            case 17: return (
                 <Step13Activation
                     companyName={step1.displayName}
                     currentStatus={step1.status}

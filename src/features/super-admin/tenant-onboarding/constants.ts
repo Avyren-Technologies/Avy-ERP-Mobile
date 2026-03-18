@@ -1,24 +1,25 @@
 // ============ WIZARD CONFIG ============
 
-export const TOTAL_STEPS = 16;
+export const TOTAL_STEPS = 17;
 
 export const STEP_META = [
-    { title: 'Company Identity', subtitle: 'Basic info & status' },
-    { title: 'Statutory & Tax', subtitle: 'PAN, TAN, GSTIN, PF' },
-    { title: 'Address', subtitle: 'Registered & corporate' },
-    { title: 'Fiscal & Calendar', subtitle: 'FY, payroll, working days' },
-    { title: 'Preferences', subtitle: 'Currency, language, integrations' },
-    { title: 'Backend Endpoint', subtitle: 'Default or custom connection' },
-    { title: 'Module Selection', subtitle: 'Catalogue with pricing' },
-    { title: 'User Tier & Pricing', subtitle: 'Plan, billing, trial' },
-    { title: 'Key Contacts', subtitle: 'HR, Finance, IT contacts' },
-    { title: 'Plants & Branches', subtitle: 'Locations & geo-fencing' },
-    { title: 'Shifts & Time', subtitle: 'Shift master & downtime' },
-    { title: 'No. Series', subtitle: 'Document numbering' },
-    { title: 'IOT Reasons', subtitle: 'Machine downtime reasons' },
-    { title: 'System Controls', subtitle: 'Operational settings' },
-    { title: 'Users', subtitle: 'Admin user creation' },
-    { title: 'Activation', subtitle: 'Review & go live' },
+    { id: 1, title: 'Company Identity', subtitle: 'Logo, name, industry & status' },
+    { id: 2, title: 'Statutory & Tax', subtitle: 'PAN, TAN, GSTIN, PF/ESI/PT' },
+    { id: 3, title: 'Address', subtitle: 'Registered & corporate address' },
+    { id: 4, title: 'Fiscal & Calendar', subtitle: 'FY period, payroll cycle, timezone' },
+    { id: 5, title: 'Preferences', subtitle: 'Integrations & notifications' },
+    { id: 6, title: 'Backend Endpoint', subtitle: 'Default or custom server connection' },
+    { id: 7, title: 'Configuration Strategy', subtitle: 'Location mode & billing scope' },
+    { id: 8, title: 'Locations Master', subtitle: 'Plants, branches, GST & geo-fencing' },
+    { id: 9, title: 'Per-Location Modules', subtitle: 'Active modules billed per location' },
+    { id: 10, title: 'Per-Location Pricing', subtitle: 'User tier & subscription per location' },
+    { id: 11, title: 'Key Contacts', subtitle: 'HR, Finance, IT, Operations' },
+    { id: 12, title: 'Shifts & Time', subtitle: 'Shift master, downtime slots' },
+    { id: 13, title: 'No. Series', subtitle: 'Document numbering sequences' },
+    { id: 14, title: 'IOT Reasons', subtitle: 'Machine downtime & idle reasons' },
+    { id: 15, title: 'System Controls', subtitle: 'Operational & security settings' },
+    { id: 16, title: 'Users & Access', subtitle: 'Users, roles & location access scope' },
+    { id: 17, title: 'Activation', subtitle: 'Location readiness & billing summary' },
 ];
 
 // ============ COMPANY ============
@@ -51,6 +52,12 @@ export const INDIAN_STATES = [
     'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand',
     'West Bengal', 'Delhi', 'Jammu & Kashmir', 'Ladakh', 'Puducherry',
     'Chandigarh', 'Others',
+];
+
+export const COUNTRIES = [
+    'India', 'United States', 'United Kingdom', 'UAE', 'Singapore',
+    'Australia', 'Germany', 'Japan', 'Malaysia', 'Thailand', 'South Korea',
+    'China', 'Canada', 'France', 'Italy', 'Netherlands', 'Others',
 ];
 
 export const COUNTRY_CODES = [

@@ -77,6 +77,43 @@ export const step2Schema = z.object({
 
 export type Step2Errors = Partial<Record<keyof z.infer<typeof step2Schema>, string>>;
 
+export const CORPORATE_TYPES = ['Private Limited (Pvt. Ltd.)', 'Public Limited'];
+
+export function getStep2Schema(businessType: string) {
+    const isCorporate = CORPORATE_TYPES.includes(businessType);
+    return z.object({
+        pan: z
+            .string()
+            .min(1, 'PAN is required')
+            .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN (format: AAAAA9999A)'),
+        tan: isCorporate
+            ? z.string().min(1, 'TAN is required').regex(/^[A-Z]{4}[0-9]{5}[A-Z]{1}$/, 'Invalid TAN (format: AAAA99999A)')
+            : z.string().optional().or(z.literal('')),
+        gstin: z
+            .string()
+            .optional()
+            .refine(
+                (v) => !v || /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v),
+                'Invalid GSTIN (format: 29AARCA5678F1Z3)'
+            ),
+        pfRegNo: isCorporate
+            ? z.string().min(1, 'PF Registration No. is required')
+            : z.string().optional().or(z.literal('')),
+        esiCode: z
+            .string()
+            .optional()
+            .refine(
+                (v) => !v || /^[0-9]{2}-[0-9]{2}-[0-9]{6}-[0-9]{3}-[0-9]{4}$/.test(v) || /^[0-9-]+$/.test(v),
+                'Invalid ESI employer code format'
+            ),
+        ptReg: z.string().optional(),
+        lwfrNo: z.string().optional(),
+        rocState: isCorporate
+            ? z.string().min(1, 'ROC filing state is required')
+            : z.string().optional(),
+    });
+}
+
 // ============ STEP 3 — Address ============
 
 export const step3Schema = z
@@ -206,7 +243,33 @@ export const step6EndpointSchema = z
 
 export type Step6EndpointErrors = Partial<Record<keyof z.infer<typeof step6EndpointSchema>, string>>;
 
-// ============ STEP 7 — Module Selection ============
+// ============ STEP 7 — Configuration Strategy ============
+
+export const step7StrategySchema = z.object({
+    multiLocationMode: z.boolean(),
+    locationConfig: z.enum(['common', 'per-location']),
+    billingScope: z.literal('per-location'),
+});
+
+export type Step7StrategyErrors = Partial<Record<keyof z.infer<typeof step7StrategySchema>, string>>;
+
+// ============ STEP 9 — Per-Location Modules (simplified) ============
+
+export const step9PerLocationModulesSchema = z.object({
+    locationId: z.string().min(1),
+    moduleIds: z.array(z.string()).min(1, 'Select at least one module for this location'),
+});
+
+// ============ STEP 10 — Per-Location Tier (simplified) ============
+
+export const step10PerLocationTierSchema = z.object({
+    locationId: z.string().min(1),
+    userTier: z.enum(['starter', 'growth', 'scale', 'enterprise', 'custom']),
+    billingCycle: z.enum(['monthly', 'annual']),
+    trialDays: z.string(),
+});
+
+// ============ STEP 7 (old) — Module Selection ============
 
 export const step7ModulesSchema = z.object({
     selectedModuleIds: z.array(z.string()).min(1, 'Select at least one module'),
@@ -436,8 +499,8 @@ export function validateStep(
         4: step4Schema,
         5: step5Schema,
         6: step6EndpointSchema,
-        7: step7ModulesSchema,
-        8: step8TierSchema,
+        7: step7StrategySchema,
+        // steps 9 & 10 (per-location modules/tier) are validated inline in index.tsx
     };
 
     const schema = schemas[step];
@@ -463,11 +526,11 @@ export function validateArrayStep(
     items: unknown[]
 ): StepErrors {
     const schemas: Record<number, z.ZodTypeAny> = {
-        9: step9ContactsSchema,
-        10: step10LocationsSchema,
-        12: step12NoSeriesSchema,
-        13: step13IOTReasonsSchema,
-        15: step15UsersSchema,
+        8: step10LocationsSchema,  // step 8 = Locations Master (was step 10)
+        11: step9ContactsSchema,   // step 11 = Key Contacts (was step 9)
+        13: step12NoSeriesSchema,  // step 13 = No. Series (was step 12)
+        14: step13IOTReasonsSchema, // step 14 = IOT Reasons (was step 13)
+        16: step15UsersSchema,     // step 16 = Users & Access (was step 15)
     };
 
     const schema = schemas[step];

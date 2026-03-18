@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
+
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
@@ -224,6 +225,19 @@ export function Step8UserTier({
                     hint="Set 0 to skip trial and start billing immediately"
                     error={errors?.trialDays}
                 />
+                <View style={{
+                    backgroundColor: '#EFF6FF',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginTop: 8,
+                    borderWidth: 1,
+                    borderColor: '#BFDBFE',
+                }}>
+                    <Text className="font-inter text-xs font-semibold text-info-800">📅 Billing Date</Text>
+                    <Text className="mt-1 font-inter text-xs leading-4 text-info-700">
+                        Billing will commence from the date of successful tenant registration and first payment confirmation by the tenant. The trial period begins immediately upon activation.
+                    </Text>
+                </View>
             </SectionCard>
 
             <SectionCard title="Pricing Summary">

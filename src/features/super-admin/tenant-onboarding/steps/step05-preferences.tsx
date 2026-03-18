@@ -1,3 +1,4 @@
+/* eslint-disable better-tailwindcss/no-unknown-classes */
 import type { Step5Form } from '../types';
 import * as React from 'react';
 import { View } from 'react-native';
@@ -8,18 +9,10 @@ import { Text } from '@/components/ui';
 
 import {
     FormInput,
-    FormSelect,
     SecretInput,
     SectionCard,
     ToggleRow,
 } from '../atoms';
-import {
-    CURRENCIES,
-    DATE_FORMATS,
-    LANGUAGES,
-    NUMBER_FORMATS,
-    TIME_FORMATS,
-} from '../constants';
 import { S } from '../shared-styles';
 
 // ============ RAZORPAYX SECTION ============
@@ -186,43 +179,6 @@ export function Step5Preferences({
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
-            <SectionCard title="Locale & Format">
-                <FormSelect
-                    label="Currency"
-                    options={CURRENCIES}
-                    selected={form.currency}
-                    onSelect={(v) => setForm({ currency: v })}
-                    required
-                    error={errors?.currency}
-                />
-                <FormSelect
-                    label="Language"
-                    options={LANGUAGES}
-                    selected={form.language}
-                    onSelect={(v) => setForm({ language: v })}
-                    error={errors?.language}
-                />
-                <FormSelect
-                    label="Date Format"
-                    options={DATE_FORMATS}
-                    selected={form.dateFormat}
-                    onSelect={(v) => setForm({ dateFormat: v })}
-                />
-                <FormSelect
-                    label="Number Format"
-                    options={NUMBER_FORMATS}
-                    selected={form.numberFormat}
-                    onSelect={(v) => setForm({ numberFormat: v })}
-                />
-                <FormSelect
-                    label="Time Format"
-                    options={TIME_FORMATS}
-                    selected={form.timeFormat}
-                    onSelect={(v) => setForm({ timeFormat: v })}
-                    direction="up"
-                />
-            </SectionCard>
-
             <SectionCard title="Compliance Toggles">
                 <ToggleRow
                     label="India Statutory Compliance"
@@ -230,21 +186,9 @@ export function Step5Preferences({
                     value={form.indiaCompliance}
                     onToggle={(v) => setForm({ indiaCompliance: v })}
                 />
-                <ToggleRow
-                    label="Multi-Currency Payroll"
-                    subtitle="International employees in multiple currencies"
-                    value={form.multiCurrency}
-                    onToggle={(v) => setForm({ multiCurrency: v })}
-                />
             </SectionCard>
 
             <SectionCard title="Employee Portal & App">
-                <ToggleRow
-                    label="Employee Self-Service (ESS) Portal"
-                    subtitle="Employee login for leaves, payslips, IT declarations"
-                    value={form.ess}
-                    onToggle={(v) => setForm({ ess: v })}
-                />
                 <ToggleRow
                     label="Mobile App (iOS & Android)"
                     subtitle="Avy ERP mobile app access for all employees"
@@ -252,26 +196,28 @@ export function Step5Preferences({
                     onToggle={(v) => setForm({ mobileApp: v })}
                 />
                 <ToggleRow
-                    label="AI HR Assistant Chatbot"
-                    subtitle="NLP chatbot for leave, policy FAQs"
-                    value={form.aiChatbot}
-                    onToggle={(v) => setForm({ aiChatbot: v })}
-                />
-                <ToggleRow
-                    label="e-Sign Integration"
-                    subtitle="Digital signatures for offer letters and F&F"
-                    value={form.eSign}
-                    onToggle={(v) => setForm({ eSign: v })}
+                    label="Web / System Application"
+                    subtitle="Browser-based ERP access for managers, HR, and admin users — full feature access"
+                    value={form.webApp ?? true}
+                    onToggle={(v) => setForm({ webApp: v })}
                 />
             </SectionCard>
 
             <SectionCard title="Integrations & Devices">
-                <ToggleRow
-                    label="Biometric / Device Sync"
-                    subtitle="Auto-sync attendance from ZKTeco, ESSL devices"
-                    value={form.biometric}
-                    onToggle={(v) => setForm({ biometric: v })}
-                />
+                {/* Biometric — Coming Soon */}
+                <View style={{ opacity: 0.55 }} pointerEvents="none">
+                    <ToggleRow
+                        label="Biometric / Device Sync"
+                        subtitle="Auto-sync attendance from ZKTeco, ESSL devices"
+                        value={false}
+                        onToggle={() => {}}
+                    />
+                </View>
+                <View style={{ marginTop: -8, marginBottom: 4, alignSelf: 'flex-end' }}>
+                    <View style={{ backgroundColor: '#FEF3C7', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text className="font-inter text-[9px] font-bold text-warning-700">COMING SOON</Text>
+                    </View>
+                </View>
 
                 {/* Payroll Bank Integration + RazorpayX */}
                 <ToggleRow
@@ -301,12 +247,21 @@ export function Step5Preferences({
                     value={form.emailNotif}
                     onToggle={(v) => setForm({ emailNotif: v })}
                 />
-                <ToggleRow
-                    label="WhatsApp Notifications"
-                    subtitle="Salary alerts, leave status via WhatsApp Business API"
-                    value={form.whatsapp}
-                    onToggle={(v) => setForm({ whatsapp: v })}
-                />
+
+                {/* WhatsApp — Coming Soon */}
+                <View style={{ opacity: 0.55 }} pointerEvents="none">
+                    <ToggleRow
+                        label="WhatsApp Notifications"
+                        subtitle="Salary alerts, leave status via WhatsApp Business API"
+                        value={false}
+                        onToggle={() => {}}
+                    />
+                </View>
+                <View style={{ marginTop: -8, marginBottom: 4, alignSelf: 'flex-end' }}>
+                    <View style={{ backgroundColor: '#FEF3C7', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text className="font-inter text-[9px] font-bold text-warning-700">COMING SOON</Text>
+                    </View>
+                </View>
             </SectionCard>
         </Animated.View>
     );

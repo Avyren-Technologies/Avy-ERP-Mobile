@@ -68,6 +68,8 @@ export function Step1Identity({
         setShowOptions(false);
     };
 
+    const isCorporate = ['Private Limited (Pvt. Ltd.)', 'Public Limited'].includes(form.businessType);
+
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <SectionCard title="Company Logo">
@@ -254,20 +256,22 @@ export function Step1Identity({
                     onChangeText={(v) => setForm({ shortName: v })}
                 />
                 <FormDatePicker
-                    label="Date of Incorporation"
+                    label={isCorporate ? 'Date of Incorporation' : form.businessType === 'Partnership' ? 'Partnership Deed Date' : 'Business Registration Date'}
                     value={form.incorporationDate}
                     onChange={(v) => setForm({ incorporationDate: v })}
                     required
                     error={errors?.incorporationDate}
                 />
-                <FormInput
-                    label="CIN Number"
-                    placeholder="U72900KA2019PTC312847"
-                    value={form.cin}
-                    onChangeText={(v) => setForm({ cin: v })}
-                    autoCapitalize="none"
-                    error={errors?.cin}
-                />
+                {isCorporate && (
+                    <FormInput
+                        label="CIN Number"
+                        placeholder="U72900KA2019PTC312847"
+                        value={form.cin}
+                        onChangeText={(v) => setForm({ cin: v })}
+                        autoCapitalize="none"
+                        error={errors?.cin}
+                    />
+                )}
                 <FormInput
                     label="Official Website"
                     placeholder="https://company.com"

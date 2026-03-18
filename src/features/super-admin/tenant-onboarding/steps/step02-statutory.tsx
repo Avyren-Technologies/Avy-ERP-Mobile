@@ -15,11 +15,15 @@ export function Step2Statutory({
     form,
     setForm,
     errors,
+    businessType,
 }: {
     form: Step2Form;
     setForm: (f: Partial<Step2Form>) => void;
     errors?: Record<string, string>;
+    businessType: string;
 }) {
+    const isCorporate = ['Private Limited (Pvt. Ltd.)', 'Public Limited'].includes(businessType);
+
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.warningBanner}>
@@ -54,9 +58,9 @@ export function Step2Statutory({
                     placeholder="BLRA98765T"
                     value={form.tan}
                     onChangeText={(v) => setForm({ tan: v.toUpperCase() })}
-                    required
+                    required={isCorporate}
                     autoCapitalize="none"
-                    hint="Required for TDS deduction and quarterly returns"
+                    hint={isCorporate ? 'Required for TDS deduction and quarterly returns' : 'Optional — required only if deducting TDS'}
                     error={errors?.tan}
                 />
                 <FormInput
@@ -73,9 +77,9 @@ export function Step2Statutory({
                     placeholder="KA/BLR/0112345/000/0001"
                     value={form.pfRegNo}
                     onChangeText={(v) => setForm({ pfRegNo: v })}
-                    required
+                    required={isCorporate}
                     autoCapitalize="none"
-                    hint="Required for PF deductions and ECR uploads"
+                    hint={isCorporate ? 'Required for PF deductions and ECR uploads' : 'Optional — required if employing 20+ employees'}
                     error={errors?.pfRegNo}
                 />
                 <FormInput
@@ -102,15 +106,17 @@ export function Step2Statutory({
                     onChangeText={(v) => setForm({ lwfrNo: v })}
                     autoCapitalize="none"
                 />
-                <FormSelect
-                    label="ROC Filing State"
-                    options={INDIAN_STATES}
-                    selected={form.rocState}
-                    onSelect={(v) => setForm({ rocState: v })}
-                    required
-                    error={errors?.rocState}
-                    direction="up"
-                />
+                {isCorporate && (
+                    <FormSelect
+                        label="ROC Filing State"
+                        options={INDIAN_STATES}
+                        selected={form.rocState}
+                        onSelect={(v) => setForm({ rocState: v })}
+                        required
+                        error={errors?.rocState}
+                        direction="up"
+                    />
+                )}
             </SectionCard>
         </Animated.View>
     );

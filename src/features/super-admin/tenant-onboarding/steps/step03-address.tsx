@@ -7,7 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 
 import { FormInput, FormSelect, SectionCard } from '../atoms';
-import { INDIAN_STATES } from '../constants';
+import { COUNTRIES, INDIAN_STATES } from '../constants';
 import type { Step3Form } from '../types';
 import { S } from '../shared-styles';
 
@@ -70,6 +70,14 @@ export function Step3Address({
                     keyboardType="number-pad"
                     error={errors?.regPin}
                 />
+                <FormSelect
+                    label="Country"
+                    options={COUNTRIES}
+                    selected={form.regCountry}
+                    onSelect={(v) => setForm({ regCountry: v })}
+                    required
+                    error={errors?.regCountry}
+                />
                 <FormInput
                     label="STD Code"
                     placeholder="080"
@@ -88,9 +96,13 @@ export function Step3Address({
                                 ? {}
                                 : {
                                       corpLine1: form.regLine1,
+                                      corpLine2: form.regLine2,
                                       corpCity: form.regCity,
+                                      corpDistrict: form.regDistrict,
                                       corpState: form.regState,
                                       corpPin: form.regPin,
+                                      corpCountry: form.regCountry,
+                                      corpStdCode: form.regStdCode,
                                   }),
                         })
                     }
@@ -124,12 +136,25 @@ export function Step3Address({
                             error={errors?.corpLine1}
                         />
                         <FormInput
+                            label="Address Line 2"
+                            placeholder="Area, landmark, locality"
+                            value={form.corpLine2}
+                            onChangeText={(v) => setForm({ corpLine2: v })}
+                        />
+                        <FormInput
                             label="City"
                             placeholder="City"
                             value={form.corpCity}
                             onChangeText={(v) => setForm({ corpCity: v })}
                             autoCapitalize="words"
                             error={errors?.corpCity}
+                        />
+                        <FormInput
+                            label="District"
+                            placeholder="e.g. Mumbai Suburban"
+                            value={form.corpDistrict}
+                            onChangeText={(v) => setForm({ corpDistrict: v })}
+                            autoCapitalize="words"
                         />
                         <FormSelect
                             label="State"
@@ -145,6 +170,20 @@ export function Step3Address({
                             onChangeText={(v) => setForm({ corpPin: v })}
                             keyboardType="number-pad"
                             error={errors?.corpPin}
+                        />
+                        <FormSelect
+                            label="Country"
+                            options={COUNTRIES}
+                            selected={form.corpCountry}
+                            onSelect={(v) => setForm({ corpCountry: v })}
+                            error={errors?.corpCountry}
+                        />
+                        <FormInput
+                            label="STD Code"
+                            placeholder="022"
+                            value={form.corpStdCode}
+                            onChangeText={(v) => setForm({ corpStdCode: v })}
+                            keyboardType="phone-pad"
                         />
                     </Animated.View>
                 )}

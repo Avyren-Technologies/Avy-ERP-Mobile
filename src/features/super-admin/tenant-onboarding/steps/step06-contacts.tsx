@@ -15,6 +15,61 @@ import {
 import { CONTACT_TYPES } from '../constants';
 import { S } from '../shared-styles';
 
+function ContactTypeSelector({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (v: string) => void;
+}) {
+    const isCustom = value !== '' && !CONTACT_TYPES.includes(value);
+    const [showCustom, setShowCustom] = React.useState(isCustom);
+    const displayValue = isCustom ? 'Custom...' : value;
+    const [customText, setCustomText] = React.useState(isCustom ? value : '');
+
+    const handleSelect = (v: string) => {
+        if (v === 'Custom...') {
+            setShowCustom(true);
+            onChange('');
+        } else {
+            setShowCustom(false);
+            setCustomText('');
+            onChange(v);
+        }
+    };
+
+    const handleCustomText = (text: string) => {
+        if (text.length <= 50) {
+            setCustomText(text);
+            onChange(text);
+        }
+    };
+
+    return (
+        <View>
+            <FormSelect
+                label="Contact Type"
+                options={[...CONTACT_TYPES, 'Custom...']}
+                selected={displayValue}
+                onSelect={handleSelect}
+                direction="up"
+            />
+            {showCustom && (
+                <Animated.View entering={FadeIn.duration(150)} style={{ marginTop: 8 }}>
+                    <FormInput
+                        label="Custom Type"
+                        placeholder="e.g. Procurement Contact"
+                        value={customText}
+                        onChangeText={handleCustomText}
+                        autoCapitalize="words"
+                        hint="Max 50 characters"
+                    />
+                </Animated.View>
+            )}
+        </View>
+    );
+}
+
 export function Step6Contacts({
     contacts,
     setContacts,
@@ -118,13 +173,7 @@ export function Step6Contacts({
                         error={errors?.[`email_${idx}`]}
                     />
 
-                    <FormSelect
-                        label="Contact Type"
-                        options={CONTACT_TYPES}
-                        selected={contact.type}
-                        onSelect={(v) => update(contact.id, { type: v })}
-                        direction="up"
-                    />
+                    <ContactTypeSelector value={contact.type} onChange={(v) => update(contact.id, { type: v })} />
 
                     <FormInput
                         label="LinkedIn Profile"

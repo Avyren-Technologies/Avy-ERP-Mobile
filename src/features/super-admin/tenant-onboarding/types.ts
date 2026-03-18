@@ -136,6 +136,10 @@ export interface Step3Form {
     corpCity: string;
     corpState: string;
     corpPin: string;
+    corpLine2: string;
+    corpDistrict: string;
+    corpStdCode: string;
+    corpCountry: string;
 }
 
 export interface Step4Form {
@@ -160,6 +164,7 @@ export interface Step5Form {
     multiCurrency: boolean;
     ess: boolean;
     mobileApp: boolean;
+    webApp: boolean;
     aiChatbot: boolean;
     eSign: boolean;
     biometric: boolean;
@@ -195,9 +200,39 @@ export interface Step8TierForm {
     trialDays: string;
 }
 
+// Step7Form — kept for backward compat (plants/branches meta).
+// Strategy config is now in StrategyConfig.
 export interface Step7Form {
     multiLocationMode: boolean;
     locationConfig: 'common' | 'per-location';
+}
+
+// ---- Scoped Config (common or per-location) ----
+
+export type ScopedConfig<T> = {
+    mode: 'common' | 'per-location';
+    common: T;
+    byLocationId: Record<string, T>;
+};
+
+// ---- Strategy Config ----
+
+export interface StrategyConfig {
+    multiLocationMode: boolean;
+    locationConfig: 'common' | 'per-location';
+    billingScope: 'per-location';
+}
+
+// ---- Per-Location Commercial ----
+
+export interface LocationCommercialEntry {
+    moduleIds: string[];
+    customModulePricing: Record<string, number>;
+    userTier: 'starter' | 'growth' | 'scale' | 'enterprise' | 'custom';
+    customUserLimit: string;
+    customTierPrice: string;
+    billingCycle: 'monthly' | 'annual';
+    trialDays: string;
 }
 
 export interface Step8Form {

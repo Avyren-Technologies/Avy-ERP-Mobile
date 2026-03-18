@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
-import { Pressable, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
@@ -8,9 +8,150 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
 import { AddButton, DeleteButton, FormInput, FormSelect, SectionCard } from '../atoms';
-import { DAYS_OF_WEEK, DOWNTIME_TYPES } from '../constants';
+import { DOWNTIME_TYPES } from '../constants';
 import type { DowntimeSlot, Shift, Step8Form } from '../types';
 import { S } from '../shared-styles';
+
+function TimePicker({
+    label,
+    value,
+    onChange,
+    required,
+    error,
+}: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    required?: boolean;
+    error?: string;
+}) {
+    const [open, setOpen] = React.useState(false);
+
+    // Parse current value
+    const [selectedHour, setSelectedHour] = React.useState(() => {
+        if (!value) return 0;
+        const [h] = value.split(':').map(Number);
+        return isNaN(h) ? 0 : h;
+    });
+    const [selectedMinute, setSelectedMinute] = React.useState(() => {
+        if (!value) return 0;
+        const parts = value.split(':');
+        const m = Number(parts[1]);
+        return isNaN(m) ? 0 : m;
+    });
+
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const minutes = [0, 15, 30, 45];
+
+    const formatTime = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+    const handleConfirm = () => {
+        onChange(formatTime(selectedHour, selectedMinute));
+        setOpen(false);
+    };
+
+    return (
+        <View style={S.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                {label}{required && <Text className="text-danger-500"> *</Text>}
+            </Text>
+            <Pressable
+                onPress={() => setOpen(true)}
+                style={[
+                    S.fieldInput,
+                    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+                    error ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined,
+                ]}
+            >
+                <Text className={`font-inter text-sm font-semibold ${value ? 'text-primary-950' : 'text-neutral-400'}`}>
+                    {value || 'Select time'}
+                </Text>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path d="M12 2a10 10 0 100 20A10 10 0 0012 2zM12 6v6l4 2" stroke={colors.neutral[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </Svg>
+            </Pressable>
+            {error && <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text>}
+
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                    <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
+                    <View style={{ backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 }}>
+                        <Text className="font-inter text-base font-bold text-primary-950 mb-4">{label}</Text>
+
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            {/* Hours */}
+                            <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-xs font-bold text-neutral-500 mb-2 text-center">Hour</Text>
+                                <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
+                                    {hours.map(h => (
+                                        <Pressable
+                                            key={h}
+                                            onPress={() => setSelectedHour(h)}
+                                            style={{
+                                                padding: 10,
+                                                borderRadius: 10,
+                                                marginBottom: 4,
+                                                alignItems: 'center',
+                                                backgroundColor: selectedHour === h ? colors.primary[600] : colors.neutral[50],
+                                            }}
+                                        >
+                                            <Text className={`font-inter text-sm font-semibold ${selectedHour === h ? 'text-white' : 'text-primary-900'}`}>
+                                                {String(h).padStart(2, '0')}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                            <View style={{ justifyContent: 'center', paddingBottom: 20 }}>
+                                <Text className="font-inter text-xl font-bold text-primary-600">:</Text>
+                            </View>
+
+                            {/* Minutes */}
+                            <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-xs font-bold text-neutral-500 mb-2 text-center">Minute</Text>
+                                {minutes.map(m => (
+                                    <Pressable
+                                        key={m}
+                                        onPress={() => setSelectedMinute(m)}
+                                        style={{
+                                            padding: 10,
+                                            borderRadius: 10,
+                                            marginBottom: 4,
+                                            alignItems: 'center',
+                                            backgroundColor: selectedMinute === m ? colors.primary[600] : colors.neutral[50],
+                                        }}
+                                    >
+                                        <Text className={`font-inter text-sm font-semibold ${selectedMinute === m ? 'text-white' : 'text-primary-900'}`}>
+                                            {String(m).padStart(2, '0')}
+                                        </Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                            <Pressable
+                                onPress={() => setOpen(false)}
+                                style={{ flex: 1, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], alignItems: 'center' }}
+                            >
+                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleConfirm}
+                                style={{ flex: 1, padding: 14, borderRadius: 14, backgroundColor: colors.primary[600], alignItems: 'center' }}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">
+                                    Confirm {formatTime(selectedHour, selectedMinute)}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+}
 
 export function Step8Shifts({
     form,
@@ -25,12 +166,7 @@ export function Step8Shifts({
     setShifts: (s: Shift[]) => void;
     errors?: Record<string, string>;
 }) {
-    const toggleWeeklyOff = (day: string) => {
-        const updated = form.weeklyOffs.includes(day)
-            ? form.weeklyOffs.filter((d) => d !== day)
-            : [...form.weeklyOffs, day];
-        setForm({ weeklyOffs: updated });
-    };
+    const [totalShiftsPerDay, setTotalShiftsPerDay] = React.useState('');
 
     const addShift = () => {
         setShifts([
@@ -93,47 +229,54 @@ export function Step8Shifts({
             <SectionCard title="Production Day Boundary">
                 <View style={S.twoColumn}>
                     <View style={{ flex: 1 }}>
-                        <FormInput
-                            label="Day Start Time"
-                            placeholder="06:00 AM"
-                            value={form.dayStartTime}
-                            onChangeText={(v) => setForm({ dayStartTime: v })}
-                            required
-                            error={errors?.dayStartTime}
-                        />
+                        <TimePicker label="Day Start Time" value={form.dayStartTime} onChange={(v) => setForm({ dayStartTime: v })} required error={errors?.dayStartTime} />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <FormInput
-                            label="Day End Time"
-                            placeholder="10:00 PM"
-                            value={form.dayEndTime}
-                            onChangeText={(v) => setForm({ dayEndTime: v })}
-                            required
-                            error={errors?.dayEndTime}
-                        />
+                        <TimePicker label="Day End Time" value={form.dayEndTime} onChange={(v) => setForm({ dayEndTime: v })} required error={errors?.dayEndTime} />
                     </View>
                 </View>
-            </SectionCard>
+                <FormSelect
+                    label="Total Shifts Per Day"
+                    options={['1 Shift', '2 Shifts', '3 Shifts', '4 Shifts', '5 Shifts']}
+                    selected={totalShiftsPerDay}
+                    onSelect={(v) => {
+                        setTotalShiftsPerDay(v);
+                        const count = parseInt(v);
+                        const startTime = form.dayStartTime;
+                        const endTime = form.dayEndTime;
+                        if (!startTime || !endTime || !count || count < 1) return;
 
-            <SectionCard title="Weekly Off Days">
-                <View style={S.chipGrid}>
-                    {DAYS_OF_WEEK.map((day) => {
-                        const isOff = form.weeklyOffs.includes(day);
-                        return (
-                            <Pressable
-                                key={day}
-                                onPress={() => toggleWeeklyOff(day)}
-                                style={[S.chip, isOff && S.chipActive]}
-                            >
-                                <Text
-                                    className={`font-inter text-xs font-semibold ${isOff ? 'text-white' : 'text-neutral-600'}`}
-                                >
-                                    {day.substring(0, 3)}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
-                </View>
+                        const parseTime = (t: string) => {
+                            const [h, m] = t.split(':').map(Number);
+                            return h * 60 + (m || 0);
+                        };
+                        const formatTime = (minutes: number) => {
+                            const norm = ((minutes % 1440) + 1440) % 1440;
+                            return `${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`;
+                        };
+
+                        const startMin = parseTime(startTime);
+                        let endMin = parseTime(endTime);
+                        if (endMin <= startMin) endMin += 1440;
+                        const shiftDuration = Math.floor((endMin - startMin) / count);
+
+                        const shiftNames = ['Morning Shift', 'Afternoon Shift', 'Night Shift', 'Shift 4', 'Shift 5'];
+                        const autoShifts: Shift[] = Array.from({ length: count }, (_, i) => ({
+                            id: `${Date.now()}_${i}`,
+                            name: shiftNames[i] || `Shift ${i + 1}`,
+                            fromTime: formatTime(startMin + i * shiftDuration),
+                            toTime: formatTime(startMin + (i + 1) * shiftDuration),
+                            noShuffle: false,
+                            downtimeSlots: [],
+                        }));
+
+                        if (shifts.length === 0 || shifts.every(s => !s.name)) {
+                            setShifts(autoShifts);
+                        }
+                    }}
+                    hint="Auto-configures shift timings. You can modify after generation."
+                    direction="up"
+                />
             </SectionCard>
 
             <Text className="mb-3 font-inter text-sm font-bold text-primary-900">

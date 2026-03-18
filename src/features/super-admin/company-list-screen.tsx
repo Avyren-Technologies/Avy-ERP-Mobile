@@ -47,6 +47,10 @@ interface CompanyItem {
     adminEmail: string;
     endpointType: 'default' | 'custom';
     createdAt: string;
+    locationCount: number;
+    multiLocationMode: boolean;
+    primaryContact: string;
+    primaryDesignation: string;
 }
 
 // Maps wizard status to StatusBadge variant
@@ -77,6 +81,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'admin@apexmfg.com',
         endpointType: 'default',
         createdAt: '2025-06-15',
+        locationCount: 3,
+        multiLocationMode: true,
+        primaryContact: 'Priya Sharma',
+        primaryDesignation: 'HR Manager',
     },
     {
         id: '2',
@@ -93,6 +101,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'it@steeldynamics.in',
         endpointType: 'custom',
         createdAt: '2025-03-22',
+        locationCount: 2,
+        multiLocationMode: true,
+        primaryContact: 'Rajesh Kumar',
+        primaryDesignation: 'IT Admin',
     },
     {
         id: '3',
@@ -109,6 +121,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'ops@saharaindustries.co.in',
         endpointType: 'default',
         createdAt: '2026-02-28',
+        locationCount: 1,
+        multiLocationMode: false,
+        primaryContact: 'Fatima Khan',
+        primaryDesignation: 'Operations Head',
     },
     {
         id: '4',
@@ -125,6 +141,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'admin@indometals.com',
         endpointType: 'default',
         createdAt: '2025-09-10',
+        locationCount: 1,
+        multiLocationMode: false,
+        primaryContact: 'Sanjay Gupta',
+        primaryDesignation: 'Plant Manager',
     },
     {
         id: '5',
@@ -141,6 +161,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'info@precmach.in',
         endpointType: 'default',
         createdAt: '2025-01-05',
+        locationCount: 1,
+        multiLocationMode: false,
+        primaryContact: 'Deepak Joshi',
+        primaryDesignation: 'Owner',
     },
     {
         id: '6',
@@ -157,6 +181,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'admin@greentechpoly.com',
         endpointType: 'default',
         createdAt: '2026-02-20',
+        locationCount: 1,
+        multiLocationMode: false,
+        primaryContact: 'Ankit Shah',
+        primaryDesignation: 'Director',
     },
     {
         id: '7',
@@ -173,6 +201,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'erp@rathiengg.com',
         endpointType: 'custom',
         createdAt: '2025-04-18',
+        locationCount: 4,
+        multiLocationMode: true,
+        primaryContact: 'Kavita Rathi',
+        primaryDesignation: 'IT Head',
     },
     {
         id: '8',
@@ -189,6 +221,10 @@ const MOCK_COMPANIES: CompanyItem[] = [
         adminEmail: 'cto@vishwaelec.in',
         endpointType: 'default',
         createdAt: '2026-03-01',
+        locationCount: 1,
+        multiLocationMode: false,
+        primaryContact: 'Arjun Reddy',
+        primaryDesignation: 'CTO',
     },
 ];
 
@@ -314,7 +350,55 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                                     YR
                                 </Text>
                             </View>
-                        ) : null}
+                        ) : (
+                            <View style={styles.monthlyBadge}>
+                                <Text className="font-inter text-[8px] font-bold text-neutral-500">
+                                    MO
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                {/* Location + Contact Row */}
+                <View style={styles.locationContactRow}>
+                    <View style={styles.locationInfo}>
+                        <Svg width={12} height={12} viewBox="0 0 24 24">
+                            <Path
+                                d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+                                stroke={colors.neutral[400]}
+                                strokeWidth="1.5"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                            <Circle cx="12" cy="10" r="3" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                        </Svg>
+                        <Text className="font-inter text-[10px] font-medium text-neutral-500">
+                            {company.locationCount} {company.locationCount === 1 ? 'location' : 'locations'}
+                        </Text>
+                        {company.multiLocationMode && (
+                            <View style={styles.multiLocationBadge}>
+                                <Text className="font-inter text-[8px] font-bold text-accent-700">
+                                    MULTI
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.contactInfo}>
+                        <Svg width={12} height={12} viewBox="0 0 24 24">
+                            <Path
+                                d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
+                                stroke={colors.neutral[400]}
+                                strokeWidth="1.5"
+                                fill="none"
+                                strokeLinecap="round"
+                            />
+                            <Circle cx="12" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                        </Svg>
+                        <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                            {company.primaryContact}, {company.primaryDesignation}
+                        </Text>
                     </View>
                 </View>
 
@@ -574,6 +658,39 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         paddingHorizontal: 4,
         paddingVertical: 1,
+    },
+    monthlyBadge: {
+        backgroundColor: colors.neutral[100],
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+    },
+    locationContactRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
+    },
+    locationInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    multiLocationBadge: {
+        backgroundColor: colors.accent[50],
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+    },
+    contactInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        flexShrink: 1,
+        marginLeft: 12,
     },
     usageBarContainer: {
         flexDirection: 'row',

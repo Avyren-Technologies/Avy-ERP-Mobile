@@ -56,7 +56,7 @@ const mockClientGet = jest.mocked(client.get);
 const mockAxiosCreate = jest.mocked(axios.create);
 // The axios mock returns the same instance for every create() call, so this is
 // the same refresh client instance auth.ts uses internally.
-const mockRefreshClient = mockAxiosCreate() as { post: jest.Mock };
+const mockRefreshClient = mockAxiosCreate() as unknown as { post: jest.Mock };
 const mockRefreshPost = jest.mocked(mockRefreshClient.post);
 
 // ---------------------------------------------------------------------------

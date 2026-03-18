@@ -91,6 +91,8 @@ function AppSidebar() {
 
     const isSuperAdmin = userRole === 'super-admin';
 
+    const isCompanyAdmin = userRole === 'company-admin';
+
     const sections = React.useMemo(
         () => {
             const coreItems = [
@@ -115,6 +117,22 @@ function AppSidebar() {
                         icon: 'billing' as const,
                         isActive: pathname === '/billing',
                         onPress: () => router.push('/billing'),
+                    },
+                ] : []),
+                ...(isCompanyAdmin ? [
+                    {
+                        id: 'employees',
+                        label: 'Employees',
+                        icon: 'users' as const,
+                        isActive: false,
+                        onPress: () => {},
+                    },
+                    {
+                        id: 'attendance',
+                        label: 'Attendance',
+                        icon: 'audit' as const,
+                        isActive: false,
+                        onPress: () => {},
                     },
                 ] : []),
             ];
@@ -146,6 +164,19 @@ function AppSidebar() {
                         },
                     ],
                 },
+            ] : isCompanyAdmin ? [
+                {
+                    title: 'Management',
+                    items: [
+                        {
+                            id: 'reports',
+                            label: 'Reports',
+                            icon: 'reports' as const,
+                            isActive: false,
+                            onPress: () => {},
+                        },
+                    ],
+                },
             ] : [];
 
             return [
@@ -172,7 +203,7 @@ function AppSidebar() {
                 },
             ];
         },
-        [pathname, router, isSuperAdmin]
+        [pathname, router, isSuperAdmin, isCompanyAdmin]
     );
 
     return (

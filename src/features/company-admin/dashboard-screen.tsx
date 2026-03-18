@@ -6,7 +6,6 @@ import {
     Dimensions,
     Pressable,
     ScrollView,
-    RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
@@ -22,10 +21,9 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
-import { HamburgerButton } from '@/components/ui/sidebar';
-import { useSidebar } from '@/components/ui/sidebar';
-
-import { useSuperAdminStats, useRecentActivity } from '@/features/super-admin/api/use-dashboard-queries';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useAuthStore, getDisplayName } from '@/features/auth/use-auth-store';
+import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
@@ -35,12 +33,19 @@ const QUICK_ACTION_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12 * 3) / 4;
 
 interface KPICardData {
     title: string;
-    value: string;
-    change: string;
+    value: string | null;
+    change: string | null;
     changePositive: boolean;
     iconColor: string;
     iconBg: string;
-    iconType: 'companies' | 'users' | 'revenue' | 'modules';
+    iconType: 'employees' | 'attendance' | 'leave' | 'approvals';
+}
+
+interface QuickAction {
+    id: string;
+    title: string;
+    iconType: 'manage-employees' | 'attendance' | 'leave-requests' | 'reports';
+    gradient: readonly [string, string];
 }
 
 interface ActivityItem {
@@ -48,115 +53,66 @@ interface ActivityItem {
     title: string;
     description: string;
     time: string;
-    type: 'company' | 'billing' | 'support' | 'system';
+    type: 'employee' | 'attendance' | 'leave' | 'system';
 }
 
-interface QuickAction {
-    id: string;
-    title: string;
-    iconType: 'add-company' | 'manage-billing' | 'view-reports' | 'settings';
-    gradient: readonly [string, string];
-}
-
-// ============ HELPERS ============
-
-function formatIndianCurrency(amount: number): string {
-    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
-    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
-    if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
-    return `₹${amount}`;
-}
-
-function formatCount(n: number): string {
-    if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`;
-    return String(n);
-}
-
-function buildKPIData(stats: any): KPICardData[] {
-    return [
-        {
-            title: 'Active Companies',
-            value: formatCount(stats?.activeCompanies ?? 0),
-            change: '',
-            changePositive: true,
-            iconColor: colors.primary[600],
-            iconBg: colors.primary[100],
-            iconType: 'companies',
-        },
-        {
-            title: 'Total Users',
-            value: formatCount(stats?.totalUsers ?? 0),
-            change: '',
-            changePositive: true,
-            iconColor: colors.accent[600],
-            iconBg: colors.accent[100],
-            iconType: 'users',
-        },
-        {
-            title: 'Monthly Revenue',
-            value: formatIndianCurrency(stats?.monthlyRevenue ?? 0),
-            change: '',
-            changePositive: true,
-            iconColor: colors.success[600],
-            iconBg: colors.success[100],
-            iconType: 'revenue',
-        },
-        {
-            title: 'Active Modules',
-            value: String(stats?.activeModules ?? 0),
-            change: '',
-            changePositive: true,
-            iconColor: colors.info[600],
-            iconBg: colors.info[100],
-            iconType: 'modules',
-        },
-    ];
-}
-
-function timeAgo(dateStr: string): string {
-    const now = Date.now();
-    const then = new Date(dateStr).getTime();
-    const diffMs = now - then;
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins} min ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs} hr${hrs > 1 ? 's' : ''} ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
-}
-
-function mapActivityType(action: string): ActivityItem['type'] {
-    if (action?.toLowerCase().includes('company') || action?.toLowerCase().includes('tenant')) return 'company';
-    if (action?.toLowerCase().includes('billing') || action?.toLowerCase().includes('invoice') || action?.toLowerCase().includes('payment')) return 'billing';
-    if (action?.toLowerCase().includes('support') || action?.toLowerCase().includes('ticket')) return 'support';
-    return 'system';
-}
+// ============ MOCK / FALLBACK DATA ============
 
 const QUICK_ACTIONS: QuickAction[] = [
     {
         id: '1',
-        title: 'Add Company',
-        iconType: 'add-company',
+        title: 'Employees',
+        iconType: 'manage-employees',
         gradient: [colors.primary[500], colors.primary[700]],
     },
     {
         id: '2',
-        title: 'Billing',
-        iconType: 'manage-billing',
+        title: 'Attendance',
+        iconType: 'attendance',
         gradient: [colors.accent[500], colors.accent[700]],
     },
     {
         id: '3',
-        title: 'Reports',
-        iconType: 'view-reports',
+        title: 'Leave',
+        iconType: 'leave-requests',
         gradient: [colors.success[500], colors.success[700]],
     },
     {
         id: '4',
-        title: 'Settings',
-        iconType: 'settings',
+        title: 'Reports',
+        iconType: 'reports',
         gradient: [colors.info[500], colors.info[700]],
+    },
+];
+
+const RECENT_ACTIVITY: ActivityItem[] = [
+    {
+        id: '1',
+        title: 'New Employee Onboarded',
+        description: 'Rahul Sharma joined the Engineering team',
+        time: '30 min ago',
+        type: 'employee',
+    },
+    {
+        id: '2',
+        title: 'Leave Approved',
+        description: 'Priya Patel — Casual Leave (2 days)',
+        time: '1 hr ago',
+        type: 'leave',
+    },
+    {
+        id: '3',
+        title: 'Attendance Alert',
+        description: '3 employees marked late today',
+        time: '2 hrs ago',
+        type: 'attendance',
+    },
+    {
+        id: '4',
+        title: 'Payroll Processed',
+        description: 'March 2026 payroll batch completed',
+        time: '1 day ago',
+        type: 'system',
     },
 ];
 
@@ -164,20 +120,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 
 function KPIIcon({ type, color }: { type: string; color: string }) {
     switch (type) {
-        case 'companies':
-            return (
-                <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Path
-                        d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2"
-                        stroke={color}
-                        strokeWidth="1.8"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </Svg>
-            );
-        case 'users':
+        case 'employees':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
@@ -190,11 +133,19 @@ function KPIIcon({ type, color }: { type: string; color: string }) {
                     />
                 </Svg>
             );
-        case 'revenue':
+        case 'attendance':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
-                        d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+                        d="M22 11.08V12a10 10 0 11-5.93-9.14"
+                        stroke={color}
+                        strokeWidth="1.8"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                    <Path
+                        d="M22 4L12 14.01l-3-3"
                         stroke={color}
                         strokeWidth="1.8"
                         fill="none"
@@ -203,13 +154,25 @@ function KPIIcon({ type, color }: { type: string; color: string }) {
                     />
                 </Svg>
             );
-        case 'modules':
+        case 'leave':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Rect x="3" y="3" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
-                    <Rect x="14" y="3" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
-                    <Rect x="3" y="14" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
-                    <Rect x="14" y="14" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
+                    <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth="1.8" fill="none" />
+                    <Path d="M16 2v4M8 2v4M3 10h18" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                </Svg>
+            );
+        case 'approvals':
+            return (
+                <Svg width={22} height={22} viewBox="0 0 24 24">
+                    <Path
+                        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                        stroke={color}
+                        strokeWidth="1.8"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                    <Path d="M14 2v6h6M9 15l2 2 4-4" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
             );
         default:
@@ -219,17 +182,11 @@ function KPIIcon({ type, color }: { type: string; color: string }) {
 
 function QuickActionIcon({ type }: { type: string }) {
     switch (type) {
-        case 'add-company':
-            return (
-                <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                </Svg>
-            );
-        case 'manage-billing':
+        case 'manage-employees':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
-                        d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22"
+                        d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
                         stroke="#fff"
                         strokeWidth="1.8"
                         fill="none"
@@ -238,27 +195,33 @@ function QuickActionIcon({ type }: { type: string }) {
                     />
                 </Svg>
             );
-        case 'view-reports':
+        case 'attendance':
+            return (
+                <Svg width={22} height={22} viewBox="0 0 24 24">
+                    <Path
+                        d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"
+                        stroke="#fff"
+                        strokeWidth="1.8"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </Svg>
+            );
+        case 'leave-requests':
+            return (
+                <Svg width={22} height={22} viewBox="0 0 24 24">
+                    <Rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="1.8" fill="none" />
+                    <Path d="M16 2v4M8 2v4M3 10h18" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                </Svg>
+            );
+        case 'reports':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
                         d="M18 20V10M12 20V4M6 20v-6"
                         stroke="#fff"
                         strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </Svg>
-            );
-        case 'settings':
-            return (
-                <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Circle cx="12" cy="12" r="3" stroke="#fff" strokeWidth="1.8" fill="none" />
-                    <Path
-                        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-                        stroke="#fff"
-                        strokeWidth="1.5"
-                        fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
@@ -272,18 +235,18 @@ function QuickActionIcon({ type }: { type: string }) {
 function ActivityTypeIcon({ type }: { type: string }) {
     const getColor = () => {
         switch (type) {
-            case 'company': return colors.primary[500];
-            case 'billing': return colors.success[500];
-            case 'support': return colors.warning[500];
+            case 'employee': return colors.primary[500];
+            case 'attendance': return colors.success[500];
+            case 'leave': return colors.warning[500];
             case 'system': return colors.info[500];
             default: return colors.neutral[400];
         }
     };
     const getBgColor = () => {
         switch (type) {
-            case 'company': return colors.primary[100];
-            case 'billing': return colors.success[100];
-            case 'support': return colors.warning[100];
+            case 'employee': return colors.primary[100];
+            case 'attendance': return colors.success[100];
+            case 'leave': return colors.warning[100];
             case 'system': return colors.info[100];
             default: return colors.neutral[100];
         }
@@ -300,6 +263,8 @@ function ActivityTypeIcon({ type }: { type: string }) {
 function HeaderSection() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
+    const user = useAuthStore.use.user();
+    const displayName = getDisplayName(user);
 
     return (
         <Animated.View entering={FadeInDown.duration(500)}>
@@ -309,21 +274,20 @@ function HeaderSection() {
                 end={{ x: 1, y: 1 }}
                 style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
             >
-                {/* Decorative circles on header */}
+                {/* Decorative circles */}
                 <View style={styles.headerCircle1} />
                 <View style={styles.headerCircle2} />
 
                 <View style={styles.headerContent}>
                     <View style={styles.headerLeft}>
-                        {/* Hamburger Menu */}
                         <HamburgerButton onPress={toggle} />
 
                         <View style={styles.headerTextContainer}>
                             <Text className="font-inter text-sm font-medium text-primary-200">
-                                Super Admin
+                                Company Admin
                             </Text>
-                            <Text className="font-inter text-xl font-bold text-white">
-                                Welcome back
+                            <Text className="font-inter text-xl font-bold text-white" numberOfLines={1}>
+                                {displayName}
                             </Text>
                         </View>
                     </View>
@@ -341,21 +305,21 @@ function HeaderSection() {
                             />
                         </Svg>
                         <View style={styles.notificationBadge}>
-                            <Text className="font-inter text-[9px] font-bold text-white">3</Text>
+                            <Text className="font-inter text-[9px] font-bold text-white">5</Text>
                         </View>
                     </Pressable>
                 </View>
 
-                {/* Platform Health Bar */}
+                {/* Company status bar */}
                 <Animated.View entering={FadeIn.duration(500).delay(300)} style={styles.healthBar}>
                     <View style={styles.healthItem}>
                         <View style={[styles.healthDot, { backgroundColor: colors.success[400] }]} />
                         <Text className="font-inter text-xs font-medium text-white/80">
-                            All Systems Operational
+                            Company Active
                         </Text>
                     </View>
                     <Text className="font-inter text-xs text-white/60">
-                        Uptime: 99.98%
+                        Plan: Enterprise
                     </Text>
                 </Animated.View>
             </LinearGradient>
@@ -373,31 +337,100 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
                 <View style={[styles.kpiIconContainer, { backgroundColor: data.iconBg }]}>
                     <KPIIcon type={data.iconType} color={data.iconColor} />
                 </View>
-                <View
-                    style={[
-                        styles.changeBadge,
-                        {
-                            backgroundColor: data.changePositive
-                                ? colors.success[50]
-                                : colors.danger[50],
-                        },
-                    ]}
-                >
-                    <Text
-                        className={`font-inter text-[10px] font-bold ${data.changePositive ? 'text-success-600' : 'text-danger-600'
-                            }`}
+                {data.change != null && (
+                    <View
+                        style={[
+                            styles.changeBadge,
+                            {
+                                backgroundColor: data.changePositive
+                                    ? colors.success[50]
+                                    : colors.danger[50],
+                            },
+                        ]}
                     >
-                        {data.change}
-                    </Text>
-                </View>
+                        <Text
+                            className={`font-inter text-[10px] font-bold ${data.changePositive ? 'text-success-600' : 'text-danger-600'}`}
+                        >
+                            {data.change}
+                        </Text>
+                    </View>
+                )}
             </View>
             <Text className="mt-3 font-inter text-2xl font-bold text-primary-950 dark:text-white">
-                {data.value}
+                {data.value ?? '\u2014'}
             </Text>
             <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">
                 {data.title}
             </Text>
         </Animated.View>
+    );
+}
+
+function KPISection() {
+    const { data: response, isLoading } = useCompanyAdminStats();
+    const stats = response?.data as Record<string, any> | undefined;
+
+    const kpiData: KPICardData[] = React.useMemo(() => [
+        {
+            title: 'Total Employees',
+            value: stats?.totalEmployees?.toString() ?? null,
+            change: stats?.employeeChange ? `+${stats.employeeChange}` : null,
+            changePositive: true,
+            iconColor: colors.primary[600],
+            iconBg: colors.primary[100],
+            iconType: 'employees' as const,
+        },
+        {
+            title: 'Active Today',
+            value: stats?.activeToday?.toString() ?? null,
+            change: stats?.activePercent ? `${stats.activePercent}%` : null,
+            changePositive: true,
+            iconColor: colors.success[600],
+            iconBg: colors.success[100],
+            iconType: 'attendance' as const,
+        },
+        {
+            title: 'On Leave',
+            value: stats?.onLeave?.toString() ?? null,
+            change: null,
+            changePositive: false,
+            iconColor: colors.warning[600],
+            iconBg: colors.warning[100],
+            iconType: 'leave' as const,
+        },
+        {
+            title: 'Pending Approvals',
+            value: stats?.pendingApprovals?.toString() ?? null,
+            change: stats?.pendingApprovals && stats.pendingApprovals > 0 ? 'Action needed' : null,
+            changePositive: false,
+            iconColor: colors.info[600],
+            iconBg: colors.info[100],
+            iconType: 'approvals' as const,
+        },
+    ], [stats]);
+
+    if (isLoading) {
+        return (
+            <View style={styles.kpiGrid}>
+                {[0, 1, 2, 3].map((i) => (
+                    <Animated.View
+                        key={i}
+                        entering={FadeInUp.duration(400).delay(200 + i * 100)}
+                        style={[styles.kpiCard, styles.kpiCardLoading]}
+                    >
+                        <ActivityIndicator size="small" color={colors.primary[400]} />
+                    </Animated.View>
+                ))}
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.kpiGrid}>
+            {kpiData.map((kpi, index) => (
+                <KPICard key={kpi.title} data={kpi} index={index} />
+            ))}
+        </View>
     );
 }
 
@@ -441,26 +474,66 @@ function QuickActionsSection() {
     );
 }
 
-function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; isLoading: boolean }) {
-    if (isLoading) {
-        return (
-            <View style={[styles.section, { alignItems: 'center', paddingVertical: 24 }]}>
-                <ActivityIndicator size="small" color={colors.primary[500]} />
-            </View>
-        );
-    }
-
-    if (items.length === 0) {
-        return (
-            <Animated.View entering={FadeInUp.duration(400).delay(900)} style={styles.section}>
-                <Text className="font-inter text-sm text-neutral-400 text-center">No recent activity</Text>
-            </Animated.View>
-        );
-    }
+function ModuleUsageSection() {
+    const modules = [
+        { name: 'HR Management', usage: 92 },
+        { name: 'Attendance', usage: 87 },
+        { name: 'Payroll', usage: 78 },
+        { name: 'Inventory', usage: 45 },
+    ];
 
     return (
         <Animated.View
-            entering={FadeInUp.duration(400).delay(900)}
+            entering={FadeInUp.duration(400).delay(800)}
+            style={styles.section}
+        >
+            <Text className="mb-4 font-inter text-lg font-bold text-primary-950 dark:text-white">
+                Module Usage
+            </Text>
+            <View style={styles.moduleCard}>
+                {modules.map((mod, index) => (
+                    <View
+                        key={mod.name}
+                        style={[
+                            styles.moduleRow,
+                            index < modules.length - 1 && styles.moduleRowBorder,
+                        ]}
+                    >
+                        <View style={styles.moduleInfo}>
+                            <Text className="font-inter text-sm font-semibold text-primary-950">
+                                {mod.name}
+                            </Text>
+                            <Text className="font-inter text-xs text-neutral-500">
+                                {mod.usage}% utilization
+                            </Text>
+                        </View>
+                        <View style={styles.progressBarContainer}>
+                            <View
+                                style={[
+                                    styles.progressBar,
+                                    {
+                                        width: `${mod.usage}%`,
+                                        backgroundColor:
+                                            mod.usage >= 80
+                                                ? colors.success[500]
+                                                : mod.usage >= 50
+                                                  ? colors.warning[500]
+                                                  : colors.neutral[400],
+                                    },
+                                ]}
+                            />
+                        </View>
+                    </View>
+                ))}
+            </View>
+        </Animated.View>
+    );
+}
+
+function RecentActivitySection() {
+    return (
+        <Animated.View
+            entering={FadeInUp.duration(400).delay(1000)}
             style={styles.section}
         >
             <View style={styles.sectionHeader}>
@@ -475,15 +548,15 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
             </View>
 
             <View style={styles.activityCard}>
-                {items.map((item, index) => (
+                {RECENT_ACTIVITY.map((item, index) => (
                     <Animated.View
                         key={item.id}
-                        entering={FadeInRight.duration(300).delay(1000 + index * 80)}
+                        entering={FadeInRight.duration(300).delay(1100 + index * 80)}
                     >
                         <Pressable
                             style={[
                                 styles.activityItem,
-                                index < items.length - 1 && styles.activityItemBorder,
+                                index < RECENT_ACTIVITY.length - 1 && styles.activityItemBorder,
                             ]}
                         >
                             <ActivityTypeIcon type={item.type} />
@@ -506,115 +579,10 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
     );
 }
 
-function TenantOverviewSection({ overview }: { overview: { active: number; trial: number; suspended: number; expired: number } }) {
-    return (
-        <Animated.View
-            entering={FadeInUp.duration(400).delay(1100)}
-            style={styles.section}
-        >
-            <Text className="mb-4 font-inter text-lg font-bold text-primary-950 dark:text-white">
-                Tenant Overview
-            </Text>
-            <View style={styles.tenantCard}>
-                <LinearGradient
-                    colors={[colors.primary[600], colors.accent[600]]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.tenantGradient}
-                >
-                    {/* Decorative circles */}
-                    <View style={styles.tenantCircle1} />
-                    <View style={styles.tenantCircle2} />
-
-                    <View style={styles.tenantRow}>
-                        <View style={styles.tenantStat}>
-                            <Text className="font-inter text-2xl font-bold text-white">
-                                {overview.active}
-                            </Text>
-                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
-                                Active
-                            </Text>
-                        </View>
-                        <View style={styles.tenantDivider} />
-                        <View style={styles.tenantStat}>
-                            <Text className="font-inter text-2xl font-bold text-white">
-                                {overview.trial}
-                            </Text>
-                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
-                                Trial
-                            </Text>
-                        </View>
-                        <View style={styles.tenantDivider} />
-                        <View style={styles.tenantStat}>
-                            <Text className="font-inter text-2xl font-bold text-white">
-                                {overview.suspended}
-                            </Text>
-                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
-                                Suspended
-                            </Text>
-                        </View>
-                        <View style={styles.tenantDivider} />
-                        <View style={styles.tenantStat}>
-                            <Text className="font-inter text-2xl font-bold text-white">
-                                {overview.expired}
-                            </Text>
-                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
-                                Expired
-                            </Text>
-                        </View>
-                    </View>
-                </LinearGradient>
-            </View>
-        </Animated.View>
-    );
-}
-
 // ============ MAIN COMPONENT ============
 
-export function SuperAdminDashboard() {
+export function CompanyAdminDashboard() {
     const insets = useSafeAreaInsets();
-    const { data: statsResponse, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useSuperAdminStats();
-    const { data: activityResponse, isLoading: activityLoading, refetch: refetchActivity } = useRecentActivity();
-
-    const [refreshing, setRefreshing] = React.useState(false);
-
-    const stats = statsResponse?.data ?? statsResponse;
-    const kpiData = buildKPIData(stats);
-    const tenantOverview = stats?.tenantOverview ?? { active: 0, trial: 0, suspended: 0, expired: 0 };
-
-    const rawActivity = activityResponse?.data ?? activityResponse ?? [];
-    const activityItems: ActivityItem[] = Array.isArray(rawActivity)
-        ? rawActivity.map((item: any, idx: number) => ({
-            id: item.id ?? String(idx),
-            title: item.action ?? item.title ?? 'Activity',
-            description: item.details ?? item.description ?? '',
-            time: item.timestamp ? timeAgo(item.timestamp) : item.time ?? '',
-            type: mapActivityType(item.action ?? item.type ?? ''),
-        }))
-        : [];
-
-    if (statsLoading) {
-        return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={colors.primary[500]} />
-                <Text className="mt-3 font-inter text-sm text-neutral-500">Loading dashboard...</Text>
-            </View>
-        );
-    }
-
-    if (statsError) {
-        return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
-                <Text className="font-inter text-base font-semibold text-danger-600">Failed to load dashboard</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500 text-center">
-                    {(statsError as any)?.message ?? 'An error occurred. Please try again.'}
-                </Text>
-                <Pressable onPress={() => refetchStats()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
-                    <Text className="font-inter text-sm font-semibold text-white">Retry</Text>
-                </Pressable>
-            </View>
-        );
-    }
 
     return (
         <View style={styles.container}>
@@ -625,39 +593,21 @@ export function SuperAdminDashboard() {
                     { paddingBottom: insets.bottom + 24 },
                 ]}
                 bounces={false}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={async () => {
-                            if (refreshing) return;
-                            setRefreshing(true);
-                            try {
-                                await Promise.all([refetchStats(), refetchActivity()]);
-                            } finally {
-                                setRefreshing(false);
-                            }
-                        }}
-                    />
-                }
             >
                 {/* Header */}
                 <HeaderSection />
 
                 {/* KPI Cards Grid */}
-                <View style={styles.kpiGrid}>
-                    {kpiData.map((kpi, index) => (
-                        <KPICard key={kpi.title} data={kpi} index={index} />
-                    ))}
-                </View>
+                <KPISection />
 
                 {/* Quick Actions */}
                 <QuickActionsSection />
 
-                {/* Tenant Overview */}
-                <TenantOverviewSection overview={tenantOverview} />
+                {/* Module Usage */}
+                <ModuleUsageSection />
 
                 {/* Recent Activity */}
-                <RecentActivitySection items={activityItems} isLoading={activityLoading} />
+                <RecentActivitySection />
             </ScrollView>
         </View>
     );
@@ -708,30 +658,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-    },
-    avatarContainer: {
-        marginRight: 14,
-        position: 'relative',
-    },
-    avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.3)',
-    },
-    onlineDot: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: colors.success[400],
-        borderWidth: 2,
-        borderColor: colors.primary[600],
     },
     headerTextContainer: {
         flex: 1,
@@ -798,6 +724,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.primary[50],
     },
+    kpiCardLoading: {
+        height: 120,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     kpiHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -861,51 +792,42 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.primary[900],
     },
-    // Tenant Overview
-    tenantCard: {
+    // Module Usage
+    moduleCard: {
+        backgroundColor: colors.white,
         borderRadius: 20,
-        overflow: 'hidden',
+        padding: 16,
         shadowColor: colors.primary[900],
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
         shadowRadius: 16,
-        elevation: 6,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: colors.primary[50],
     },
-    tenantGradient: {
-        padding: 24,
+    moduleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    moduleRowBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: colors.neutral[100],
+    },
+    moduleInfo: {
+        flex: 1,
+        marginRight: 16,
+    },
+    progressBarContainer: {
+        width: 80,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.neutral[100],
         overflow: 'hidden',
     },
-    tenantCircle1: {
-        position: 'absolute',
-        top: -20,
-        right: -20,
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-    },
-    tenantCircle2: {
-        position: 'absolute',
-        bottom: -15,
-        left: 40,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-    },
-    tenantRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    tenantStat: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    tenantDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+    progressBar: {
+        height: '100%',
+        borderRadius: 3,
     },
     // Activity
     activityCard: {

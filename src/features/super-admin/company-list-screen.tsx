@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     FlatList,
     Pressable,
@@ -25,6 +26,8 @@ import { StatusBadge } from '@/components/ui/status-badge';
 
 import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
+
+import { useTenantList } from '@/features/super-admin/api/use-tenant-queries';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -63,178 +66,30 @@ function toBadgeStatus(status: WizardStatus) {
     }
 }
 
-// ============ MOCK DATA ============
+// ============ API DATA MAPPER ============
 
-const MOCK_COMPANIES: CompanyItem[] = [
-    {
-        id: '1',
-        displayName: 'Apex Manufacturing Pvt. Ltd',
-        legalName: 'Apex Manufacturing Private Limited',
-        businessType: 'Private Limited',
-        industry: 'Automotive',
-        status: 'Active',
-        userCount: 156,
-        maxUsers: 500,
-        selectedModuleIds: ['hr', 'production', 'machine-maintenance', 'inventory', 'vendor', 'finance', 'masters'],
-        userTier: 'growth',
-        billingCycle: 'annual',
-        adminEmail: 'admin@apexmfg.com',
-        endpointType: 'default',
-        createdAt: '2025-06-15',
-        locationCount: 3,
-        multiLocationMode: true,
-        primaryContact: 'Priya Sharma',
-        primaryDesignation: 'HR Manager',
-    },
-    {
-        id: '2',
-        displayName: 'Steel Dynamics Industries',
-        legalName: 'Steel Dynamics Industries Ltd',
-        businessType: 'Public Limited',
-        industry: 'Steel & Metal',
-        status: 'Active',
-        userCount: 412,
-        maxUsers: 1000,
-        selectedModuleIds: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'vendor', 'sales', 'finance', 'masters'],
-        userTier: 'scale',
-        billingCycle: 'annual',
-        adminEmail: 'it@steeldynamics.in',
-        endpointType: 'custom',
-        createdAt: '2025-03-22',
-        locationCount: 2,
-        multiLocationMode: true,
-        primaryContact: 'Rajesh Kumar',
-        primaryDesignation: 'IT Admin',
-    },
-    {
-        id: '3',
-        displayName: 'Sahara Industries Ltd',
-        legalName: 'Sahara Industries Limited',
-        businessType: 'Public Limited',
-        industry: 'Textiles',
-        status: 'Pilot',
-        userCount: 23,
-        maxUsers: 100,
-        selectedModuleIds: ['hr', 'inventory', 'finance', 'masters'],
-        userTier: 'starter',
-        billingCycle: 'monthly',
-        adminEmail: 'ops@saharaindustries.co.in',
-        endpointType: 'default',
-        createdAt: '2026-02-28',
-        locationCount: 1,
-        multiLocationMode: false,
-        primaryContact: 'Fatima Khan',
-        primaryDesignation: 'Operations Head',
-    },
-    {
-        id: '4',
-        displayName: 'Indo Metals Corporation',
-        legalName: 'Indo Metals Corporation Pvt. Ltd',
-        businessType: 'Private Limited',
-        industry: 'Metal Fabrication',
-        status: 'Active',
-        userCount: 89,
-        maxUsers: 100,
-        selectedModuleIds: ['hr', 'production', 'inventory', 'vendor', 'finance', 'masters'],
-        userTier: 'starter',
-        billingCycle: 'monthly',
-        adminEmail: 'admin@indometals.com',
-        endpointType: 'default',
-        createdAt: '2025-09-10',
-        locationCount: 1,
-        multiLocationMode: false,
-        primaryContact: 'Sanjay Gupta',
-        primaryDesignation: 'Plant Manager',
-    },
-    {
-        id: '5',
-        displayName: 'Precision Machining Corp',
-        legalName: 'Precision Machining Corporation Pvt. Ltd',
-        businessType: 'Private Limited',
-        industry: 'CNC Machining',
-        status: 'Inactive',
-        userCount: 0,
-        maxUsers: 500,
-        selectedModuleIds: ['hr', 'production', 'machine-maintenance', 'inventory', 'finance', 'masters'],
-        userTier: 'growth',
-        billingCycle: 'monthly',
-        adminEmail: 'info@precmach.in',
-        endpointType: 'default',
-        createdAt: '2025-01-05',
-        locationCount: 1,
-        multiLocationMode: false,
-        primaryContact: 'Deepak Joshi',
-        primaryDesignation: 'Owner',
-    },
-    {
-        id: '6',
-        displayName: 'GreenTech Polymers',
-        legalName: 'GreenTech Polymers Pvt. Ltd',
-        businessType: 'Private Limited',
-        industry: 'Plastics & Rubber',
-        status: 'Draft',
-        userCount: 0,
-        maxUsers: 100,
-        selectedModuleIds: ['hr', 'inventory', 'masters'],
-        userTier: 'starter',
-        billingCycle: 'monthly',
-        adminEmail: 'admin@greentechpoly.com',
-        endpointType: 'default',
-        createdAt: '2026-02-20',
-        locationCount: 1,
-        multiLocationMode: false,
-        primaryContact: 'Ankit Shah',
-        primaryDesignation: 'Director',
-    },
-    {
-        id: '7',
-        displayName: 'Rathi Engineering Works',
-        legalName: 'Rathi Engineering Works Pvt. Ltd',
-        businessType: 'Private Limited',
-        industry: 'Heavy Engineering',
-        status: 'Active',
-        userCount: 245,
-        maxUsers: 1000,
-        selectedModuleIds: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'vendor', 'sales', 'masters'],
-        userTier: 'scale',
-        billingCycle: 'annual',
-        adminEmail: 'erp@rathiengg.com',
-        endpointType: 'custom',
-        createdAt: '2025-04-18',
-        locationCount: 4,
-        multiLocationMode: true,
-        primaryContact: 'Kavita Rathi',
-        primaryDesignation: 'IT Head',
-    },
-    {
-        id: '8',
-        displayName: 'Vishwa Electronics',
-        legalName: 'Vishwa Electronics Pvt. Ltd',
-        businessType: 'Private Limited',
-        industry: 'Electronics & Semiconductors',
-        status: 'Pilot',
-        userCount: 12,
-        maxUsers: 100,
-        selectedModuleIds: ['hr', 'inventory', 'masters'],
-        userTier: 'starter',
-        billingCycle: 'monthly',
-        adminEmail: 'cto@vishwaelec.in',
-        endpointType: 'default',
-        createdAt: '2026-03-01',
-        locationCount: 1,
-        multiLocationMode: false,
-        primaryContact: 'Arjun Reddy',
-        primaryDesignation: 'CTO',
-    },
-];
-
-const FILTER_CHIPS = [
-    { key: 'all', label: 'All', count: MOCK_COMPANIES.length },
-    { key: 'Active', label: 'Active', count: MOCK_COMPANIES.filter(c => c.status === 'Active').length },
-    { key: 'Pilot', label: 'Pilot', count: MOCK_COMPANIES.filter(c => c.status === 'Pilot').length },
-    { key: 'Draft', label: 'Draft', count: MOCK_COMPANIES.filter(c => c.status === 'Draft').length },
-    { key: 'Inactive', label: 'Inactive', count: MOCK_COMPANIES.filter(c => c.status === 'Inactive').length },
-];
+function mapApiCompany(item: any): CompanyItem {
+    return {
+        id: item.id ?? '',
+        displayName: item.displayName ?? item.name ?? '',
+        legalName: item.legalName ?? '',
+        businessType: item.businessType ?? '',
+        industry: item.industry ?? '',
+        status: (item.wizardStatus ?? 'Draft') as WizardStatus,
+        userCount: item._count?.users ?? item.userCount ?? 0,
+        maxUsers: item.maxUsers ?? 100,
+        selectedModuleIds: item.selectedModuleIds ?? [],
+        userTier: (item.userTier ?? 'starter') as UserTierKey,
+        billingCycle: item.billingCycle ?? 'monthly',
+        adminEmail: item.emailDomain ? `admin@${item.emailDomain}` : (item.adminEmail ?? ''),
+        endpointType: (item.endpointType ?? 'default') as 'default' | 'custom',
+        createdAt: item.createdAt ?? '',
+        locationCount: item._count?.locations ?? item.locationCount ?? 0,
+        multiLocationMode: item.multiLocationMode ?? false,
+        primaryContact: item.contacts?.[0]?.name ?? item.primaryContact ?? '',
+        primaryDesignation: item.contacts?.[0]?.designation ?? item.primaryDesignation ?? '',
+    };
+}
 
 // ============ COMPANY CARD ============
 
@@ -458,26 +313,29 @@ export function CompanyListScreen() {
     const [search, setSearch] = React.useState('');
     const [activeFilter, setActiveFilter] = React.useState('all');
 
-    const filteredCompanies = React.useMemo(() => {
-        let list = MOCK_COMPANIES;
+    const statusParam = activeFilter !== 'all' ? activeFilter : undefined;
+    const { data: response, isLoading, error, refetch } = useTenantList({
+        search: search.trim() || undefined,
+        status: statusParam,
+        limit: 50,
+    });
 
-        if (activeFilter !== 'all') {
-            list = list.filter(c => c.status === activeFilter);
-        }
+    const rawData = response?.data ?? response ?? [];
+    const companies: CompanyItem[] = React.useMemo(() => {
+        if (!Array.isArray(rawData)) return [];
+        return rawData.map(mapApiCompany);
+    }, [rawData]);
 
-        if (search.trim()) {
-            const q = search.toLowerCase();
-            list = list.filter(
-                c =>
-                    c.displayName.toLowerCase().includes(q) ||
-                    c.legalName.toLowerCase().includes(q) ||
-                    c.industry.toLowerCase().includes(q) ||
-                    c.adminEmail.toLowerCase().includes(q),
-            );
-        }
+    const totalCount = (response as any)?.meta?.total ?? companies.length;
+    const activeCount = companies.filter(c => c.status === 'Active').length;
 
-        return list;
-    }, [search, activeFilter]);
+    const filterChips = React.useMemo(() => [
+        { key: 'all', label: 'All', count: totalCount },
+        { key: 'Active', label: 'Active', count: undefined as number | undefined },
+        { key: 'Pilot', label: 'Pilot', count: undefined as number | undefined },
+        { key: 'Draft', label: 'Draft', count: undefined as number | undefined },
+        { key: 'Inactive', label: 'Inactive', count: undefined as number | undefined },
+    ], [totalCount]);
 
     const handleAddCompany = () => {
         router.push('/(app)/tenant/add-company');
@@ -487,8 +345,6 @@ export function CompanyListScreen() {
         <CompanyCard company={item} index={index} />
     );
 
-    const activeCount = MOCK_COMPANIES.filter(c => c.status === 'Active').length;
-
     const renderHeader = () => (
         <>
             <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
@@ -497,7 +353,7 @@ export function CompanyListScreen() {
                         Companies
                     </Text>
                     <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        {MOCK_COMPANIES.length} tenants · {activeCount} active
+                        {totalCount} tenants · {activeCount} active
                     </Text>
                 </View>
             </Animated.View>
@@ -507,7 +363,7 @@ export function CompanyListScreen() {
                     value={search}
                     onChangeText={setSearch}
                     placeholder="Search companies..."
-                    filters={FILTER_CHIPS}
+                    filters={filterChips}
                     activeFilter={activeFilter}
                     onFilterChange={setActiveFilter}
                 />
@@ -515,26 +371,51 @@ export function CompanyListScreen() {
         </>
     );
 
-    const renderEmpty = () => (
-        <View style={styles.emptyContainer}>
-            <Svg width={48} height={48} viewBox="0 0 24 24">
-                <Path
-                    d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14"
-                    stroke={colors.neutral[300]}
-                    strokeWidth="1.5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
-            <Text className="mt-4 font-inter text-base font-semibold text-neutral-400">
-                No companies found
-            </Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-400">
-                Try adjusting your search or filters
-            </Text>
-        </View>
-    );
+    const renderEmpty = () => {
+        if (isLoading) {
+            return (
+                <View style={[styles.emptyContainer, { paddingTop: 60 }]}>
+                    <ActivityIndicator size="large" color={colors.primary[500]} />
+                    <Text className="mt-3 font-inter text-sm text-neutral-500">Loading companies...</Text>
+                </View>
+            );
+        }
+
+        if (error) {
+            return (
+                <View style={[styles.emptyContainer, { paddingTop: 60 }]}>
+                    <Text className="font-inter text-base font-semibold text-danger-600">Failed to load companies</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500">
+                        {(error as any)?.message ?? 'An error occurred.'}
+                    </Text>
+                    <Pressable onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
+                        <Text className="font-inter text-sm font-semibold text-white">Retry</Text>
+                    </Pressable>
+                </View>
+            );
+        }
+
+        return (
+            <View style={styles.emptyContainer}>
+                <Svg width={48} height={48} viewBox="0 0 24 24">
+                    <Path
+                        d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14"
+                        stroke={colors.neutral[300]}
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </Svg>
+                <Text className="mt-4 font-inter text-base font-semibold text-neutral-400">
+                    No companies found
+                </Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-400">
+                    Try adjusting your search or filters
+                </Text>
+            </View>
+        );
+    };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -546,7 +427,7 @@ export function CompanyListScreen() {
             />
 
             <FlatList
-                data={filteredCompanies}
+                data={companies}
                 renderItem={renderCompany}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader}

@@ -30,6 +30,7 @@ jest.mock('@/lib/api/auth', () => ({
     resetPassword: jest.fn(),
     changePassword: jest.fn(),
   },
+  decodeJwtPayload: jest.fn(),
 }));
 
 jest.mock('@/features/auth/use-auth-store', () => ({
@@ -40,7 +41,7 @@ jest.mock('@/features/auth/use-auth-store', () => ({
 // ---------------------------------------------------------------------------
 // Imports after mocks
 // ---------------------------------------------------------------------------
-import { authApi } from '@/lib/api/auth';
+import { authApi, decodeJwtPayload } from '@/lib/api/auth';
 import { signIn, signOut } from '@/features/auth/use-auth-store';
 import {
   useLoginMutation,
@@ -57,6 +58,7 @@ const mockForgotPassword = jest.mocked(authApi.forgotPassword);
 const mockVerifyResetCode = jest.mocked(authApi.verifyResetCode);
 const mockResetPassword = jest.mocked(authApi.resetPassword);
 const mockChangePassword = jest.mocked(authApi.changePassword);
+const mockDecodeJwtPayload = jest.mocked(decodeJwtPayload);
 const mockSignIn = jest.mocked(signIn);
 const mockSignOut = jest.mocked(signOut);
 
@@ -138,6 +140,8 @@ describe('useLoginMutation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     queryClient = makeQueryClient();
+    // Default: no permissions in decoded payload
+    mockDecodeJwtPayload.mockReturnValue({ permissions: [] });
   });
 
   it('calls authApi.login with email and password', async () => {
@@ -165,7 +169,7 @@ describe('useLoginMutation', () => {
     expect(mockSignIn).toHaveBeenCalledTimes(1);
     expect(mockSignIn).toHaveBeenCalledWith(
       { access: MOCK_TOKENS.accessToken, refresh: MOCK_TOKENS.refreshToken },
-      MOCK_USER,
+      { ...MOCK_USER, permissions: [] },
     );
   });
 
@@ -182,7 +186,8 @@ describe('useLoginMutation', () => {
   });
 
   it('does NOT call signIn when response.data is missing', async () => {
-    mockLogin.mockResolvedValueOnce({ success: true, data: null });
+    // ApiResponse.data is typed as `T | undefined`, so represent "missing" with `undefined`.
+    mockLogin.mockResolvedValueOnce({ success: true });
     const wrapper = createWrapper(queryClient);
     const { result } = renderHook(() => useLoginMutation(), { wrapper });
 

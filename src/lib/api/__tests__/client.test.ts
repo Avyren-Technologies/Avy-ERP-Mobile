@@ -100,7 +100,7 @@ type MockAxiosInstance = jest.Mock & {
 };
 
 const mockAxiosCreate = jest.mocked(axios.create);
-const mockAxiosInstance = mockAxiosCreate() as MockAxiosInstance;
+const mockAxiosInstance = mockAxiosCreate() as unknown as MockAxiosInstance;
 const mockRequestUse = jest.mocked(mockAxiosInstance.interceptors.request.use);
 const mockResponseUse = jest.mocked(mockAxiosInstance.interceptors.response.use);
 const mockCallableInstance = jest.mocked(mockAxiosInstance);
@@ -267,10 +267,18 @@ describe('client (axios interceptors)', () => {
     it('attempts token refresh on 401 TOKEN_EXPIRED and retries original request', async () => {
       mockGetToken.mockReturnValue({ access: 'old-access', refresh: 'old-refresh' });
       mockRefreshToken.mockResolvedValue({
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: { headers: {} as any },
         data: {
           success: true,
           data: {
-            tokens: { accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 3600 },
+            tokens: {
+              accessToken: 'new-access',
+              refreshToken: 'new-refresh',
+              expiresIn: 3600,
+            },
           },
         },
       });
@@ -286,10 +294,18 @@ describe('client (axios interceptors)', () => {
     it('calls updateTokens with new tokens after successful refresh', async () => {
       mockGetToken.mockReturnValue({ access: 'old-access', refresh: 'old-refresh' });
       mockRefreshToken.mockResolvedValue({
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: { headers: {} as any },
         data: {
           success: true,
           data: {
-            tokens: { accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 3600 },
+            tokens: {
+              accessToken: 'new-access',
+              refreshToken: 'new-refresh',
+              expiresIn: 3600,
+            },
           },
         },
       });
@@ -307,9 +323,18 @@ describe('client (axios interceptors)', () => {
     it('retries the original request with the new Authorization header', async () => {
       mockGetToken.mockReturnValue({ access: 'old-access', refresh: 'old-refresh' });
       mockRefreshToken.mockResolvedValue({
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: { headers: {} as any },
         data: {
+          success: true,
           data: {
-            tokens: { accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 3600 },
+            tokens: {
+              accessToken: 'new-access',
+              refreshToken: 'new-refresh',
+              expiresIn: 3600,
+            },
           },
         },
       });
@@ -360,7 +385,11 @@ describe('client (axios interceptors)', () => {
       mockGetToken.mockReturnValue({ access: 'old-access', refresh: 'old-refresh' });
       // Response data has no tokens field
       mockRefreshToken.mockResolvedValue({
-        data: { success: false, data: null },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: { headers: {} as any },
+        data: { success: false, data: undefined },
       });
 
       const error = makeAxiosError(401, 'TOKEN_EXPIRED');

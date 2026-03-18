@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -21,6 +22,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+
+import { useOnboardTenant } from '@/features/super-admin/api/use-tenant-queries';
 
 import { StepIndicator } from './step-indicator';
 import { S } from './shared-styles';
@@ -71,12 +74,13 @@ import { Step16Users } from './steps/step16-users';
 import { Step17Activation } from './steps/step17-activation';
 
 export function TenantOnboardingScreen() {
-    // TEMP: Toggle this to quickly enable/disable step validation during onboarding testing.
-    const SKIP_STEP_VALIDATION = true;
+    // Toggle this to quickly enable/disable step validation during onboarding testing.
+    const SKIP_STEP_VALIDATION = false;
 
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+    const onboardMutation = useOnboardTenant();
 
     const [step, setStep] = React.useState(1);
     const [stepErrors, setStepErrors] = React.useState<StepErrors>({});
@@ -275,9 +279,150 @@ export function TenantOnboardingScreen() {
             message: `Create "${step1.displayName || 'new company'}" with status "${step1.status}"? The tenant will be provisioned on the platform.`,
             variant: 'primary',
             confirmText: 'Create',
-            onConfirm: () => {
-                // TODO: API call with all form data
-                router.back();
+            onConfirm: async () => {
+                try {
+                    const payload = {
+                        identity: {
+                            logoUri: step1.logoUri,
+                            displayName: step1.displayName,
+                            legalName: step1.legalName,
+                            businessType: step1.businessType,
+                            industry: step1.industry,
+                            companyCode: step1.companyCode,
+                            shortName: step1.shortName,
+                            incorporationDate: step1.incorporationDate,
+                            employees: step1.employees,
+                            cin: step1.cin,
+                            website: step1.website,
+                            emailDomain: step1.emailDomain,
+                            status: step1.status,
+                        },
+                        statutory: { ...step2 },
+                        address: {
+                            registered: {
+                                line1: step3.regLine1,
+                                line2: step3.regLine2,
+                                city: step3.regCity,
+                                district: step3.regDistrict,
+                                state: step3.regState,
+                                country: step3.regCountry,
+                                pin: step3.regPin,
+                                stdCode: step3.regStdCode,
+                            },
+                            sameAsRegistered: step3.sameAsRegistered,
+                            corporate: step3.sameAsRegistered ? undefined : {
+                                line1: step3.corpLine1,
+                                line2: step3.corpLine2,
+                                city: step3.corpCity,
+                                district: step3.corpDistrict,
+                                state: step3.corpState,
+                                country: step3.corpCountry,
+                                pin: step3.corpPin,
+                                stdCode: step3.corpStdCode,
+                            },
+                        },
+                        fiscal: { ...step4 },
+                        preferences: { ...step5 },
+                        endpoint: {
+                            endpointType: step6.endpointType,
+                            customBaseUrl: step6.customBaseUrl,
+                        },
+                        strategy: {
+                            multiLocationMode: strategyConfig.multiLocationMode,
+                            locationConfig: strategyConfig.locationConfig,
+                            billingScope: strategyConfig.billingScope,
+                        },
+                        locations: locations.map((loc) => ({
+                            name: loc.name,
+                            code: loc.code,
+                            facilityType: loc.facilityType,
+                            customFacilityType: loc.customFacilityType,
+                            status: loc.status,
+                            isHQ: loc.isHQ,
+                            gstin: loc.gstin,
+                            addressLine1: loc.addressLine1,
+                            addressLine2: loc.addressLine2,
+                            city: loc.city,
+                            district: loc.district,
+                            state: loc.state,
+                            country: loc.country,
+                            pin: loc.pin,
+                            contactName: loc.contactName,
+                            contactDesignation: loc.contactDesignation,
+                            contactEmail: loc.contactEmail,
+                            contactCountryCode: loc.contactCountryCode,
+                            contactPhone: loc.contactPhone,
+                            geoEnabled: loc.geoEnabled,
+                            geoLocationName: loc.geoLocationName,
+                            geoLat: loc.geoLat,
+                            geoLng: loc.geoLng,
+                            geoRadius: loc.geoRadius,
+                            geoShape: loc.geoShape,
+                        })),
+                        contacts: contacts.map((c) => ({
+                            name: c.name,
+                            designation: c.designation,
+                            department: c.department,
+                            countryCode: c.countryCode,
+                            mobile: c.mobile,
+                            email: c.email,
+                            type: c.type,
+                            linkedin: c.linkedin,
+                        })),
+                        shifts: {
+                            dayStartTime: shiftsStep.dayStartTime,
+                            dayEndTime: shiftsStep.dayEndTime,
+                            weeklyOffs: shiftsStep.weeklyOffs,
+                            items: shifts.map((s) => ({
+                                name: s.name,
+                                fromTime: s.fromTime,
+                                toTime: s.toTime,
+                                noShuffle: s.noShuffle,
+                                downtimeSlots: s.downtimeSlots,
+                            })),
+                        },
+                        noSeries: noSeries.map((ns) => ({
+                            code: ns.code,
+                            description: ns.description,
+                            linkedScreen: ns.linkedScreen,
+                            prefix: ns.prefix,
+                            suffix: ns.suffix,
+                            numberCount: ns.numberCount,
+                            startNumber: ns.startNumber,
+                        })),
+                        iotReasons: iotReasons.map((r) => ({
+                            reasonType: r.reasonType,
+                            reason: r.reason,
+                            description: r.description,
+                            department: r.department,
+                            planned: r.planned,
+                            duration: r.duration,
+                        })),
+                        controls: { ...step11 },
+                        users: users.map((u) => ({
+                            fullName: u.fullName,
+                            username: u.username,
+                            password: u.password,
+                            role: u.role,
+                            email: u.email,
+                            mobile: u.mobile,
+                            department: u.department,
+                        })),
+                        commercial: strategyConfig.locationConfig === 'common' ? locationCommercial : undefined,
+                        locationCommercial: strategyConfig.locationConfig === 'per-location' ? locationCommercial : undefined,
+                    };
+
+                    await onboardMutation.mutateAsync(payload);
+                    router.back();
+                } catch (err: any) {
+                    showConfirm({
+                        title: 'Onboarding Failed',
+                        message: err?.message ?? 'An error occurred while creating the company. Please try again.',
+                        variant: 'danger',
+                        confirmText: 'OK',
+                        onConfirm: () => {},
+                    });
+                }
             },
         });
     };
@@ -435,18 +580,25 @@ export function TenantOnboardingScreen() {
                     <Pressable
                         onPress={isLastStep ? handleCreateCompany : handleNext}
                         style={S.nextBtnWrapper}
+                        disabled={onboardMutation.isPending}
                     >
                         <LinearGradient
                             colors={[colors.gradient.start, colors.gradient.end]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
-                            style={S.nextBtn}
+                            style={[S.nextBtn, onboardMutation.isPending && { opacity: 0.7 }]}
                         >
-                            <Text className="font-inter text-base font-bold text-white">
-                                {isLastStep ? 'Create Company' : 'Continue'}
-                            </Text>
-                            {!isLastStep && (
-                                <ChevronRight size={18} color="#fff" strokeWidth={2} />
+                            {onboardMutation.isPending ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <>
+                                    <Text className="font-inter text-base font-bold text-white">
+                                        {isLastStep ? 'Create Company' : 'Continue'}
+                                    </Text>
+                                    {!isLastStep && (
+                                        <ChevronRight size={18} color="#fff" strokeWidth={2} />
+                                    )}
+                                </>
                             )}
                         </LinearGradient>
                     </Pressable>

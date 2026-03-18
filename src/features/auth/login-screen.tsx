@@ -2,6 +2,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
+import Env from 'env';
 import {
   Dimensions,
   Image,
@@ -311,7 +312,15 @@ export function LoginScreen() {
       return;
     }
     setError('');
-    logger.info('Sign in attempt', { email: email.trim() });
+    const baseUrl = Env.EXPO_PUBLIC_API_URL;
+    const endpoint = '/auth/login';
+    const fullUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}${endpoint}` : null;
+    logger.info('Sign in attempt', {
+      email: email.trim(),
+      baseUrl,
+      endpoint,
+      fullUrl,
+    });
     try {
       await loginMutation.mutateAsync({ email: email.trim(), password });
       logger.info('Sign in successful — navigating to app');

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -26,11 +27,15 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
 
+import { useTenantDetail, useUpdateCompanyStatus, useDeleteCompany } from '@/features/super-admin/api/use-tenant-queries';
+import { CompanyDetailEditModal } from '@/features/super-admin/company-detail-edit-modal';
+
 // ============ TYPES ============
 
 type WizardStatus = 'Draft' | 'Pilot' | 'Active' | 'Inactive';
 
-interface CompanyDetail {
+/** Shape of company detail as consumed by the UI — mapped from API response */
+interface CompanyDetailUI {
     id: string;
     displayName: string;
     legalName: string;
@@ -44,351 +49,91 @@ interface CompanyDetail {
     employees: string;
     website: string;
     emailDomain: string;
-    // Step 2: Statutory
-    pan: string;
-    tan: string;
-    gstin: string;
-    pfRegNo: string;
-    esiCode: string;
-    ptReg: string;
-    lwfrNo: string;
-    rocState: string;
-    // Step 3: Address
-    regLine1: string;
-    regLine2: string;
-    regCity: string;
-    regDistrict: string;
-    regPin: string;
-    regState: string;
-    regCountry: string;
-    sameAsRegistered: boolean;
-    // Step 4: Fiscal
-    fyType: string;
-    payrollFreq: string;
-    cutoffDay: string;
-    disbursementDay: string;
-    weekStart: string;
-    timezone: string;
-    workingDays: string[];
-    // Step 5: Preferences
-    currency: string;
-    language: string;
-    dateFormat: string;
-    indiaCompliance: boolean;
-    mobileApp: boolean;
-    webApp: boolean;
-    bankIntegration: boolean;
-    biometric: boolean;
-    emailNotif: boolean;
-    mfa: boolean;
-    // Step 6: Endpoint
-    endpointType: 'default' | 'custom';
-    endpointUrl: string;
-    // Step 7: Strategy
-    multiLocationMode: boolean;
-    locationConfig: string;
-    // Step 8: Locations
-    locations: Array<{
-        id: string;
-        name: string;
-        code: string;
-        type: string;
-        city: string;
-        state: string;
-        isHQ: boolean;
-        status: string;
-        geoEnabled: boolean;
-        geoRadius: number;
-        gstin: string;
-        modules: string[];
-        userTier: string;
-    }>;
-    // Step 11: Contacts
-    contacts: Array<{
-        name: string;
-        designation: string;
-        department: string;
-        type: string;
-        email: string;
-        mobile: string;
-    }>;
-    // Step 12: Shifts
-    dayStartTime: string;
-    dayEndTime: string;
-    weeklyOffs: string[];
-    shifts: Array<{
-        name: string;
-        fromTime: string;
-        toTime: string;
-        noShuffle: boolean;
-        downtimeSlots: Array<{ type: string; duration: string }>;
-    }>;
-    // Step 13: No. Series
-    noSeries: Array<{
-        code: string;
-        screen: string;
-        preview: string;
-    }>;
-    // Step 14: IOT Reasons
-    iotReasons: Array<{
-        reasonType: string;
-        reason: string;
-        department: string;
-        planned: boolean;
-    }>;
-    // Step 15: Controls
-    controls: {
-        ncEditMode: boolean;
-        loadUnload: boolean;
-        cycleTime: boolean;
-        payrollLock: boolean;
-        leaveCarryForward: boolean;
-        overtimeApproval: boolean;
-        mfa: boolean;
-    };
-    // Step 16: Users
-    users: Array<{
-        fullName: string;
-        username: string;
-        role: string;
-        email: string;
-        department: string;
-        location: string;
-    }>;
-    // Billing
-    selectedModuleIds: string[];
-    userTier: UserTierKey;
-    userCount: number;
-    maxUsers: number;
-    billingCycle: 'monthly' | 'annual';
-    nextRenewal: string;
-    monthlyAmount: string;
-    customPricing: boolean;
-    trialDays: number;
-    // Meta
-    createdAt: string;
-    lastActive: string;
+    pan: string; tan: string; gstin: string; pfRegNo: string; esiCode: string; ptReg: string; lwfrNo: string; rocState: string;
+    regLine1: string; regLine2: string; regCity: string; regDistrict: string; regPin: string; regState: string; regCountry: string; sameAsRegistered: boolean;
+    fyType: string; payrollFreq: string; cutoffDay: string; disbursementDay: string; weekStart: string; timezone: string; workingDays: string[];
+    currency: string; language: string; dateFormat: string; indiaCompliance: boolean; mobileApp: boolean; webApp: boolean; bankIntegration: boolean; biometric: boolean; emailNotif: boolean; mfa: boolean;
+    endpointType: 'default' | 'custom'; endpointUrl: string;
+    multiLocationMode: boolean; locationConfig: string;
+    locations: Array<{ id: string; name: string; code: string; type: string; city: string; state: string; isHQ: boolean; status: string; geoEnabled: boolean; geoRadius: number; gstin: string; modules: string[]; userTier: string }>;
+    contacts: Array<{ name: string; designation: string; department: string; type: string; email: string; mobile: string }>;
+    dayStartTime: string; dayEndTime: string; weeklyOffs: string[];
+    shifts: Array<{ name: string; fromTime: string; toTime: string; noShuffle: boolean; downtimeSlots: Array<{ type: string; duration: string }> }>;
+    noSeries: Array<{ code: string; screen: string; preview: string }>;
+    iotReasons: Array<{ reasonType: string; reason: string; department: string; planned: boolean }>;
+    controls: { ncEditMode: boolean; loadUnload: boolean; cycleTime: boolean; payrollLock: boolean; leaveCarryForward: boolean; overtimeApproval: boolean; mfa: boolean };
+    users: Array<{ fullName: string; username: string; role: string; email: string; department: string; location: string }>;
+    selectedModuleIds: string[]; userTier: UserTierKey; userCount: number; maxUsers: number; billingCycle: 'monthly' | 'annual'; nextRenewal: string; monthlyAmount: string; customPricing: boolean; trialDays: number;
+    createdAt: string; lastActive: string;
 }
 
-// ============ MOCK DATA ============
+/** Map API response to UI-expected shape */
+function mapApiToDetailUI(raw: any): CompanyDetailUI {
+    const identity = raw.identity ?? raw;
+    const statutory = raw.statutory ?? raw;
+    const address = raw.address?.registered ?? raw;
+    const fiscal = raw.fiscal ?? raw;
+    const preferences = raw.preferences ?? raw;
+    const endpoint = raw.endpoint ?? raw;
+    const strategy = raw.strategy ?? raw;
+    const controls = raw.controls ?? {};
+    const billing = raw.commercial ?? raw.billing ?? {};
+    const sub = raw.tenant?.subscriptions?.[0] ?? {};
 
-const MOCK_DETAIL: CompanyDetail = {
-    id: '1',
-    displayName: 'Apex Manufacturing Pvt. Ltd',
-    legalName: 'Apex Manufacturing Private Limited',
-    businessType: 'Private Limited',
-    industry: 'Automotive',
-    companyCode: 'APEX',
-    shortName: 'Apex Mfg',
-    status: 'Active',
-    cin: 'U28999MH2018PTC305678',
-    incorporationDate: '15 Jan 2018',
-    employees: '500-1000',
-    website: 'apexmfg.com',
-    emailDomain: 'apex.com',
-    // Step 2
-    pan: 'AABCA1234H',
-    tan: 'PNEA12345E',
-    gstin: '27AABCA1234H1Z5',
-    pfRegNo: 'MH/PUN/0012345',
-    esiCode: '31-00-123456-000-0001',
-    ptReg: 'PT/MH/PUN/12345',
-    lwfrNo: 'LWFR/MH/00567',
-    rocState: 'Maharashtra',
-    // Step 3
-    regLine1: 'Plot 45, MIDC Industrial Area, Bhosari',
-    regLine2: 'Near Telco Circle',
-    regCity: 'Pune',
-    regDistrict: 'Pune',
-    regPin: '411026',
-    regState: 'Maharashtra',
-    regCountry: 'India',
-    sameAsRegistered: true,
-    // Step 4
-    fyType: 'apr-mar',
-    payrollFreq: 'Monthly',
-    cutoffDay: '25',
-    disbursementDay: '1',
-    weekStart: 'Monday',
-    timezone: 'IST UTC+5:30',
-    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-    // Step 5
-    currency: 'INR — ₹',
-    language: 'English',
-    dateFormat: 'DD/MM/YYYY',
-    indiaCompliance: true,
-    mobileApp: true,
-    webApp: true,
-    bankIntegration: true,
-    biometric: true,
-    emailNotif: true,
-    mfa: true,
-    // Step 6
-    endpointType: 'default',
-    endpointUrl: 'https://api.avyerp.com',
-    // Step 7
-    multiLocationMode: true,
-    locationConfig: 'per-location',
-    // Step 8
-    locations: [
-        {
-            id: 'loc-1',
-            name: 'Pune HQ Plant',
-            code: 'PUN-HQ',
-            type: 'Manufacturing Plant',
-            city: 'Pune',
-            state: 'Maharashtra',
-            isHQ: true,
-            status: 'Active',
-            geoEnabled: true,
-            geoRadius: 500,
-            gstin: '27AABCA1234H1Z5',
-            modules: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'finance', 'masters'],
-            userTier: 'growth',
-        },
-        {
-            id: 'loc-2',
-            name: 'Chennai Assembly',
-            code: 'CHN-ASM',
-            type: 'Assembly Unit',
-            city: 'Chennai',
-            state: 'Tamil Nadu',
-            isHQ: false,
-            status: 'Active',
-            geoEnabled: true,
-            geoRadius: 300,
-            gstin: '33AABCA1234H2Z3',
-            modules: ['hr', 'security', 'production', 'masters'],
-            userTier: 'starter',
-        },
-        {
-            id: 'loc-3',
-            name: 'Mumbai Sales Office',
-            code: 'MUM-SO',
-            type: 'Sales Office',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            isHQ: false,
-            status: 'Active',
-            geoEnabled: false,
-            geoRadius: 0,
-            gstin: '27AABCA1234H3Z1',
-            modules: ['hr', 'security', 'finance', 'vendor'],
-            userTier: 'starter',
-        },
-    ],
-    // Step 11
-    contacts: [
-        {
-            name: 'Rajesh Kumar',
-            designation: 'VP Operations',
-            department: 'Operations',
-            type: 'Primary',
-            email: 'rajesh.kumar@apex.com',
-            mobile: '+91 98765 43210',
-        },
-        {
-            name: 'Priya Sharma',
-            designation: 'HR Director',
-            department: 'Human Resources',
-            type: 'HR Contact',
-            email: 'priya.sharma@apex.com',
-            mobile: '+91 98765 43211',
-        },
-        {
-            name: 'Amit Patel',
-            designation: 'IT Manager',
-            department: 'IT',
-            type: 'IT Contact',
-            email: 'amit.patel@apex.com',
-            mobile: '+91 98765 43212',
-        },
-    ],
-    // Step 12
-    dayStartTime: '06:00',
-    dayEndTime: '06:00',
-    weeklyOffs: ['Sunday'],
-    shifts: [
-        {
-            name: 'General Shift',
-            fromTime: '09:00',
-            toTime: '18:00',
-            noShuffle: true,
-            downtimeSlots: [
-                { type: 'Lunch Break', duration: '60 min' },
-                { type: 'Tea Break', duration: '15 min' },
-            ],
-        },
-        {
-            name: 'Morning Shift',
-            fromTime: '06:00',
-            toTime: '14:00',
-            noShuffle: false,
-            downtimeSlots: [
-                { type: 'Lunch Break', duration: '30 min' },
-            ],
-        },
-        {
-            name: 'Night Shift',
-            fromTime: '22:00',
-            toTime: '06:00',
-            noShuffle: false,
-            downtimeSlots: [
-                { type: 'Lunch Break', duration: '30 min' },
-                { type: 'Tea Break', duration: '15 min' },
-            ],
-        },
-    ],
-    // Step 13
-    noSeries: [
-        { code: 'EMP', screen: 'Employee Onboarding', preview: 'EMP-APEX-00001' },
-        { code: 'ATT', screen: 'Attendance', preview: 'ATT-APEX-00001' },
-        { code: 'WO', screen: 'Work Order', preview: 'WO-APEX-00001' },
-        { code: 'PO', screen: 'Production Order', preview: 'PO-APEX-00001' },
-        { code: 'GRN', screen: 'GRN', preview: 'GRN-APEX-00001' },
-        { code: 'INV', screen: 'Sales Invoice', preview: 'INV-APEX-00001' },
-    ],
-    // Step 14
-    iotReasons: [
-        { reasonType: 'Machine Idle', reason: 'No Operator', department: 'Production', planned: false },
-        { reasonType: 'Machine Idle', reason: 'Material Shortage', department: 'Store', planned: false },
-        { reasonType: 'Machine Idle', reason: 'Tool Change', department: 'Production', planned: true },
-        { reasonType: 'Machine Alarm', reason: 'Overheating', department: 'Maintenance', planned: false },
-        { reasonType: 'Machine Alarm', reason: 'Spindle Error', department: 'Maintenance', planned: false },
-        { reasonType: 'Machine Alarm', reason: 'Hydraulic Fault', department: 'Maintenance', planned: false },
-    ],
-    // Step 15
-    controls: {
-        ncEditMode: false,
-        loadUnload: true,
-        cycleTime: true,
-        payrollLock: true,
-        leaveCarryForward: true,
-        overtimeApproval: true,
-        mfa: true,
-    },
-    // Step 16
-    users: [
-        { fullName: 'Rajesh Kumar', username: 'rajesh.k', role: 'Super Admin', email: 'rajesh.kumar@apex.com', department: 'Operations', location: 'Pune HQ Plant' },
-        { fullName: 'Priya Sharma', username: 'priya.s', role: 'HR Admin', email: 'priya.sharma@apex.com', department: 'Human Resources', location: 'Pune HQ Plant' },
-        { fullName: 'Amit Patel', username: 'amit.p', role: 'IT Admin', email: 'amit.patel@apex.com', department: 'IT', location: 'Pune HQ Plant' },
-        { fullName: 'Sanjay Deshmukh', username: 'sanjay.d', role: 'Plant Manager', email: 'sanjay.d@apex.com', department: 'Production', location: 'Chennai Assembly' },
-        { fullName: 'Neha Gupta', username: 'neha.g', role: 'Finance Manager', email: 'neha.g@apex.com', department: 'Finance', location: 'Mumbai Sales Office' },
-    ],
-    // Billing
-    selectedModuleIds: ['hr', 'security', 'production', 'machine-maintenance', 'inventory', 'vendor', 'finance', 'masters'],
-    userTier: 'growth',
-    userCount: 156,
-    maxUsers: 500,
-    billingCycle: 'annual',
-    nextRenewal: '2026-06-15',
-    monthlyAmount: '₹1,84,500',
-    customPricing: false,
-    trialDays: 0,
-    // Meta
-    createdAt: '2025-06-15',
-    lastActive: '2 hours ago',
-};
+    return {
+        id: raw.id ?? '',
+        displayName: identity.displayName ?? raw.displayName ?? '',
+        legalName: identity.legalName ?? raw.legalName ?? '',
+        businessType: identity.businessType ?? raw.businessType ?? '',
+        industry: identity.industry ?? raw.industry ?? '',
+        companyCode: identity.companyCode ?? raw.companyCode ?? '',
+        shortName: identity.shortName ?? raw.shortName ?? '',
+        status: (raw.wizardStatus ?? raw.status ?? 'Draft') as WizardStatus,
+        cin: identity.cin ?? raw.cin ?? '',
+        incorporationDate: identity.incorporationDate ?? raw.incorporationDate ?? '',
+        employees: identity.employees ?? raw.employees ?? '',
+        website: identity.website ?? raw.website ?? '',
+        emailDomain: identity.emailDomain ?? raw.emailDomain ?? '',
+        pan: statutory.pan ?? '', tan: statutory.tan ?? '', gstin: statutory.gstin ?? '', pfRegNo: statutory.pfRegNo ?? '', esiCode: statutory.esiCode ?? '', ptReg: statutory.ptReg ?? '', lwfrNo: statutory.lwfrNo ?? '', rocState: statutory.rocState ?? '',
+        regLine1: address.line1 ?? address.regLine1 ?? '', regLine2: address.line2 ?? address.regLine2 ?? '', regCity: address.city ?? address.regCity ?? '', regDistrict: address.district ?? address.regDistrict ?? '', regPin: address.pin ?? address.regPin ?? '', regState: address.state ?? address.regState ?? '', regCountry: address.country ?? address.regCountry ?? 'India', sameAsRegistered: raw.address?.sameAsRegistered ?? raw.sameAsRegistered ?? true,
+        fyType: fiscal.fyType ?? '', payrollFreq: fiscal.payrollFreq ?? '', cutoffDay: fiscal.cutoffDay ?? '', disbursementDay: fiscal.disbursementDay ?? '', weekStart: fiscal.weekStart ?? '', timezone: fiscal.timezone ?? '', workingDays: fiscal.workingDays ?? [],
+        currency: preferences.currency ?? '', language: preferences.language ?? '', dateFormat: preferences.dateFormat ?? '', indiaCompliance: preferences.indiaCompliance ?? false, mobileApp: preferences.mobileApp ?? false, webApp: preferences.webApp ?? false, bankIntegration: preferences.bankIntegration ?? false, biometric: preferences.biometric ?? false, emailNotif: preferences.emailNotif ?? false, mfa: controls.mfa ?? preferences.mfa ?? false,
+        endpointType: (endpoint.endpointType ?? raw.endpointType ?? 'default') as 'default' | 'custom', endpointUrl: endpoint.customBaseUrl ?? raw.endpointUrl ?? 'https://api.avyerp.com',
+        multiLocationMode: strategy.multiLocationMode ?? raw.multiLocationMode ?? false, locationConfig: strategy.locationConfig ?? raw.locationConfig ?? 'common',
+        locations: (raw.locations ?? []).map((loc: any) => ({
+            id: loc.id ?? '', name: loc.name ?? '', code: loc.code ?? '', type: loc.facilityType ?? loc.type ?? '',
+            city: loc.city ?? '', state: loc.state ?? '', isHQ: loc.isHQ ?? false, status: loc.status ?? 'Active',
+            geoEnabled: loc.geoEnabled ?? false, geoRadius: loc.geoRadius ?? 0, gstin: loc.gstin ?? '',
+            modules: loc.selectedModuleIds ?? loc.modules ?? [], userTier: loc.userTier ?? 'starter',
+        })),
+        contacts: (raw.contacts ?? []).map((c: any) => ({
+            name: c.name ?? '', designation: c.designation ?? '', department: c.department ?? '',
+            type: c.type ?? '', email: c.email ?? '', mobile: c.mobile ?? c.phone ?? '',
+        })),
+        dayStartTime: raw.shifts?.[0]?.dayStartTime ?? raw.dayStartTime ?? '',
+        dayEndTime: raw.shifts?.[0]?.dayEndTime ?? raw.dayEndTime ?? '',
+        weeklyOffs: raw.weeklyOffs ?? [],
+        shifts: (raw.shifts ?? []).map((s: any) => ({
+            name: s.name ?? '', fromTime: s.fromTime ?? s.startTime ?? '', toTime: s.toTime ?? s.endTime ?? '',
+            noShuffle: s.noShuffle ?? false, downtimeSlots: s.downtimeSlots ?? [],
+        })),
+        noSeries: (raw.noSeries ?? []).map((ns: any) => ({ code: ns.code ?? '', screen: ns.screen ?? ns.documentType ?? '', preview: ns.preview ?? ns.format ?? '' })),
+        iotReasons: (raw.iotReasons ?? []).map((r: any) => ({ reasonType: r.reasonType ?? '', reason: r.reason ?? '', department: r.department ?? '', planned: r.planned ?? false })),
+        controls: { ncEditMode: controls.ncEditMode ?? false, loadUnload: controls.loadUnload ?? false, cycleTime: controls.cycleTime ?? false, payrollLock: controls.payrollLock ?? false, leaveCarryForward: controls.leaveCarryForward ?? false, overtimeApproval: controls.overtimeApproval ?? false, mfa: controls.mfa ?? false },
+        users: (raw.users ?? []).map((u: any) => ({ fullName: u.fullName ?? u.name ?? '', username: u.username ?? '', role: u.role ?? '', email: u.email ?? '', department: u.department ?? '', location: u.location ?? '' })),
+        selectedModuleIds: raw.selectedModuleIds ?? [],
+        userTier: (sub.tier ?? raw.userTier ?? 'starter') as UserTierKey,
+        userCount: raw._count?.users ?? raw.userCount ?? 0,
+        maxUsers: sub.maxUsers ?? raw.maxUsers ?? 100,
+        billingCycle: (sub.billingCycle ?? raw.billingCycle ?? 'monthly') as 'monthly' | 'annual',
+        nextRenewal: sub.nextRenewal ?? raw.nextRenewal ?? '',
+        monthlyAmount: sub.monthlyAmount ?? raw.monthlyAmount ?? '',
+        customPricing: sub.customPricing ?? raw.customPricing ?? false,
+        trialDays: sub.trialDays ?? raw.trialDays ?? 0,
+        createdAt: raw.createdAt ?? '',
+        lastActive: raw.lastActive ?? raw.updatedAt ?? '',
+    };
+}
 
 // ============ HELPERS ============
 
@@ -411,13 +156,26 @@ function BackButton({ onPress }: { onPress: () => void }) {
     );
 }
 
-function SectionHeader({ title, iconType }: { title: string; iconType: string }) {
+function SectionHeader({ title, iconType, onEdit }: { title: string; iconType: string; onEdit?: () => void }) {
     return (
         <View style={styles.sectionHeader}>
             <SectionIcon type={iconType} color={colors.primary[500]} />
-            <Text className="font-inter text-sm font-bold text-primary-900">
+            <Text className="font-inter text-sm font-bold text-primary-900" style={{ flex: 1 }}>
                 {title}
             </Text>
+            {onEdit ? (
+                <Pressable onPress={onEdit} style={styles.editIconButton}>
+                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                        <Path
+                            d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                            stroke={colors.primary[500]}
+                            strokeWidth="1.5"
+                            fill="none"
+                            strokeLinecap="round"
+                        />
+                    </Svg>
+                </Pressable>
+            ) : null}
         </View>
     );
 }
@@ -651,12 +409,57 @@ export function CompanyDetailScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const [company] = React.useState(MOCK_DETAIL);
-    const [endpointType, setEndpointType] = React.useState<'default' | 'custom'>(company.endpointType);
-    const [customUrl, setCustomUrl] = React.useState(company.endpointType === 'custom' ? company.endpointUrl : '');
-    const [isVerifying, setIsVerifying] = React.useState(false);
-    const [maxUsers, setMaxUsers] = React.useState(String(company.maxUsers));
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+
+    // --- API hooks ---
+    const { data: detailResponse, isLoading, error, refetch } = useTenantDetail(id ?? '');
+    const statusMutation = useUpdateCompanyStatus();
+    const deleteMutation = useDeleteCompany();
+
+    const rawData = detailResponse?.data ?? detailResponse;
+    const company: CompanyDetailUI | null = rawData ? mapApiToDetailUI(rawData) : null;
+
+    const [endpointType, setEndpointType] = React.useState<'default' | 'custom'>('default');
+    const [customUrl, setCustomUrl] = React.useState('');
+    const [isVerifying, setIsVerifying] = React.useState(false);
+    const [maxUsers, setMaxUsers] = React.useState('100');
+
+    // Edit modal state
+    const [editSection, setEditSection] = React.useState<string | null>(null);
+    const [editData, setEditData] = React.useState<Record<string, any> | null>(null);
+
+    // Sync local state when company data loads
+    React.useEffect(() => {
+        if (company) {
+            setEndpointType(company.endpointType);
+            setCustomUrl(company.endpointType === 'custom' ? company.endpointUrl : '');
+            setMaxUsers(String(company.maxUsers));
+        }
+    }, [rawData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // --- Loading & error states ---
+    if (isLoading || !company) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.primary[500]} />
+                <Text className="mt-3 font-inter text-sm text-neutral-500">Loading company details...</Text>
+            </View>
+        );
+    }
+
+    if (error) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
+                <Text className="font-inter text-base font-semibold text-danger-600">Failed to load company</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500 text-center">
+                    {(error as any)?.message ?? 'An error occurred.'}
+                </Text>
+                <Pressable onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
+                    <Text className="font-inter text-sm font-semibold text-white">Retry</Text>
+                </Pressable>
+            </View>
+        );
+    }
 
     const usagePercent = company.maxUsers > 0 ? (company.userCount / company.maxUsers) * 100 : 0;
     const tier = USER_TIERS.find((t) => t.key === company.userTier);
@@ -677,7 +480,10 @@ export function CompanyDetailScreen() {
             variant: 'warning',
             confirmText: 'Suspend',
             onConfirm: () => {
-                // TODO: API call to suspend tenant
+                statusMutation.mutate(
+                    { companyId: id!, status: 'Inactive' },
+                    { onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to suspend tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }) },
+                );
             },
         });
     };
@@ -689,7 +495,10 @@ export function CompanyDetailScreen() {
             variant: 'primary',
             confirmText: 'Activate',
             onConfirm: () => {
-                // TODO: API call to activate tenant
+                statusMutation.mutate(
+                    { companyId: id!, status: 'Active' },
+                    { onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to activate tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }) },
+                );
             },
         });
     };
@@ -701,10 +510,49 @@ export function CompanyDetailScreen() {
             variant: 'danger',
             confirmText: 'Delete Forever',
             onConfirm: () => {
-                // TODO: API call to delete tenant
-                router.back();
+                deleteMutation.mutate(id!, {
+                    onSuccess: () => router.back(),
+                    onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to delete tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
+                });
             },
         });
+    };
+
+    const openEditModal = (sectionKey: string) => {
+        if (!company) return;
+        let data: Record<string, any> = {};
+        switch (sectionKey) {
+            case 'identity':
+                data = { displayName: company.displayName, legalName: company.legalName, businessType: company.businessType, industry: company.industry, companyCode: company.companyCode, shortName: company.shortName, cin: company.cin, website: company.website, emailDomain: company.emailDomain };
+                break;
+            case 'statutory':
+                data = { pan: company.pan, tan: company.tan, gstin: company.gstin, pfRegNo: company.pfRegNo, esiCode: company.esiCode, ptReg: company.ptReg, lwfrNo: company.lwfrNo, rocState: company.rocState };
+                break;
+            case 'address':
+                data = { regLine1: company.regLine1, regLine2: company.regLine2, regCity: company.regCity, regDistrict: company.regDistrict, regPin: company.regPin, regState: company.regState, regCountry: company.regCountry, sameAsRegistered: company.sameAsRegistered };
+                break;
+            case 'fiscal':
+                data = { fyType: company.fyType, payrollFreq: company.payrollFreq, cutoffDay: company.cutoffDay, disbursementDay: company.disbursementDay, weekStart: company.weekStart, timezone: company.timezone, workingDays: [...company.workingDays] };
+                break;
+            case 'preferences':
+                data = { currency: company.currency, language: company.language, dateFormat: company.dateFormat, indiaCompliance: company.indiaCompliance, mobileApp: company.mobileApp, webApp: company.webApp, bankIntegration: company.bankIntegration, biometric: company.biometric, emailNotif: company.emailNotif, mfa: company.mfa };
+                break;
+            case 'endpoint':
+                data = { endpointType: company.endpointType, endpointUrl: company.endpointUrl };
+                break;
+            case 'strategy':
+                data = { multiLocationMode: company.multiLocationMode, locationConfig: company.locationConfig };
+                break;
+            case 'controls':
+                data = { controls: { ...company.controls } };
+                break;
+        }
+        setEditSection(sectionKey);
+        setEditData(data);
+    };
+
+    const handleEditSaved = () => {
+        refetch();
     };
 
     return (
@@ -810,7 +658,7 @@ export function CompanyDetailScreen() {
                 <View style={styles.body}>
                     {/* ---- Company Information ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(100)} style={styles.section}>
-                        <SectionHeader title="Company Information" iconType="info" />
+                        <SectionHeader title="Company Information" iconType="info" onEdit={() => openEditModal('identity')} />
                         <View style={styles.sectionCard}>
                             <InfoRow label="Company Code" value={company.companyCode} />
                             <InfoRow label="Short Name" value={company.shortName} />
@@ -825,7 +673,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- Statutory & Tax ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(150)} style={styles.section}>
-                        <SectionHeader title="Statutory & Tax" iconType="statutory" />
+                        <SectionHeader title="Statutory & Tax" iconType="statutory" onEdit={() => openEditModal('statutory')} />
                         <View style={styles.sectionCard}>
                             <InfoRow label="PAN" value={company.pan} />
                             <InfoRow label="TAN" value={company.tan || '—'} />
@@ -840,7 +688,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- Address ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.section}>
-                        <SectionHeader title="Registered Address" iconType="address" />
+                        <SectionHeader title="Registered Address" iconType="address" onEdit={() => openEditModal('address')} />
                         <View style={styles.sectionCard}>
                             <InfoRow label="Address Line 1" value={company.regLine1} />
                             {company.regLine2 ? <InfoRow label="Address Line 2" value={company.regLine2} /> : null}
@@ -861,7 +709,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- Fiscal & Calendar ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(250)} style={styles.section}>
-                        <SectionHeader title="Fiscal & Calendar" iconType="fiscal" />
+                        <SectionHeader title="Fiscal & Calendar" iconType="fiscal" onEdit={() => openEditModal('fiscal')} />
                         <View style={styles.sectionCard}>
                             <InfoRow label="Financial Year" value={company.fyType === 'apr-mar' ? 'April – March (India)' : company.fyType} />
                             <InfoRow label="Payroll Frequency" value={company.payrollFreq} />
@@ -880,7 +728,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- Preferences ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(300)} style={styles.section}>
-                        <SectionHeader title="Preferences" iconType="preferences" />
+                        <SectionHeader title="Preferences" iconType="preferences" onEdit={() => openEditModal('preferences')} />
                         <View style={styles.sectionCard}>
                             <InfoRow label="Currency" value={company.currency} />
                             <InfoRow label="Language" value={company.language} />
@@ -904,7 +752,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- Server Endpoint ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(350)} style={styles.section}>
-                        <SectionHeader title="Backend Endpoint" iconType="server" />
+                        <SectionHeader title="Backend Endpoint" iconType="server" onEdit={() => openEditModal('endpoint')} />
                         <View style={styles.sectionCard}>
                             <View style={styles.serverToggleRow}>
                                 <Pressable
@@ -975,7 +823,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- Locations ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(400)} style={styles.section}>
-                        <SectionHeader title="Locations" iconType="locations" />
+                        <SectionHeader title="Locations" iconType="locations" onEdit={() => openEditModal('strategy')} />
                         {company.locations.map((loc) => (
                             <View key={loc.id} style={[styles.sectionCard, styles.locationCard]}>
                                 <View style={styles.locationCardHeader}>
@@ -1183,7 +1031,7 @@ export function CompanyDetailScreen() {
 
                     {/* ---- System Controls ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(650)} style={styles.section}>
-                        <SectionHeader title="System Controls" iconType="controls" />
+                        <SectionHeader title="System Controls" iconType="controls" onEdit={() => openEditModal('controls')} />
                         <View style={styles.sectionCard}>
                             <View style={styles.chipRow}>
                                 <ToggleChip label="NC Edit Mode" enabled={company.controls.ncEditMode} />
@@ -1440,6 +1288,14 @@ export function CompanyDetailScreen() {
                 </View>
             </ScrollView>
 
+            <CompanyDetailEditModal
+                visible={editSection !== null}
+                onClose={() => { setEditSection(null); setEditData(null); }}
+                companyId={id ?? ''}
+                section={editSection ?? ''}
+                currentData={editData ?? {}}
+                onSaved={handleEditSaved}
+            />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );
@@ -1557,6 +1413,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         marginBottom: 10,
+    },
+    editIconButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 10,
+        backgroundColor: colors.primary[50],
+        borderWidth: 1,
+        borderColor: colors.primary[200],
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     sectionCard: {
         backgroundColor: colors.white,

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     Pressable,
     ScrollView,
@@ -22,10 +23,12 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { StatusBadge } from '@/components/ui/status-badge';
 
+import { useBillingSummary, useInvoices, useRevenueChart } from '@/features/super-admin/api/use-dashboard-queries';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_W = (SCREEN_WIDTH - 48 - 12) / 2;
 
-// ============ MOCK DATA ============
+// ============ TYPES ============
 
 interface RevenueKPI {
     label: string;
@@ -36,13 +39,6 @@ interface RevenueKPI {
     iconBg: string;
 }
 
-const REVENUE_KPIS: RevenueKPI[] = [
-    { label: 'Total MRR', value: '₹18.4L', change: '+12.3%', positive: true, iconColor: colors.primary[600], iconBg: colors.primary[100] },
-    { label: 'Total ARR', value: '₹2.2Cr', change: '+8.1%', positive: true, iconColor: colors.accent[600], iconBg: colors.accent[100] },
-    { label: 'Overdue', value: '₹3.6L', change: '+2 invoices', positive: false, iconColor: colors.danger[600], iconBg: colors.danger[100] },
-    { label: 'Pending', value: '12', change: '₹5.1L total', positive: true, iconColor: colors.warning[600], iconBg: colors.warning[100] },
-];
-
 interface InvoiceItem {
     id: string;
     company: string;
@@ -51,30 +47,55 @@ interface InvoiceItem {
     status: 'paid' | 'pending' | 'overdue';
 }
 
-const RECENT_INVOICES: InvoiceItem[] = [
-    { id: 'INV-2026-148', company: 'Apex Manufacturing', amount: '₹1,84,500', date: 'Mar 1, 2026', status: 'paid' },
-    { id: 'INV-2026-147', company: 'Steel Dynamics', amount: '₹3,42,000', date: 'Mar 1, 2026', status: 'paid' },
-    { id: 'INV-2026-146', company: 'Rathi Engineering', amount: '₹2,15,000', date: 'Feb 28, 2026', status: 'pending' },
-    { id: 'INV-2026-145', company: 'Indo Metals Corp', amount: '₹98,500', date: 'Feb 15, 2026', status: 'overdue' },
-    { id: 'INV-2026-144', company: 'Sahara Industries', amount: '₹45,000', date: 'Feb 10, 2026', status: 'paid' },
-    { id: 'INV-2026-143', company: 'Precision Machining', amount: '₹1,22,000', date: 'Feb 1, 2026', status: 'overdue' },
-];
+// ============ HELPERS ============
 
-// Revenue chart (simplified bar chart using Views)
-const MONTHLY_REVENUE = [
-    { month: 'Oct', value: 12.5 },
-    { month: 'Nov', value: 14.2 },
-    { month: 'Dec', value: 13.8 },
-    { month: 'Jan', value: 15.6 },
-    { month: 'Feb', value: 17.1 },
-    { month: 'Mar', value: 18.4 },
-];
+function formatIndianCurrency(amount: number): string {
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
+    return `₹${amount}`;
+}
 
-const MAX_REVENUE = Math.max(...MONTHLY_REVENUE.map(r => r.value));
+function formatDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getMonthLabel(monthStr: string): string {
+    const [, mm] = monthStr.split('-');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[parseInt(mm, 10) - 1] ?? monthStr;
+}
+
+function buildBillingKPIs(summary: any): RevenueKPI[] {
+    return [
+        { label: 'Total MRR', value: formatIndianCurrency(summary?.mrr ?? 0), change: summary?.mrrChange ?? '', positive: (summary?.mrrChange ?? '+0').startsWith('+'), iconColor: colors.primary[600], iconBg: colors.primary[100] },
+        { label: 'Total ARR', value: formatIndianCurrency(summary?.arr ?? 0), change: summary?.arrChange ?? '', positive: (summary?.arrChange ?? '+0').startsWith('+'), iconColor: colors.accent[600], iconBg: colors.accent[100] },
+        { label: 'Overdue', value: formatIndianCurrency(summary?.overdue ?? 0), change: summary?.overdueCount ? `${summary.overdueCount} invoices` : '', positive: false, iconColor: colors.danger[600], iconBg: colors.danger[100] },
+        { label: 'Pending', value: String(summary?.pendingCount ?? 0), change: summary?.pendingTotal ? formatIndianCurrency(summary.pendingTotal) + ' total' : '', positive: true, iconColor: colors.warning[600], iconBg: colors.warning[100] },
+    ];
+}
+
+function mapInvoiceStatus(status: string): 'paid' | 'pending' | 'overdue' {
+    const s = status?.toLowerCase();
+    if (s === 'paid') return 'paid';
+    if (s === 'overdue') return 'overdue';
+    return 'pending';
+}
 
 // ============ COMPONENTS ============
 
-function RevenueChart() {
+function RevenueChart({ chartData, isLoading }: { chartData: Array<{ month: string; value: number }>; isLoading: boolean }) {
+    if (isLoading) {
+        return (
+            <View style={[styles.chartCard, { alignItems: 'center', justifyContent: 'center', height: 200 }]}>
+                <ActivityIndicator size="small" color={colors.primary[500]} />
+            </View>
+        );
+    }
+
+    const maxRevenue = Math.max(...chartData.map(r => r.value), 1);
+
     return (
         <Animated.View entering={FadeInUp.duration(400).delay(300)} style={styles.chartCard}>
             <View style={styles.chartHeader}>
@@ -86,9 +107,9 @@ function RevenueChart() {
                 </View>
             </View>
             <View style={styles.chartBars}>
-                {MONTHLY_REVENUE.map((item, index) => {
-                    const heightPercent = (item.value / MAX_REVENUE) * 100;
-                    const isLast = index === MONTHLY_REVENUE.length - 1;
+                {chartData.map((item, index) => {
+                    const heightPercent = (item.value / maxRevenue) * 100;
+                    const isLast = index === chartData.length - 1;
                     return (
                         <Animated.View
                             key={item.month}
@@ -96,7 +117,7 @@ function RevenueChart() {
                             style={styles.chartBarColumn}
                         >
                             <Text className="mb-1 font-inter text-[9px] font-bold text-neutral-500">
-                                {item.value}L
+                                {item.value >= 100000 ? `${(item.value / 100000).toFixed(1)}L` : `${item.value}`}
                             </Text>
                             <View style={styles.chartBarBg}>
                                 {isLast ? (
@@ -133,6 +154,53 @@ export function BillingOverviewScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
+    const { data: summaryResponse, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = useBillingSummary();
+    const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices({ page: 1, limit: 6 });
+    const { data: chartResponse, isLoading: chartLoading } = useRevenueChart();
+
+    const summary = summaryResponse?.data ?? summaryResponse;
+    const revenueKpis = buildBillingKPIs(summary);
+
+    const rawInvoices = invoicesResponse?.data ?? invoicesResponse ?? [];
+    const invoices: InvoiceItem[] = Array.isArray(rawInvoices)
+        ? rawInvoices.map((inv: any) => ({
+            id: inv.invoiceNumber ?? inv.id ?? '',
+            company: inv.company?.displayName ?? inv.companyName ?? 'Unknown',
+            amount: typeof inv.amount === 'number' ? formatIndianCurrency(inv.amount) : (inv.amount ?? ''),
+            date: inv.dueDate ? formatDate(inv.dueDate) : (inv.date ?? ''),
+            status: mapInvoiceStatus(inv.status ?? 'pending'),
+        }))
+        : [];
+
+    const rawChart = chartResponse?.data ?? chartResponse;
+    const chartMonths = rawChart?.months ?? [];
+    const chartData = Array.isArray(chartMonths)
+        ? chartMonths.map((item: any) => ({
+            month: getMonthLabel(item.month ?? ''),
+            value: item.revenue ?? item.value ?? 0,
+        }))
+        : [];
+
+    if (summaryLoading && invoicesLoading) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.primary[500]} />
+                <Text className="mt-3 font-inter text-sm text-neutral-500">Loading billing...</Text>
+            </View>
+        );
+    }
+
+    if (summaryError) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
+                <Text className="font-inter text-base font-semibold text-danger-600">Failed to load billing data</Text>
+                <Pressable onPress={() => refetchSummary()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
+                    <Text className="font-inter text-sm font-semibold text-white">Retry</Text>
+                </Pressable>
+            </View>
+        );
+    }
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <LinearGradient
@@ -155,7 +223,7 @@ export function BillingOverviewScreen() {
 
                 {/* KPI Cards */}
                 <View style={styles.kpiGrid}>
-                    {REVENUE_KPIS.map((kpi, index) => (
+                    {revenueKpis.map((kpi, index) => (
                         <Animated.View
                             key={kpi.label}
                             entering={FadeInUp.duration(350).delay(100 + index * 80)}
@@ -178,18 +246,20 @@ export function BillingOverviewScreen() {
                             <Text className="font-inter text-[10px] font-medium text-neutral-500">
                                 {kpi.label}
                             </Text>
-                            <View style={[styles.kpiChange, { backgroundColor: kpi.positive ? colors.success[50] : colors.danger[50] }]}>
-                                <Text className={`font-inter text-[10px] font-bold ${kpi.positive ? 'text-success-600' : 'text-danger-600'}`}>
-                                    {kpi.change}
-                                </Text>
-                            </View>
+                            {kpi.change ? (
+                                <View style={[styles.kpiChange, { backgroundColor: kpi.positive ? colors.success[50] : colors.danger[50] }]}>
+                                    <Text className={`font-inter text-[10px] font-bold ${kpi.positive ? 'text-success-600' : 'text-danger-600'}`}>
+                                        {kpi.change}
+                                    </Text>
+                                </View>
+                            ) : null}
                         </Animated.View>
                     ))}
                 </View>
 
                 {/* Revenue Chart */}
                 <View style={styles.sectionPadded}>
-                    <RevenueChart />
+                    <RevenueChart chartData={chartData} isLoading={chartLoading} />
                 </View>
 
                 {/* Recent Invoices */}
@@ -204,28 +274,38 @@ export function BillingOverviewScreen() {
                             </Pressable>
                         </View>
 
-                        <View style={styles.invoiceCard}>
-                            {RECENT_INVOICES.map((inv, index) => (
-                                <Animated.View key={inv.id} entering={FadeInRight.duration(300).delay(700 + index * 60)}>
-                                    <Pressable style={[styles.invoiceRow, index < RECENT_INVOICES.length - 1 && styles.invoiceRowBorder]}>
-                                        <View style={styles.invoiceLeft}>
-                                            <Text className="font-inter text-sm font-bold text-primary-950">
-                                                {inv.company}
-                                            </Text>
-                                            <Text className="mt-0.5 font-inter text-xs text-neutral-500">
-                                                {inv.id} • {inv.date}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.invoiceRight}>
-                                            <Text className="font-inter text-sm font-bold text-primary-950">
-                                                {inv.amount}
-                                            </Text>
-                                            <StatusBadge status={inv.status} size="sm" />
-                                        </View>
-                                    </Pressable>
-                                </Animated.View>
-                            ))}
-                        </View>
+                        {invoicesLoading ? (
+                            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                                <ActivityIndicator size="small" color={colors.primary[500]} />
+                            </View>
+                        ) : invoices.length === 0 ? (
+                            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                                <Text className="font-inter text-sm text-neutral-400">No invoices found</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.invoiceCard}>
+                                {invoices.map((inv, index) => (
+                                    <Animated.View key={inv.id} entering={FadeInRight.duration(300).delay(700 + index * 60)}>
+                                        <Pressable style={[styles.invoiceRow, index < invoices.length - 1 && styles.invoiceRowBorder]}>
+                                            <View style={styles.invoiceLeft}>
+                                                <Text className="font-inter text-sm font-bold text-primary-950">
+                                                    {inv.company}
+                                                </Text>
+                                                <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                                                    {inv.id} • {inv.date}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.invoiceRight}>
+                                                <Text className="font-inter text-sm font-bold text-primary-950">
+                                                    {inv.amount}
+                                                </Text>
+                                                <StatusBadge status={inv.status} size="sm" />
+                                            </View>
+                                        </Pressable>
+                                    </Animated.View>
+                                ))}
+                            </View>
+                        )}
                     </Animated.View>
                 </View>
             </ScrollView>

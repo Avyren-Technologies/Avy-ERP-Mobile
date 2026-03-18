@@ -529,14 +529,26 @@ export function ToggleRow({
 
 // ============ SECTION CARD ============
 
-export function SectionCard({ children, title }: { children: React.ReactNode; title?: string }) {
+export function SectionCard({
+    children,
+    title,
+    subtitle,
+}: {
+    children: React.ReactNode;
+    title?: string;
+    subtitle?: string;
+}) {
+    const titleMargin = subtitle ? 'mb-1' : 'mb-3';
     return (
         <View style={S.sectionCard}>
             {title && (
-                <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
+                <Text
+                    className={`font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 ${titleMargin}`}
+                >
                     {title}
                 </Text>
             )}
+            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">{subtitle}</Text>}
             {children}
         </View>
     );

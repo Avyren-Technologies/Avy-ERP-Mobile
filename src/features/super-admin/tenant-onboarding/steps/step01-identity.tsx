@@ -9,7 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
-import { FormInput, FormSelect, RadioOption, SectionCard } from '../atoms';
+import { FormDatePicker, FormInput, FormSelect, RadioOption, SectionCard } from '../atoms';
 import type { Step1Form } from '../types';
 import { BUSINESS_TYPES, COMPANY_STATUSES, INDUSTRIES } from '../constants';
 import { S } from '../shared-styles';
@@ -253,22 +253,12 @@ export function Step1Identity({
                     value={form.shortName}
                     onChangeText={(v) => setForm({ shortName: v })}
                 />
-                <FormInput
+                <FormDatePicker
                     label="Date of Incorporation"
-                    placeholder="DD/MM/YYYY"
                     value={form.incorporationDate}
-                    onChangeText={(v) => setForm({ incorporationDate: v })}
+                    onChange={(v) => setForm({ incorporationDate: v })}
                     required
                     error={errors?.incorporationDate}
-                />
-                <FormInput
-                    label="Number of Employees (approx.)"
-                    placeholder="e.g. 250"
-                    value={form.employees}
-                    onChangeText={(v) => setForm({ employees: v })}
-                    keyboardType="number-pad"
-                    hint="Used for PF, ESI, PT compliance threshold checks."
-                    error={errors?.employees}
                 />
                 <FormInput
                     label="CIN Number"

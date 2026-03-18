@@ -25,6 +25,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
 import { COUNTRY_CODES, GEO_RADIUS_OPTIONS } from './constants';
+import { FormDatePicker } from './form-date-picker';
 import { S } from './shared-styles';
 
 // ============ FORM LABEL ============
@@ -100,6 +101,10 @@ export function FormInput({
         </View>
     );
 }
+
+// ============ DATE PICKER ============
+
+export { FormDatePicker };
 
 // ============ SECRET INPUT (masked with eye toggle) ============
 
@@ -288,6 +293,7 @@ export function FormSelect({
                         }
                         stroke={visible ? colors.primary[500] : colors.neutral[400]}
                         strokeWidth="2"
+                        fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
@@ -421,6 +427,7 @@ export function FormSelect({
                                                         d="M5 12l5 5L20 7"
                                                         stroke={colors.primary[600]}
                                                         strokeWidth="2.5"
+                                                        fill="none"
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
                                                     />

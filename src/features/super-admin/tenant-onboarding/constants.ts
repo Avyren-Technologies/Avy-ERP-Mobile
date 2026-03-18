@@ -26,11 +26,8 @@ export const STEP_META = [
 export const BUSINESS_TYPES = [
     'Private Limited (Pvt. Ltd.)',
     'Public Limited',
-    'LLP',
     'Partnership',
     'Proprietorship',
-    'Trust / NGO',
-    'Government / PSU',
     'Others',
 ];
 

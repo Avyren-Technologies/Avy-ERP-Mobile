@@ -11,6 +11,7 @@ export * from './image';
 export * from './input';
 export * from './list';
 export * from './modal';
+export * from './no-permission-screen';
 export * from './progress-bar';
 export * from './select';
 export * from './sidebar';

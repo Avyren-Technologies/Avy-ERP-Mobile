@@ -12,7 +12,12 @@ import {
     SidebarProvider,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { useAuthStore as useAuth } from '@/features/auth/use-auth-store';
+import {
+    useAuthStore as useAuth,
+    getDisplayName,
+    getUserInitials,
+    getRoleLabel,
+} from '@/features/auth/use-auth-store';
 import { useIsFirstTime } from '@/lib/hooks/use-is-first-time';
 
 // ============ TAB ICON COMPONENTS ============
@@ -81,18 +86,22 @@ function AppSidebar() {
     const router = useRouter();
     const pathname = usePathname();
     const signOut = useAuth.use.signOut();
+    const user = useAuth.use.user();
+    const userRole = useAuth.use.userRole();
+
+    const isSuperAdmin = userRole === 'super-admin';
 
     const sections = React.useMemo(
-        () => [
-            {
-                items: [
-                    {
-                        id: 'dashboard',
-                        label: 'Dashboard',
-                        icon: 'dashboard' as const,
-                        isActive: pathname === '/',
-                        onPress: () => router.push('/'),
-                    },
+        () => {
+            const coreItems = [
+                {
+                    id: 'dashboard',
+                    label: 'Dashboard',
+                    icon: 'dashboard' as const,
+                    isActive: pathname === '/',
+                    onPress: () => router.push('/'),
+                },
+                ...(isSuperAdmin ? [
                     {
                         id: 'companies',
                         label: 'Companies',
@@ -107,55 +116,63 @@ function AppSidebar() {
                         isActive: pathname === '/billing',
                         onPress: () => router.push('/billing'),
                     },
-                ],
-            },
-            {
-                title: 'Administration',
-                items: [
-                    {
-                        id: 'reports',
-                        label: 'Reports',
-                        icon: 'reports' as const,
-                        isActive: false,
-                        onPress: () => {},
-                    },
-                    {
-                        id: 'audit',
-                        label: 'Audit Logs',
-                        icon: 'audit' as const,
-                        isActive: false,
-                        onPress: () => {},
-                    },
-                    {
-                        id: 'users',
-                        label: 'User Management',
-                        icon: 'users' as const,
-                        isActive: false,
-                        onPress: () => {},
-                    },
-                ],
-            },
-            {
-                title: 'System',
-                items: [
-                    {
-                        id: 'settings',
-                        label: 'Settings',
-                        icon: 'settings' as const,
-                        isActive: pathname === '/settings',
-                        onPress: () => router.push('/settings'),
-                    },
-                    {
-                        id: 'support',
-                        label: 'Support',
-                        icon: 'support' as const,
-                        isActive: false,
-                        onPress: () => {},
-                    },
-                ],
-            },
-        ],
-        [pathname, router]
+                ] : []),
+            ];
+
+            const adminItems = isSuperAdmin ? [
+                {
+                    title: 'Administration',
+                    items: [
+                        {
+                            id: 'reports',
+                            label: 'Reports',
+                            icon: 'reports' as const,
+                            isActive: false,
+                            onPress: () => {},
+                        },
+                        {
+                            id: 'audit',
+                            label: 'Audit Logs',
+                            icon: 'audit' as const,
+                            isActive: false,
+                            onPress: () => {},
+                        },
+                        {
+                            id: 'users',
+                            label: 'User Management',
+                            icon: 'users' as const,
+                            isActive: false,
+                            onPress: () => {},
+                        },
+                    ],
+                },
+            ] : [];
+
+            return [
+                { items: coreItems },
+                ...adminItems,
+                {
+                    title: 'System',
+                    items: [
+                        {
+                            id: 'settings',
+                            label: 'Settings',
+                            icon: 'settings' as const,
+                            isActive: pathname === '/settings',
+                            onPress: () => router.push('/settings'),
+                        },
+                        {
+                            id: 'support',
+                            label: 'Support',
+                            icon: 'support' as const,
+                            isActive: false,
+                            onPress: () => {},
+                        },
+                    ],
+                },
+            ];
+        },
+        [pathname, router, isSuperAdmin]
     );
 
     return (
@@ -163,9 +180,9 @@ function AppSidebar() {
             isOpen={isOpen}
             onClose={close}
             sections={sections}
-            userName="System Admin"
-            userRole="Super Admin"
-            userInitials="SA"
+            userName={getDisplayName(user)}
+            userRole={getRoleLabel(userRole)}
+            userInitials={getUserInitials(user)}
             onSignOut={signOut}
             collapsible={false}
         />
@@ -176,8 +193,10 @@ function AppSidebar() {
 
 function TabLayoutInner() {
     const status = useAuth.use.status();
+    const userRole = useAuth.use.userRole();
     const [isFirstTime] = useIsFirstTime();
     const insets = useSafeAreaInsets();
+    const isSuperAdmin = userRole === 'super-admin';
     // iOS base: 54px content + dynamic home indicator clearance
     // Android base: 68px content (larger touch targets) + gesture nav inset if present
     const TAB_BAR_HEIGHT = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
@@ -249,6 +268,7 @@ function TabLayoutInner() {
                             <CompaniesIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'companies-tab',
+                        href: isSuperAdmin ? undefined : null,
                     }}
                 />
                 <Tabs.Screen
@@ -259,6 +279,7 @@ function TabLayoutInner() {
                             <BillingIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'billing-tab',
+                        href: isSuperAdmin ? undefined : null,
                     }}
                 />
                 <Tabs.Screen

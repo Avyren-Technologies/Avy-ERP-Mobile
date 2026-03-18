@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { authApi } from '@/lib/api/auth';
+import { authApi, decodeJwtPayload } from '@/lib/api/auth';
 import { signIn, signOut } from '@/features/auth/use-auth-store';
 import { createLogger } from '@/lib/logger';
 
@@ -15,13 +15,19 @@ export function useLoginMutation() {
         onSuccess: (response) => {
             if (response.success && response.data?.user && response.data?.tokens) {
                 const { user, tokens } = response.data;
-                logger.info('Login API success', { email: user.email, role: user.role });
+                // Decode JWT to extract permissions (embedded in token payload by backend)
+                const payload = decodeJwtPayload(tokens.accessToken);
+                const permissions: string[] = Array.isArray(payload?.permissions)
+                    ? (payload.permissions as string[])
+                    : [];
+                const userWithPermissions = { ...user, permissions };
+                logger.info('Login API success', { email: user.email, role: user.role, permissionCount: permissions.length });
                 signIn(
                     {
                         access: tokens.accessToken,
                         refresh: tokens.refreshToken,
                     },
-                    user,
+                    userWithPermissions,
                 );
             }
         },

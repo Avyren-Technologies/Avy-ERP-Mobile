@@ -19,6 +19,30 @@ export interface AuthUser {
   role: string;
   companyId?: string;
   tenantId?: string;
+  permissions?: string[];
+}
+
+/** Decode a JWT payload without verifying the signature (client-side read only). */
+export function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64 = token.split('.')[1];
+    if (!base64) return null;
+    const decoded = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
+/** Utility: check if a permission string is satisfied by the user's permissions array.
+ *  Supports exact match, wildcard '*', and module wildcard 'module:*'.
+ */
+export function checkPermission(userPermissions: string[], required: string): boolean {
+  if (userPermissions.includes('*')) return true;
+  if (userPermissions.includes(required)) return true;
+  const [module] = required.split(':');
+  if (module && userPermissions.includes(`${module}:*`)) return true;
+  return false;
 }
 
 export interface AuthTokens {

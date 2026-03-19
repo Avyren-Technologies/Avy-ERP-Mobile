@@ -2,6 +2,7 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import Env from 'env';
 
+import { showErrorMessage, showWarning } from '@/components/ui/utils';
 import { getToken } from '@/lib/auth/utils';
 import { createLogger } from '@/lib/logger';
 
@@ -51,6 +52,17 @@ client.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    // 403 — permission denied
+    if (error.response?.status === 403) {
+      showWarning('Access Denied', 'You do not have permission to perform this action.');
+      return Promise.reject(error);
+    }
+
+    // 5xx — server errors
+    if (error.response?.status && error.response.status >= 500) {
+      showErrorMessage('Server error. Please try again later.');
+    }
 
     const isTokenExpired =
       error.response?.status === 401 &&

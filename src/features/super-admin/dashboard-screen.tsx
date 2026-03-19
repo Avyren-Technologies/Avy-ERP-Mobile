@@ -1,5 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -24,6 +25,8 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { HamburgerButton } from '@/components/ui/sidebar';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { useSuperAdminStats, useRecentActivity } from '@/features/super-admin/api/use-dashboard-queries';
 
@@ -41,6 +44,7 @@ interface KPICardData {
     iconColor: string;
     iconBg: string;
     iconType: 'companies' | 'users' | 'revenue' | 'modules';
+    route: string;
 }
 
 interface ActivityItem {
@@ -56,6 +60,7 @@ interface QuickAction {
     title: string;
     iconType: 'add-company' | 'manage-billing' | 'view-reports' | 'settings';
     gradient: readonly [string, string];
+    route: string;
 }
 
 // ============ HELPERS ============
@@ -82,6 +87,7 @@ function buildKPIData(stats: any): KPICardData[] {
             iconColor: colors.primary[600],
             iconBg: colors.primary[100],
             iconType: 'companies',
+            route: '/(app)/companies',
         },
         {
             title: 'Total Users',
@@ -91,6 +97,7 @@ function buildKPIData(stats: any): KPICardData[] {
             iconColor: colors.accent[600],
             iconBg: colors.accent[100],
             iconType: 'users',
+            route: '/(app)/companies',
         },
         {
             title: 'Monthly Revenue',
@@ -100,6 +107,7 @@ function buildKPIData(stats: any): KPICardData[] {
             iconColor: colors.success[600],
             iconBg: colors.success[100],
             iconType: 'revenue',
+            route: '/(app)/billing',
         },
         {
             title: 'Active Modules',
@@ -109,6 +117,7 @@ function buildKPIData(stats: any): KPICardData[] {
             iconColor: colors.info[600],
             iconBg: colors.info[100],
             iconType: 'modules',
+            route: '/(app)/companies',
         },
     ];
 }
@@ -139,24 +148,28 @@ const QUICK_ACTIONS: QuickAction[] = [
         title: 'Add Company',
         iconType: 'add-company',
         gradient: [colors.primary[500], colors.primary[700]],
+        route: '/(app)/tenant/add-company',
     },
     {
         id: '2',
         title: 'Billing',
         iconType: 'manage-billing',
         gradient: [colors.accent[500], colors.accent[700]],
+        route: '/(app)/billing',
     },
     {
         id: '3',
         title: 'Reports',
         iconType: 'view-reports',
         gradient: [colors.success[500], colors.success[700]],
+        route: '/(app)/reports/audit',
     },
     {
         id: '4',
         title: 'Settings',
         iconType: 'settings',
         gradient: [colors.info[500], colors.info[700]],
+        route: '/(app)/settings',
     },
 ];
 
@@ -364,44 +377,55 @@ function HeaderSection() {
 }
 
 function KPICard({ data, index }: { data: KPICardData; index: number }) {
+    const router = useRouter();
+
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(200 + index * 100)}
-            style={styles.kpiCard}
         >
-            <View style={styles.kpiHeader}>
-                <View style={[styles.kpiIconContainer, { backgroundColor: data.iconBg }]}>
-                    <KPIIcon type={data.iconType} color={data.iconColor} />
-                </View>
-                <View
-                    style={[
-                        styles.changeBadge,
-                        {
-                            backgroundColor: data.changePositive
-                                ? colors.success[50]
-                                : colors.danger[50],
-                        },
-                    ]}
-                >
-                    <Text
-                        className={`font-inter text-[10px] font-bold ${data.changePositive ? 'text-success-600' : 'text-danger-600'
-                            }`}
+            <Pressable
+                onPress={() => router.push(data.route as any)}
+                style={({ pressed }) => [
+                    styles.kpiCard,
+                    pressed && { opacity: 0.75, transform: [{ scale: 0.97 }] },
+                ]}
+            >
+                <View style={styles.kpiHeader}>
+                    <View style={[styles.kpiIconContainer, { backgroundColor: data.iconBg }]}>
+                        <KPIIcon type={data.iconType} color={data.iconColor} />
+                    </View>
+                    <View
+                        style={[
+                            styles.changeBadge,
+                            {
+                                backgroundColor: data.changePositive
+                                    ? colors.success[50]
+                                    : colors.danger[50],
+                            },
+                        ]}
                     >
-                        {data.change}
-                    </Text>
+                        <Text
+                            className={`font-inter text-[10px] font-bold ${data.changePositive ? 'text-success-600' : 'text-danger-600'
+                                }`}
+                        >
+                            {data.change}
+                        </Text>
+                    </View>
                 </View>
-            </View>
-            <Text className="mt-3 font-inter text-2xl font-bold text-primary-950 dark:text-white">
-                {data.value}
-            </Text>
-            <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">
-                {data.title}
-            </Text>
+                <Text className="mt-3 font-inter text-2xl font-bold text-primary-950 dark:text-white">
+                    {data.value}
+                </Text>
+                <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">
+                    {data.title}
+                </Text>
+            </Pressable>
         </Animated.View>
     );
 }
 
 function QuickActionsSection() {
+    const router = useRouter();
+
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(600)}
@@ -416,7 +440,13 @@ function QuickActionsSection() {
                         key={action.id}
                         entering={SlideInRight.duration(400).delay(700 + index * 80)}
                     >
-                        <Pressable style={styles.quickActionCard}>
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.quickActionCard,
+                                pressed && { opacity: 0.7 },
+                            ]}
+                            onPress={() => router.push(action.route as any)}
+                        >
                             <LinearGradient
                                 colors={action.gradient}
                                 start={{ x: 0, y: 0 }}
@@ -442,10 +472,22 @@ function QuickActionsSection() {
 }
 
 function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; isLoading: boolean }) {
+    const router = useRouter();
+
     if (isLoading) {
         return (
-            <View style={[styles.section, { alignItems: 'center', paddingVertical: 24 }]}>
-                <ActivityIndicator size="small" color={colors.primary[500]} />
+            <View style={styles.section}>
+                <Skeleton
+                    isLoading={true}
+                    layout={[
+                        { key: 'h', width: '50%', height: 20, borderRadius: 6, marginBottom: 16 },
+                        { key: 'r1', width: '100%', height: 52, borderRadius: 12, marginBottom: 8 },
+                        { key: 'r2', width: '100%', height: 52, borderRadius: 12, marginBottom: 8 },
+                        { key: 'r3', width: '100%', height: 52, borderRadius: 12 },
+                    ]}
+                >
+                    <View />
+                </Skeleton>
             </View>
         );
     }
@@ -453,7 +495,11 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
     if (items.length === 0) {
         return (
             <Animated.View entering={FadeInUp.duration(400).delay(900)} style={styles.section}>
-                <Text className="font-inter text-sm text-neutral-400 text-center">No recent activity</Text>
+                <EmptyState
+                    icon="inbox"
+                    title="No recent activity"
+                    message="Activity will appear here as actions are performed."
+                />
             </Animated.View>
         );
     }
@@ -467,9 +513,12 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
                 <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                     Recent Activity
                 </Text>
-                <Pressable style={styles.seeAllButton}>
+                <Pressable
+                    style={styles.seeAllButton}
+                    onPress={() => router.push('/(app)/reports/audit' as any)}
+                >
                     <Text className="font-inter text-sm font-semibold text-primary-500">
-                        See All
+                        View All
                     </Text>
                 </Pressable>
             </View>
@@ -507,14 +556,26 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
 }
 
 function TenantOverviewSection({ overview }: { overview: { active: number; trial: number; suspended: number; expired: number } }) {
+    const router = useRouter();
+
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(1100)}
             style={styles.section}
         >
-            <Text className="mb-4 font-inter text-lg font-bold text-primary-950 dark:text-white">
-                Tenant Overview
-            </Text>
+            <View style={styles.sectionHeader}>
+                <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
+                    Tenant Overview
+                </Text>
+                <Pressable
+                    style={styles.seeAllButton}
+                    onPress={() => router.push('/(app)/companies' as any)}
+                >
+                    <Text className="font-inter text-sm font-semibold text-primary-500">
+                        View All
+                    </Text>
+                </Pressable>
+            </View>
             <View style={styles.tenantCard}>
                 <LinearGradient
                     colors={[colors.primary[600], colors.accent[600]]}
@@ -595,9 +656,54 @@ export function SuperAdminDashboard() {
 
     if (statsLoading) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={colors.primary[500]} />
-                <Text className="mt-3 font-inter text-sm text-neutral-500">Loading dashboard...</Text>
+            <View style={styles.container}>
+                <HeaderSection />
+                <View style={styles.kpiGrid}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'kpi1', width: CARD_WIDTH, height: 110, borderRadius: 20, marginBottom: 12 },
+                            { key: 'kpi2', width: CARD_WIDTH, height: 110, borderRadius: 20, marginBottom: 12 },
+                            { key: 'kpi3', width: CARD_WIDTH, height: 110, borderRadius: 20 },
+                            { key: 'kpi4', width: CARD_WIDTH, height: 110, borderRadius: 20 },
+                        ]}
+                        containerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.section}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'qa', width: '100%', height: 80, borderRadius: 16 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.section}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'to', width: '100%', height: 100, borderRadius: 20 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.section}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'a1', width: '100%', height: 50, borderRadius: 12, marginBottom: 8 },
+                            { key: 'a2', width: '100%', height: 50, borderRadius: 12, marginBottom: 8 },
+                            { key: 'a3', width: '100%', height: 50, borderRadius: 12 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
             </View>
         );
     }
@@ -624,7 +730,9 @@ export function SuperAdminDashboard() {
                     styles.scrollContent,
                     { paddingBottom: insets.bottom + 24 },
                 ]}
-                bounces={false}
+                // Keep pull-to-refresh gesture enabled on iOS.
+                bounces
+                alwaysBounceVertical
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}

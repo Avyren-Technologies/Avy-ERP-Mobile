@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { showSuccess } from '@/components/ui/utils';
 
 import { useOnboardTenant } from '@/features/super-admin/api/use-tenant-queries';
 
@@ -93,6 +94,7 @@ export function TenantOnboardingScreen() {
     // ---- Step form states ----
     const [step1, setStep1] = React.useState<Step1Form>({
         logoUri: '',
+        logoBase64: '',
         displayName: '', legalName: '', businessType: '', industry: '',
         companyCode: '', shortName: '', incorporationDate: '', employees: '',
         cin: '', website: '', emailDomain: '', status: 'Draft',
@@ -283,7 +285,7 @@ export function TenantOnboardingScreen() {
                 try {
                     const payload = {
                         identity: {
-                            logoUri: step1.logoUri,
+                            logoUrl: step1.logoBase64 || step1.logoUri,
                             displayName: step1.displayName,
                             legalName: step1.legalName,
                             businessType: step1.businessType,
@@ -291,11 +293,11 @@ export function TenantOnboardingScreen() {
                             companyCode: step1.companyCode,
                             shortName: step1.shortName,
                             incorporationDate: step1.incorporationDate,
-                            employees: step1.employees,
+                            employeeCount: step1.employees,
                             cin: step1.cin,
                             website: step1.website,
                             emailDomain: step1.emailDomain,
-                            status: step1.status,
+                            wizardStatus: step1.status,
                         },
                         statutory: { ...step2 },
                         address: {
@@ -413,6 +415,7 @@ export function TenantOnboardingScreen() {
                     };
 
                     await onboardMutation.mutateAsync(payload);
+                    showSuccess('Company Created', 'Tenant onboarded successfully.');
                     router.back();
                 } catch (err: any) {
                     showConfirm({

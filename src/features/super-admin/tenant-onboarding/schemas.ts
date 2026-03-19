@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 export const step1Schema = z.object({
     logoUri: z.string().optional(),
+    logoBase64: z.string().optional(),
     displayName: z.string().min(2, 'Display name is required (min 2 characters)'),
     legalName: z.string().min(2, 'Legal / registered name is required'),
     businessType: z.string().min(1, 'Select a business type'),

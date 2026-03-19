@@ -142,18 +142,11 @@ function AppSidebar() {
                     title: 'Administration',
                     items: [
                         {
-                            id: 'reports',
-                            label: 'Reports',
-                            icon: 'reports' as const,
-                            isActive: false,
-                            onPress: () => {},
-                        },
-                        {
                             id: 'audit',
                             label: 'Audit Logs',
                             icon: 'audit' as const,
-                            isActive: false,
-                            onPress: () => {},
+                            isActive: pathname === '/reports/audit',
+                            onPress: () => router.push('/(app)/reports/audit' as any),
                         },
                         {
                             id: 'users',
@@ -169,11 +162,11 @@ function AppSidebar() {
                     title: 'Management',
                     items: [
                         {
-                            id: 'reports',
-                            label: 'Reports',
-                            icon: 'reports' as const,
-                            isActive: false,
-                            onPress: () => {},
+                            id: 'audit',
+                            label: 'Audit Logs',
+                            icon: 'audit' as const,
+                            isActive: pathname === '/reports/audit',
+                            onPress: () => router.push('/(app)/reports/audit' as any),
                         },
                     ],
                 },
@@ -323,6 +316,7 @@ function TabLayoutInner() {
                         tabBarButtonTestID: 'more-tab',
                     }}
                 />
+                <Tabs.Screen name="reports" options={{ href: null }} />
                 <Tabs.Screen name="settings" options={{ href: null }} />
                 <Tabs.Screen name="tenant/[id]" options={{ href: null }} />
                 <Tabs.Screen

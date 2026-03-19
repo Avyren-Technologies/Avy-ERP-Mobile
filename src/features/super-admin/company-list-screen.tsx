@@ -7,6 +7,7 @@ import {
     Dimensions,
     FlatList,
     Pressable,
+    RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
@@ -23,6 +24,8 @@ import colors from '@/components/ui/colors';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
@@ -314,7 +317,7 @@ export function CompanyListScreen() {
     const [activeFilter, setActiveFilter] = React.useState('all');
 
     const statusParam = activeFilter !== 'all' ? activeFilter : undefined;
-    const { data: response, isLoading, error, refetch } = useTenantList({
+    const { data: response, isLoading, error, refetch, isFetching } = useTenantList({
         search: search.trim() || undefined,
         status: statusParam,
         limit: 50,
@@ -374,45 +377,34 @@ export function CompanyListScreen() {
     const renderEmpty = () => {
         if (isLoading) {
             return (
-                <View style={[styles.emptyContainer, { paddingTop: 60 }]}>
-                    <ActivityIndicator size="large" color={colors.primary[500]} />
-                    <Text className="mt-3 font-inter text-sm text-neutral-500">Loading companies...</Text>
+                <View style={[styles.emptyContainer, { paddingTop: 24 }]}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
                 </View>
             );
         }
 
         if (error) {
             return (
-                <View style={[styles.emptyContainer, { paddingTop: 60 }]}>
-                    <Text className="font-inter text-base font-semibold text-danger-600">Failed to load companies</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        {(error as any)?.message ?? 'An error occurred.'}
-                    </Text>
-                    <Pressable onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
-                        <Text className="font-inter text-sm font-semibold text-white">Retry</Text>
-                    </Pressable>
+                <View style={[styles.emptyContainer, { paddingTop: 40 }]}>
+                    <EmptyState
+                        icon="error"
+                        title="Failed to load companies"
+                        message="Check your connection and try again."
+                        action={{ label: 'Retry', onPress: () => refetch() }}
+                    />
                 </View>
             );
         }
 
         return (
             <View style={styles.emptyContainer}>
-                <Svg width={48} height={48} viewBox="0 0 24 24">
-                    <Path
-                        d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14"
-                        stroke={colors.neutral[300]}
-                        strokeWidth="1.5"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </Svg>
-                <Text className="mt-4 font-inter text-base font-semibold text-neutral-400">
-                    No companies found
-                </Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-400">
-                    Try adjusting your search or filters
-                </Text>
+                <EmptyState
+                    icon="search"
+                    title="No companies found"
+                    message="Try adjusting your search or filters."
+                />
             </View>
         );
     };
@@ -438,6 +430,16 @@ export function CompanyListScreen() {
                 ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isFetching && !isLoading}
+                        onRefresh={() => {
+                            refetch();
+                        }}
+                        tintColor={colors.primary[500]}
+                        colors={[colors.primary[500]]}
+                    />
+                }
             />
 
             <FAB onPress={handleAddCompany} />

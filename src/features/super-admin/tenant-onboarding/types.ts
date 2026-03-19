@@ -97,6 +97,7 @@ export interface UserItem {
 
 export interface Step1Form {
     logoUri: string;
+    logoBase64?: string;
     displayName: string;
     legalName: string;
     businessType: string;

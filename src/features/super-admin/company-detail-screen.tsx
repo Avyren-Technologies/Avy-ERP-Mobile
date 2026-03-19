@@ -1,5 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
@@ -23,12 +24,16 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { showSuccess } from '@/components/ui/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
 
 import { useTenantDetail, useUpdateCompanyStatus, useDeleteCompany } from '@/features/super-admin/api/use-tenant-queries';
+import { useEntityAuditLogs } from '@/features/super-admin/api/use-audit-queries';
 import { CompanyDetailEditModal } from '@/features/super-admin/company-detail-edit-modal';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ============ TYPES ============
 
@@ -37,6 +42,7 @@ type WizardStatus = 'Draft' | 'Pilot' | 'Active' | 'Inactive';
 /** Shape of company detail as consumed by the UI — mapped from API response */
 interface CompanyDetailUI {
     id: string;
+    logoUrl: string;
     displayName: string;
     legalName: string;
     businessType: string;
@@ -71,17 +77,57 @@ interface CompanyDetailUI {
 function mapApiToDetailUI(raw: any): CompanyDetailUI {
     const identity = raw.identity ?? raw;
     const statutory = raw.statutory ?? raw;
-    const address = raw.address?.registered ?? raw;
-    const fiscal = raw.fiscal ?? raw;
+    const address = raw.registeredAddress ?? raw.address?.registered ?? raw;
+    const fiscal = raw.fiscalConfig ?? raw.fiscal ?? raw;
     const preferences = raw.preferences ?? raw;
     const endpoint = raw.endpoint ?? raw;
     const strategy = raw.strategy ?? raw;
-    const controls = raw.controls ?? {};
+    const controls = raw.systemControls ?? raw.controls ?? {};
     const billing = raw.commercial ?? raw.billing ?? {};
     const sub = raw.tenant?.subscriptions?.[0] ?? {};
 
+    const locations = raw.locations ?? [];
+    const derivedModuleIds = Array.from(
+        new Set(
+            locations.flatMap((loc: any) => (loc.moduleIds ?? []) as string[]),
+        ),
+    ) as string[];
+    const tierSet = Array.from(
+        new Set(
+            locations
+                .map((loc: any) => loc.userTier)
+                .filter(Boolean)
+                .map((t: string) => String(t).toLowerCase()),
+        ),
+    ) as string[];
+    const derivedTier = (tierSet.length === 1 ? tierSet[0] : 'starter') as UserTierKey;
+    const derivedMaxUsers = locations.reduce((sum: number, loc: any) => {
+        const tierKey = String(loc.userTier ?? '').toLowerCase();
+        if (tierKey === 'custom') {
+            return sum + (loc.customUserLimit ? parseInt(String(loc.customUserLimit), 10) || 0 : 0);
+        }
+        const tierMeta = USER_TIERS.find((t) => t.key === tierKey);
+        return sum + (tierMeta?.maxUsers ?? 0);
+    }, 0);
+    const derivedTrialDays = locations.length > 0
+        ? Math.max(...locations.map((loc: any) => Number(loc.trialDays ?? 0)))
+        : 0;
+    const derivedMonthly = locations.reduce((sum: number, loc: any) => {
+        const moduleSum = ((loc.moduleIds ?? []) as string[]).reduce((s, moduleId) => {
+            const moduleMeta = MODULE_CATALOGUE.find((m) => m.id === moduleId);
+            const customPrice = loc.customModulePricing?.[moduleId];
+            return s + (customPrice ?? moduleMeta?.price ?? 0);
+        }, 0);
+        const tierKey = String(loc.userTier ?? '').toLowerCase();
+        const tierSum = tierKey === 'custom'
+            ? (loc.customTierPrice ? parseInt(String(loc.customTierPrice), 10) || 0 : 0)
+            : (USER_TIERS.find((t) => t.key === tierKey)?.basePrice ?? 0);
+        return sum + moduleSum + tierSum;
+    }, 0);
+
     return {
         id: raw.id ?? '',
+        logoUrl: identity.logoUrl ?? raw.logoUrl ?? '',
         displayName: identity.displayName ?? raw.displayName ?? '',
         legalName: identity.legalName ?? raw.legalName ?? '',
         businessType: identity.businessType ?? raw.businessType ?? '',
@@ -91,45 +137,61 @@ function mapApiToDetailUI(raw: any): CompanyDetailUI {
         status: (raw.wizardStatus ?? raw.status ?? 'Draft') as WizardStatus,
         cin: identity.cin ?? raw.cin ?? '',
         incorporationDate: identity.incorporationDate ?? raw.incorporationDate ?? '',
-        employees: identity.employees ?? raw.employees ?? '',
+        employees: identity.employeeCount ?? raw.employeeCount ?? '',
         website: identity.website ?? raw.website ?? '',
         emailDomain: identity.emailDomain ?? raw.emailDomain ?? '',
         pan: statutory.pan ?? '', tan: statutory.tan ?? '', gstin: statutory.gstin ?? '', pfRegNo: statutory.pfRegNo ?? '', esiCode: statutory.esiCode ?? '', ptReg: statutory.ptReg ?? '', lwfrNo: statutory.lwfrNo ?? '', rocState: statutory.rocState ?? '',
         regLine1: address.line1 ?? address.regLine1 ?? '', regLine2: address.line2 ?? address.regLine2 ?? '', regCity: address.city ?? address.regCity ?? '', regDistrict: address.district ?? address.regDistrict ?? '', regPin: address.pin ?? address.regPin ?? '', regState: address.state ?? address.regState ?? '', regCountry: address.country ?? address.regCountry ?? 'India', sameAsRegistered: raw.address?.sameAsRegistered ?? raw.sameAsRegistered ?? true,
         fyType: fiscal.fyType ?? '', payrollFreq: fiscal.payrollFreq ?? '', cutoffDay: fiscal.cutoffDay ?? '', disbursementDay: fiscal.disbursementDay ?? '', weekStart: fiscal.weekStart ?? '', timezone: fiscal.timezone ?? '', workingDays: fiscal.workingDays ?? [],
         currency: preferences.currency ?? '', language: preferences.language ?? '', dateFormat: preferences.dateFormat ?? '', indiaCompliance: preferences.indiaCompliance ?? false, mobileApp: preferences.mobileApp ?? false, webApp: preferences.webApp ?? false, bankIntegration: preferences.bankIntegration ?? false, biometric: preferences.biometric ?? false, emailNotif: preferences.emailNotif ?? false, mfa: controls.mfa ?? preferences.mfa ?? false,
-        endpointType: (endpoint.endpointType ?? raw.endpointType ?? 'default') as 'default' | 'custom', endpointUrl: endpoint.customBaseUrl ?? raw.endpointUrl ?? 'https://api.avyerp.com',
+        endpointType: (endpoint.endpointType ?? raw.endpointType ?? 'default') as 'default' | 'custom', endpointUrl: endpoint.customBaseUrl ?? raw.customEndpointUrl ?? 'https://api.avyerp.com',
         multiLocationMode: strategy.multiLocationMode ?? raw.multiLocationMode ?? false, locationConfig: strategy.locationConfig ?? raw.locationConfig ?? 'common',
-        locations: (raw.locations ?? []).map((loc: any) => ({
+        locations: locations.map((loc: any) => ({
             id: loc.id ?? '', name: loc.name ?? '', code: loc.code ?? '', type: loc.facilityType ?? loc.type ?? '',
             city: loc.city ?? '', state: loc.state ?? '', isHQ: loc.isHQ ?? false, status: loc.status ?? 'Active',
             geoEnabled: loc.geoEnabled ?? false, geoRadius: loc.geoRadius ?? 0, gstin: loc.gstin ?? '',
-            modules: loc.selectedModuleIds ?? loc.modules ?? [], userTier: loc.userTier ?? 'starter',
+            modules: loc.moduleIds ?? loc.selectedModuleIds ?? loc.modules ?? [], userTier: loc.userTier ?? 'starter',
         })),
         contacts: (raw.contacts ?? []).map((c: any) => ({
             name: c.name ?? '', designation: c.designation ?? '', department: c.department ?? '',
             type: c.type ?? '', email: c.email ?? '', mobile: c.mobile ?? c.phone ?? '',
         })),
-        dayStartTime: raw.shifts?.[0]?.dayStartTime ?? raw.dayStartTime ?? '',
-        dayEndTime: raw.shifts?.[0]?.dayEndTime ?? raw.dayEndTime ?? '',
+        dayStartTime: raw.dayStartTime ?? '',
+        dayEndTime: raw.dayEndTime ?? '',
         weeklyOffs: raw.weeklyOffs ?? [],
         shifts: (raw.shifts ?? []).map((s: any) => ({
             name: s.name ?? '', fromTime: s.fromTime ?? s.startTime ?? '', toTime: s.toTime ?? s.endTime ?? '',
             noShuffle: s.noShuffle ?? false, downtimeSlots: s.downtimeSlots ?? [],
         })),
-        noSeries: (raw.noSeries ?? []).map((ns: any) => ({ code: ns.code ?? '', screen: ns.screen ?? ns.documentType ?? '', preview: ns.preview ?? ns.format ?? '' })),
+        noSeries: (raw.noSeries ?? []).map((ns: any) => {
+            const numberCount = ns.numberCount ?? 4;
+            const startNumber = ns.startNumber ?? 1;
+            const padded = String(startNumber).padStart(numberCount, '0');
+            return {
+                code: ns.code ?? '',
+                screen: ns.linkedScreen ?? ns.screen ?? ns.documentType ?? '',
+                preview: `${ns.prefix ?? ''}${ns.suffix ?? ''}${padded}`,
+            };
+        }),
         iotReasons: (raw.iotReasons ?? []).map((r: any) => ({ reasonType: r.reasonType ?? '', reason: r.reason ?? '', department: r.department ?? '', planned: r.planned ?? false })),
         controls: { ncEditMode: controls.ncEditMode ?? false, loadUnload: controls.loadUnload ?? false, cycleTime: controls.cycleTime ?? false, payrollLock: controls.payrollLock ?? false, leaveCarryForward: controls.leaveCarryForward ?? false, overtimeApproval: controls.overtimeApproval ?? false, mfa: controls.mfa ?? false },
-        users: (raw.users ?? []).map((u: any) => ({ fullName: u.fullName ?? u.name ?? '', username: u.username ?? '', role: u.role ?? '', email: u.email ?? '', department: u.department ?? '', location: u.location ?? '' })),
-        selectedModuleIds: raw.selectedModuleIds ?? [],
-        userTier: (sub.tier ?? raw.userTier ?? 'starter') as UserTierKey,
-        userCount: raw._count?.users ?? raw.userCount ?? 0,
-        maxUsers: sub.maxUsers ?? raw.maxUsers ?? 100,
+        users: (raw.users ?? []).map((u: any) => ({
+            fullName: u.fullName ?? [u.firstName, u.lastName].filter(Boolean).join(' ') ?? u.name ?? '',
+            username: u.username ?? (u.email ? String(u.email).split('@')[0] : ''),
+            role: u.role ?? '',
+            email: u.email ?? '',
+            department: u.department ?? '',
+            location: u.location ?? '',
+        })),
+        selectedModuleIds: (raw.selectedModuleIds ?? derivedModuleIds) as string[],
+        userTier: (sub.tier ?? raw.userTier ?? derivedTier) as UserTierKey,
+        userCount: raw._count?.users ?? raw.userCount ?? ((raw.users ?? []).length),
+        maxUsers: sub.maxUsers ?? raw.maxUsers ?? (derivedMaxUsers || 100),
         billingCycle: (sub.billingCycle ?? raw.billingCycle ?? 'monthly') as 'monthly' | 'annual',
         nextRenewal: sub.nextRenewal ?? raw.nextRenewal ?? '',
-        monthlyAmount: sub.monthlyAmount ?? raw.monthlyAmount ?? '',
+        monthlyAmount: sub.monthlyAmount ?? raw.monthlyAmount ?? (derivedMonthly ? `₹${derivedMonthly.toLocaleString('en-IN')}` : ''),
         customPricing: sub.customPricing ?? raw.customPricing ?? false,
-        trialDays: sub.trialDays ?? raw.trialDays ?? 0,
+        trialDays: sub.trialDays ?? raw.trialDays ?? derivedTrialDays,
         createdAt: raw.createdAt ?? '',
         lastActive: raw.lastActive ?? raw.updatedAt ?? '',
     };
@@ -403,6 +465,106 @@ function ToggleChip({ label, enabled }: { label: string; enabled: boolean }) {
     );
 }
 
+// ============ AUDIT HISTORY SECTION ============
+
+function AuditActionBadge({ action }: { action: string }) {
+    const upper = (action ?? '').toUpperCase();
+    let bgColor = colors.info[50];
+    let borderColor = colors.info[200];
+    let textColor = colors.info[700];
+    if (upper.includes('CREATE')) {
+        bgColor = colors.success[50];
+        borderColor = colors.success[200];
+        textColor = colors.success[700];
+    } else if (upper.includes('DELETE')) {
+        bgColor = colors.danger[50];
+        borderColor = colors.danger[200];
+        textColor = colors.danger[700];
+    } else if (upper.includes('UPDATE')) {
+        bgColor = colors.primary[50];
+        borderColor = colors.primary[200];
+        textColor = colors.primary[700];
+    }
+    return (
+        <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: bgColor, borderWidth: 1, borderColor }}>
+            <Text className="font-inter" style={{ fontSize: 10, fontWeight: '700', color: textColor }}>{upper}</Text>
+        </View>
+    );
+}
+
+function AuditHistorySection({ companyId }: { companyId: string }) {
+    const { data, isLoading } = useEntityAuditLogs('COMPANY', companyId);
+    const logs: any[] = data?.data ?? data ?? [];
+
+    const formatTimestamp = (ts: string) => {
+        if (!ts) return '';
+        const d = new Date(ts);
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) +
+            ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    return (
+        <Animated.View entering={FadeInUp.duration(400).delay(850)} style={styles.section}>
+            <SectionHeader title="Audit History" iconType="info" />
+            <View style={styles.sectionCard}>
+                {isLoading ? (
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'row1', width: '100%', height: 48, borderRadius: 12, marginBottom: 8 },
+                            { key: 'row2', width: '100%', height: 48, borderRadius: 12, marginBottom: 8 },
+                            { key: 'row3', width: '80%', height: 48, borderRadius: 12 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                ) : logs.length === 0 ? (
+                    <EmptyState
+                        icon="inbox"
+                        title="No audit history"
+                        message="Changes to this company will be recorded here."
+                    />
+                ) : (
+                    <View style={{ gap: 0 }}>
+                        {logs.slice(0, 20).map((log: any, i: number) => (
+                            <View
+                                key={log.id ?? i}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'flex-start',
+                                    gap: 10,
+                                    paddingVertical: 10,
+                                    borderBottomWidth: i < Math.min(logs.length, 20) - 1 ? 1 : 0,
+                                    borderBottomColor: colors.neutral[100],
+                                }}
+                            >
+                                {/* Timeline dot */}
+                                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary[300], marginTop: 6 }} />
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                        <AuditActionBadge action={log.action ?? ''} />
+                                        <Text className="font-inter" style={{ fontSize: 11, color: colors.neutral[400] }}>
+                                            {formatTimestamp(log.createdAt ?? log.timestamp ?? '')}
+                                        </Text>
+                                    </View>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
+                                        {log.description ?? log.action ?? ''}
+                                    </Text>
+                                    {log.performedBy && (
+                                        <Text className="font-inter" style={{ fontSize: 11, color: colors.neutral[400], marginTop: 2 }}>
+                                            by {log.performedBy}
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                )}
+            </View>
+        </Animated.View>
+    );
+}
+
 // ============ MAIN COMPONENT ============
 
 export function CompanyDetailScreen() {
@@ -440,9 +602,16 @@ export function CompanyDetailScreen() {
     // --- Loading & error states ---
     if (isLoading || !company) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={colors.primary[500]} />
-                <Text className="mt-3 font-inter text-sm text-neutral-500">Loading company details...</Text>
+            <View style={styles.container}>
+                <Skeleton isLoading={true} layout={[
+                    { key: 'header', width: '100%', height: 180 },
+                    { key: 'tabs', width: '100%', height: 44, marginTop: 12 },
+                    { key: 's1', width: '92%', height: 120, marginTop: 12, borderRadius: 12, alignSelf: 'center' },
+                    { key: 's2', width: '92%', height: 120, marginTop: 12, borderRadius: 12, alignSelf: 'center' },
+                    { key: 's3', width: '92%', height: 80, marginTop: 12, borderRadius: 12, alignSelf: 'center' },
+                ]}>
+                    <View />
+                </Skeleton>
             </View>
         );
     }
@@ -482,7 +651,10 @@ export function CompanyDetailScreen() {
             onConfirm: () => {
                 statusMutation.mutate(
                     { companyId: id!, status: 'Inactive' },
-                    { onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to suspend tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }) },
+                    {
+                        onSuccess: () => showSuccess('Status Updated', 'Company has been suspended.'),
+                        onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to suspend tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
+                    },
                 );
             },
         });
@@ -497,7 +669,10 @@ export function CompanyDetailScreen() {
             onConfirm: () => {
                 statusMutation.mutate(
                     { companyId: id!, status: 'Active' },
-                    { onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to activate tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }) },
+                    {
+                        onSuccess: () => showSuccess('Status Updated', 'Company has been activated.'),
+                        onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to activate tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
+                    },
                 );
             },
         });
@@ -511,7 +686,10 @@ export function CompanyDetailScreen() {
             confirmText: 'Delete Forever',
             onConfirm: () => {
                 deleteMutation.mutate(id!, {
-                    onSuccess: () => router.back(),
+                    onSuccess: () => {
+                        showSuccess('Company Deleted', 'Company removed successfully.');
+                        router.back();
+                    },
                     onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to delete tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
                 });
             },
@@ -582,14 +760,22 @@ export function CompanyDetailScreen() {
                         </View>
 
                         <View style={styles.companyHeaderInfo}>
-                            <LinearGradient
-                                colors={[colors.accent[300], colors.primary[400]]}
-                                style={styles.companyLargeAvatar}
-                            >
-                                <Text className="font-inter text-xl font-bold text-white">
-                                    {company.displayName.substring(0, 2).toUpperCase()}
-                                </Text>
-                            </LinearGradient>
+                            {company.logoUrl ? (
+                                <Image
+                                    source={{ uri: company.logoUrl }}
+                                    style={styles.companyLargeAvatar}
+                                    contentFit="cover"
+                                />
+                            ) : (
+                                <LinearGradient
+                                    colors={[colors.accent[300], colors.primary[400]]}
+                                    style={styles.companyLargeAvatar}
+                                >
+                                    <Text className="font-inter text-xl font-bold text-white">
+                                        {company.displayName.substring(0, 2).toUpperCase()}
+                                    </Text>
+                                </LinearGradient>
+                            )}
 
                             <Text className="mt-3 font-inter text-xl font-bold text-white">
                                 {company.displayName}
@@ -1116,7 +1302,7 @@ export function CompanyDetailScreen() {
                                             {user.fullName}
                                         </Text>
                                         <Text className="font-inter text-xs text-neutral-500" style={{ fontFamily: 'monospace' }}>
-                                            @{user.username}
+                                            {user.username ? `@${user.username}` : '—'}
                                         </Text>
                                     </View>
                                     <View style={styles.roleBadge}>
@@ -1127,7 +1313,7 @@ export function CompanyDetailScreen() {
                                 </View>
                                 <View style={styles.userMeta}>
                                     <Text className="font-inter text-xs text-neutral-600">
-                                        {user.department}  ·  {user.location}
+                                        {[user.department, user.location].filter(Boolean).join('  ·  ') || '—'}
                                     </Text>
                                     <Text className="font-inter text-xs text-neutral-500">
                                         {user.email}
@@ -1219,6 +1405,9 @@ export function CompanyDetailScreen() {
                             )}
                         </View>
                     </Animated.View>
+
+                    {/* ---- Audit History ---- */}
+                    <AuditHistorySection companyId={company.id} />
 
                     {/* ---- Tenant Actions ---- */}
                     <Animated.View entering={FadeIn.duration(400).delay(850)} style={styles.section}>

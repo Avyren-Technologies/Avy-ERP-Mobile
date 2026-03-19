@@ -39,9 +39,12 @@ export function Step1Identity({
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
+            base64: true,
         });
         if (!result.canceled) {
-            setForm({ logoUri: result.assets[0].uri });
+            const asset = result.assets[0];
+            const base64 = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : '';
+            setForm({ logoUri: asset.uri, logoBase64: base64 || asset.uri });
         }
     };
 
@@ -57,14 +60,17 @@ export function Step1Identity({
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
+            base64: true,
         });
         if (!result.canceled) {
-            setForm({ logoUri: result.assets[0].uri });
+            const asset = result.assets[0];
+            const base64 = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : '';
+            setForm({ logoUri: asset.uri, logoBase64: base64 || asset.uri });
         }
     };
 
     const removeLogo = () => {
-        setForm({ logoUri: '' });
+        setForm({ logoUri: '', logoBase64: '' });
         setShowOptions(false);
     };
 
@@ -261,6 +267,15 @@ export function Step1Identity({
                     onChange={(v) => setForm({ incorporationDate: v })}
                     required
                     error={errors?.incorporationDate}
+                />
+                <FormInput
+                    label="Approx Employee Count"
+                    placeholder="e.g. 120"
+                    value={form.employees}
+                    onChangeText={(v) => setForm({ employees: v })}
+                    keyboardType="number-pad"
+                    hint="Used to derive initial company size bucket"
+                    error={errors?.employees}
                 />
                 {isCorporate && (
                     <FormInput

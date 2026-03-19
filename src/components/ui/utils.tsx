@@ -23,6 +23,36 @@ export function showError(error: AxiosError) {
   });
 }
 
+export function showSuccess(message: string, description?: string) {
+  showMessage({
+    message,
+    description,
+    type: 'success',
+    duration: 3000,
+    icon: 'success',
+  });
+}
+
+export function showInfo(message: string, description?: string) {
+  showMessage({
+    message,
+    description,
+    type: 'info',
+    duration: 3000,
+    icon: 'info',
+  });
+}
+
+export function showWarning(message: string, description?: string) {
+  showMessage({
+    message,
+    description,
+    type: 'warning',
+    duration: 4000,
+    icon: 'warning',
+  });
+}
+
 export function showErrorMessage(message: string = 'Something went wrong ') {
   showMessage({
     message,

@@ -22,6 +22,8 @@ import Svg, { Path, Rect } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { useBillingSummary, useInvoices, useRevenueChart } from '@/features/super-admin/api/use-dashboard-queries';
 
@@ -88,8 +90,16 @@ function mapInvoiceStatus(status: string): 'paid' | 'pending' | 'overdue' {
 function RevenueChart({ chartData, isLoading }: { chartData: Array<{ month: string; value: number }>; isLoading: boolean }) {
     if (isLoading) {
         return (
-            <View style={[styles.chartCard, { alignItems: 'center', justifyContent: 'center', height: 200 }]}>
-                <ActivityIndicator size="small" color={colors.primary[500]} />
+            <View style={[styles.chartCard, { height: 200 }]}>
+                <Skeleton
+                    isLoading={true}
+                    layout={[
+                        { key: 'ct', width: '40%', height: 16, borderRadius: 4, marginBottom: 16 },
+                        { key: 'cb', width: '100%', height: 140, borderRadius: 8 },
+                    ]}
+                >
+                    <View />
+                </Skeleton>
             </View>
         );
     }
@@ -183,9 +193,55 @@ export function BillingOverviewScreen() {
 
     if (summaryLoading && invoicesLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={colors.primary[500]} />
-                <Text className="mt-3 font-inter text-sm text-neutral-500">Loading billing...</Text>
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                <View style={styles.header}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'title', width: '40%', height: 24, borderRadius: 6, marginBottom: 8 },
+                            { key: 'sub', width: '60%', height: 14, borderRadius: 4 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.kpiGrid}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'k1', width: CARD_W, height: 100, borderRadius: 20, marginBottom: 12 },
+                            { key: 'k2', width: CARD_W, height: 100, borderRadius: 20, marginBottom: 12 },
+                            { key: 'k3', width: CARD_W, height: 100, borderRadius: 20 },
+                            { key: 'k4', width: CARD_W, height: 100, borderRadius: 20 },
+                        ]}
+                        containerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.sectionPadded}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'chart', width: '100%', height: 200, borderRadius: 20 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.sectionPadded}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'ih', width: '50%', height: 20, borderRadius: 6, marginBottom: 12 },
+                            { key: 'i1', width: '100%', height: 56, borderRadius: 12, marginBottom: 8 },
+                            { key: 'i2', width: '100%', height: 56, borderRadius: 12, marginBottom: 8 },
+                            { key: 'i3', width: '100%', height: 56, borderRadius: 12 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
             </View>
         );
     }
@@ -275,13 +331,24 @@ export function BillingOverviewScreen() {
                         </View>
 
                         {invoicesLoading ? (
-                            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-                                <ActivityIndicator size="small" color={colors.primary[500]} />
+                            <View style={{ paddingVertical: 12 }}>
+                                <Skeleton
+                                    isLoading={true}
+                                    layout={[
+                                        { key: 'il1', width: '100%', height: 56, borderRadius: 12, marginBottom: 8 },
+                                        { key: 'il2', width: '100%', height: 56, borderRadius: 12, marginBottom: 8 },
+                                        { key: 'il3', width: '100%', height: 56, borderRadius: 12 },
+                                    ]}
+                                >
+                                    <View />
+                                </Skeleton>
                             </View>
                         ) : invoices.length === 0 ? (
-                            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-                                <Text className="font-inter text-sm text-neutral-400">No invoices found</Text>
-                            </View>
+                            <EmptyState
+                                icon="inbox"
+                                title="No invoices yet"
+                                message="Invoices will appear here once billing begins."
+                            />
                         ) : (
                             <View style={styles.invoiceCard}>
                                 {invoices.map((inv, index) => (

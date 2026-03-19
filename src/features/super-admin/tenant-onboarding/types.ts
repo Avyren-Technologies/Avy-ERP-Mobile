@@ -198,8 +198,10 @@ export interface Step8TierForm {
     userTier: UserTierKey;
     customUserLimit: string;
     customTierPrice: string;
-    billingCycle: 'monthly' | 'annual';
+    billingType: 'monthly' | 'annual' | 'one_time_amc';
     trialDays: string;
+    oneTimeLicenseFee?: string;
+    amcAmount?: string;
 }
 
 // Step7Form — kept for backward compat (plants/branches meta).
@@ -233,8 +235,10 @@ export interface LocationCommercialEntry {
     userTier: 'starter' | 'growth' | 'scale' | 'enterprise' | 'custom';
     customUserLimit: string;
     customTierPrice: string;
-    billingCycle: 'monthly' | 'annual';
+    billingType: 'monthly' | 'annual' | 'one_time_amc';
     trialDays: string;
+    oneTimeLicenseFee?: string;
+    amcAmount?: string;
 }
 
 export interface Step8Form {

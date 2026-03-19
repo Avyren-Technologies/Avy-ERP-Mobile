@@ -22,4 +22,11 @@ export const auditApi = {
 
   getEntityAuditLogs: (entityType: string, entityId: string) =>
     client.get(`/platform/audit-logs/entity/${entityType}/${entityId}`),
+
+  // Tenant-scoped audit logs (company-admin)
+  listTenantAuditLogs: (params: AuditLogParams = {}) =>
+    client.get('/company/audit-logs', { params }),
+
+  getTenantFilterOptions: () =>
+    client.get('/company/audit-logs/filters'),
 };

@@ -302,6 +302,16 @@ export const USER_TIERS = [
     },
 ];
 
+// ============ BILLING TYPES ============
+
+export const BILLING_TYPES = [
+    { key: 'monthly' as const, label: 'Monthly', description: 'Recurring monthly subscription', icon: 'calendar' },
+    { key: 'annual' as const, label: 'Annual', description: 'Pay 10 months, get 12 months (save 16.67%)', icon: 'calendar-check' },
+    { key: 'one_time_amc' as const, label: 'One-Time + AMC', description: 'Perpetual license + Annual Maintenance', icon: 'shield-check' },
+] as const;
+
+export type BillingTypeKey = typeof BILLING_TYPES[number]['key'];
+
 // ============ MODULE DEPENDENCIES ============
 
 export function resolveModuleDependencies(selectedIds: string[]) {

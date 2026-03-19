@@ -190,7 +190,7 @@ export function TenantOnboardingScreen() {
                 userTier: 'starter',
                 customUserLimit: '',
                 customTierPrice: '',
-                billingCycle: 'monthly',
+                billingType: 'monthly',
                 trialDays: '14',
             }), ...u },
         }));
@@ -474,6 +474,7 @@ export function TenantOnboardingScreen() {
                     locations={locations}
                     locationCommercial={locationCommercial}
                     onUpdateLocationCommercial={updateLocationCommercial}
+                    endpointType={step6.endpointType}
                     errors={stepErrors}
                 />
             );

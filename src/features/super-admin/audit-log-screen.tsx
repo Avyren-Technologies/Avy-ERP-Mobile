@@ -20,7 +20,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
+import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useAuditLogs, useAuditFilterOptions } from '@/features/super-admin/api/use-audit-queries';
+import { useCompanyAuditLogs } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ TYPES ============
 
@@ -116,8 +118,31 @@ function AuditLogCard({ item, index }: { item: AuditLogItem; index: number }) {
 
 // ============ MAIN COMPONENT ============
 
+// ============ ROLE-AWARE AUDIT HOOKS ============
+
+function useRoleAwareAuditLogs(params: {
+    page: number;
+    limit: number;
+    action?: string;
+    search?: string;
+}) {
+    const userRole = useAuthStore.use.userRole();
+    const isCompanyAdmin = userRole === 'company-admin';
+
+    const platformQuery = useAuditLogs(
+        isCompanyAdmin ? {} : params,
+    );
+    const companyQuery = useCompanyAuditLogs(
+        isCompanyAdmin ? { page: params.page, limit: params.limit, search: params.search } : undefined,
+    );
+
+    return isCompanyAdmin ? companyQuery : platformQuery;
+}
+
 export function AuditLogScreen() {
     const insets = useSafeAreaInsets();
+    const userRole = useAuthStore.use.userRole();
+    const isCompanyAdmin = userRole === 'company-admin';
     const [search, setSearch] = React.useState('');
     const [debouncedSearch, setDebouncedSearch] = React.useState('');
     const [activeFilter, setActiveFilter] = React.useState('all');
@@ -138,7 +163,7 @@ export function AuditLogScreen() {
     }, [activeFilter]);
 
     const actionParam = activeFilter !== 'all' ? activeFilter : undefined;
-    const { data: response, isLoading, error, refetch, isFetching } = useAuditLogs({
+    const { data: response, isLoading, error, refetch, isFetching } = useRoleAwareAuditLogs({
         page,
         limit: 30,
         action: actionParam,

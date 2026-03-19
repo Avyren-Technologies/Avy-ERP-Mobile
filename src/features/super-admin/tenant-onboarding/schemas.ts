@@ -268,7 +268,7 @@ export const step9PerLocationModulesSchema = z.object({
 export const step10PerLocationTierSchema = z.object({
     locationId: z.string().min(1),
     userTier: z.enum(['starter', 'growth', 'scale', 'enterprise', 'custom']),
-    billingCycle: z.enum(['monthly', 'annual']),
+    billingType: z.enum(['monthly', 'annual', 'one_time_amc']),
     trialDays: z.string(),
 });
 
@@ -288,7 +288,7 @@ export const step8TierSchema = z
         userTier: z.enum(['starter', 'growth', 'scale', 'enterprise', 'custom']),
         customUserLimit: z.string().optional(),
         customTierPrice: z.string().optional(),
-        billingCycle: z.enum(['monthly', 'annual']),
+        billingType: z.enum(['monthly', 'annual', 'one_time_amc']),
         trialDays: z
             .string()
             .regex(/^\d+$/, 'Trial days must be a non-negative number'),

@@ -12,6 +12,7 @@ import {
     SidebarProvider,
     useSidebar,
 } from '@/components/ui/sidebar';
+import type { SidebarSection } from '@/components/ui/sidebar';
 import {
     useAuthStore as useAuth,
     getDisplayName,
@@ -93,17 +94,78 @@ function AppSidebar() {
 
     const isCompanyAdmin = userRole === 'company-admin';
 
-    const sections = React.useMemo(
-        () => {
-            const coreItems = [
-                {
-                    id: 'dashboard',
-                    label: 'Dashboard',
-                    icon: 'dashboard' as const,
-                    isActive: pathname === '/',
-                    onPress: () => router.push('/'),
-                },
-                ...(isSuperAdmin ? [
+    const companyAdminSections: SidebarSection[] = React.useMemo(
+        () => [
+            {
+                title: 'Dashboard',
+                items: [
+                    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' as const, onPress: () => router.push('/'), isActive: pathname === '/' },
+                ],
+            },
+            {
+                title: 'Company',
+                items: [
+                    { id: 'profile', label: 'Company Profile', icon: 'companies' as const, onPress: () => router.push('/company/profile' as any), isActive: pathname.startsWith('/company/profile') },
+                    { id: 'locations', label: 'Locations', icon: 'companies' as const, onPress: () => router.push('/company/locations' as any), isActive: pathname.startsWith('/company/locations') },
+                    { id: 'shifts', label: 'Shifts & Time', icon: 'settings' as const, onPress: () => router.push('/company/shifts' as any), isActive: pathname.startsWith('/company/shifts') },
+                    { id: 'contacts', label: 'Key Contacts', icon: 'users' as const, onPress: () => router.push('/company/contacts' as any), isActive: pathname.startsWith('/company/contacts') },
+                ],
+            },
+            {
+                title: 'HR & People',
+                items: [
+                    { id: 'departments', label: 'Departments', icon: 'companies' as const, onPress: () => router.push('/company/hr/departments' as any), isActive: pathname.startsWith('/company/hr/departments') },
+                    { id: 'designations', label: 'Designations', icon: 'users' as const, onPress: () => router.push('/company/hr/designations' as any), isActive: pathname.startsWith('/company/hr/designations') },
+                    { id: 'grades', label: 'Grades & Bands', icon: 'settings' as const, onPress: () => router.push('/company/hr/grades' as any), isActive: pathname.startsWith('/company/hr/grades') },
+                    { id: 'emp-types', label: 'Employee Types', icon: 'users' as const, onPress: () => router.push('/company/hr/employee-types' as any), isActive: pathname.startsWith('/company/hr/employee-types') },
+                    { id: 'cost-centres', label: 'Cost Centres', icon: 'billing' as const, onPress: () => router.push('/company/hr/cost-centres' as any), isActive: pathname.startsWith('/company/hr/cost-centres') },
+                    { id: 'employees', label: 'Employee Directory', icon: 'users' as const, onPress: () => router.push('/company/hr/employees' as any), isActive: pathname.startsWith('/company/hr/employees') },
+                ],
+            },
+            {
+                title: 'Configuration',
+                items: [
+                    { id: 'no-series', label: 'Number Series', icon: 'settings' as const, onPress: () => router.push('/company/no-series' as any), isActive: pathname.startsWith('/company/no-series') },
+                    { id: 'iot-reasons', label: 'IOT Reasons', icon: 'settings' as const, onPress: () => router.push('/company/iot-reasons' as any), isActive: pathname.startsWith('/company/iot-reasons') },
+                    { id: 'controls', label: 'System Controls', icon: 'settings' as const, onPress: () => router.push('/company/controls' as any), isActive: pathname.startsWith('/company/controls') },
+                    { id: 'settings', label: 'Settings', icon: 'settings' as const, onPress: () => router.push('/company/settings' as any), isActive: pathname.startsWith('/company/settings') },
+                ],
+            },
+            {
+                title: 'People & Access',
+                items: [
+                    { id: 'users', label: 'User Management', icon: 'users' as const, onPress: () => router.push('/company/users' as any), isActive: pathname.startsWith('/company/users') },
+                    { id: 'roles', label: 'Roles & Permissions', icon: 'users' as const, onPress: () => router.push('/company/roles' as any), isActive: pathname.startsWith('/company/roles') },
+                    { id: 'feature-toggles', label: 'Feature Toggles', icon: 'settings' as const, onPress: () => router.push('/company/feature-toggles' as any), isActive: pathname.startsWith('/company/feature-toggles') },
+                ],
+            },
+            {
+                title: 'Reports',
+                items: [
+                    { id: 'audit', label: 'Audit Logs', icon: 'audit' as const, onPress: () => router.push('/(app)/reports/audit' as any), isActive: pathname.startsWith('/reports/audit') },
+                ],
+            },
+            {
+                title: 'Support',
+                items: [
+                    { id: 'support', label: 'Help & Support', icon: 'support' as const, onPress: () => {}, isActive: false },
+                ],
+            },
+        ],
+        [pathname, router]
+    );
+
+    const superAdminSections: SidebarSection[] = React.useMemo(
+        () => [
+            {
+                items: [
+                    {
+                        id: 'dashboard',
+                        label: 'Dashboard',
+                        icon: 'dashboard' as const,
+                        isActive: pathname === '/',
+                        onPress: () => router.push('/'),
+                    },
                     {
                         id: 'companies',
                         label: 'Companies',
@@ -111,93 +173,117 @@ function AppSidebar() {
                         isActive: pathname === '/companies',
                         onPress: () => router.push('/companies'),
                     },
+                ],
+            },
+            {
+                title: 'Billing',
+                items: [
                     {
-                        id: 'billing',
-                        label: 'Billing',
+                        id: 'billing-overview',
+                        label: 'Overview',
                         icon: 'billing' as const,
                         isActive: pathname === '/billing',
                         onPress: () => router.push('/billing'),
                     },
-                ] : []),
-                ...(isCompanyAdmin ? [
                     {
-                        id: 'employees',
-                        label: 'Employees',
+                        id: 'billing-invoices',
+                        label: 'Invoices',
+                        icon: 'billing' as const,
+                        isActive: pathname.startsWith('/billing/invoices'),
+                        onPress: () => router.push('/(app)/billing/invoices' as any),
+                    },
+                    {
+                        id: 'billing-payments',
+                        label: 'Payments',
+                        icon: 'billing' as const,
+                        isActive: pathname.startsWith('/billing/payments'),
+                        onPress: () => router.push('/(app)/billing/payments' as any),
+                    },
+                ],
+            },
+            {
+                title: 'Administration',
+                items: [
+                    {
+                        id: 'audit',
+                        label: 'Audit Logs',
+                        icon: 'audit' as const,
+                        isActive: pathname === '/reports/audit',
+                        onPress: () => router.push('/(app)/reports/audit' as any),
+                    },
+                    {
+                        id: 'users',
+                        label: 'User Management',
                         icon: 'users' as const,
                         isActive: false,
                         onPress: () => {},
                     },
+                ],
+            },
+            {
+                title: 'System',
+                items: [
                     {
-                        id: 'attendance',
-                        label: 'Attendance',
-                        icon: 'audit' as const,
+                        id: 'settings',
+                        label: 'Settings',
+                        icon: 'settings' as const,
+                        isActive: pathname === '/settings',
+                        onPress: () => router.push('/settings'),
+                    },
+                    {
+                        id: 'support',
+                        label: 'Support',
+                        icon: 'support' as const,
                         isActive: false,
                         onPress: () => {},
                     },
-                ] : []),
-            ];
-
-            const adminItems = isSuperAdmin ? [
-                {
-                    title: 'Administration',
-                    items: [
-                        {
-                            id: 'audit',
-                            label: 'Audit Logs',
-                            icon: 'audit' as const,
-                            isActive: pathname === '/reports/audit',
-                            onPress: () => router.push('/(app)/reports/audit' as any),
-                        },
-                        {
-                            id: 'users',
-                            label: 'User Management',
-                            icon: 'users' as const,
-                            isActive: false,
-                            onPress: () => {},
-                        },
-                    ],
-                },
-            ] : isCompanyAdmin ? [
-                {
-                    title: 'Management',
-                    items: [
-                        {
-                            id: 'audit',
-                            label: 'Audit Logs',
-                            icon: 'audit' as const,
-                            isActive: pathname === '/reports/audit',
-                            onPress: () => router.push('/(app)/reports/audit' as any),
-                        },
-                    ],
-                },
-            ] : [];
-
-            return [
-                { items: coreItems },
-                ...adminItems,
-                {
-                    title: 'System',
-                    items: [
-                        {
-                            id: 'settings',
-                            label: 'Settings',
-                            icon: 'settings' as const,
-                            isActive: pathname === '/settings',
-                            onPress: () => router.push('/settings'),
-                        },
-                        {
-                            id: 'support',
-                            label: 'Support',
-                            icon: 'support' as const,
-                            isActive: false,
-                            onPress: () => {},
-                        },
-                    ],
-                },
-            ];
-        },
-        [pathname, router, isSuperAdmin, isCompanyAdmin]
+                ],
+            },
+        ],
+        [pathname, router]
     );
+
+    const defaultSections: SidebarSection[] = React.useMemo(
+        () => [
+            {
+                items: [
+                    {
+                        id: 'dashboard',
+                        label: 'Dashboard',
+                        icon: 'dashboard' as const,
+                        isActive: pathname === '/',
+                        onPress: () => router.push('/'),
+                    },
+                ],
+            },
+            {
+                title: 'System',
+                items: [
+                    {
+                        id: 'settings',
+                        label: 'Settings',
+                        icon: 'settings' as const,
+                        isActive: pathname === '/settings',
+                        onPress: () => router.push('/settings'),
+                    },
+                    {
+                        id: 'support',
+                        label: 'Support',
+                        icon: 'support' as const,
+                        isActive: false,
+                        onPress: () => {},
+                    },
+                ],
+            },
+        ],
+        [pathname, router]
+    );
+
+    const sections = isSuperAdmin
+        ? superAdminSections
+        : isCompanyAdmin
+            ? companyAdminSections
+            : defaultSections;
 
     return (
         <Sidebar
@@ -327,6 +413,7 @@ function TabLayoutInner() {
                     }}
                 />
                 <Tabs.Screen name="tenant/module-assignment" options={{ href: null }} />
+                <Tabs.Screen name="company" options={{ href: null }} />
             </Tabs>
 
             {/* Sidebar renders above everything */}

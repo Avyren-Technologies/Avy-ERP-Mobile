@@ -1,10 +1,11 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    ActivityIndicator,
     Dimensions,
     Pressable,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     View,
@@ -21,8 +22,12 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { EmptyState } from '@/components/ui/empty-state';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { useAuthStore, getDisplayName } from '@/features/auth/use-auth-store';
+import { useCompanyActivity } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -33,19 +38,19 @@ const QUICK_ACTION_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12 * 3) / 4;
 
 interface KPICardData {
     title: string;
-    value: string | null;
-    change: string | null;
-    changePositive: boolean;
+    value: string;
     iconColor: string;
     iconBg: string;
-    iconType: 'employees' | 'attendance' | 'leave' | 'approvals';
+    iconType: 'users' | 'locations' | 'modules' | 'status';
+    statusValue?: string;
 }
 
 interface QuickAction {
     id: string;
     title: string;
-    iconType: 'manage-employees' | 'attendance' | 'leave-requests' | 'reports';
+    iconType: 'manage-users' | 'manage-shifts' | 'key-contacts' | 'audit-logs';
     gradient: readonly [string, string];
+    route: string;
 }
 
 interface ActivityItem {
@@ -53,66 +58,69 @@ interface ActivityItem {
     title: string;
     description: string;
     time: string;
-    type: 'employee' | 'attendance' | 'leave' | 'system';
+    type: 'user' | 'location' | 'module' | 'system';
 }
 
-// ============ MOCK / FALLBACK DATA ============
+// ============ HELPERS ============
+
+function timeAgo(dateStr: string): string {
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diffMs = now - then;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr${hrs > 1 ? 's' : ''} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+function mapActivityType(action: string): ActivityItem['type'] {
+    if (action?.toLowerCase().includes('user') || action?.toLowerCase().includes('employee')) return 'user';
+    if (action?.toLowerCase().includes('location') || action?.toLowerCase().includes('branch') || action?.toLowerCase().includes('plant')) return 'location';
+    if (action?.toLowerCase().includes('module')) return 'module';
+    return 'system';
+}
+
+function mapWizardStatusToBadge(status?: string): 'active' | 'trial' | 'suspended' | 'expired' | 'pending' {
+    if (!status) return 'pending';
+    const lower = status.toLowerCase();
+    if (lower === 'active') return 'active';
+    if (lower === 'pilot' || lower === 'trial') return 'trial';
+    if (lower === 'inactive' || lower === 'suspended') return 'suspended';
+    if (lower === 'draft') return 'pending';
+    return 'active';
+}
 
 const QUICK_ACTIONS: QuickAction[] = [
     {
         id: '1',
-        title: 'Employees',
-        iconType: 'manage-employees',
+        title: 'Users',
+        iconType: 'manage-users',
         gradient: [colors.primary[500], colors.primary[700]],
+        route: '/company/users',
     },
     {
         id: '2',
-        title: 'Attendance',
-        iconType: 'attendance',
+        title: 'Shifts',
+        iconType: 'manage-shifts',
         gradient: [colors.accent[500], colors.accent[700]],
+        route: '/company/shifts',
     },
     {
         id: '3',
-        title: 'Leave',
-        iconType: 'leave-requests',
+        title: 'Contacts',
+        iconType: 'key-contacts',
         gradient: [colors.success[500], colors.success[700]],
+        route: '/company/contacts',
     },
     {
         id: '4',
-        title: 'Reports',
-        iconType: 'reports',
+        title: 'Audit',
+        iconType: 'audit-logs',
         gradient: [colors.info[500], colors.info[700]],
-    },
-];
-
-const RECENT_ACTIVITY: ActivityItem[] = [
-    {
-        id: '1',
-        title: 'New Employee Onboarded',
-        description: 'Rahul Sharma joined the Engineering team',
-        time: '30 min ago',
-        type: 'employee',
-    },
-    {
-        id: '2',
-        title: 'Leave Approved',
-        description: 'Priya Patel — Casual Leave (2 days)',
-        time: '1 hr ago',
-        type: 'leave',
-    },
-    {
-        id: '3',
-        title: 'Attendance Alert',
-        description: '3 employees marked late today',
-        time: '2 hrs ago',
-        type: 'attendance',
-    },
-    {
-        id: '4',
-        title: 'Payroll Processed',
-        description: 'March 2026 payroll batch completed',
-        time: '1 day ago',
-        type: 'system',
+        route: '/reports/audit',
     },
 ];
 
@@ -120,7 +128,7 @@ const RECENT_ACTIVITY: ActivityItem[] = [
 
 function KPIIcon({ type, color }: { type: string; color: string }) {
     switch (type) {
-        case 'employees':
+        case 'users':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
@@ -133,46 +141,40 @@ function KPIIcon({ type, color }: { type: string; color: string }) {
                     />
                 </Svg>
             );
-        case 'attendance':
+        case 'locations':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
-                        d="M22 11.08V12a10 10 0 11-5.93-9.14"
+                        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
                         stroke={color}
                         strokeWidth="1.8"
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
-                    <Path
-                        d="M22 4L12 14.01l-3-3"
-                        stroke={color}
-                        strokeWidth="1.8"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
+                    <Circle cx="12" cy="10" r="3" stroke={color} strokeWidth="1.8" fill="none" />
                 </Svg>
             );
-        case 'leave':
+        case 'modules':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth="1.8" fill="none" />
-                    <Path d="M16 2v4M8 2v4M3 10h18" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                    <Rect x="3" y="3" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
+                    <Rect x="14" y="3" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
+                    <Rect x="3" y="14" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
+                    <Rect x="14" y="14" width="7" height="7" rx="1.5" stroke={color} strokeWidth="1.8" fill="none" />
                 </Svg>
             );
-        case 'approvals':
+        case 'status':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
-                        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                        d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2"
                         stroke={color}
                         strokeWidth="1.8"
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
-                    <Path d="M14 2v6h6M9 15l2 2 4-4" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
             );
         default:
@@ -182,7 +184,7 @@ function KPIIcon({ type, color }: { type: string; color: string }) {
 
 function QuickActionIcon({ type }: { type: string }) {
     switch (type) {
-        case 'manage-employees':
+        case 'manage-users':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
@@ -195,33 +197,35 @@ function QuickActionIcon({ type }: { type: string }) {
                     />
                 </Svg>
             );
-        case 'attendance':
+        case 'manage-shifts':
+            return (
+                <Svg width={22} height={22} viewBox="0 0 24 24">
+                    <Circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="1.8" fill="none" />
+                    <Path d="M12 6v6l4 2" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+            );
+        case 'key-contacts':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
-                        d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"
+                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
                         stroke="#fff"
                         strokeWidth="1.8"
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
+                    <Path d="M22 6l-10 7L2 6" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
             );
-        case 'leave-requests':
-            return (
-                <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="1.8" fill="none" />
-                    <Path d="M16 2v4M8 2v4M3 10h18" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-                </Svg>
-            );
-        case 'reports':
+        case 'audit-logs':
             return (
                 <Svg width={22} height={22} viewBox="0 0 24 24">
                     <Path
-                        d="M18 20V10M12 20V4M6 20v-6"
+                        d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
                         stroke="#fff"
-                        strokeWidth="2"
+                        strokeWidth="1.8"
+                        fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
@@ -235,18 +239,18 @@ function QuickActionIcon({ type }: { type: string }) {
 function ActivityTypeIcon({ type }: { type: string }) {
     const getColor = () => {
         switch (type) {
-            case 'employee': return colors.primary[500];
-            case 'attendance': return colors.success[500];
-            case 'leave': return colors.warning[500];
+            case 'user': return colors.primary[500];
+            case 'location': return colors.accent[500];
+            case 'module': return colors.success[500];
             case 'system': return colors.info[500];
             default: return colors.neutral[400];
         }
     };
     const getBgColor = () => {
         switch (type) {
-            case 'employee': return colors.primary[100];
-            case 'attendance': return colors.success[100];
-            case 'leave': return colors.warning[100];
+            case 'user': return colors.primary[100];
+            case 'location': return colors.accent[100];
+            case 'module': return colors.success[100];
             case 'system': return colors.info[100];
             default: return colors.neutral[100];
         }
@@ -331,110 +335,33 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(200 + index * 100)}
-            style={styles.kpiCard}
         >
-            <View style={styles.kpiHeader}>
-                <View style={[styles.kpiIconContainer, { backgroundColor: data.iconBg }]}>
-                    <KPIIcon type={data.iconType} color={data.iconColor} />
-                </View>
-                {data.change != null && (
-                    <View
-                        style={[
-                            styles.changeBadge,
-                            {
-                                backgroundColor: data.changePositive
-                                    ? colors.success[50]
-                                    : colors.danger[50],
-                            },
-                        ]}
-                    >
-                        <Text
-                            className={`font-inter text-[10px] font-bold ${data.changePositive ? 'text-success-600' : 'text-danger-600'}`}
-                        >
-                            {data.change}
-                        </Text>
+            <View style={styles.kpiCard}>
+                <View style={styles.kpiHeader}>
+                    <View style={[styles.kpiIconContainer, { backgroundColor: data.iconBg }]}>
+                        <KPIIcon type={data.iconType} color={data.iconColor} />
                     </View>
+                </View>
+                {data.iconType === 'status' && data.statusValue ? (
+                    <View style={styles.kpiStatusRow}>
+                        <StatusBadge status={mapWizardStatusToBadge(data.statusValue)} size="sm" />
+                    </View>
+                ) : (
+                    <Text className="mt-3 font-inter text-2xl font-bold text-primary-950 dark:text-white">
+                        {data.value}
+                    </Text>
                 )}
+                <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">
+                    {data.title}
+                </Text>
             </View>
-            <Text className="mt-3 font-inter text-2xl font-bold text-primary-950 dark:text-white">
-                {data.value ?? '\u2014'}
-            </Text>
-            <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">
-                {data.title}
-            </Text>
         </Animated.View>
     );
 }
 
-function KPISection() {
-    const { data: response, isLoading } = useCompanyAdminStats();
-    const stats = response?.data as Record<string, any> | undefined;
-
-    const kpiData: KPICardData[] = React.useMemo(() => [
-        {
-            title: 'Total Employees',
-            value: stats?.totalEmployees?.toString() ?? null,
-            change: stats?.employeeChange ? `+${stats.employeeChange}` : null,
-            changePositive: true,
-            iconColor: colors.primary[600],
-            iconBg: colors.primary[100],
-            iconType: 'employees' as const,
-        },
-        {
-            title: 'Active Today',
-            value: stats?.activeToday?.toString() ?? null,
-            change: stats?.activePercent ? `${stats.activePercent}%` : null,
-            changePositive: true,
-            iconColor: colors.success[600],
-            iconBg: colors.success[100],
-            iconType: 'attendance' as const,
-        },
-        {
-            title: 'On Leave',
-            value: stats?.onLeave?.toString() ?? null,
-            change: null,
-            changePositive: false,
-            iconColor: colors.warning[600],
-            iconBg: colors.warning[100],
-            iconType: 'leave' as const,
-        },
-        {
-            title: 'Pending Approvals',
-            value: stats?.pendingApprovals?.toString() ?? null,
-            change: stats?.pendingApprovals && stats.pendingApprovals > 0 ? 'Action needed' : null,
-            changePositive: false,
-            iconColor: colors.info[600],
-            iconBg: colors.info[100],
-            iconType: 'approvals' as const,
-        },
-    ], [stats]);
-
-    if (isLoading) {
-        return (
-            <View style={styles.kpiGrid}>
-                {[0, 1, 2, 3].map((i) => (
-                    <Animated.View
-                        key={i}
-                        entering={FadeInUp.duration(400).delay(200 + i * 100)}
-                        style={[styles.kpiCard, styles.kpiCardLoading]}
-                    >
-                        <ActivityIndicator size="small" color={colors.primary[400]} />
-                    </Animated.View>
-                ))}
-            </View>
-        );
-    }
-
-    return (
-        <View style={styles.kpiGrid}>
-            {kpiData.map((kpi, index) => (
-                <KPICard key={kpi.title} data={kpi} index={index} />
-            ))}
-        </View>
-    );
-}
-
 function QuickActionsSection() {
+    const router = useRouter();
+
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(600)}
@@ -449,7 +376,13 @@ function QuickActionsSection() {
                         key={action.id}
                         entering={SlideInRight.duration(400).delay(700 + index * 80)}
                     >
-                        <Pressable style={styles.quickActionCard}>
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.quickActionCard,
+                                pressed && { opacity: 0.7 },
+                            ]}
+                            onPress={() => router.push(action.route as any)}
+                        >
                             <LinearGradient
                                 colors={action.gradient}
                                 start={{ x: 0, y: 0 }}
@@ -474,13 +407,12 @@ function QuickActionsSection() {
     );
 }
 
-function ModuleUsageSection() {
-    const modules = [
-        { name: 'HR Management', usage: 92 },
-        { name: 'Attendance', usage: 87 },
-        { name: 'Payroll', usage: 78 },
-        { name: 'Inventory', usage: 45 },
-    ];
+function CompanyOverviewSection({ stats }: { stats: any }) {
+    const companyName = stats?.companyName ?? 'My Company';
+    const wizardStatus = stats?.wizardStatus ?? 'Active';
+    const activeModules = stats?.activeModules ?? 0;
+    const totalLocations = stats?.totalLocations ?? 0;
+    const userTier = stats?.userTier ?? 'Enterprise';
 
     return (
         <Animated.View
@@ -488,49 +420,93 @@ function ModuleUsageSection() {
             style={styles.section}
         >
             <Text className="mb-4 font-inter text-lg font-bold text-primary-950 dark:text-white">
-                Module Usage
+                Company Overview
             </Text>
-            <View style={styles.moduleCard}>
-                {modules.map((mod, index) => (
-                    <View
-                        key={mod.name}
-                        style={[
-                            styles.moduleRow,
-                            index < modules.length - 1 && styles.moduleRowBorder,
-                        ]}
-                    >
-                        <View style={styles.moduleInfo}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">
-                                {mod.name}
+            <View style={styles.overviewCard}>
+                <LinearGradient
+                    colors={[colors.primary[600], colors.accent[600]]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.overviewGradient}
+                >
+                    {/* Decorative circles */}
+                    <View style={styles.overviewCircle1} />
+                    <View style={styles.overviewCircle2} />
+
+                    <View style={styles.overviewHeader}>
+                        <Text className="font-inter text-lg font-bold text-white" numberOfLines={1}>
+                            {companyName}
+                        </Text>
+                        <StatusBadge status={mapWizardStatusToBadge(wizardStatus)} size="sm" />
+                    </View>
+
+                    <View style={styles.overviewRow}>
+                        <View style={styles.overviewStat}>
+                            <Text className="font-inter text-2xl font-bold text-white">
+                                {activeModules}
                             </Text>
-                            <Text className="font-inter text-xs text-neutral-500">
-                                {mod.usage}% utilization
+                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
+                                Modules
                             </Text>
                         </View>
-                        <View style={styles.progressBarContainer}>
-                            <View
-                                style={[
-                                    styles.progressBar,
-                                    {
-                                        width: `${mod.usage}%`,
-                                        backgroundColor:
-                                            mod.usage >= 80
-                                                ? colors.success[500]
-                                                : mod.usage >= 50
-                                                  ? colors.warning[500]
-                                                  : colors.neutral[400],
-                                    },
-                                ]}
-                            />
+                        <View style={styles.overviewDivider} />
+                        <View style={styles.overviewStat}>
+                            <Text className="font-inter text-2xl font-bold text-white">
+                                {totalLocations}
+                            </Text>
+                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
+                                Locations
+                            </Text>
+                        </View>
+                        <View style={styles.overviewDivider} />
+                        <View style={styles.overviewStat}>
+                            <Text className="font-inter text-sm font-bold text-white">
+                                {userTier}
+                            </Text>
+                            <Text className="mt-1 font-inter text-xs font-medium text-primary-200">
+                                Tier
+                            </Text>
                         </View>
                     </View>
-                ))}
+                </LinearGradient>
             </View>
         </Animated.View>
     );
 }
 
-function RecentActivitySection() {
+function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; isLoading: boolean }) {
+    const router = useRouter();
+
+    if (isLoading) {
+        return (
+            <View style={styles.section}>
+                <Skeleton
+                    isLoading={true}
+                    layout={[
+                        { key: 'h', width: '50%', height: 20, borderRadius: 6, marginBottom: 16 },
+                        { key: 'r1', width: '100%', height: 52, borderRadius: 12, marginBottom: 8 },
+                        { key: 'r2', width: '100%', height: 52, borderRadius: 12, marginBottom: 8 },
+                        { key: 'r3', width: '100%', height: 52, borderRadius: 12 },
+                    ]}
+                >
+                    <View />
+                </Skeleton>
+            </View>
+        );
+    }
+
+    if (items.length === 0) {
+        return (
+            <Animated.View entering={FadeInUp.duration(400).delay(1000)} style={styles.section}>
+                <EmptyState
+                    icon="inbox"
+                    title="No recent activity"
+                    message="Activity will appear here as actions are performed."
+                />
+            </Animated.View>
+        );
+    }
+
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(1000)}
@@ -540,15 +516,18 @@ function RecentActivitySection() {
                 <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                     Recent Activity
                 </Text>
-                <Pressable style={styles.seeAllButton}>
+                <Pressable
+                    style={styles.seeAllButton}
+                    onPress={() => router.push('/reports/audit' as any)}
+                >
                     <Text className="font-inter text-sm font-semibold text-primary-500">
-                        See All
+                        View All
                     </Text>
                 </Pressable>
             </View>
 
             <View style={styles.activityCard}>
-                {RECENT_ACTIVITY.map((item, index) => (
+                {items.map((item, index) => (
                     <Animated.View
                         key={item.id}
                         entering={FadeInRight.duration(300).delay(1100 + index * 80)}
@@ -556,7 +535,7 @@ function RecentActivitySection() {
                         <Pressable
                             style={[
                                 styles.activityItem,
-                                index < RECENT_ACTIVITY.length - 1 && styles.activityItemBorder,
+                                index < items.length - 1 && styles.activityItemBorder,
                             ]}
                         >
                             <ActivityTypeIcon type={item.type} />
@@ -583,6 +562,123 @@ function RecentActivitySection() {
 
 export function CompanyAdminDashboard() {
     const insets = useSafeAreaInsets();
+    const { data: statsResponse, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useCompanyAdminStats();
+    const { data: activityResponse, isLoading: activityLoading, refetch: refetchActivity } = useCompanyActivity(5);
+
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const stats = statsResponse?.data ?? statsResponse;
+
+    const kpiData: KPICardData[] = React.useMemo(() => [
+        {
+            title: 'Total Users',
+            value: String(stats?.totalUsers ?? 0),
+            iconColor: colors.primary[600],
+            iconBg: colors.primary[100],
+            iconType: 'users' as const,
+        },
+        {
+            title: 'Locations',
+            value: String(stats?.totalLocations ?? 0),
+            iconColor: colors.accent[600],
+            iconBg: colors.accent[100],
+            iconType: 'locations' as const,
+        },
+        {
+            title: 'Active Modules',
+            value: String(stats?.activeModules ?? 0),
+            iconColor: colors.success[600],
+            iconBg: colors.success[100],
+            iconType: 'modules' as const,
+        },
+        {
+            title: 'Company Status',
+            value: stats?.wizardStatus ?? 'Active',
+            statusValue: stats?.wizardStatus ?? 'Active',
+            iconColor: colors.info[600],
+            iconBg: colors.info[100],
+            iconType: 'status' as const,
+        },
+    ], [stats]);
+
+    const rawActivity = activityResponse?.data ?? activityResponse ?? [];
+    const activityItems: ActivityItem[] = Array.isArray(rawActivity)
+        ? rawActivity.map((item: any, idx: number) => ({
+            id: item.id ?? String(idx),
+            title: item.action ?? item.title ?? 'Activity',
+            description: item.details ?? item.description ?? '',
+            time: item.timestamp ? timeAgo(item.timestamp) : item.time ?? '',
+            type: mapActivityType(item.action ?? item.type ?? ''),
+        }))
+        : [];
+
+    if (statsLoading) {
+        return (
+            <View style={styles.container}>
+                <HeaderSection />
+                <View style={styles.kpiGrid}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'kpi1', width: CARD_WIDTH, height: 110, borderRadius: 20, marginBottom: 12 },
+                            { key: 'kpi2', width: CARD_WIDTH, height: 110, borderRadius: 20, marginBottom: 12 },
+                            { key: 'kpi3', width: CARD_WIDTH, height: 110, borderRadius: 20 },
+                            { key: 'kpi4', width: CARD_WIDTH, height: 110, borderRadius: 20 },
+                        ]}
+                        containerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.section}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'qa', width: '100%', height: 80, borderRadius: 16 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.section}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'ov', width: '100%', height: 120, borderRadius: 20 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+                <View style={styles.section}>
+                    <Skeleton
+                        isLoading={true}
+                        layout={[
+                            { key: 'a1', width: '100%', height: 50, borderRadius: 12, marginBottom: 8 },
+                            { key: 'a2', width: '100%', height: 50, borderRadius: 12, marginBottom: 8 },
+                            { key: 'a3', width: '100%', height: 50, borderRadius: 12 },
+                        ]}
+                    >
+                        <View />
+                    </Skeleton>
+                </View>
+            </View>
+        );
+    }
+
+    if (statsError) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
+                <Text className="font-inter text-base font-semibold text-danger-600">Failed to load dashboard</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500 text-center">
+                    {(statsError as any)?.message ?? 'An error occurred. Please try again.'}
+                </Text>
+                <Pressable onPress={() => refetchStats()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
+                    <Text className="font-inter text-sm font-semibold text-white">Retry</Text>
+                </Pressable>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -592,22 +688,41 @@ export function CompanyAdminDashboard() {
                     styles.scrollContent,
                     { paddingBottom: insets.bottom + 24 },
                 ]}
-                bounces={false}
+                bounces
+                alwaysBounceVertical
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={async () => {
+                            if (refreshing) return;
+                            setRefreshing(true);
+                            try {
+                                await Promise.all([refetchStats(), refetchActivity()]);
+                            } finally {
+                                setRefreshing(false);
+                            }
+                        }}
+                    />
+                }
             >
                 {/* Header */}
                 <HeaderSection />
 
                 {/* KPI Cards Grid */}
-                <KPISection />
+                <View style={styles.kpiGrid}>
+                    {kpiData.map((kpi, index) => (
+                        <KPICard key={kpi.title} data={kpi} index={index} />
+                    ))}
+                </View>
 
                 {/* Quick Actions */}
                 <QuickActionsSection />
 
-                {/* Module Usage */}
-                <ModuleUsageSection />
+                {/* Company Overview */}
+                <CompanyOverviewSection stats={stats} />
 
                 {/* Recent Activity */}
-                <RecentActivitySection />
+                <RecentActivitySection items={activityItems} isLoading={activityLoading} />
             </ScrollView>
         </View>
     );
@@ -724,11 +839,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.primary[50],
     },
-    kpiCardLoading: {
-        height: 120,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     kpiHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -741,10 +851,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    changeBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
+    kpiStatusRow: {
+        marginTop: 12,
     },
     // Quick Actions
     section: {
@@ -792,42 +900,57 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.primary[900],
     },
-    // Module Usage
-    moduleCard: {
-        backgroundColor: colors.white,
+    // Company Overview
+    overviewCard: {
         borderRadius: 20,
-        padding: 16,
+        overflow: 'hidden',
         shadowColor: colors.primary[900],
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
         shadowRadius: 16,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: colors.primary[50],
+        elevation: 6,
     },
-    moduleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-    },
-    moduleRowBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: colors.neutral[100],
-    },
-    moduleInfo: {
-        flex: 1,
-        marginRight: 16,
-    },
-    progressBarContainer: {
-        width: 80,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.neutral[100],
+    overviewGradient: {
+        padding: 24,
         overflow: 'hidden',
     },
-    progressBar: {
-        height: '100%',
-        borderRadius: 3,
+    overviewCircle1: {
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    overviewCircle2: {
+        position: 'absolute',
+        bottom: -15,
+        left: 40,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    overviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    overviewRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    overviewStat: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    overviewDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: 'rgba(255,255,255,0.2)',
     },
     // Activity
     activityCard: {

@@ -41,7 +41,7 @@ export function Step9PerLocationModules({
                     userTier: 'starter',
                     customUserLimit: '',
                     customTierPrice: '',
-                    billingCycle: 'monthly',
+                    billingType: 'monthly',
                     trialDays: '14',
                 });
             }
@@ -55,7 +55,7 @@ export function Step9PerLocationModules({
         userTier: 'starter',
         customUserLimit: '',
         customTierPrice: '',
-        billingCycle: 'monthly',
+        billingType: 'monthly',
         trialDays: '14',
     };
 

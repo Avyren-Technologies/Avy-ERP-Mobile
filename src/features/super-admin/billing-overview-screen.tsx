@@ -325,8 +325,8 @@ export function BillingOverviewScreen() {
                             <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                                 Recent Invoices
                             </Text>
-                            <Pressable style={styles.seeAllBtn}>
-                                <Text className="font-inter text-sm font-semibold text-primary-500">See All</Text>
+                            <Pressable style={styles.seeAllBtn} onPress={() => router.push('/(app)/billing/invoices' as any)}>
+                                <Text className="font-inter text-sm font-semibold text-primary-500">View All</Text>
                             </Pressable>
                         </View>
 
@@ -375,6 +375,19 @@ export function BillingOverviewScreen() {
                         )}
                     </Animated.View>
                 </View>
+
+                {/* Quick Links */}
+                <Animated.View entering={FadeInUp.duration(400).delay(800)} style={styles.sectionPadded}>
+                    <Pressable
+                        style={styles.quickLinkRow}
+                        onPress={() => router.push('/(app)/billing/payments' as any)}
+                    >
+                        <Text className="font-inter text-sm font-semibold text-primary-600">View Payments</Text>
+                        <Svg width={16} height={16} viewBox="0 0 24 24">
+                            <Path d="M9 18l6-6-6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </Pressable>
+                </Animated.View>
             </ScrollView>
         </View>
     );
@@ -521,5 +534,16 @@ const styles = StyleSheet.create({
     invoiceRight: {
         alignItems: 'flex-end',
         gap: 4,
+    },
+    quickLinkRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: colors.primary[50],
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.primary[100],
     },
 });

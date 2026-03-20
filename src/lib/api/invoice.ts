@@ -1,10 +1,12 @@
 import { client } from '@/lib/api/client';
+import type { PaymentMethod } from '@/lib/api/payment';
+
+export type { PaymentMethod };
 
 // --- Types ---
 
 export type InvoiceStatus = 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
 export type InvoiceType = 'SUBSCRIPTION' | 'ONE_TIME_LICENSE' | 'AMC' | 'PRORATED_ADJUSTMENT';
-export type PaymentMethod = 'BANK_TRANSFER' | 'CHEQUE' | 'CASH' | 'RAZORPAY' | 'UPI' | 'OTHER';
 
 export interface InvoiceLineItem {
   id: string;

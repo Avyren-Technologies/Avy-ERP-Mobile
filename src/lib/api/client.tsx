@@ -7,6 +7,7 @@ import { getToken } from '@/lib/auth/utils';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('ApiClient');
+console.log('[ApiClient] EXPO_PUBLIC_API_URL:', Env.EXPO_PUBLIC_API_URL);
 
 export const client = axios.create({
   baseURL: Env.EXPO_PUBLIC_API_URL,

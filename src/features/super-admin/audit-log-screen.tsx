@@ -131,9 +131,11 @@ function useRoleAwareAuditLogs(params: {
 
     const platformQuery = useAuditLogs(
         isCompanyAdmin ? {} : params,
+        { enabled: !isCompanyAdmin },
     );
     const companyQuery = useCompanyAuditLogs(
         isCompanyAdmin ? { page: params.page, limit: params.limit, search: params.search } : undefined,
+        { enabled: isCompanyAdmin },
     );
 
     return isCompanyAdmin ? companyQuery : platformQuery;
@@ -170,11 +172,14 @@ export function AuditLogScreen() {
         search: debouncedSearch || undefined,
     });
 
-    const { data: filtersResponse } = useAuditFilterOptions();
+    const { data: filtersResponse } = useAuditFilterOptions({ enabled: !isCompanyAdmin });
 
-    // Parse response data
+    // Accumulate pages for infinite scroll
+    const [accumulatedLogs, setAccumulatedLogs] = React.useState<AuditLogItem[]>([]);
+
+    // Parse response data for current page
     const rawData = response?.data ?? response ?? [];
-    const logs: AuditLogItem[] = React.useMemo(() => {
+    const currentPageLogs: AuditLogItem[] = React.useMemo(() => {
         const items = Array.isArray(rawData) ? rawData : (rawData as any)?.data ?? [];
         return items.map((item: any) => ({
             id: item.id ?? '',
@@ -186,6 +191,28 @@ export function AuditLogScreen() {
             details: item.details ?? {},
         }));
     }, [rawData]);
+
+    // Reset accumulated logs when filters/search change (page resets to 1)
+    React.useEffect(() => {
+        if (page === 1 && currentPageLogs.length > 0) {
+            setAccumulatedLogs(currentPageLogs);
+        } else if (page === 1 && !isLoading && !isFetching) {
+            setAccumulatedLogs([]);
+        }
+    }, [page, currentPageLogs, isLoading, isFetching]);
+
+    // Append new pages
+    React.useEffect(() => {
+        if (page > 1 && currentPageLogs.length > 0) {
+            setAccumulatedLogs((prev) => {
+                const existingIds = new Set(prev.map((l) => l.id));
+                const newItems = currentPageLogs.filter((l) => !existingIds.has(l.id));
+                return [...prev, ...newItems];
+            });
+        }
+    }, [page, currentPageLogs]);
+
+    const logs = accumulatedLogs;
 
     const totalCount = (response?.data as any)?.meta?.total ?? (rawData as any)?.meta?.total ?? logs.length;
 
@@ -199,7 +226,7 @@ export function AuditLogScreen() {
 
     // Pagination
     const handleLoadMore = () => {
-        if (!isFetching && logs.length >= 30 * page) {
+        if (!isFetching && currentPageLogs.length >= 30) {
             setPage((p) => p + 1);
         }
     };

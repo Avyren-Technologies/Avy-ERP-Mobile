@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import { auditApi, AuditLogParams } from '@/lib/api/audit';
 
-export function useAuditLogs(params: AuditLogParams = {}) {
+export function useAuditLogs(params: AuditLogParams = {}, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['audit-logs', params],
     queryFn: () => auditApi.listAuditLogs(params),
+    enabled: options?.enabled,
   });
 }
 
@@ -17,11 +18,12 @@ export function useAuditLogDetail(id: string) {
   });
 }
 
-export function useAuditFilterOptions() {
+export function useAuditFilterOptions(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['audit-log-filters'],
     queryFn: () => auditApi.getFilterOptions(),
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled,
   });
 }
 

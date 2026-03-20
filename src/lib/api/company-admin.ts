@@ -113,4 +113,17 @@ export const companyAdminApi = {
   // ── Dashboard (company-admin specific) ─────────────────────────────
   getActivity: (limit?: number) =>
     client.get('/dashboard/company-activity', { params: { limit } }),
+
+  // ── RBAC (roles & permissions) ────────────────────────────────────
+  listRoles: () => client.get('/rbac/roles'),
+
+  listReferenceRoles: () => client.get('/rbac/reference-roles'),
+
+  createRole: (data: Record<string, unknown>) =>
+    client.post('/rbac/roles', data),
+
+  updateRole: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/rbac/roles/${id}`, data),
+
+  deleteRole: (id: string) => client.delete(`/rbac/roles/${id}`),
 };

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { showError } from '@/components/ui/utils';
 import { companyAdminApi } from '@/lib/api/company-admin';
 import { companyAdminKeys } from '@/features/company-admin/api/use-company-admin-queries';
 
@@ -19,6 +20,7 @@ export function useUpdateProfileSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.profile() });
     },
+    onError: showError,
   });
 }
 
@@ -36,6 +38,7 @@ export function useUpdateLocation() {
         queryKey: companyAdminKeys.location(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -47,6 +50,7 @@ export function useDeleteLocation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.locations() });
     },
+    onError: showError,
   });
 }
 
@@ -61,6 +65,7 @@ export function useCreateShift() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
     },
+    onError: showError,
   });
 }
 
@@ -73,6 +78,7 @@ export function useUpdateShift() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
     },
+    onError: showError,
   });
 }
 
@@ -84,6 +90,7 @@ export function useDeleteShift() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
     },
+    onError: showError,
   });
 }
 
@@ -98,6 +105,7 @@ export function useCreateContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.contacts() });
     },
+    onError: showError,
   });
 }
 
@@ -110,6 +118,7 @@ export function useUpdateContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.contacts() });
     },
+    onError: showError,
   });
 }
 
@@ -121,6 +130,7 @@ export function useDeleteContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.contacts() });
     },
+    onError: showError,
   });
 }
 
@@ -135,6 +145,7 @@ export function useCreateNoSeries() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.noSeries() });
     },
+    onError: showError,
   });
 }
 
@@ -147,6 +158,7 @@ export function useUpdateNoSeries() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.noSeries() });
     },
+    onError: showError,
   });
 }
 
@@ -158,6 +170,7 @@ export function useDeleteNoSeries() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.noSeries() });
     },
+    onError: showError,
   });
 }
 
@@ -174,6 +187,7 @@ export function useCreateIOTReason() {
         queryKey: companyAdminKeys.iotReasons(),
       });
     },
+    onError: showError,
   });
 }
 
@@ -188,6 +202,7 @@ export function useUpdateIOTReason() {
         queryKey: companyAdminKeys.iotReasons(),
       });
     },
+    onError: showError,
   });
 }
 
@@ -201,6 +216,7 @@ export function useDeleteIOTReason() {
         queryKey: companyAdminKeys.iotReasons(),
       });
     },
+    onError: showError,
   });
 }
 
@@ -217,6 +233,7 @@ export function useUpdateControls() {
         queryKey: companyAdminKeys.controls(),
       });
     },
+    onError: showError,
   });
 }
 
@@ -233,6 +250,7 @@ export function useUpdateSettings() {
         queryKey: companyAdminKeys.settings(),
       });
     },
+    onError: showError,
   });
 }
 
@@ -247,6 +265,7 @@ export function useCreateUser() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.users() });
     },
+    onError: showError,
   });
 }
 
@@ -262,6 +281,7 @@ export function useUpdateUser() {
         queryKey: companyAdminKeys.user(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -277,5 +297,46 @@ export function useUpdateUserStatus() {
         queryKey: companyAdminKeys.user(variables.id),
       });
     },
+    onError: showError,
+  });
+}
+
+// ── RBAC (roles) ────────────────────────────────────────────────────
+
+/** Create a new RBAC role */
+export function useCreateRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      companyAdminApi.createRole(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
+    },
+    onError: showError,
+  });
+}
+
+/** Update an existing RBAC role */
+export function useUpdateRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      companyAdminApi.updateRole(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
+    },
+    onError: showError,
+  });
+}
+
+/** Delete an RBAC role */
+export function useDeleteRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => companyAdminApi.deleteRole(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
+    },
+    onError: showError,
   });
 }

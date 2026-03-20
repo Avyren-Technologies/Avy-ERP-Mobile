@@ -25,6 +25,8 @@ export const companyAdminKeys = {
     [...companyAdminKeys.all, 'audit-logs', params] as const,
   activity: (limit?: number) =>
     [...companyAdminKeys.all, 'activity', limit] as const,
+  rbacRoles: () => [...companyAdminKeys.all, 'rbac-roles'] as const,
+  rbacReferenceRoles: () => [...companyAdminKeys.all, 'rbac-reference-roles'] as const,
 };
 
 // --- Queries ---
@@ -120,10 +122,11 @@ export function useCompanyUser(id: string) {
 }
 
 /** Tenant-scoped audit logs with optional filters */
-export function useCompanyAuditLogs(params?: CompanyAdminListParams) {
+export function useCompanyAuditLogs(params?: CompanyAdminListParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: companyAdminKeys.auditLogs(params),
     queryFn: () => companyAdminApi.listAuditLogs(params),
+    enabled: options?.enabled,
   });
 }
 
@@ -133,5 +136,23 @@ export function useCompanyActivity(limit?: number) {
     queryKey: companyAdminKeys.activity(limit),
     queryFn: () => companyAdminApi.getActivity(limit),
     refetchInterval: 30_000,
+  });
+}
+
+// --- RBAC ---
+
+/** All RBAC roles */
+export function useRbacRoles() {
+  return useQuery({
+    queryKey: companyAdminKeys.rbacRoles(),
+    queryFn: () => companyAdminApi.listRoles(),
+  });
+}
+
+/** Reference / template roles */
+export function useRbacReferenceRoles() {
+  return useQuery({
+    queryKey: companyAdminKeys.rbacReferenceRoles(),
+    queryFn: () => companyAdminApi.listReferenceRoles(),
   });
 }

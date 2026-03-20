@@ -315,22 +315,55 @@ export function CompanyListScreen() {
     const router = useRouter();
     const [search, setSearch] = React.useState('');
     const [activeFilter, setActiveFilter] = React.useState('all');
+    const [page, setPage] = React.useState(1);
+    const [allCompanies, setAllCompanies] = React.useState<CompanyItem[]>([]);
 
     const statusParam = activeFilter !== 'all' ? activeFilter : undefined;
+    const searchParam = search.trim() || undefined;
+
     const { data: response, isLoading, error, refetch, isFetching } = useTenantList({
-        search: search.trim() || undefined,
+        search: searchParam,
         status: statusParam,
-        limit: 50,
+        page,
+        limit: 25,
     });
 
+    const meta = (response as any)?.meta;
     const rawData = response?.data ?? response ?? [];
-    const companies: CompanyItem[] = React.useMemo(() => {
+    const pageCompanies: CompanyItem[] = React.useMemo(() => {
         if (!Array.isArray(rawData)) return [];
         return rawData.map(mapApiCompany);
     }, [rawData]);
 
-    const totalCount = (response as any)?.meta?.total ?? companies.length;
+    // Accumulate companies across pages; reset when filters change
+    const filterKey = `${searchParam ?? ''}|${statusParam ?? ''}`;
+    const prevFilterKey = React.useRef(filterKey);
+
+    React.useEffect(() => {
+        if (prevFilterKey.current !== filterKey) {
+            // Filters changed — reset
+            prevFilterKey.current = filterKey;
+            setPage(1);
+            setAllCompanies([]);
+            return;
+        }
+        if (pageCompanies.length === 0) return;
+        if (page === 1) {
+            setAllCompanies(pageCompanies);
+        } else {
+            setAllCompanies(prev => {
+                const existingIds = new Set(prev.map(c => c.id));
+                const newItems = pageCompanies.filter(c => !existingIds.has(c.id));
+                return [...prev, ...newItems];
+            });
+        }
+    }, [pageCompanies, page, filterKey]);
+
+    const companies = allCompanies;
+    const totalCount = meta?.total ?? companies.length;
     const activeCount = companies.filter(c => c.status === 'Active').length;
+    const hasNextPage = meta ? page < meta.totalPages : false;
+    const isFetchingNextPage = isFetching && page > 1;
 
     const filterChips = React.useMemo(() => [
         { key: 'all', label: 'All', count: totalCount },
@@ -424,16 +457,34 @@ export function CompanyListScreen() {
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader}
                 ListEmptyComponent={renderEmpty}
+                ListFooterComponent={
+                    isFetchingNextPage ? (
+                        <View style={styles.footerLoader}>
+                            <ActivityIndicator size="small" color={colors.primary[500]} />
+                            <Text className="font-inter text-xs text-neutral-400 ml-2">
+                                Loading more...
+                            </Text>
+                        </View>
+                    ) : null
+                }
                 contentContainerStyle={[
                     styles.listContent,
                     { paddingBottom: insets.bottom + 100 },
                 ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                onEndReached={() => {
+                    if (hasNextPage && !isFetching) {
+                        setPage(prev => prev + 1);
+                    }
+                }}
+                onEndReachedThreshold={0.5}
                 refreshControl={
                     <RefreshControl
-                        refreshing={isFetching && !isLoading}
+                        refreshing={isFetching && !isLoading && !isFetchingNextPage}
                         onRefresh={() => {
+                            setPage(1);
+                            setAllCompanies([]);
                             refetch();
                         }}
                         tintColor={colors.primary[500]}
@@ -609,6 +660,12 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         paddingHorizontal: 6,
         paddingVertical: 3,
+    },
+    footerLoader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
     },
     emptyContainer: {
         alignItems: 'center',

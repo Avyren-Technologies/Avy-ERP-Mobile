@@ -2,18 +2,20 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     Pressable,
+    ScrollView,
     StyleSheet,
     View,
 } from 'react-native';
 import Animated, {
     Easing,
     interpolate,
-    runOnJS,
     useAnimatedStyle,
     useSharedValue,
     withTiming,
+    type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -24,6 +26,9 @@ import { Text } from '@/components/ui/text';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_FULL_WIDTH = Math.min(280, SCREEN_WIDTH * 0.8);
 const SIDEBAR_COLLAPSED_WIDTH = 68;
+
+const OPEN_DURATION = 200;
+const CLOSE_DURATION = 160;
 
 // ============ TYPES ============
 
@@ -55,8 +60,6 @@ export type SidebarIconType =
     | 'onboarding';
 
 interface SidebarProps {
-    isOpen: boolean;
-    onClose: () => void;
     sections: SidebarSection[];
     userName: string;
     userRole: string;
@@ -168,7 +171,10 @@ export function HamburgerButton({
     return (
         <Pressable
             onPress={onPress}
-            style={styles.hamburger}
+            style={({ pressed }) => [
+                styles.hamburger,
+                pressed && styles.hamburgerPressed,
+            ]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
             <Svg width={22} height={22} viewBox="0 0 24 24">
@@ -183,11 +189,9 @@ export function HamburgerButton({
     );
 }
 
-// ============ SIDEBAR COMPONENT ============
+// ============ SIDEBAR COMPONENT (always mounted) ============
 
 export function Sidebar({
-    isOpen,
-    onClose,
     sections,
     userName,
     userRole,
@@ -196,38 +200,12 @@ export function Sidebar({
     collapsible = false,
 }: SidebarProps) {
     const insets = useSafeAreaInsets();
+    const { isOpen, close, progress } = useSidebar();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
-    const [isVisible, setIsVisible] = React.useState(isOpen);
 
-    const openProgress = useSharedValue(isOpen ? 1 : 0);
     const sidebarWidth = useSharedValue(SIDEBAR_FULL_WIDTH);
 
-    const OPEN_ANIM_DURATION = 280;
-    const CLOSE_ANIM_DURATION = 220;
-
-    React.useEffect(() => {
-        if (isOpen) {
-            setIsVisible(true);
-            openProgress.value = withTiming(1, {
-                duration: OPEN_ANIM_DURATION,
-                easing: Easing.out(Easing.cubic),
-            });
-        } else {
-            openProgress.value = withTiming(
-                0,
-                {
-                    duration: CLOSE_ANIM_DURATION,
-                    easing: Easing.in(Easing.cubic),
-                },
-                (finished) => {
-                    if (finished) {
-                        runOnJS(setIsVisible)(false);
-                    }
-                }
-            );
-        }
-    }, [isOpen, openProgress]);
-
+    // Drive animation directly from shared value — no useEffect, no extra renders
     React.useEffect(() => {
         if (collapsible) {
             sidebarWidth.value = withTiming(
@@ -237,15 +215,22 @@ export function Sidebar({
         }
     }, [isCollapsed, collapsible, sidebarWidth]);
 
+    // Animated styles — all run on UI thread
+    const containerStyle = useAnimatedStyle(() => ({
+        // When fully closed (progress === 0), move the whole container off-screen
+        // so it doesn't capture touches. This is faster than conditional rendering.
+        opacity: progress.value > 0 ? 1 : 0,
+    }));
+
     const backdropStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(openProgress.value, [0, 1], [0, 1]),
+        opacity: interpolate(progress.value, [0, 1], [0, 1]),
     }));
 
     const sidebarStyle = useAnimatedStyle(() => ({
         transform: [
             {
                 translateX: interpolate(
-                    openProgress.value,
+                    progress.value,
                     [0, 1],
                     [-SIDEBAR_FULL_WIDTH - 8, 0]
                 ),
@@ -264,13 +249,14 @@ export function Sidebar({
             : 1,
     }));
 
-    if (!isVisible) return null;
-
     return (
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <Animated.View
+            style={[StyleSheet.absoluteFill, containerStyle]}
+            pointerEvents={isOpen ? 'auto' : 'none'}
+        >
             {/* Backdrop */}
-            <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]} pointerEvents="auto">
-                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+            <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
+                <Pressable style={StyleSheet.absoluteFill} onPress={close} />
             </Animated.View>
 
             {/* Sidebar Panel */}
@@ -327,7 +313,7 @@ export function Sidebar({
                                 </Svg>
                             </Pressable>
                         ) : (
-                            <Pressable onPress={onClose} style={styles.collapseBtn}>
+                            <Pressable onPress={close} style={styles.collapseBtn}>
                                 <Svg width={18} height={18} viewBox="0 0 24 24">
                                     <Path
                                         d="M18 6L6 18M6 6l12 12"
@@ -341,8 +327,13 @@ export function Sidebar({
                     </View>
                 </LinearGradient>
 
-                {/* Navigation Items */}
-                <View style={styles.navContainer}>
+                {/* Navigation Items — Scrollable */}
+                <ScrollView
+                    style={styles.navContainer}
+                    contentContainerStyle={styles.navContentContainer}
+                    showsVerticalScrollIndicator={false}
+                    bounces={true}
+                >
                     {sections.map((section, sIdx) => (
                         <View key={sIdx} style={styles.navSection}>
                             {section.title && (
@@ -357,7 +348,7 @@ export function Sidebar({
                                     key={item.id}
                                     onPress={() => {
                                         item.onPress();
-                                        onClose();
+                                        close();
                                     }}
                                     style={({ pressed }) => [
                                         styles.navItem,
@@ -400,13 +391,13 @@ export function Sidebar({
                             ))}
                         </View>
                     ))}
-                </View>
+                </ScrollView>
 
                 {/* Sign Out */}
                 <Pressable
                     onPress={() => {
                         onSignOut();
-                        onClose();
+                        close();
                     }}
                     style={({ pressed }) => [
                         styles.signOutButton,
@@ -424,7 +415,7 @@ export function Sidebar({
                     </Animated.View>
                 </Pressable>
             </Animated.View>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -435,6 +426,8 @@ interface SidebarContextValue {
     open: () => void;
     close: () => void;
     toggle: () => void;
+    /** Shared value 0→1 driving the sidebar animation on UI thread */
+    progress: SharedValue<number>;
 }
 
 const SidebarContext = React.createContext<SidebarContextValue>({
@@ -442,17 +435,47 @@ const SidebarContext = React.createContext<SidebarContextValue>({
     open: () => {},
     close: () => {},
     toggle: () => {},
+    progress: { value: 0 } as SharedValue<number>,
 });
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = React.useState(false);
+    const progress = useSharedValue(0);
 
-    const open = React.useCallback(() => setIsOpen(true), []);
-    const close = React.useCallback(() => setIsOpen(false), []);
-    const toggle = React.useCallback(() => setIsOpen((prev) => !prev), []);
+    const open = React.useCallback(() => {
+        setIsOpen(true);
+        // Start animation immediately — runs on UI thread, no waiting for re-render
+        progress.value = withTiming(1, {
+            duration: OPEN_DURATION,
+            easing: Easing.out(Easing.cubic),
+        });
+    }, [progress]);
+
+    const close = React.useCallback(() => {
+        // Start close animation immediately on UI thread
+        progress.value = withTiming(0, {
+            duration: CLOSE_DURATION,
+            easing: Easing.in(Easing.cubic),
+        });
+        // Flip React state after animation completes (for pointerEvents)
+        setTimeout(() => setIsOpen(false), CLOSE_DURATION);
+    }, [progress]);
+
+    const toggle = React.useCallback(() => {
+        if (isOpen) {
+            close();
+        } else {
+            open();
+        }
+    }, [isOpen, open, close]);
+
+    const value = React.useMemo(
+        () => ({ isOpen, open, close, toggle, progress }),
+        [isOpen, open, close, toggle, progress]
+    );
 
     return (
-        <SidebarContext.Provider value={{ isOpen, open, close, toggle }}>
+        <SidebarContext.Provider value={value}>
             {children}
         </SidebarContext.Provider>
     );
@@ -543,7 +566,9 @@ const styles = StyleSheet.create({
     navContainer: {
         flex: 1,
         paddingTop: 10,
-        overflow: 'hidden',
+    },
+    navContentContainer: {
+        paddingBottom: 16,
     },
     navSection: {
         marginBottom: 4,
@@ -624,5 +649,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    hamburgerPressed: {
+        opacity: 0.5,
+        backgroundColor: 'rgba(255,255,255,0.15)',
     },
 });

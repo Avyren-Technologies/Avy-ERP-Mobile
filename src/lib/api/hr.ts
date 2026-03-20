@@ -32,103 +32,103 @@ export interface EmployeeListParams extends HrListParams {
 export const hrApi = {
   // ── Departments ─────────────────────────────────────────────────────
   listDepartments: (params?: DepartmentListParams) =>
-    client.get('/api/v1/hr/departments', { params }),
+    client.get('/hr/departments', { params }),
 
-  getDepartment: (id: string) => client.get(`/api/v1/hr/departments/${id}`),
+  getDepartment: (id: string) => client.get(`/hr/departments/${id}`),
 
   createDepartment: (data: Record<string, unknown>) =>
-    client.post('/api/v1/hr/departments', data),
+    client.post('/hr/departments', data),
 
   updateDepartment: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/departments/${id}`, data),
+    client.patch(`/hr/departments/${id}`, data),
 
   deleteDepartment: (id: string) =>
-    client.delete(`/api/v1/hr/departments/${id}`),
+    client.delete(`/hr/departments/${id}`),
 
   // ── Designations ────────────────────────────────────────────────────
   listDesignations: (params?: DesignationListParams) =>
-    client.get('/api/v1/hr/designations', { params }),
+    client.get('/hr/designations', { params }),
 
-  getDesignation: (id: string) => client.get(`/api/v1/hr/designations/${id}`),
+  getDesignation: (id: string) => client.get(`/hr/designations/${id}`),
 
   createDesignation: (data: Record<string, unknown>) =>
-    client.post('/api/v1/hr/designations', data),
+    client.post('/hr/designations', data),
 
   updateDesignation: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/designations/${id}`, data),
+    client.patch(`/hr/designations/${id}`, data),
 
   deleteDesignation: (id: string) =>
-    client.delete(`/api/v1/hr/designations/${id}`),
+    client.delete(`/hr/designations/${id}`),
 
   // ── Grades ──────────────────────────────────────────────────────────
   listGrades: (params?: HrListParams) =>
-    client.get('/api/v1/hr/grades', { params }),
+    client.get('/hr/grades', { params }),
 
-  getGrade: (id: string) => client.get(`/api/v1/hr/grades/${id}`),
+  getGrade: (id: string) => client.get(`/hr/grades/${id}`),
 
   createGrade: (data: Record<string, unknown>) =>
-    client.post('/api/v1/hr/grades', data),
+    client.post('/hr/grades', data),
 
   updateGrade: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/grades/${id}`, data),
+    client.patch(`/hr/grades/${id}`, data),
 
-  deleteGrade: (id: string) => client.delete(`/api/v1/hr/grades/${id}`),
+  deleteGrade: (id: string) => client.delete(`/hr/grades/${id}`),
 
   // ── Employee Types ──────────────────────────────────────────────────
   listEmployeeTypes: (params?: HrListParams) =>
-    client.get('/api/v1/hr/employee-types', { params }),
+    client.get('/hr/employee-types', { params }),
 
   getEmployeeType: (id: string) =>
-    client.get(`/api/v1/hr/employee-types/${id}`),
+    client.get(`/hr/employee-types/${id}`),
 
   createEmployeeType: (data: Record<string, unknown>) =>
-    client.post('/api/v1/hr/employee-types', data),
+    client.post('/hr/employee-types', data),
 
   updateEmployeeType: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/employee-types/${id}`, data),
+    client.patch(`/hr/employee-types/${id}`, data),
 
   deleteEmployeeType: (id: string) =>
-    client.delete(`/api/v1/hr/employee-types/${id}`),
+    client.delete(`/hr/employee-types/${id}`),
 
   // ── Cost Centres ────────────────────────────────────────────────────
   listCostCentres: (params?: HrListParams) =>
-    client.get('/api/v1/hr/cost-centres', { params }),
+    client.get('/hr/cost-centres', { params }),
 
-  getCostCentre: (id: string) => client.get(`/api/v1/hr/cost-centres/${id}`),
+  getCostCentre: (id: string) => client.get(`/hr/cost-centres/${id}`),
 
   createCostCentre: (data: Record<string, unknown>) =>
-    client.post('/api/v1/hr/cost-centres', data),
+    client.post('/hr/cost-centres', data),
 
   updateCostCentre: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/cost-centres/${id}`, data),
+    client.patch(`/hr/cost-centres/${id}`, data),
 
   deleteCostCentre: (id: string) =>
-    client.delete(`/api/v1/hr/cost-centres/${id}`),
+    client.delete(`/hr/cost-centres/${id}`),
 
   // ── Employees ───────────────────────────────────────────────────────
   listEmployees: (params?: EmployeeListParams) =>
-    client.get('/api/v1/hr/employees', { params }),
+    client.get('/hr/employees', { params }),
 
-  getEmployee: (id: string) => client.get(`/api/v1/hr/employees/${id}`),
+  getEmployee: (id: string) => client.get(`/hr/employees/${id}`),
 
   createEmployee: (data: Record<string, unknown>) =>
-    client.post('/api/v1/hr/employees', data),
+    client.post('/hr/employees', data),
 
   updateEmployee: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/employees/${id}`, data),
+    client.patch(`/hr/employees/${id}`, data),
 
   updateEmployeeStatus: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/api/v1/hr/employees/${id}/status`, data),
+    client.patch(`/hr/employees/${id}/status`, data),
 
   deleteEmployee: (id: string) =>
-    client.delete(`/api/v1/hr/employees/${id}`),
+    client.delete(`/hr/employees/${id}`),
 
   // ── Employee Sub-resources: Nominees ────────────────────────────────
   listNominees: (employeeId: string) =>
-    client.get(`/api/v1/hr/employees/${employeeId}/nominees`),
+    client.get(`/hr/employees/${employeeId}/nominees`),
 
   createNominee: (employeeId: string, data: Record<string, unknown>) =>
-    client.post(`/api/v1/hr/employees/${employeeId}/nominees`, data),
+    client.post(`/hr/employees/${employeeId}/nominees`, data),
 
   updateNominee: (
     employeeId: string,
@@ -136,21 +136,21 @@ export const hrApi = {
     data: Record<string, unknown>,
   ) =>
     client.patch(
-      `/api/v1/hr/employees/${employeeId}/nominees/${nomineeId}`,
+      `/hr/employees/${employeeId}/nominees/${nomineeId}`,
       data,
     ),
 
   deleteNominee: (employeeId: string, nomineeId: string) =>
     client.delete(
-      `/api/v1/hr/employees/${employeeId}/nominees/${nomineeId}`,
+      `/hr/employees/${employeeId}/nominees/${nomineeId}`,
     ),
 
   // ── Employee Sub-resources: Education ───────────────────────────────
   listEducation: (employeeId: string) =>
-    client.get(`/api/v1/hr/employees/${employeeId}/education`),
+    client.get(`/hr/employees/${employeeId}/education`),
 
   createEducation: (employeeId: string, data: Record<string, unknown>) =>
-    client.post(`/api/v1/hr/employees/${employeeId}/education`, data),
+    client.post(`/hr/employees/${employeeId}/education`, data),
 
   updateEducation: (
     employeeId: string,
@@ -158,22 +158,22 @@ export const hrApi = {
     data: Record<string, unknown>,
   ) =>
     client.patch(
-      `/api/v1/hr/employees/${employeeId}/education/${educationId}`,
+      `/hr/employees/${employeeId}/education/${educationId}`,
       data,
     ),
 
   deleteEducation: (employeeId: string, educationId: string) =>
     client.delete(
-      `/api/v1/hr/employees/${employeeId}/education/${educationId}`,
+      `/hr/employees/${employeeId}/education/${educationId}`,
     ),
 
   // ── Employee Sub-resources: Previous Employment ─────────────────────
   listPrevEmployment: (employeeId: string) =>
-    client.get(`/api/v1/hr/employees/${employeeId}/previous-employment`),
+    client.get(`/hr/employees/${employeeId}/previous-employment`),
 
   createPrevEmployment: (employeeId: string, data: Record<string, unknown>) =>
     client.post(
-      `/api/v1/hr/employees/${employeeId}/previous-employment`,
+      `/hr/employees/${employeeId}/previous-employment`,
       data,
     ),
 
@@ -183,30 +183,30 @@ export const hrApi = {
     data: Record<string, unknown>,
   ) =>
     client.patch(
-      `/api/v1/hr/employees/${employeeId}/previous-employment/${prevEmploymentId}`,
+      `/hr/employees/${employeeId}/previous-employment/${prevEmploymentId}`,
       data,
     ),
 
   deletePrevEmployment: (employeeId: string, prevEmploymentId: string) =>
     client.delete(
-      `/api/v1/hr/employees/${employeeId}/previous-employment/${prevEmploymentId}`,
+      `/hr/employees/${employeeId}/previous-employment/${prevEmploymentId}`,
     ),
 
   // ── Employee Sub-resources: Documents ───────────────────────────────
   listDocuments: (employeeId: string) =>
-    client.get(`/api/v1/hr/employees/${employeeId}/documents`),
+    client.get(`/hr/employees/${employeeId}/documents`),
 
   uploadDocument: (employeeId: string, data: FormData) =>
-    client.post(`/api/v1/hr/employees/${employeeId}/documents`, data, {
+    client.post(`/hr/employees/${employeeId}/documents`, data, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 
   deleteDocument: (employeeId: string, documentId: string) =>
     client.delete(
-      `/api/v1/hr/employees/${employeeId}/documents/${documentId}`,
+      `/hr/employees/${employeeId}/documents/${documentId}`,
     ),
 
   // ── Employee Sub-resources: Timeline ────────────────────────────────
   getTimeline: (employeeId: string) =>
-    client.get(`/api/v1/hr/employees/${employeeId}/timeline`),
+    client.get(`/hr/employees/${employeeId}/timeline`),
 };

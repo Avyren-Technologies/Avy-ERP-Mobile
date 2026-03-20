@@ -83,7 +83,6 @@ function MoreIcon({ color, focused }: { color: string; focused: boolean }) {
 // ============ SIDEBAR ROOT (inside SidebarProvider) ============
 
 function AppSidebar() {
-    const { isOpen, close } = useSidebar();
     const router = useRouter();
     const pathname = usePathname();
     const signOut = useAuth.use.signOut();
@@ -120,6 +119,117 @@ function AppSidebar() {
                     { id: 'emp-types', label: 'Employee Types', icon: 'users' as const, onPress: () => router.push('/company/hr/employee-types' as any), isActive: pathname.startsWith('/company/hr/employee-types') },
                     { id: 'cost-centres', label: 'Cost Centres', icon: 'billing' as const, onPress: () => router.push('/company/hr/cost-centres' as any), isActive: pathname.startsWith('/company/hr/cost-centres') },
                     { id: 'employees', label: 'Employee Directory', icon: 'users' as const, onPress: () => router.push('/company/hr/employees' as any), isActive: pathname.startsWith('/company/hr/employees') },
+                ],
+            },
+            {
+                title: 'Attendance',
+                items: [
+                    { id: 'attendance', label: 'Attendance Dashboard', icon: 'settings' as const, onPress: () => router.push('/company/hr/attendance' as any), isActive: pathname === '/company/hr/attendance' },
+                    { id: 'holidays', label: 'Holiday Calendar', icon: 'settings' as const, onPress: () => router.push('/company/hr/holidays' as any), isActive: pathname.startsWith('/company/hr/holidays') },
+                    { id: 'rosters', label: 'Rosters', icon: 'settings' as const, onPress: () => router.push('/company/hr/rosters' as any), isActive: pathname.startsWith('/company/hr/rosters') },
+                    { id: 'attendance-rules', label: 'Attendance Rules', icon: 'settings' as const, onPress: () => router.push('/company/hr/attendance-rules' as any), isActive: pathname.startsWith('/company/hr/attendance-rules') },
+                    { id: 'overtime-rules', label: 'Overtime Rules', icon: 'settings' as const, onPress: () => router.push('/company/hr/overtime-rules' as any), isActive: pathname.startsWith('/company/hr/overtime-rules') },
+                ],
+            },
+            {
+                title: 'Leave Management',
+                items: [
+                    { id: 'leave-types', label: 'Leave Types', icon: 'settings' as const, onPress: () => router.push('/company/hr/leave-types' as any), isActive: pathname.startsWith('/company/hr/leave-types') },
+                    { id: 'leave-policies', label: 'Leave Policies', icon: 'settings' as const, onPress: () => router.push('/company/hr/leave-policies' as any), isActive: pathname.startsWith('/company/hr/leave-policies') },
+                    { id: 'leave-requests', label: 'Leave Requests', icon: 'users' as const, onPress: () => router.push('/company/hr/leave-requests' as any), isActive: pathname.startsWith('/company/hr/leave-requests') },
+                    { id: 'leave-balances', label: 'Leave Balances', icon: 'billing' as const, onPress: () => router.push('/company/hr/leave-balances' as any), isActive: pathname.startsWith('/company/hr/leave-balances') },
+                ],
+            },
+            {
+                title: 'Payroll & Compliance',
+                items: [
+                    { id: 'salary-components', label: 'Salary Components', icon: 'billing' as const, onPress: () => router.push('/company/hr/salary-components' as any), isActive: pathname.startsWith('/company/hr/salary-components') },
+                    { id: 'salary-structures', label: 'Salary Structures', icon: 'settings' as const, onPress: () => router.push('/company/hr/salary-structures' as any), isActive: pathname.startsWith('/company/hr/salary-structures') },
+                    { id: 'employee-salary', label: 'Employee Salary', icon: 'billing' as const, onPress: () => router.push('/company/hr/employee-salary' as any), isActive: pathname.startsWith('/company/hr/employee-salary') },
+                    { id: 'statutory-config', label: 'Statutory Config', icon: 'settings' as const, onPress: () => router.push('/company/hr/statutory-config' as any), isActive: pathname.startsWith('/company/hr/statutory-config') },
+                    { id: 'tax-config', label: 'Tax & TDS', icon: 'settings' as const, onPress: () => router.push('/company/hr/tax-config' as any), isActive: pathname.startsWith('/company/hr/tax-config') },
+                    { id: 'bank-config', label: 'Bank Config', icon: 'billing' as const, onPress: () => router.push('/company/hr/bank-config' as any), isActive: pathname.startsWith('/company/hr/bank-config') },
+                    { id: 'loan-policies', label: 'Loan Policies', icon: 'settings' as const, onPress: () => router.push('/company/hr/loan-policies' as any), isActive: pathname.startsWith('/company/hr/loan-policies') },
+                    { id: 'loans', label: 'Loans', icon: 'billing' as const, onPress: () => router.push('/company/hr/loans' as any), isActive: pathname.startsWith('/company/hr/loans') },
+                ],
+            },
+            {
+                title: 'Payroll Operations',
+                items: [
+                    { id: 'payroll-runs', label: 'Payroll Runs', icon: 'settings' as const, onPress: () => router.push('/company/hr/payroll-runs' as any), isActive: pathname.startsWith('/company/hr/payroll-runs') },
+                    { id: 'payslips', label: 'Payslips', icon: 'billing' as const, onPress: () => router.push('/company/hr/payslips' as any), isActive: pathname.startsWith('/company/hr/payslips') },
+                    { id: 'salary-holds', label: 'Salary Holds', icon: 'settings' as const, onPress: () => router.push('/company/hr/salary-holds' as any), isActive: pathname.startsWith('/company/hr/salary-holds') },
+                    { id: 'salary-revisions', label: 'Salary Revisions', icon: 'billing' as const, onPress: () => router.push('/company/hr/salary-revisions' as any), isActive: pathname.startsWith('/company/hr/salary-revisions') },
+                    { id: 'statutory-filings', label: 'Statutory Filings', icon: 'settings' as const, onPress: () => router.push('/company/hr/statutory-filings' as any), isActive: pathname.startsWith('/company/hr/statutory-filings') },
+                    { id: 'payroll-reports', label: 'Payroll Reports', icon: 'billing' as const, onPress: () => router.push('/company/hr/payroll-reports' as any), isActive: pathname.startsWith('/company/hr/payroll-reports') },
+                ],
+            },
+            {
+                title: 'ESS & Workflows',
+                items: [
+                    { id: 'ess-config', label: 'ESS Config', icon: 'settings' as const, onPress: () => router.push('/company/hr/ess-config' as any), isActive: pathname.startsWith('/company/hr/ess-config') },
+                    { id: 'approval-workflows', label: 'Approval Workflows', icon: 'settings' as const, onPress: () => router.push('/company/hr/approval-workflows' as any), isActive: pathname.startsWith('/company/hr/approval-workflows') },
+                    { id: 'approval-requests', label: 'Approval Requests', icon: 'users' as const, onPress: () => router.push('/company/hr/approval-requests' as any), isActive: pathname.startsWith('/company/hr/approval-requests') },
+                    { id: 'notification-templates', label: 'Notification Templates', icon: 'settings' as const, onPress: () => router.push('/company/hr/notification-templates' as any), isActive: pathname.startsWith('/company/hr/notification-templates') },
+                    { id: 'notification-rules', label: 'Notification Rules', icon: 'settings' as const, onPress: () => router.push('/company/hr/notification-rules' as any), isActive: pathname.startsWith('/company/hr/notification-rules') },
+                    { id: 'it-declarations', label: 'IT Declarations', icon: 'billing' as const, onPress: () => router.push('/company/hr/it-declarations' as any), isActive: pathname.startsWith('/company/hr/it-declarations') },
+                ],
+            },
+            {
+                title: 'Self-Service',
+                items: [
+                    { id: 'my-profile', label: 'My Profile', icon: 'users' as const, onPress: () => router.push('/company/hr/my-profile' as any), isActive: pathname.startsWith('/company/hr/my-profile') },
+                    { id: 'my-payslips', label: 'My Payslips', icon: 'billing' as const, onPress: () => router.push('/company/hr/my-payslips' as any), isActive: pathname.startsWith('/company/hr/my-payslips') },
+                    { id: 'my-leave', label: 'My Leave', icon: 'settings' as const, onPress: () => router.push('/company/hr/my-leave' as any), isActive: pathname.startsWith('/company/hr/my-leave') },
+                    { id: 'my-attendance', label: 'My Attendance', icon: 'settings' as const, onPress: () => router.push('/company/hr/my-attendance' as any), isActive: pathname.startsWith('/company/hr/my-attendance') },
+                    { id: 'team-view', label: 'Team View (MSS)', icon: 'users' as const, onPress: () => router.push('/company/hr/team-view' as any), isActive: pathname.startsWith('/company/hr/team-view') },
+                ],
+            },
+            {
+                title: 'Transfers & Promotions',
+                items: [
+                    { id: 'transfers', label: 'Employee Transfers', icon: 'settings' as const, onPress: () => router.push('/company/hr/transfers' as any), isActive: pathname.startsWith('/company/hr/transfers') },
+                    { id: 'promotions', label: 'Employee Promotions', icon: 'settings' as const, onPress: () => router.push('/company/hr/promotions' as any), isActive: pathname.startsWith('/company/hr/promotions') },
+                    { id: 'delegates', label: 'Manager Delegation', icon: 'users' as const, onPress: () => router.push('/company/hr/delegates' as any), isActive: pathname.startsWith('/company/hr/delegates') },
+                ],
+            },
+            {
+                title: 'Performance',
+                items: [
+                    { id: 'appraisal-cycles', label: 'Appraisal Cycles', icon: 'settings' as const, onPress: () => router.push('/company/hr/appraisal-cycles' as any), isActive: pathname.startsWith('/company/hr/appraisal-cycles') },
+                    { id: 'goals', label: 'Goals & OKRs', icon: 'settings' as const, onPress: () => router.push('/company/hr/goals' as any), isActive: pathname.startsWith('/company/hr/goals') },
+                    { id: 'feedback-360', label: '360 Feedback', icon: 'users' as const, onPress: () => router.push('/company/hr/feedback-360' as any), isActive: pathname.startsWith('/company/hr/feedback-360') },
+                    { id: 'ratings', label: 'Ratings & Calibration', icon: 'settings' as const, onPress: () => router.push('/company/hr/ratings' as any), isActive: pathname.startsWith('/company/hr/ratings') },
+                    { id: 'skills', label: 'Skills & Mapping', icon: 'settings' as const, onPress: () => router.push('/company/hr/skills' as any), isActive: pathname.startsWith('/company/hr/skills') },
+                    { id: 'succession', label: 'Succession Planning', icon: 'users' as const, onPress: () => router.push('/company/hr/succession' as any), isActive: pathname.startsWith('/company/hr/succession') },
+                    { id: 'performance-dashboard', label: 'Performance Dashboard', icon: 'dashboard' as const, onPress: () => router.push('/company/hr/performance-dashboard' as any), isActive: pathname.startsWith('/company/hr/performance-dashboard') },
+                ],
+            },
+            {
+                title: 'Recruitment & Training',
+                items: [
+                    { id: 'requisitions', label: 'Job Requisitions', icon: 'settings' as const, onPress: () => router.push('/company/hr/requisitions' as any), isActive: pathname.startsWith('/company/hr/requisitions') },
+                    { id: 'candidates', label: 'Candidates', icon: 'users' as const, onPress: () => router.push('/company/hr/candidates' as any), isActive: pathname.startsWith('/company/hr/candidates') },
+                    { id: 'training', label: 'Training Catalogue', icon: 'settings' as const, onPress: () => router.push('/company/hr/training' as any), isActive: pathname.startsWith('/company/hr/training') },
+                    { id: 'training-nominations', label: 'Training Nominations', icon: 'users' as const, onPress: () => router.push('/company/hr/training-nominations' as any), isActive: pathname.startsWith('/company/hr/training-nominations') },
+                ],
+            },
+            {
+                title: 'Exit & Separation',
+                items: [
+                    { id: 'exit-requests', label: 'Exit Requests', icon: 'users' as const, onPress: () => router.push('/company/hr/exit-requests' as any), isActive: pathname.startsWith('/company/hr/exit-requests') },
+                    { id: 'clearance-dashboard', label: 'Clearance Dashboard', icon: 'settings' as const, onPress: () => router.push('/company/hr/clearance-dashboard' as any), isActive: pathname.startsWith('/company/hr/clearance-dashboard') },
+                    { id: 'fnf-settlement', label: 'F&F Settlement', icon: 'billing' as const, onPress: () => router.push('/company/hr/fnf-settlement' as any), isActive: pathname.startsWith('/company/hr/fnf-settlement') },
+                ],
+            },
+            {
+                title: 'Advanced HR',
+                items: [
+                    { id: 'assets', label: 'Asset Management', icon: 'settings' as const, onPress: () => router.push('/company/hr/assets' as any), isActive: pathname.startsWith('/company/hr/assets') },
+                    { id: 'expenses', label: 'Expense Claims', icon: 'billing' as const, onPress: () => router.push('/company/hr/expenses' as any), isActive: pathname.startsWith('/company/hr/expenses') },
+                    { id: 'hr-letters', label: 'HR Letters', icon: 'settings' as const, onPress: () => router.push('/company/hr/hr-letters' as any), isActive: pathname.startsWith('/company/hr/hr-letters') },
+                    { id: 'grievances', label: 'Grievances', icon: 'users' as const, onPress: () => router.push('/company/hr/grievances' as any), isActive: pathname.startsWith('/company/hr/grievances') },
+                    { id: 'disciplinary', label: 'Disciplinary Actions', icon: 'settings' as const, onPress: () => router.push('/company/hr/disciplinary' as any), isActive: pathname.startsWith('/company/hr/disciplinary') },
                 ],
             },
             {
@@ -287,8 +397,6 @@ function AppSidebar() {
 
     return (
         <Sidebar
-            isOpen={isOpen}
-            onClose={close}
             sections={sections}
             userName={getDisplayName(user)}
             userRole={getRoleLabel(userRole)}
@@ -301,12 +409,68 @@ function AppSidebar() {
 
 // ============ TAB LAYOUT ============
 
+function HRIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+        <View style={styles.tabIconContainer}>
+            {focused && <View style={styles.tabActiveIndicator} />}
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Path
+                    d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                    stroke={color}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </Svg>
+        </View>
+    );
+}
+
+function CompanyIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+        <View style={styles.tabIconContainer}>
+            {focused && <View style={styles.tabActiveIndicator} />}
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Path
+                    d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2"
+                    stroke={color}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </Svg>
+        </View>
+    );
+}
+
+function SettingsIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+        <View style={styles.tabIconContainer}>
+            {focused && <View style={styles.tabActiveIndicator} />}
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.8" fill="none" />
+                <Path
+                    d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+                    stroke={color}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </Svg>
+        </View>
+    );
+}
+
 function TabLayoutInner() {
     const status = useAuth.use.status();
     const userRole = useAuth.use.userRole();
     const [isFirstTime] = useIsFirstTime();
     const insets = useSafeAreaInsets();
     const isSuperAdmin = userRole === 'super-admin';
+    const isCompanyAdmin = userRole === 'company-admin';
     // iOS base: 54px content + dynamic home indicator clearance
     // Android base: 68px content (larger touch targets) + gesture nav inset if present
     const TAB_BAR_HEIGHT = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
@@ -373,24 +537,42 @@ function TabLayoutInner() {
                 <Tabs.Screen
                     name="companies"
                     options={{
-                        title: 'Companies',
+                        title: isCompanyAdmin ? 'Company' : 'Companies',
                         tabBarIcon: ({ color, focused }) => (
-                            <CompaniesIcon color={color} focused={focused} />
+                            isCompanyAdmin
+                                ? <CompanyIcon color={color} focused={focused} />
+                                : <CompaniesIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'companies-tab',
-                        href: isSuperAdmin ? undefined : null,
+                        href: (isSuperAdmin || isCompanyAdmin) ? undefined : null,
                     }}
+                    listeners={isCompanyAdmin ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            // Navigate to company profile for company admin
+                            require('expo-router').router.push('/company/profile');
+                        },
+                    } : undefined}
                 />
                 <Tabs.Screen
                     name="billing"
                     options={{
-                        title: 'Billing',
+                        title: isCompanyAdmin ? 'HR' : 'Billing',
                         tabBarIcon: ({ color, focused }) => (
-                            <BillingIcon color={color} focused={focused} />
+                            isCompanyAdmin
+                                ? <HRIcon color={color} focused={focused} />
+                                : <BillingIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'billing-tab',
-                        href: isSuperAdmin ? undefined : null,
+                        href: (isSuperAdmin || isCompanyAdmin) ? undefined : null,
                     }}
+                    listeners={isCompanyAdmin ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            // Navigate to employee directory for company admin
+                            require('expo-router').router.push('/company/hr/employees');
+                        },
+                    } : undefined}
                 />
                 <Tabs.Screen
                     name="more"
@@ -403,7 +585,23 @@ function TabLayoutInner() {
                     }}
                 />
                 <Tabs.Screen name="reports" options={{ href: null }} />
-                <Tabs.Screen name="settings" options={{ href: null }} />
+                <Tabs.Screen
+                    name="settings"
+                    options={{
+                        title: 'Settings',
+                        tabBarIcon: ({ color, focused }) => (
+                            <SettingsIcon color={color} focused={focused} />
+                        ),
+                        tabBarButtonTestID: 'settings-tab',
+                        href: isCompanyAdmin ? undefined : null,
+                    }}
+                    listeners={isCompanyAdmin ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            require('expo-router').router.push('/company/settings');
+                        },
+                    } : undefined}
+                />
                 <Tabs.Screen name="tenant/[id]" options={{ href: null }} />
                 <Tabs.Screen
                     name="tenant/add-company"

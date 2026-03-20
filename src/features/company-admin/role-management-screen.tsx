@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -27,7 +26,15 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { client } from '@/lib/api/client';
+import {
+    useCreateRole,
+    useDeleteRole,
+    useUpdateRole,
+} from '@/features/company-admin/api/use-company-admin-mutations';
+import {
+    useRbacReferenceRoles,
+    useRbacRoles,
+} from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ TYPES ============
 
@@ -66,53 +73,6 @@ const PERMISSION_MODULES = [
 ] as const;
 
 const PERMISSION_ACTIONS = ['view', 'create', 'edit', 'delete', 'approve'] as const;
-
-// ============ QUERY HOOKS ============
-
-const rbacKeys = {
-    roles: ['rbac', 'roles'] as const,
-    permissions: ['rbac', 'permissions'] as const,
-    referenceRoles: ['rbac', 'reference-roles'] as const,
-};
-
-function useRbacRoles() {
-    return useQuery({
-        queryKey: rbacKeys.roles,
-        queryFn: () => client.get('/rbac/roles'),
-    });
-}
-
-function useRbacReferenceRoles() {
-    return useQuery({
-        queryKey: rbacKeys.referenceRoles,
-        queryFn: () => client.get('/rbac/reference-roles'),
-    });
-}
-
-function useCreateRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (data: Record<string, unknown>) => client.post('/rbac/roles', data),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: rbacKeys.roles }),
-    });
-}
-
-function useUpdateRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-            client.patch(`/rbac/roles/${id}`, data),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: rbacKeys.roles }),
-    });
-}
-
-function useDeleteRole() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: string) => client.delete(`/rbac/roles/${id}`),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: rbacKeys.roles }),
-    });
-}
 
 // ============ HELPERS ============
 

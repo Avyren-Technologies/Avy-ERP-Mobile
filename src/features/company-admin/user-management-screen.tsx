@@ -34,8 +34,7 @@ import {
     useUpdateUser,
     useUpdateUserStatus,
 } from '@/features/company-admin/api/use-company-admin-mutations';
-import { useCompanyUsers } from '@/features/company-admin/api/use-company-admin-queries';
-import { client } from '@/lib/api/client';
+import { useCompanyUsers, useRbacRoles } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ TYPES ============
 
@@ -305,10 +304,19 @@ function UserFormSheet({
         const newErrors: Record<string, string> = {};
         if (!fullName.trim()) newErrors.fullName = 'Full name is required';
         if (!email.trim()) newErrors.email = 'Email is required';
-        else if (!email.trim().includes('@') || !email.trim().includes('.'))
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()))
             newErrors.email = 'Invalid email address';
         if (!isEdit && !password.trim()) newErrors.password = 'Password is required';
-        if (password && password.length < 6) newErrors.password = 'Min 6 characters';
+        if (password) {
+            if (password.length < 8)
+                newErrors.password = 'Min 8 characters';
+            else if (!/[A-Z]/.test(password))
+                newErrors.password = 'Must include an uppercase letter';
+            else if (!/[a-z]/.test(password))
+                newErrors.password = 'Must include a lowercase letter';
+            else if (!/[0-9]/.test(password))
+                newErrors.password = 'Must include a number';
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -633,26 +641,15 @@ export function UserManagementScreen() {
     const confirmModal = useConfirmModal();
 
     // Fetch roles for the dropdown
-    const [roles, setRoles] = React.useState<RoleOption[]>([]);
-    const [rolesLoading, setRolesLoading] = React.useState(false);
-
-    React.useEffect(() => {
-        setRolesLoading(true);
-        client
-            .get('/rbac/roles')
-            .then((res: any) => {
-                const data = res?.data ?? res ?? [];
-                const list = Array.isArray(data) ? data : [];
-                setRoles(
-                    list.map((r: any) => ({
-                        id: r.id ?? '',
-                        name: r.name ?? '',
-                    }))
-                );
-            })
-            .catch(() => setRoles([]))
-            .finally(() => setRolesLoading(false));
-    }, []);
+    const { data: rolesRaw, isLoading: rolesLoading } = useRbacRoles();
+    const roles: RoleOption[] = React.useMemo(() => {
+        const data = (rolesRaw as any)?.data ?? rolesRaw ?? [];
+        const list = Array.isArray(data) ? data : [];
+        return list.map((r: any) => ({
+            id: r.id ?? '',
+            name: r.name ?? '',
+        }));
+    }, [rolesRaw]);
 
     // Fetch users
     const statusParam =

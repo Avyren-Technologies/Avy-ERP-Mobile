@@ -3,11 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    Dimensions,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
+    useWindowDimensions,
     View,
 } from 'react-native';
 import Animated, {
@@ -30,9 +30,12 @@ import { useAuthStore, getDisplayName } from '@/features/auth/use-auth-store';
 import { useCompanyActivity } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
-const QUICK_ACTION_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12 * 3) / 4;
+function useResponsiveWidths() {
+    const { width: SCREEN_WIDTH } = useWindowDimensions();
+    const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
+    const QUICK_ACTION_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12 * 3) / 4;
+    return { SCREEN_WIDTH, CARD_WIDTH, QUICK_ACTION_WIDTH };
+}
 
 // ============ TYPES ============
 
@@ -264,11 +267,12 @@ function ActivityTypeIcon({ type }: { type: string }) {
 
 // ============ SUB-COMPONENTS ============
 
-function HeaderSection() {
+function HeaderSection({ stats }: { stats?: any }) {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const user = useAuthStore.use.user();
     const displayName = getDisplayName(user);
+    const userTier = stats?.userTier ?? 'N/A';
 
     return (
         <Animated.View entering={FadeInDown.duration(500)}>
@@ -308,9 +312,6 @@ function HeaderSection() {
                                 strokeLinejoin="round"
                             />
                         </Svg>
-                        <View style={styles.notificationBadge}>
-                            <Text className="font-inter text-[9px] font-bold text-white">5</Text>
-                        </View>
                     </Pressable>
                 </View>
 
@@ -323,7 +324,7 @@ function HeaderSection() {
                         </Text>
                     </View>
                     <Text className="font-inter text-xs text-white/60">
-                        Plan: Enterprise
+                        Plan: {userTier}
                     </Text>
                 </Animated.View>
             </LinearGradient>
@@ -331,12 +332,12 @@ function HeaderSection() {
     );
 }
 
-function KPICard({ data, index }: { data: KPICardData; index: number }) {
+function KPICard({ data, index, cardWidth }: { data: KPICardData; index: number; cardWidth: number }) {
     return (
         <Animated.View
             entering={FadeInUp.duration(400).delay(200 + index * 100)}
         >
-            <View style={styles.kpiCard}>
+            <View style={[styles.kpiCard, { width: cardWidth }]}>
                 <View style={styles.kpiHeader}>
                     <View style={[styles.kpiIconContainer, { backgroundColor: data.iconBg }]}>
                         <KPIIcon type={data.iconType} color={data.iconColor} />
@@ -359,7 +360,7 @@ function KPICard({ data, index }: { data: KPICardData; index: number }) {
     );
 }
 
-function QuickActionsSection() {
+function QuickActionsSection({ actionWidth }: { actionWidth: number }) {
     const router = useRouter();
 
     return (
@@ -379,6 +380,7 @@ function QuickActionsSection() {
                         <Pressable
                             style={({ pressed }) => [
                                 styles.quickActionCard,
+                                { width: actionWidth },
                                 pressed && { opacity: 0.7 },
                             ]}
                             onPress={() => router.push(action.route as any)}
@@ -562,6 +564,7 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
 
 export function CompanyAdminDashboard() {
     const insets = useSafeAreaInsets();
+    const { CARD_WIDTH, QUICK_ACTION_WIDTH } = useResponsiveWidths();
     const { data: statsResponse, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useCompanyAdminStats();
     const { data: activityResponse, isLoading: activityLoading, refetch: refetchActivity } = useCompanyActivity(5);
 
@@ -615,7 +618,7 @@ export function CompanyAdminDashboard() {
     if (statsLoading) {
         return (
             <View style={styles.container}>
-                <HeaderSection />
+                <HeaderSection stats={stats} />
                 <View style={styles.kpiGrid}>
                     <Skeleton
                         isLoading={true}
@@ -706,17 +709,17 @@ export function CompanyAdminDashboard() {
                 }
             >
                 {/* Header */}
-                <HeaderSection />
+                <HeaderSection stats={stats} />
 
                 {/* KPI Cards Grid */}
                 <View style={styles.kpiGrid}>
                     {kpiData.map((kpi, index) => (
-                        <KPICard key={kpi.title} data={kpi} index={index} />
+                        <KPICard key={kpi.title} data={kpi} index={index} cardWidth={CARD_WIDTH} />
                     ))}
                 </View>
 
                 {/* Quick Actions */}
-                <QuickActionsSection />
+                <QuickActionsSection actionWidth={QUICK_ACTION_WIDTH} />
 
                 {/* Company Overview */}
                 <CompanyOverviewSection stats={stats} />
@@ -785,19 +788,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    notificationBadge: {
-        position: 'absolute',
-        top: 6,
-        right: 6,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: colors.danger[500],
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: colors.primary[600],
-    },
     healthBar: {
         marginTop: 18,
         flexDirection: 'row',
@@ -827,7 +817,6 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     kpiCard: {
-        width: CARD_WIDTH,
         backgroundColor: colors.white,
         borderRadius: 20,
         padding: 16,
@@ -877,7 +866,6 @@ const styles = StyleSheet.create({
     },
     quickActionCard: {
         alignItems: 'center',
-        width: QUICK_ACTION_WIDTH,
     },
     quickActionIcon: {
         width: 52,

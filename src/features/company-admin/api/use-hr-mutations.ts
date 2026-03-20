@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { showError } from '@/components/ui/utils';
 import { hrApi } from '@/lib/api/hr';
 import { hrKeys } from '@/features/company-admin/api/use-hr-queries';
 
@@ -14,6 +15,7 @@ export function useCreateDepartment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.departments() });
     },
+    onError: showError,
   });
 }
 
@@ -29,6 +31,7 @@ export function useUpdateDepartment() {
         queryKey: hrKeys.department(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -40,6 +43,7 @@ export function useDeleteDepartment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.departments() });
     },
+    onError: showError,
   });
 }
 
@@ -54,6 +58,7 @@ export function useCreateDesignation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.designations() });
     },
+    onError: showError,
   });
 }
 
@@ -69,6 +74,7 @@ export function useUpdateDesignation() {
         queryKey: hrKeys.designation(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -80,6 +86,7 @@ export function useDeleteDesignation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.designations() });
     },
+    onError: showError,
   });
 }
 
@@ -93,6 +100,7 @@ export function useCreateGrade() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.grades() });
     },
+    onError: showError,
   });
 }
 
@@ -108,6 +116,7 @@ export function useUpdateGrade() {
         queryKey: hrKeys.grade(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -119,6 +128,7 @@ export function useDeleteGrade() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.grades() });
     },
+    onError: showError,
   });
 }
 
@@ -133,6 +143,7 @@ export function useCreateEmployeeType() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.employeeTypes() });
     },
+    onError: showError,
   });
 }
 
@@ -148,6 +159,7 @@ export function useUpdateEmployeeType() {
         queryKey: hrKeys.employeeType(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -159,6 +171,7 @@ export function useDeleteEmployeeType() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.employeeTypes() });
     },
+    onError: showError,
   });
 }
 
@@ -173,6 +186,7 @@ export function useCreateCostCentre() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.costCentres() });
     },
+    onError: showError,
   });
 }
 
@@ -188,6 +202,7 @@ export function useUpdateCostCentre() {
         queryKey: hrKeys.costCentre(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -199,6 +214,7 @@ export function useDeleteCostCentre() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.costCentres() });
     },
+    onError: showError,
   });
 }
 
@@ -213,6 +229,7 @@ export function useCreateEmployee() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.employees() });
     },
+    onError: showError,
   });
 }
 
@@ -228,6 +245,7 @@ export function useUpdateEmployee() {
         queryKey: hrKeys.employee(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -243,6 +261,7 @@ export function useUpdateEmployeeStatus() {
         queryKey: hrKeys.employee(variables.id),
       });
     },
+    onError: showError,
   });
 }
 
@@ -254,6 +273,7 @@ export function useDeleteEmployee() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrKeys.employees() });
     },
+    onError: showError,
   });
 }
 
@@ -275,6 +295,7 @@ export function useCreateNominee() {
         queryKey: hrKeys.nominees(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -296,6 +317,7 @@ export function useUpdateNominee() {
         queryKey: hrKeys.nominees(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -315,6 +337,7 @@ export function useDeleteNominee() {
         queryKey: hrKeys.nominees(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -336,6 +359,7 @@ export function useCreateEducation() {
         queryKey: hrKeys.education(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -357,6 +381,7 @@ export function useUpdateEducation() {
         queryKey: hrKeys.education(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -376,6 +401,7 @@ export function useDeleteEducation() {
         queryKey: hrKeys.education(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -397,6 +423,7 @@ export function useCreatePrevEmployment() {
         queryKey: hrKeys.prevEmployment(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -418,6 +445,7 @@ export function useUpdatePrevEmployment() {
         queryKey: hrKeys.prevEmployment(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -437,6 +465,7 @@ export function useDeletePrevEmployment() {
         queryKey: hrKeys.prevEmployment(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -458,6 +487,7 @@ export function useUploadDocument() {
         queryKey: hrKeys.documents(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }
 
@@ -477,5 +507,6 @@ export function useDeleteDocument() {
         queryKey: hrKeys.documents(variables.employeeId),
       });
     },
+    onError: showError,
   });
 }

@@ -1,9 +1,11 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
+    Image,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -418,10 +420,13 @@ const TABS: { key: TabKey; label: string }[] = [
 function TabBar({
     active,
     onSelect,
+    isCreateMode,
 }: {
     active: TabKey;
     onSelect: (key: TabKey) => void;
+    isCreateMode?: boolean;
 }) {
+    const visibleTabs = isCreateMode ? TABS.filter((t) => t.key !== 'timeline') : TABS;
     return (
         <ScrollView
             horizontal
@@ -429,7 +434,7 @@ function TabBar({
             contentContainerStyle={st.tabBarContent}
             style={st.tabBar}
         >
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
                 const isActive = active === tab.key;
                 return (
                     <Pressable
@@ -796,6 +801,7 @@ export function EmployeeDetailScreen() {
     const [salary, setSalary] = React.useState<SalaryForm>(INITIAL_SALARY);
     const [bank, setBank] = React.useState<BankForm>(INITIAL_BANK);
     const [documents, setDocuments] = React.useState<DocumentsForm>(INITIAL_DOCUMENTS);
+    const [profilePhotoUrl, setProfilePhotoUrl] = React.useState<string | null>(null);
     const [employeeStatus, setEmployeeStatus] = React.useState<EmployeeStatus>('Active');
     const [employeeName, setEmployeeName] = React.useState('');
 
@@ -880,6 +886,7 @@ export function EmployeeDetailScreen() {
 
         setEmployeeName([d.firstName, d.lastName].filter(Boolean).join(' '));
         setEmployeeStatus(d.status ?? 'Active');
+        setProfilePhotoUrl(d.profilePhotoUrl ?? null);
 
         setPersonal({
             firstName: d.firstName ?? '', middleName: d.middleName ?? '',
@@ -949,8 +956,33 @@ export function EmployeeDetailScreen() {
         });
     }, [employeeData, isCreateMode]);
 
+    // Image picker handler
+    const handlePickPhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            showErrorMessage('Permission to access photos is required.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+            base64: true,
+        });
+        if (!result.canceled && result.assets[0]) {
+            const asset = result.assets[0];
+            if (asset.base64) {
+                const mimeType = asset.mimeType ?? 'image/jpeg';
+                setProfilePhotoUrl(`data:${mimeType};base64,${asset.base64}`);
+            }
+        }
+    };
+
     // Collect all form data
     const collectFormData = (): Record<string, unknown> => ({
+        // Profile photo
+        profilePhotoUrl: profilePhotoUrl ?? undefined,
         // Personal
         firstName: personal.firstName, middleName: personal.middleName,
         lastName: personal.lastName, dob: personal.dob, gender: personal.gender,
@@ -1151,9 +1183,35 @@ export function EmployeeDetailScreen() {
                 </LinearGradient>
             </Animated.View>
 
+            {/* Profile Photo */}
+            <Animated.View entering={FadeIn.duration(400).delay(50)}>
+                <View style={st.photoSection}>
+                    <Pressable onPress={handlePickPhoto} style={st.avatarContainer}>
+                        {profilePhotoUrl ? (
+                            <Image source={{ uri: profilePhotoUrl }} style={st.avatarImage} />
+                        ) : (
+                            <View style={st.avatarPlaceholder}>
+                                <Text className="font-inter text-lg font-bold text-accent-700">
+                                    {getInitials(personal.firstName, personal.lastName)}
+                                </Text>
+                            </View>
+                        )}
+                        <View style={st.cameraIconBadge}>
+                            <Svg width={12} height={12} viewBox="0 0 24 24">
+                                <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                <Circle cx="12" cy="13" r="4" stroke={colors.white} strokeWidth="2" fill="none" />
+                            </Svg>
+                        </View>
+                    </Pressable>
+                    <Text className="mt-1 font-inter text-[10px] text-neutral-400">
+                        Tap to {profilePhotoUrl ? 'change' : 'add'} photo
+                    </Text>
+                </View>
+            </Animated.View>
+
             {/* Tab Bar */}
             <Animated.View entering={FadeIn.duration(400).delay(100)}>
-                <TabBar active={activeTab} onSelect={setActiveTab} />
+                <TabBar active={activeTab} onSelect={setActiveTab} isCreateMode={isCreateMode} />
             </Animated.View>
 
             {/* Tab Content */}
@@ -1198,48 +1256,87 @@ export function EmployeeDetailScreen() {
             </ScrollView>
 
             {/* Bottom Action Bar */}
-            <View style={[st.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-                {/* Status action (edit mode only) */}
-                {!isCreateMode && employeeStatus !== 'Exited' && (
-                    <Pressable
-                        onPress={handleStatusAction}
-                        style={({ pressed }) => [
-                            st.statusActionBtn,
-                            pressed && { opacity: 0.85 },
-                            statusMutation.isPending && { opacity: 0.6 },
-                        ]}
-                        disabled={statusMutation.isPending}
-                    >
-                        <Text className="font-inter text-sm font-semibold text-primary-600">
-                            {employeeStatus === 'Probation'
-                                ? 'Confirm Employee'
-                                : employeeStatus === 'On Notice'
-                                  ? 'Complete Exit'
-                                  : 'Initiate Exit'}
-                        </Text>
-                    </Pressable>
-                )}
+            {(() => {
+                const createTabOrder: TabKey[] = ['personal', 'professional', 'salary', 'bank', 'documents'];
+                const currentCreateTabIndex = createTabOrder.indexOf(activeTab);
+                const isLastCreateTab = isCreateMode && currentCreateTabIndex === createTabOrder.length - 1;
+                const isNotLastCreateTab = isCreateMode && currentCreateTabIndex >= 0 && currentCreateTabIndex < createTabOrder.length - 1;
 
-                {/* Save button */}
-                <Pressable
-                    onPress={handleSave}
-                    style={({ pressed }) => [
-                        st.saveBtn,
-                        pressed && { opacity: 0.85 },
-                        isSaving && { opacity: 0.6 },
-                        !isCreateMode && employeeStatus !== 'Exited' ? { flex: 2 } : { flex: 1 },
-                    ]}
-                    disabled={isSaving}
-                >
-                    {isSaving ? (
-                        <ActivityIndicator color={colors.white} size="small" />
-                    ) : (
-                        <Text className="font-inter text-sm font-bold text-white">
-                            {isCreateMode ? 'Save Employee' : 'Save Changes'}
-                        </Text>
-                    )}
-                </Pressable>
-            </View>
+                return (
+                    <View style={[st.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+                        {/* Status action (edit mode only) */}
+                        {!isCreateMode && employeeStatus !== 'Exited' && (
+                            <Pressable
+                                onPress={handleStatusAction}
+                                style={({ pressed }) => [
+                                    st.statusActionBtn,
+                                    pressed && { opacity: 0.85 },
+                                    statusMutation.isPending && { opacity: 0.6 },
+                                ]}
+                                disabled={statusMutation.isPending}
+                            >
+                                <Text className="font-inter text-sm font-semibold text-primary-600">
+                                    {employeeStatus === 'Probation'
+                                        ? 'Confirm Employee'
+                                        : employeeStatus === 'On Notice'
+                                          ? 'Complete Exit'
+                                          : 'Initiate Exit'}
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Back button (create mode, not first tab) */}
+                        {isCreateMode && currentCreateTabIndex > 0 && (
+                            <Pressable
+                                onPress={() => setActiveTab(createTabOrder[currentCreateTabIndex - 1])}
+                                style={({ pressed }) => [
+                                    st.statusActionBtn,
+                                    pressed && { opacity: 0.85 },
+                                ]}
+                            >
+                                <Text className="font-inter text-sm font-semibold text-primary-600">
+                                    Back
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Next / Create / Save button */}
+                        {isNotLastCreateTab ? (
+                            <Pressable
+                                onPress={() => setActiveTab(createTabOrder[currentCreateTabIndex + 1])}
+                                style={({ pressed }) => [
+                                    st.saveBtn,
+                                    pressed && { opacity: 0.85 },
+                                    { flex: 1 },
+                                ]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">
+                                    Next
+                                </Text>
+                            </Pressable>
+                        ) : (
+                            <Pressable
+                                onPress={handleSave}
+                                style={({ pressed }) => [
+                                    st.saveBtn,
+                                    pressed && { opacity: 0.85 },
+                                    isSaving && { opacity: 0.6 },
+                                    !isCreateMode && employeeStatus !== 'Exited' ? { flex: 2 } : { flex: 1 },
+                                ]}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <ActivityIndicator color={colors.white} size="small" />
+                                ) : (
+                                    <Text className="font-inter text-sm font-bold text-white">
+                                        {isCreateMode ? 'Create Employee' : 'Save Changes'}
+                                    </Text>
+                                )}
+                            </Pressable>
+                        )}
+                    </View>
+                );
+            })()}
 
             <ConfirmModal {...confirmModal.modalProps} />
         </View>
@@ -1303,6 +1400,50 @@ const st = StyleSheet.create({
         width: 5,
         height: 5,
         borderRadius: 2.5,
+    },
+    // Profile photo section
+    photoSection: {
+        alignItems: 'center',
+        paddingVertical: 12,
+        backgroundColor: colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.neutral[100],
+    },
+    avatarContainer: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    avatarImage: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+    },
+    avatarPlaceholder: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+        backgroundColor: colors.accent[100],
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cameraIconBadge: {
+        position: 'absolute',
+        bottom: -2,
+        right: -2,
+        width: 24,
+        height: 24,
+        borderRadius: 8,
+        backgroundColor: colors.primary[600],
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 3,
     },
     // Tab bar
     tabBar: {

@@ -14,6 +14,10 @@ export default function CompanyLayout() {
       <Stack.Screen name="users" />
       <Stack.Screen name="roles" />
       <Stack.Screen name="feature-toggles" />
+      <Stack.Screen name="module-catalogue" />
+      <Stack.Screen name="billing" />
+      <Stack.Screen name="billing-invoices" />
+      <Stack.Screen name="billing-payments" />
       <Stack.Screen name="hr" />
       <Stack.Screen name="inventory" />
       <Stack.Screen name="production" />

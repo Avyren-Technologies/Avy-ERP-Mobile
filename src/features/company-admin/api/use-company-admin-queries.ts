@@ -27,6 +27,14 @@ export const companyAdminKeys = {
     [...companyAdminKeys.all, 'activity', limit] as const,
   rbacRoles: () => [...companyAdminKeys.all, 'rbac-roles'] as const,
   rbacReferenceRoles: () => [...companyAdminKeys.all, 'rbac-reference-roles'] as const,
+  moduleCatalogue: () => [...companyAdminKeys.all, 'module-catalogue'] as const,
+  subscription: () => [...companyAdminKeys.all, 'subscription'] as const,
+  invoices: (params?: CompanyAdminListParams) =>
+    [...companyAdminKeys.all, 'invoices', params] as const,
+  invoiceDetail: (id: string) => [...companyAdminKeys.all, 'invoice', id] as const,
+  payments: (params?: CompanyAdminListParams) =>
+    [...companyAdminKeys.all, 'payments', params] as const,
+  costBreakdown: () => [...companyAdminKeys.all, 'cost-breakdown'] as const,
 };
 
 // --- Queries ---
@@ -154,5 +162,58 @@ export function useRbacReferenceRoles() {
   return useQuery({
     queryKey: companyAdminKeys.rbacReferenceRoles(),
     queryFn: () => companyAdminApi.listReferenceRoles(),
+  });
+}
+
+// --- Module Catalogue ---
+
+/** Available modules catalogue */
+export function useModuleCatalogue() {
+  return useQuery({
+    queryKey: companyAdminKeys.moduleCatalogue(),
+    queryFn: () => companyAdminApi.getModuleCatalogue(),
+  });
+}
+
+// --- Billing ---
+
+/** Company subscription details */
+export function useMySubscription() {
+  return useQuery({
+    queryKey: companyAdminKeys.subscription(),
+    queryFn: () => companyAdminApi.getMySubscription(),
+  });
+}
+
+/** Company invoices with optional filters */
+export function useMyInvoices(params?: CompanyAdminListParams) {
+  return useQuery({
+    queryKey: companyAdminKeys.invoices(params),
+    queryFn: () => companyAdminApi.getMyInvoices(params),
+  });
+}
+
+/** Single invoice detail */
+export function useMyInvoiceDetail(id: string) {
+  return useQuery({
+    queryKey: companyAdminKeys.invoiceDetail(id),
+    queryFn: () => companyAdminApi.getMyInvoiceDetail(id),
+    enabled: !!id,
+  });
+}
+
+/** Company payments with optional filters */
+export function useMyPayments(params?: CompanyAdminListParams) {
+  return useQuery({
+    queryKey: companyAdminKeys.payments(params),
+    queryFn: () => companyAdminApi.getMyPayments(params),
+  });
+}
+
+/** Cost breakdown by module */
+export function useMyCostBreakdown() {
+  return useQuery({
+    queryKey: companyAdminKeys.costBreakdown(),
+    queryFn: () => companyAdminApi.getMyCostBreakdown(),
   });
 }

@@ -243,10 +243,19 @@ function AppSidebar() {
             {
                 title: 'Configuration',
                 items: [
+                    { id: 'module-catalogue', label: 'Module Catalogue', icon: 'settings' as const, onPress: () => router.push('/company/module-catalogue' as any), isActive: pathname.startsWith('/company/module-catalogue') },
                     { id: 'no-series', label: 'Number Series', icon: 'settings' as const, onPress: () => router.push('/company/no-series' as any), isActive: pathname.startsWith('/company/no-series') },
                     { id: 'iot-reasons', label: 'IOT Reasons', icon: 'settings' as const, onPress: () => router.push('/company/iot-reasons' as any), isActive: pathname.startsWith('/company/iot-reasons') },
                     { id: 'controls', label: 'System Controls', icon: 'settings' as const, onPress: () => router.push('/company/controls' as any), isActive: pathname.startsWith('/company/controls') },
                     { id: 'settings', label: 'Settings', icon: 'settings' as const, onPress: () => router.push('/company/settings' as any), isActive: pathname.startsWith('/company/settings') },
+                ],
+            },
+            {
+                title: 'Billing',
+                items: [
+                    { id: 'billing-overview', label: 'Billing Overview', icon: 'billing' as const, onPress: () => router.push('/company/billing' as any), isActive: pathname === '/company/billing' },
+                    { id: 'billing-invoices', label: 'Invoices', icon: 'billing' as const, onPress: () => router.push('/company/billing-invoices' as any), isActive: pathname.startsWith('/company/billing-invoices') },
+                    { id: 'billing-payments', label: 'Payments', icon: 'billing' as const, onPress: () => router.push('/company/billing-payments' as any), isActive: pathname.startsWith('/company/billing-payments') },
                 ],
             },
             {
@@ -270,7 +279,7 @@ function AppSidebar() {
                 ],
             },
         ],
-        [pathname, router]
+        [pathname]
     );
 
     const superAdminSections: SidebarSection[] = React.useMemo(
@@ -358,7 +367,7 @@ function AppSidebar() {
                 ],
             },
         ],
-        [pathname, router]
+        [pathname]
     );
 
     const defaultSections: SidebarSection[] = React.useMemo(
@@ -394,7 +403,7 @@ function AppSidebar() {
                 ],
             },
         ],
-        [pathname, router]
+        [pathname]
     );
 
     const sections = isSuperAdmin
@@ -557,8 +566,8 @@ function TabLayoutInner() {
                     listeners={isCompanyAdmin ? {
                         tabPress: (e) => {
                             e.preventDefault();
-                            // Navigate to company profile for company admin
-                            require('expo-router').router.push('/company/profile');
+                            // Use navigate (not push) to avoid corrupting the back stack
+                            require('expo-router').router.navigate('/company/profile');
                         },
                     } : undefined}
                 />
@@ -577,8 +586,7 @@ function TabLayoutInner() {
                     listeners={isCompanyAdmin ? {
                         tabPress: (e) => {
                             e.preventDefault();
-                            // Navigate to employee directory for company admin
-                            require('expo-router').router.push('/company/hr/employees');
+                            require('expo-router').router.navigate('/company/hr/employees');
                         },
                     } : undefined}
                 />
@@ -606,7 +614,7 @@ function TabLayoutInner() {
                     listeners={isCompanyAdmin ? {
                         tabPress: (e) => {
                             e.preventDefault();
-                            require('expo-router').router.push('/company/settings');
+                            require('expo-router').router.navigate('/company/settings');
                         },
                     } : undefined}
                 />

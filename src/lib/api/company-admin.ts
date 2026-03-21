@@ -114,6 +114,23 @@ export const companyAdminApi = {
   getActivity: (limit?: number) =>
     client.get('/dashboard/company-activity', { params: { limit } }),
 
+  // ── Module Catalogue ──────────────────────────────────────────────
+  getModuleCatalogue: () => client.get('/company/modules/catalogue'),
+
+  // ── Billing ──────────────────────────────────────────────────────
+  getMySubscription: () => client.get('/company/billing/subscription'),
+
+  getMyInvoices: (params?: CompanyAdminListParams) =>
+    client.get('/company/billing/invoices', { params }),
+
+  getMyInvoiceDetail: (id: string) =>
+    client.get(`/company/billing/invoices/${id}`),
+
+  getMyPayments: (params?: CompanyAdminListParams) =>
+    client.get('/company/billing/payments', { params }),
+
+  getMyCostBreakdown: () => client.get('/company/billing/cost-breakdown'),
+
   // ── RBAC (roles & permissions) ────────────────────────────────────
   listRoles: () => client.get('/rbac/roles'),
 

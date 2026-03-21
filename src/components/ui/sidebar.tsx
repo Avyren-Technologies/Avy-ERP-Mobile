@@ -189,6 +189,68 @@ export function HamburgerButton({
     );
 }
 
+// ============ MEMOIZED NAV ITEM (prevents 79 re-renders) ============
+
+const SidebarNavItem = React.memo(function SidebarNavItem({
+    item,
+    onClose,
+}: {
+    item: SidebarNavItem;
+    onClose: () => void;
+}) {
+    return (
+        <Pressable
+            onPress={() => {
+                item.onPress();
+                onClose();
+            }}
+            style={({ pressed }) => [
+                styles.navItem,
+                item.isActive && styles.navItemActive,
+                pressed && !item.isActive && styles.navItemPressed,
+            ]}
+        >
+            <View
+                style={[
+                    styles.navIconWrap,
+                    item.isActive && styles.navIconWrapActive,
+                ]}
+            >
+                <SidebarNavIcon
+                    type={item.icon}
+                    color={
+                        item.isActive
+                            ? colors.primary[600]
+                            : colors.neutral[500]
+                    }
+                    size={20}
+                />
+            </View>
+            <View style={styles.navLabelRow}>
+                <Text
+                    className={`font-inter text-sm font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-600'}`}
+                    numberOfLines={1}
+                >
+                    {item.label}
+                </Text>
+                {item.badge != null && item.badge > 0 && (
+                    <View style={styles.badge}>
+                        <Text className="font-inter text-[9px] font-bold text-white">
+                            {item.badge > 99 ? '99+' : item.badge}
+                        </Text>
+                    </View>
+                )}
+            </View>
+        </Pressable>
+    );
+}, (prev, next) => {
+    // Only re-render if active state, label, or badge changed
+    return prev.item.id === next.item.id
+        && prev.item.isActive === next.item.isActive
+        && prev.item.label === next.item.label
+        && prev.item.badge === next.item.badge;
+});
+
 // ============ SIDEBAR COMPONENT (always mounted) ============
 
 export function Sidebar({
@@ -333,61 +395,19 @@ export function Sidebar({
                     contentContainerStyle={styles.navContentContainer}
                     showsVerticalScrollIndicator={false}
                     bounces={true}
+                    removeClippedSubviews={true}
                 >
-                    {sections.map((section, sIdx) => (
-                        <View key={sIdx} style={styles.navSection}>
+                    {sections.map((section) => (
+                        <View key={section.title ?? section.items[0]?.id ?? 'default'} style={styles.navSection}>
                             {section.title && (
-                                <Animated.View style={[styles.sectionTitleWrap, labelOpacityStyle]}>
+                                <View style={styles.sectionTitleWrap}>
                                     <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                                         {section.title}
                                     </Text>
-                                </Animated.View>
+                                </View>
                             )}
                             {section.items.map((item) => (
-                                <Pressable
-                                    key={item.id}
-                                    onPress={() => {
-                                        item.onPress();
-                                        close();
-                                    }}
-                                    style={({ pressed }) => [
-                                        styles.navItem,
-                                        item.isActive && styles.navItemActive,
-                                        pressed && !item.isActive && styles.navItemPressed,
-                                    ]}
-                                >
-                                    <View
-                                        style={[
-                                            styles.navIconWrap,
-                                            item.isActive && styles.navIconWrapActive,
-                                        ]}
-                                    >
-                                        <SidebarNavIcon
-                                            type={item.icon}
-                                            color={
-                                                item.isActive
-                                                    ? colors.primary[600]
-                                                    : colors.neutral[500]
-                                            }
-                                            size={20}
-                                        />
-                                    </View>
-                                    <Animated.View style={[styles.navLabelRow, labelOpacityStyle]}>
-                                        <Text
-                                            className={`font-inter text-sm font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-600'}`}
-                                            numberOfLines={1}
-                                        >
-                                            {item.label}
-                                        </Text>
-                                        {item.badge != null && item.badge > 0 && (
-                                            <View style={styles.badge}>
-                                                <Text className="font-inter text-[9px] font-bold text-white">
-                                                    {item.badge > 99 ? '99+' : item.badge}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </Animated.View>
-                                </Pressable>
+                                <SidebarNavItem key={item.id} item={item} onClose={close} />
                             ))}
                         </View>
                     ))}

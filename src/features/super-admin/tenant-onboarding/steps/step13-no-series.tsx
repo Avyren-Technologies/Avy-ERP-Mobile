@@ -28,6 +28,8 @@ export function Step13NoSeries({
     setNoSeries: (ns: NoSeriesItem[]) => void;
     errors?: Record<string, string>;
 }) {
+    const toDigitsOnly = (value: string) => value.replace(/\D/g, '');
+
     const addSeries = () => {
         setNoSeries([
             ...noSeries,
@@ -60,6 +62,11 @@ export function Step13NoSeries({
                     Each series generates unique, traceable document numbers across the system.
                 </Text>
             </View>
+            {errors?._root ? (
+                <View style={S.sectionErrorBox}>
+                    <Text className="font-inter text-xs text-danger-700">{errors._root}</Text>
+                </View>
+            ) : null}
 
             {noSeries.map((item, idx) => (
                 <Animated.View key={item.id} entering={FadeIn.duration(250)} style={S.itemCard}>
@@ -89,7 +96,9 @@ export function Step13NoSeries({
                                 label="Starting Number"
                                 placeholder="1"
                                 value={item.startNumber}
-                                onChangeText={(v) => update(item.id, { startNumber: v })}
+                                onChangeText={(v) =>
+                                    update(item.id, { startNumber: toDigitsOnly(v) })
+                                }
                                 keyboardType="number-pad"
                                 error={errors?.[`startNumber_${idx}`]}
                             />
@@ -138,7 +147,9 @@ export function Step13NoSeries({
                         label="Number of Digits"
                         placeholder="e.g. 5"
                         value={item.numberCount}
-                        onChangeText={(v) => update(item.id, { numberCount: v })}
+                        onChangeText={(v) =>
+                            update(item.id, { numberCount: toDigitsOnly(v) })
+                        }
                         keyboardType="number-pad"
                         hint="The number will be zero-padded to this length"
                         error={errors?.[`numberCount_${idx}`]}

@@ -57,6 +57,29 @@ export interface PaginatedResult<T> {
   };
 }
 
+function normalizeOnboardPayload(payload: any) {
+  if (!payload || typeof payload !== 'object') return payload;
+
+  if (Array.isArray(payload.noSeries)) {
+    const normalizedPayload = {
+      ...payload,
+      noSeries: payload.noSeries.map((ns: any) => ({
+        ...ns,
+        numberCount: typeof ns?.numberCount === 'string'
+          ? Number.parseInt(ns.numberCount, 10)
+          : ns?.numberCount,
+        startNumber: typeof ns?.startNumber === 'string'
+          ? Number.parseInt(ns.startNumber, 10)
+          : ns?.startNumber,
+      })),
+    };
+
+    return normalizedPayload;
+  }
+
+  return payload;
+}
+
 // --- API Service ---
 
 /**
@@ -69,7 +92,7 @@ export interface PaginatedResult<T> {
 export const tenantApi = {
   /** Onboard a new tenant (full wizard submit) */
   onboard: (payload: any) =>
-    client.post('/platform/tenants/onboard', payload) as Promise<ApiResponse<any>>,
+    client.post('/platform/tenants/onboard', normalizeOnboardPayload(payload)) as Promise<ApiResponse<any>>,
 
   /** List companies with optional pagination / filters */
   listCompanies: (params?: {

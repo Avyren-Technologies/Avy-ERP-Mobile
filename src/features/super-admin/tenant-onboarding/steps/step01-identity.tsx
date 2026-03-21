@@ -14,6 +14,26 @@ import type { Step1Form } from '../types';
 import { BUSINESS_TYPES, COMPANY_STATUSES, INDUSTRIES } from '../constants';
 import { S } from '../shared-styles';
 
+function generateCompanyCode(displayName: string): string {
+    const normalized = displayName.toUpperCase().replace(/[^A-Z0-9\s]/g, ' ').trim();
+    if (!normalized) return '';
+
+    const words = normalized.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '';
+
+    const prefix = words.length >= 2
+        ? `${words[0].slice(0, 3)}${words[1].slice(0, 3)}`
+        : words[0].slice(0, 6);
+
+    const hash = normalized
+        .split('')
+        .reduce((sum, ch) => (sum + ch.charCodeAt(0)) % 1000, 0)
+        .toString()
+        .padStart(3, '0');
+
+    return `${prefix}-${hash}`;
+}
+
 export function Step1Identity({
     form,
     setForm,
@@ -25,6 +45,24 @@ export function Step1Identity({
 }) {
     const [showOptions, setShowOptions] = React.useState(false);
     const [permissionError, setPermissionError] = React.useState('');
+    const lastAutoCodeRef = React.useRef('');
+    const manualCompanyCodeOverrideRef = React.useRef(false);
+
+    React.useEffect(() => {
+        const generatedCode = generateCompanyCode(form.displayName ?? '');
+        if (!generatedCode) {
+            return;
+        }
+
+        const currentCode = (form.companyCode ?? '').toUpperCase();
+        const shouldAutofill = !manualCompanyCodeOverrideRef.current
+            && (currentCode.length === 0 || currentCode === lastAutoCodeRef.current);
+
+        if (shouldAutofill && generatedCode !== currentCode) {
+            setForm({ companyCode: generatedCode });
+            lastAutoCodeRef.current = generatedCode;
+        }
+    }, [form.displayName, form.companyCode, setForm]);
 
     const pickFromGallery = async () => {
         setShowOptions(false);
@@ -247,12 +285,15 @@ export function Step1Identity({
                 />
                 <FormInput
                     label="Company Code"
-                    placeholder="e.g. ABC-IN-001 (auto-generated)"
+                    placeholder="e.g. APEXMA-486 (auto-generated)"
                     value={form.companyCode}
-                    onChangeText={(v) => setForm({ companyCode: v })}
+                    onChangeText={(v) => {
+                        manualCompanyCodeOverrideRef.current = true;
+                        setForm({ companyCode: v.toUpperCase() });
+                    }}
                     required
-                    autoCapitalize="none"
-                    hint="Auto-generated based on company name. Override if needed."
+                    autoCapitalize="characters"
+                    hint="Auto-generated from company name. Override if needed."
                     error={errors?.companyCode}
                 />
                 <FormInput

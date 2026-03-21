@@ -18,6 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import type { AxiosError } from 'axios';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
@@ -389,8 +390,8 @@ export function TenantOnboardingScreen() {
                             linkedScreen: ns.linkedScreen,
                             prefix: ns.prefix,
                             suffix: ns.suffix,
-                            numberCount: ns.numberCount,
-                            startNumber: ns.startNumber,
+                            numberCount: Number.parseInt(ns.numberCount, 10),
+                            startNumber: Number.parseInt(ns.startNumber, 10),
                         })),
                         iotReasons: iotReasons.map((r) => ({
                             reasonType: r.reasonType,
@@ -418,9 +419,13 @@ export function TenantOnboardingScreen() {
                     showSuccess('Company Created', 'Tenant onboarded successfully.');
                     router.back();
                 } catch (err: any) {
+                    const apiError = err as AxiosError<{ message?: string }>;
+                    const errorMessage = apiError.response?.data?.message
+                        ?? err?.message
+                        ?? 'An error occurred while creating the company. Please try again.';
                     showConfirm({
                         title: 'Onboarding Failed',
-                        message: err?.message ?? 'An error occurred while creating the company. Please try again.',
+                        message: errorMessage,
                         variant: 'danger',
                         confirmText: 'OK',
                         onConfirm: () => {},

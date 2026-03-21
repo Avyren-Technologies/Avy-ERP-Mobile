@@ -70,7 +70,12 @@ function Providers({ children }: { children: React.ReactNode }) {
           <APIProvider>
             <BottomSheetModalProvider>
               {children}
-              <FlashMessage position="top" />
+              <FlashMessage
+                position="top"
+                floating
+                statusBarHeight={24}
+                style={styles.flashMessage}
+              />
             </BottomSheetModalProvider>
           </APIProvider>
         </ThemeProvider>
@@ -82,5 +87,9 @@ function Providers({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  flashMessage: {
+    marginTop: 52,
+    marginHorizontal: 12,
   },
 });

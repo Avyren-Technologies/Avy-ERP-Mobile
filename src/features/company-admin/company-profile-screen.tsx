@@ -387,8 +387,8 @@ function StatCard({
 }) {
     return (
         <Pressable onPress={onPress} style={s.statCard}>
-            <Text className="font-inter text-2xl font-bold text-primary-600">{count}</Text>
-            <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">{label}</Text>
+            <Text className="font-inter text-xl font-bold text-primary-600">{count}</Text>
+            <Text className="mt-0.5 font-inter text-[11px] font-medium text-neutral-500">{label}</Text>
         </Pressable>
     );
 }
@@ -573,6 +573,11 @@ export function CompanyProfileScreen() {
     const { data: profileResponse, isLoading, error, refetch } = useCompanyProfile();
     const rawData = profileResponse?.data ?? profileResponse;
     const profile: CompanyProfileData | null = rawData ? mapApiToProfile(rawData) : null;
+    const [logoFailed, setLogoFailed] = React.useState(false);
+
+    React.useEffect(() => {
+        setLogoFailed(false);
+    }, [profile?.logoUrl]);
 
     // Edit sheet state
     const [editSection, setEditSection] = React.useState<EditableSectionKey | null>(null);
@@ -659,7 +664,6 @@ export function CompanyProfileScreen() {
 
     const tier = USER_TIERS.find((t) => t.key === profile.userTier);
 
-    const [logoFailed, setLogoFailed] = React.useState(false);
     const hasLogo = !!profile.logoUrl && !logoFailed;
 
     return (
@@ -1107,15 +1111,15 @@ const s = StyleSheet.create({
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 10,
     },
     statCard: {
         flex: 1,
         minWidth: '44%',
         backgroundColor: colors.white,
-        borderRadius: 16,
-        paddingVertical: 20,
-        paddingHorizontal: 16,
+        borderRadius: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: colors.primary[900],

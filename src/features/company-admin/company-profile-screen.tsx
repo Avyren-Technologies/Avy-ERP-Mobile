@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
+    Image,
     Modal,
     Pressable,
     ScrollView,
@@ -35,10 +36,13 @@ type EditableSectionKey = 'basicInfo' | 'registeredAddress' | 'corporateAddress'
 interface CompanyProfileData {
     // Identity (read-only)
     companyCode: string;
+    name: string;
     businessType: string;
     industry: string;
     cin: string;
     incorporationDate: string;
+    size: string;
+    employeeCount: number | string;
     // Statutory (read-only)
     pan: string;
     tan: string;
@@ -47,6 +51,7 @@ interface CompanyProfileData {
     esiCode: string;
     ptReg: string;
     rocState: string;
+    lwfrNo: string;
     // Modules & Billing (read-only)
     selectedModuleIds: string[];
     userTier: UserTierKey;
@@ -73,6 +78,35 @@ interface CompanyProfileData {
     corpState: string;
     corpPin: string;
     corpCountry: string;
+    // Fiscal Config (read-only)
+    fyType: string;
+    payrollFreq: string;
+    cutoffDay: number | string;
+    disbursementDay: number | string;
+    weekStart: string;
+    timezone: string;
+    workingDays: string[];
+    // Preferences (read-only)
+    currency: string;
+    language: string;
+    dateFormat: string;
+    timeFormat: string;
+    essEnabled: boolean;
+    mobileEnabled: boolean;
+    webEnabled: boolean;
+    emailNotifsEnabled: boolean;
+    smsNotifsEnabled: boolean;
+    pushNotifsEnabled: boolean;
+    // Quick Stats (read-only)
+    locationsCount: number;
+    contactsCount: number;
+    shiftsCount: number;
+    usersCount: number;
+    // Subscription (read-only)
+    subscriptionPlan: string;
+    subscriptionStatus: string;
+    subscriptionBillingType: string;
+    subscriptionTrialEnd: string;
 }
 
 function mapApiToProfile(raw: any): CompanyProfileData {
@@ -82,6 +116,9 @@ function mapApiToProfile(raw: any): CompanyProfileData {
     const corpAddr = raw.corporateAddress ?? raw.address?.corporate ?? {};
     const billing = raw.commercial ?? raw.billing ?? {};
     const sub = raw.tenant?.subscriptions?.[0] ?? {};
+    const fiscal = raw.fiscal ?? raw.fiscalConfig ?? {};
+    const prefs = raw.preferences ?? {};
+    const stats = raw.stats ?? raw._count ?? {};
 
     const locations = raw.locations ?? [];
     const derivedModuleIds = Array.from(
@@ -90,10 +127,13 @@ function mapApiToProfile(raw: any): CompanyProfileData {
 
     return {
         companyCode: identity.companyCode ?? raw.companyCode ?? '',
+        name: identity.name ?? raw.name ?? '',
         businessType: identity.businessType ?? raw.businessType ?? '',
         industry: identity.industry ?? raw.industry ?? '',
         cin: identity.cin ?? raw.cin ?? '',
         incorporationDate: identity.incorporationDate ?? raw.incorporationDate ?? '',
+        size: identity.size ?? raw.size ?? '',
+        employeeCount: identity.employeeCount ?? raw.employeeCount ?? '',
         pan: statutory.pan ?? '',
         tan: statutory.tan ?? '',
         gstin: statutory.gstin ?? '',
@@ -101,6 +141,7 @@ function mapApiToProfile(raw: any): CompanyProfileData {
         esiCode: statutory.esiCode ?? '',
         ptReg: statutory.ptReg ?? '',
         rocState: statutory.rocState ?? '',
+        lwfrNo: statutory.lwfrNo ?? '',
         selectedModuleIds: (raw.selectedModuleIds ?? derivedModuleIds) as string[],
         userTier: (sub.tier ?? raw.userTier ?? 'starter') as UserTierKey,
         billingCycle: (sub.billingCycle ?? raw.billingCycle ?? 'monthly') as 'monthly' | 'annual',
@@ -123,6 +164,35 @@ function mapApiToProfile(raw: any): CompanyProfileData {
         corpState: corpAddr.state ?? corpAddr.corpState ?? '',
         corpPin: corpAddr.pin ?? corpAddr.corpPin ?? '',
         corpCountry: corpAddr.country ?? corpAddr.corpCountry ?? 'India',
+        // Fiscal Config
+        fyType: fiscal.fyType ?? raw.fyType ?? '',
+        payrollFreq: fiscal.payrollFreq ?? raw.payrollFreq ?? '',
+        cutoffDay: fiscal.cutoffDay ?? raw.cutoffDay ?? '',
+        disbursementDay: fiscal.disbursementDay ?? raw.disbursementDay ?? '',
+        weekStart: fiscal.weekStart ?? raw.weekStart ?? '',
+        timezone: fiscal.timezone ?? raw.timezone ?? '',
+        workingDays: fiscal.workingDays ?? raw.workingDays ?? [],
+        // Preferences
+        currency: prefs.currency ?? raw.currency ?? '',
+        language: prefs.language ?? raw.language ?? '',
+        dateFormat: prefs.dateFormat ?? raw.dateFormat ?? '',
+        timeFormat: prefs.timeFormat ?? raw.timeFormat ?? '',
+        essEnabled: prefs.essEnabled ?? raw.essEnabled ?? false,
+        mobileEnabled: prefs.mobileEnabled ?? raw.mobileEnabled ?? false,
+        webEnabled: prefs.webEnabled ?? raw.webEnabled ?? false,
+        emailNotifsEnabled: prefs.emailNotifsEnabled ?? raw.emailNotifsEnabled ?? false,
+        smsNotifsEnabled: prefs.smsNotifsEnabled ?? raw.smsNotifsEnabled ?? false,
+        pushNotifsEnabled: prefs.pushNotifsEnabled ?? raw.pushNotifsEnabled ?? false,
+        // Quick Stats
+        locationsCount: stats.locations ?? locations.length ?? 0,
+        contactsCount: stats.contacts ?? raw.contacts?.length ?? 0,
+        shiftsCount: stats.shifts ?? raw.shifts?.length ?? 0,
+        usersCount: stats.users ?? raw.users?.length ?? 0,
+        // Subscription
+        subscriptionPlan: sub.planId ?? sub.plan ?? sub.tier ?? '',
+        subscriptionStatus: sub.status ?? '',
+        subscriptionBillingType: sub.billingType ?? sub.billingCycle ?? '',
+        subscriptionTrialEnd: sub.trialEndsAt ?? sub.trialEnd ?? sub.trialEndDate ?? '',
     };
 }
 
@@ -195,6 +265,33 @@ function SectionIcon({ type }: { type: string }) {
                     <Circle cx="12" cy="9" r="2.5" stroke={color} strokeWidth="1.5" fill="none" />
                 </Svg>
             );
+        case 'fiscal':
+            return (
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth="1.5" fill="none" />
+                    <Path d="M16 2v4M8 2v4M3 10h18" stroke={color} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                </Svg>
+            );
+        case 'preferences':
+            return (
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.5" fill="none" />
+                    <Path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke={color} strokeWidth="1.5" fill="none" />
+                </Svg>
+            );
+        case 'subscription':
+            return (
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Rect x="1" y="4" width="22" height="16" rx="2" stroke={color} strokeWidth="1.5" fill="none" />
+                    <Path d="M1 10h22" stroke={color} strokeWidth="1.5" fill="none" />
+                </Svg>
+            );
+        case 'stats':
+            return (
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Path d="M18 20V10M12 20V4M6 20v-6" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+                </Svg>
+            );
         default:
             return null;
     }
@@ -258,6 +355,41 @@ function ChipRow({ items, variant = 'primary' }: { items: string[]; variant?: 'p
                 </View>
             ))}
         </View>
+    );
+}
+
+function BooleanChip({ label, enabled }: { label: string; enabled: boolean }) {
+    return (
+        <View
+            style={[
+                s.booleanChip,
+                { backgroundColor: enabled ? colors.success[50] : colors.neutral[100],
+                  borderColor: enabled ? colors.success[200] : colors.neutral[200] },
+            ]}
+        >
+            <Text
+                className={`font-inter text-xs font-semibold ${enabled ? 'text-success-700' : 'text-neutral-400'}`}
+            >
+                {enabled ? '\u2713' : '\u2717'} {label}
+            </Text>
+        </View>
+    );
+}
+
+function StatCard({
+    label,
+    count,
+    onPress,
+}: {
+    label: string;
+    count: number;
+    onPress: () => void;
+}) {
+    return (
+        <Pressable onPress={onPress} style={s.statCard}>
+            <Text className="font-inter text-2xl font-bold text-primary-600">{count}</Text>
+            <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">{label}</Text>
+        </Pressable>
     );
 }
 
@@ -527,6 +659,9 @@ export function CompanyProfileScreen() {
 
     const tier = USER_TIERS.find((t) => t.key === profile.userTier);
 
+    const [logoFailed, setLogoFailed] = React.useState(false);
+    const hasLogo = !!profile.logoUrl && !logoFailed;
+
     return (
         <View style={s.container}>
             <ScrollView
@@ -555,14 +690,23 @@ export function CompanyProfileScreen() {
 
                         {/* Company avatar + name */}
                         <View style={s.companyHeaderInfo}>
-                            <LinearGradient
-                                colors={[colors.accent[300], colors.primary[400]]}
-                                style={s.companyAvatar}
-                            >
-                                <Text className="font-inter text-xl font-bold text-white">
-                                    {profile.displayName.substring(0, 2).toUpperCase()}
-                                </Text>
-                            </LinearGradient>
+                            {hasLogo ? (
+                                <Image
+                                    source={{ uri: profile.logoUrl }}
+                                    style={{ width: 72, height: 72, borderRadius: 16 }}
+                                    resizeMode="contain"
+                                    onError={() => setLogoFailed(true)}
+                                />
+                            ) : (
+                                <LinearGradient
+                                    colors={[colors.accent[300], colors.primary[400]]}
+                                    style={s.companyAvatar}
+                                >
+                                    <Text className="font-inter text-xl font-bold text-white">
+                                        {profile.displayName.substring(0, 2).toUpperCase()}
+                                    </Text>
+                                </LinearGradient>
+                            )}
 
                             <Text className="mt-3 font-inter text-xl font-bold text-white">
                                 {profile.displayName}
@@ -598,9 +742,12 @@ export function CompanyProfileScreen() {
                     <Animated.View entering={FadeInUp.duration(400).delay(100)} style={s.section}>
                         <SectionHeader title="Company Identity" iconType="identity" readOnly />
                         <View style={s.sectionCard}>
+                            <InfoRow label="Company Name" value={profile.name} />
                             <InfoRow label="Company Code" value={profile.companyCode} />
                             <InfoRow label="Business Type" value={profile.businessType} />
                             <InfoRow label="Industry" value={profile.industry} />
+                            <InfoRow label="Company Size" value={profile.size} />
+                            <InfoRow label="Employee Count" value={String(profile.employeeCount)} />
                             <InfoRow label="CIN" value={profile.cin} />
                             <InfoRow label="Date of Incorporation" value={profile.incorporationDate} />
                         </View>
@@ -616,6 +763,7 @@ export function CompanyProfileScreen() {
                             <InfoRow label="PF Reg No" value={profile.pfRegNo} />
                             <InfoRow label="ESI Code" value={profile.esiCode} />
                             <InfoRow label="PT Registration" value={profile.ptReg} />
+                            <InfoRow label="LWF Reg No" value={profile.lwfrNo} />
                             <InfoRow label="ROC State" value={profile.rocState} />
                         </View>
                     </Animated.View>
@@ -644,7 +792,6 @@ export function CompanyProfileScreen() {
                             <InfoRow label="Display Name" value={profile.displayName} />
                             <InfoRow label="Legal Name" value={profile.legalName} />
                             <InfoRow label="Short Name" value={profile.shortName} />
-                            <InfoRow label="Logo URL" value={profile.logoUrl} />
                             <InfoRow label="Corporate Email Domain" value={profile.emailDomain} />
                             <InfoRow label="Website" value={profile.website} />
                         </View>
@@ -683,6 +830,91 @@ export function CompanyProfileScreen() {
                                     <InfoRow label="Country" value={profile.corpCountry} />
                                 </>
                             )}
+                        </View>
+                    </Animated.View>
+
+                    {/* ---- Fiscal Config (read-only) ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(700)} style={s.section}>
+                        <SectionHeader title="Fiscal Configuration" iconType="fiscal" readOnly />
+                        <View style={s.sectionCard}>
+                            <InfoRow label="Fiscal Year Type" value={profile.fyType} />
+                            <InfoRow label="Payroll Frequency" value={profile.payrollFreq} />
+                            <InfoRow label="Cutoff Day" value={String(profile.cutoffDay)} />
+                            <InfoRow label="Disbursement Day" value={String(profile.disbursementDay)} />
+                            <InfoRow label="Week Start" value={profile.weekStart} />
+                            <InfoRow label="Timezone" value={profile.timezone} />
+                            <InfoRow
+                                label="Working Days"
+                                value={
+                                    Array.isArray(profile.workingDays) && profile.workingDays.length > 0
+                                        ? profile.workingDays.join(', ')
+                                        : ''
+                                }
+                            />
+                        </View>
+                    </Animated.View>
+
+                    {/* ---- Preferences (read-only) ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(800)} style={s.section}>
+                        <SectionHeader title="Preferences" iconType="preferences" readOnly />
+                        <View style={s.sectionCard}>
+                            <InfoRow label="Currency" value={profile.currency} />
+                            <InfoRow label="Language" value={profile.language} />
+                            <InfoRow label="Date Format" value={profile.dateFormat} />
+                            <InfoRow label="Time Format" value={profile.timeFormat} />
+                            <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
+                                <Text className="mb-2 font-inter text-xs font-medium text-neutral-500">Feature Flags</Text>
+                                <View style={s.chipRow}>
+                                    <BooleanChip label="ESS" enabled={profile.essEnabled} />
+                                    <BooleanChip label="Mobile" enabled={profile.mobileEnabled} />
+                                    <BooleanChip label="Web" enabled={profile.webEnabled} />
+                                    <BooleanChip label="Email Notifs" enabled={profile.emailNotifsEnabled} />
+                                    <BooleanChip label="SMS Notifs" enabled={profile.smsNotifsEnabled} />
+                                    <BooleanChip label="Push Notifs" enabled={profile.pushNotifsEnabled} />
+                                </View>
+                            </View>
+                        </View>
+                    </Animated.View>
+
+                    {/* ---- Subscription Info (read-only) ---- */}
+                    {profile.subscriptionPlan || profile.subscriptionStatus ? (
+                        <Animated.View entering={FadeInUp.duration(400).delay(900)} style={s.section}>
+                            <SectionHeader title="Subscription" iconType="subscription" readOnly />
+                            <View style={s.sectionCard}>
+                                <InfoRow label="Plan" value={profile.subscriptionPlan} />
+                                <InfoRow label="Status" value={profile.subscriptionStatus} />
+                                <InfoRow label="Billing Type" value={profile.subscriptionBillingType} />
+                                {profile.subscriptionTrialEnd ? (
+                                    <InfoRow label="Trial End Date" value={profile.subscriptionTrialEnd} />
+                                ) : null}
+                            </View>
+                        </Animated.View>
+                    ) : null}
+
+                    {/* ---- Quick Stats ---- */}
+                    <Animated.View entering={FadeInUp.duration(400).delay(1000)} style={s.section}>
+                        <SectionHeader title="Quick Stats" iconType="stats" readOnly />
+                        <View style={s.statsGrid}>
+                            <StatCard
+                                label="Locations"
+                                count={profile.locationsCount}
+                                onPress={() => router.push('/company/locations')}
+                            />
+                            <StatCard
+                                label="Contacts"
+                                count={profile.contactsCount}
+                                onPress={() => router.push('/company/contacts')}
+                            />
+                            <StatCard
+                                label="Shifts"
+                                count={profile.shiftsCount}
+                                onPress={() => router.push('/company/shifts')}
+                            />
+                            <StatCard
+                                label="Users"
+                                count={profile.usersCount}
+                                onPress={() => router.push('/company/users')}
+                            />
                         </View>
                     </Animated.View>
                 </View>
@@ -865,6 +1097,34 @@ const s = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 10,
         backgroundColor: colors.primary[500],
+    },
+    booleanChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    statCard: {
+        flex: 1,
+        minWidth: '44%',
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        paddingVertical: 20,
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: colors.primary[50],
     },
 });
 

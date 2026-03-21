@@ -57,6 +57,13 @@ interface NoSeriesItem {
     startNumber: string;
 }
 
+function toOptionalInt(value: string): number | undefined {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number.parseInt(trimmed, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 // ============ PREVIEW HELPER ============
 
 function getPreview(item: NoSeriesItem): string {
@@ -430,14 +437,20 @@ export function NoSeriesManagementScreen() {
     };
 
     const handleSave = (data: Omit<NoSeriesItem, 'id'>) => {
+        const payload: Record<string, unknown> = {
+            ...data,
+            numberCount: toOptionalInt(data.numberCount),
+            startNumber: toOptionalInt(data.startNumber),
+        };
+
         if (editingItem) {
             updateMutation.mutate(
-                { id: editingItem.id, data: data as unknown as Record<string, unknown> },
+                { id: editingItem.id, data: payload },
                 { onSuccess: () => setFormVisible(false) },
             );
         } else {
             createMutation.mutate(
-                data as unknown as Record<string, unknown>,
+                payload,
                 { onSuccess: () => setFormVisible(false) },
             );
         }

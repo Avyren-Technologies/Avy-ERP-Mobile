@@ -15,6 +15,9 @@ export default function CompanyLayout() {
       <Stack.Screen name="roles" />
       <Stack.Screen name="feature-toggles" />
       <Stack.Screen name="hr" />
+      <Stack.Screen name="inventory" />
+      <Stack.Screen name="production" />
+      <Stack.Screen name="maintenance" />
     </Stack>
   );
 }

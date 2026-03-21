@@ -117,23 +117,23 @@ export const performanceApi = {
     client.patch(`/hr/appraisal-entries/${id}/publish`),
 
   getCalibrationData: (cycleId: string) =>
-    client.get(`/hr/appraisal-entries/calibration/${cycleId}`),
+    client.get(`/hr/appraisal-cycles/${cycleId}/calibration`),
 
   // ── 360 Feedback ────────────────────────────────────────────
   listFeedback360: (params?: Feedback360ListParams) =>
-    client.get('/hr/feedback-360', { params }),
+    client.get('/hr/feedback360', { params }),
 
   createFeedback360: (data: Record<string, unknown>) =>
-    client.post('/hr/feedback-360', data),
+    client.post('/hr/feedback360', data),
 
   getFeedback360: (id: string) =>
-    client.get(`/hr/feedback-360/${id}`),
+    client.get(`/hr/feedback360/${id}`),
 
   updateFeedback360: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/hr/feedback-360/${id}`, data),
+    client.patch(`/hr/feedback360/${id}`, data),
 
   getFeedback360Report: (employeeId: string, cycleId: string) =>
-    client.get(`/hr/feedback-360/report/${employeeId}/${cycleId}`),
+    client.get(`/hr/feedback360/report/${employeeId}/${cycleId}`),
 
   // ── Skills ──────────────────────────────────────────────────
   listSkills: (params?: SkillListParams) =>
@@ -191,5 +191,5 @@ export const performanceApi = {
 
   // ── Performance Dashboard ───────────────────────────────────
   getPerformanceDashboard: () =>
-    client.get('/hr/performance/dashboard'),
+    client.get('/hr/performance-dashboard'),
 };

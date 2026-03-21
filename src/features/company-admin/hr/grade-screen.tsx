@@ -287,7 +287,7 @@ export function GradeScreen() {
         return raw.map((item: any) => ({
             id: item.id ?? '', code: item.code ?? '', name: item.name ?? '',
             ctcMin: item.ctcMin ?? 0, ctcMax: item.ctcMax ?? 0,
-            hraPercentage: item.hraPercentage ?? 0, pfTier: item.pfTier ?? 'Applicable',
+            hraPercentage: item.hraPercent ?? item.hraPercentage ?? 0, pfTier: item.pfTier ?? 'Applicable',
             probationMonths: item.probationMonths ?? 0, noticeDays: item.noticeDays ?? 0,
             status: item.status ?? 'Active',
         }));
@@ -311,10 +311,17 @@ export function GradeScreen() {
     };
 
     const handleSave = (data: Omit<GradeItem, 'id'>) => {
+        const payload: Record<string, unknown> = {
+            ...data,
+            // Backend contract uses `hraPercent` in org-structure validators/service.
+            hraPercent: data.hraPercentage,
+        };
+        delete payload['hraPercentage'];
+
         if (editingItem) {
-            updateMutation.mutate({ id: editingItem.id, data: data as unknown as Record<string, unknown> }, { onSuccess: () => setFormVisible(false) });
+            updateMutation.mutate({ id: editingItem.id, data: payload }, { onSuccess: () => setFormVisible(false) });
         } else {
-            createMutation.mutate(data as unknown as Record<string, unknown>, { onSuccess: () => setFormVisible(false) });
+            createMutation.mutate(payload, { onSuccess: () => setFormVisible(false) });
         }
     };
 

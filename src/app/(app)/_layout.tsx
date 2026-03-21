@@ -233,6 +233,14 @@ function AppSidebar() {
                 ],
             },
             {
+                title: 'Operations',
+                items: [
+                    { id: 'inventory', label: 'Inventory', icon: 'companies' as const, onPress: () => router.push('/company/inventory' as any), isActive: pathname.startsWith('/company/inventory') },
+                    { id: 'production', label: 'Production', icon: 'settings' as const, onPress: () => router.push('/company/production' as any), isActive: pathname.startsWith('/company/production') },
+                    { id: 'maintenance', label: 'Maintenance', icon: 'settings' as const, onPress: () => router.push('/company/maintenance' as any), isActive: pathname.startsWith('/company/maintenance') },
+                ],
+            },
+            {
                 title: 'Configuration',
                 items: [
                     { id: 'no-series', label: 'Number Series', icon: 'settings' as const, onPress: () => router.push('/company/no-series' as any), isActive: pathname.startsWith('/company/no-series') },

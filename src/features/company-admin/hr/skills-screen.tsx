@@ -552,15 +552,31 @@ export function SkillsScreen() {
                     <Text className="font-inter text-white text-lg font-bold ml-3">Skills & Mapping</Text>
                 </View>
             </LinearGradient>
-            <FlatList
-                data={activeTab === 'library' ? filteredSkills : filteredMappings}
-                renderItem={activeTab === 'library' ? renderSkillItem as any : renderMappingItem as any}
-                keyExtractor={item => item.id}
-                ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
-                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
-                showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-                refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
-            />
+            {activeTab === 'library' ? (
+                <FlatList
+                    data={filteredSkills}
+                    renderItem={renderSkillItem}
+                    keyExtractor={item => item.id}
+                    ListHeaderComponent={renderHeader}
+                    ListEmptyComponent={renderEmpty}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                />
+            ) : (
+                <FlatList
+                    data={filteredMappings}
+                    renderItem={renderMappingItem}
+                    keyExtractor={item => item.id}
+                    ListHeaderComponent={renderHeader}
+                    ListEmptyComponent={renderEmpty}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                />
+            )}
             <FAB onPress={activeTab === 'library' ? handleAddSkill : () => setMappingFormVisible(true)} />
             <SkillFormModal visible={skillFormVisible} onClose={() => setSkillFormVisible(false)} onSave={handleSaveSkill} initialData={editingSkill} isSaving={createSkillMut.isPending || updateSkillMut.isPending} />
             <MappingFormModal visible={mappingFormVisible} onClose={() => setMappingFormVisible(false)} onSave={handleSaveMapping} isSaving={createMappingMut.isPending} skillOptions={skillOptions} />

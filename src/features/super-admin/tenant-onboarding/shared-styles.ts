@@ -154,6 +154,15 @@ export const S = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.primary[100],
     },
+    sectionErrorBox: {
+        backgroundColor: colors.danger[50],
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.danger[200],
+    },
     warningBanner: {
         flexDirection: 'row',
         alignItems: 'flex-start',

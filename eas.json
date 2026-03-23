@@ -16,7 +16,13 @@
         "image": "latest"
       },
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "production"
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.avyren.com",
+        "EXPO_PUBLIC_VAR_NUMBER": 10,
+        "EXPO_PUBLIC_VAR_BOOL": true,
+        "SECRET_KEY": "my-secret-key",
+        "APP_BUILD_ONLY_VAR": "build-only-value"
+
       }
     },
     "preview": {

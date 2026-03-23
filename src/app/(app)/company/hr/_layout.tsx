@@ -50,6 +50,7 @@ export default function HRLayout() {
       <Stack.Screen name="my-payslips" />
       <Stack.Screen name="my-leave" />
       <Stack.Screen name="my-attendance" />
+      <Stack.Screen name="shift-check-in" />
       <Stack.Screen name="team-view" />
       {/* Recruitment & Training */}
       <Stack.Screen name="requisitions" />

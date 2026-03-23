@@ -642,36 +642,49 @@ export function CompanyDetailScreen() {
         setTimeout(() => setIsVerifying(false), 1500);
     };
 
-    const handleSuspend = () => {
-        showConfirm({
-            title: 'Suspend Tenant',
-            message: `Are you sure you want to suspend ${company.displayName}? All users will immediately lose access.`,
-            variant: 'warning',
-            confirmText: 'Suspend',
-            onConfirm: () => {
-                statusMutation.mutate(
-                    { companyId: id!, status: 'Inactive' },
-                    {
-                        onSuccess: () => showSuccess('Status Updated', 'Company has been suspended.'),
-                        onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to suspend tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
-                    },
-                );
-            },
-        });
+    const VALID_TRANSITIONS: Record<string, string[]> = {
+        Draft: ['Pilot', 'Active'],
+        Pilot: ['Active', 'Inactive'],
+        Active: ['Inactive'],
+        Inactive: ['Active'],
     };
 
-    const handleActivate = () => {
-        showConfirm({
-            title: 'Activate Tenant',
-            message: `Activate ${company.displayName}? Users will regain access immediately.`,
+    const allowedTransitions = VALID_TRANSITIONS[company.status] ?? [];
+
+    const STATUS_CONFIG: Record<string, { title: string; message: string; variant: 'primary' | 'warning' | 'danger'; confirmText: string }> = {
+        Pilot: {
+            title: 'Move to Pilot',
+            message: `Move ${company.displayName} to Pilot status for trial evaluation?`,
             variant: 'primary',
-            confirmText: 'Activate',
+            confirmText: 'Start Pilot',
+        },
+        Active: {
+            title: company.status === 'Inactive' ? 'Reactivate Company' : 'Activate Company',
+            message: company.status === 'Inactive'
+                ? `Reactivate ${company.displayName}? Users will regain access immediately.`
+                : `Activate ${company.displayName}? This will make the company fully operational.`,
+            variant: 'primary',
+            confirmText: company.status === 'Inactive' ? 'Reactivate' : 'Activate',
+        },
+        Inactive: {
+            title: 'Deactivate Company',
+            message: `Are you sure you want to deactivate ${company.displayName}? All users will immediately lose access.`,
+            variant: 'warning',
+            confirmText: 'Deactivate',
+        },
+    };
+
+    const handleStatusChange = (newStatus: string) => {
+        const config = STATUS_CONFIG[newStatus];
+        if (!config) return;
+        showConfirm({
+            ...config,
             onConfirm: () => {
                 statusMutation.mutate(
-                    { companyId: id!, status: 'Active' },
+                    { companyId: id!, status: newStatus },
                     {
-                        onSuccess: () => showSuccess('Status Updated', 'Company has been activated.'),
-                        onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to activate tenant.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
+                        onSuccess: () => showSuccess('Status Updated', `Company status changed to ${newStatus}.`),
+                        onError: (err: any) => showConfirm({ title: 'Error', message: err?.message ?? 'Failed to update status.', variant: 'danger', confirmText: 'OK', onConfirm: () => {} }),
                     },
                 );
             },
@@ -1409,52 +1422,73 @@ export function CompanyDetailScreen() {
                     {/* ---- Audit History ---- */}
                     <AuditHistorySection companyId={company.id} />
 
-                    {/* ---- Tenant Actions ---- */}
+                    {/* ---- Status Management ---- */}
                     <Animated.View entering={FadeIn.duration(400).delay(850)} style={styles.section}>
-                        <Text className="mb-3 font-inter text-sm font-bold text-neutral-500">
-                            Tenant Actions
-                        </Text>
+                        <SectionHeader title="Status Management" iconType="settings" />
+                        <View style={styles.sectionCard}>
+                            {/* Current Status */}
+                            <View style={styles.statusCurrentRow}>
+                                <Text className="font-inter text-xs font-medium text-neutral-500">Current Status</Text>
+                                <StatusBadge status={badgeStatus} />
+                            </View>
+
+                            {/* Status Transitions */}
+                            {allowedTransitions.length > 0 && (
+                                <View style={styles.statusTransitionsRow}>
+                                    {allowedTransitions.includes('Pilot') && (
+                                        <Pressable onPress={() => handleStatusChange('Pilot')} style={styles.actionButton} disabled={statusMutation.isPending}>
+                                            <LinearGradient
+                                                colors={[colors.info[500], colors.info[600]]}
+                                                style={styles.actionGradient}
+                                            >
+                                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                                    <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                </Svg>
+                                                <Text className="ml-2 font-inter text-xs font-bold text-white">Pilot</Text>
+                                            </LinearGradient>
+                                        </Pressable>
+                                    )}
+                                    {allowedTransitions.includes('Active') && (
+                                        <Pressable onPress={() => handleStatusChange('Active')} style={styles.actionButton} disabled={statusMutation.isPending}>
+                                            <LinearGradient
+                                                colors={[colors.success[500], colors.success[600]]}
+                                                style={styles.actionGradient}
+                                            >
+                                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                                    {company.status === 'Inactive' ? (
+                                                        <Path d="M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                    ) : (
+                                                        <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    )}
+                                                </Svg>
+                                                <Text className="ml-2 font-inter text-xs font-bold text-white">
+                                                    {company.status === 'Inactive' ? 'Reactivate' : 'Activate'}
+                                                </Text>
+                                            </LinearGradient>
+                                        </Pressable>
+                                    )}
+                                    {allowedTransitions.includes('Inactive') && (
+                                        <Pressable onPress={() => handleStatusChange('Inactive')} style={styles.actionButton} disabled={statusMutation.isPending}>
+                                            <LinearGradient
+                                                colors={[colors.warning[500], colors.warning[600]]}
+                                                style={styles.actionGradient}
+                                            >
+                                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                                    <Path d="M18.36 6.64A9 9 0 0112 21a9 9 0 010-18c1.39 0 2.73.32 3.95.9" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                                                    <Path d="M18 2v6h-6" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                </Svg>
+                                                <Text className="ml-2 font-inter text-xs font-bold text-white">Deactivate</Text>
+                                            </LinearGradient>
+                                        </Pressable>
+                                    )}
+                                </View>
+                            )}
+                        </View>
+                    </Animated.View>
+
+                    {/* ---- Delete ---- */}
+                    <Animated.View entering={FadeIn.duration(400).delay(900)} style={styles.section}>
                         <View style={styles.actionsRow}>
-                            {company.status === 'Active' && (
-                                <Pressable onPress={handleSuspend} style={styles.actionButton}>
-                                    <LinearGradient
-                                        colors={[colors.warning[500], colors.warning[600]]}
-                                        style={styles.actionGradient}
-                                    >
-                                        <Svg width={18} height={18} viewBox="0 0 24 24">
-                                            <Path d="M10 9v6M14 9v6" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                                            <Circle cx="12" cy="12" r="10" stroke="#fff" strokeWidth="1.5" fill="none" />
-                                        </Svg>
-                                        <Text className="ml-2 font-inter text-xs font-bold text-white">Suspend</Text>
-                                    </LinearGradient>
-                                </Pressable>
-                            )}
-                            {company.status === 'Inactive' && (
-                                <Pressable onPress={handleActivate} style={styles.actionButton}>
-                                    <LinearGradient
-                                        colors={[colors.success[500], colors.success[600]]}
-                                        style={styles.actionGradient}
-                                    >
-                                        <Svg width={18} height={18} viewBox="0 0 24 24">
-                                            <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </Svg>
-                                        <Text className="ml-2 font-inter text-xs font-bold text-white">Activate</Text>
-                                    </LinearGradient>
-                                </Pressable>
-                            )}
-                            {company.status === 'Draft' && (
-                                <Pressable onPress={handleActivate} style={styles.actionButton}>
-                                    <LinearGradient
-                                        colors={[colors.primary[500], colors.primary[700]]}
-                                        style={styles.actionGradient}
-                                    >
-                                        <Svg width={18} height={18} viewBox="0 0 24 24">
-                                            <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </Svg>
-                                        <Text className="ml-2 font-inter text-xs font-bold text-white">Provision</Text>
-                                    </LinearGradient>
-                                </Pressable>
-                            )}
                             <Pressable onPress={handleDelete} style={styles.actionButton}>
                                 <LinearGradient
                                     colors={[colors.danger[500], colors.danger[600]]}
@@ -1469,7 +1503,7 @@ export function CompanyDetailScreen() {
                                             strokeLinecap="round"
                                         />
                                     </Svg>
-                                    <Text className="ml-2 font-inter text-xs font-bold text-white">Delete</Text>
+                                    <Text className="ml-2 font-inter text-xs font-bold text-white">Delete Tenant</Text>
                                 </LinearGradient>
                             </Pressable>
                         </View>
@@ -2063,6 +2097,20 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 8,
         backgroundColor: colors.accent[50],
+    },
+    // Status management
+    statusCurrentRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: 12,
+        marginBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.neutral[100],
+    },
+    statusTransitionsRow: {
+        flexDirection: 'row',
+        gap: 10,
     },
     // Actions
     actionsRow: {

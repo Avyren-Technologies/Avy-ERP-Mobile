@@ -65,6 +65,7 @@ interface PersonalForm {
     personalMobile: string;
     alternativeMobile: string;
     personalEmail: string;
+    officialEmail: string;
     currentLine1: string;
     currentLine2: string;
     currentCity: string;
@@ -144,7 +145,7 @@ const INITIAL_PERSONAL: PersonalForm = {
     firstName: '', middleName: '', lastName: '', dob: '', gender: '',
     maritalStatus: '', bloodGroup: '', fatherName: '', motherName: '',
     nationality: 'Indian', religion: '', category: '', personalMobile: '',
-    alternativeMobile: '', personalEmail: '', currentLine1: '', currentLine2: '',
+    alternativeMobile: '', personalEmail: '', officialEmail: '', currentLine1: '', currentLine2: '',
     currentCity: '', currentState: '', currentPin: '', currentCountry: 'India',
     sameAsCurrent: true, permanentLine1: '', permanentLine2: '', permanentCity: '',
     permanentState: '', permanentPin: '', permanentCountry: 'India',
@@ -459,10 +460,30 @@ function TabBar({
 function PersonalTab({
     form,
     onChange,
+    isCreateMode,
+    createUserAccount,
+    onCreateUserAccountChange,
+    userPassword,
+    onUserPasswordChange,
+    confirmPassword,
+    onConfirmPasswordChange,
+    userRole,
+    onUserRoleChange,
 }: {
     form: PersonalForm;
     onChange: (updates: Partial<PersonalForm>) => void;
+    isCreateMode?: boolean;
+    createUserAccount?: boolean;
+    onCreateUserAccountChange?: (v: boolean) => void;
+    userPassword?: string;
+    onUserPasswordChange?: (v: string) => void;
+    confirmPassword?: string;
+    onConfirmPasswordChange?: (v: string) => void;
+    userRole?: string;
+    onUserRoleChange?: (v: string) => void;
 }) {
+    const [showPwd, setShowPwd] = React.useState(false);
+    const [showConfirmPwd, setShowConfirmPwd] = React.useState(false);
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Basic Details" />
@@ -483,6 +504,7 @@ function PersonalTab({
             <FormField label="Personal Mobile" value={form.personalMobile} onChangeText={(v) => onChange({ personalMobile: v })} placeholder="+91 98765 43210" keyboardType="phone-pad" required />
             <FormField label="Alternative Mobile" value={form.alternativeMobile} onChangeText={(v) => onChange({ alternativeMobile: v })} keyboardType="phone-pad" />
             <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" required />
+            <FormField label="Official Email" value={form.officialEmail} onChangeText={(v) => onChange({ officialEmail: v })} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" />
 
             <SectionTitle title="Current Address" />
             <FormField label="Address Line 1" value={form.currentLine1} onChangeText={(v) => onChange({ currentLine1: v })} placeholder="Street, building" />
@@ -517,6 +539,103 @@ function PersonalTab({
             <FormField label="Contact Name" value={form.emergencyName} onChangeText={(v) => onChange({ emergencyName: v })} autoCapitalize="words" required />
             <FormField label="Relation" value={form.emergencyRelation} onChangeText={(v) => onChange({ emergencyRelation: v })} autoCapitalize="words" required />
             <FormField label="Mobile" value={form.emergencyMobile} onChangeText={(v) => onChange({ emergencyMobile: v })} keyboardType="phone-pad" required />
+
+            {/* Create Login Account — only for new employees */}
+            {isCreateMode && (
+                <>
+                    <SectionTitle title="Create Login Account" />
+                    <View style={st.loginAccountCard}>
+                        <View style={st.toggleRow}>
+                            <Text className="font-inter text-sm font-medium text-primary-900">Enable login for this employee</Text>
+                            <Switch
+                                value={createUserAccount ?? false}
+                                onValueChange={(v) => onCreateUserAccountChange?.(v)}
+                                trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
+                                thumbColor={createUserAccount ? colors.white : colors.neutral[100]}
+                            />
+                        </View>
+                        {createUserAccount && !form.officialEmail && (
+                            <View style={st.loginWarning}>
+                                <Text className="font-inter text-[11px] font-semibold text-warning-700">
+                                    Official Email (above) is required to create a login account.
+                                </Text>
+                            </View>
+                        )}
+                        {createUserAccount && (
+                            <>
+                                <View style={st.passwordFieldWrap}>
+                                    <FormField
+                                        label="Password"
+                                        value={userPassword ?? ''}
+                                        onChangeText={(v) => onUserPasswordChange?.(v)}
+                                        placeholder="Min 6 characters"
+                                        secureTextEntry={!showPwd}
+                                    />
+                                    <Pressable onPress={() => setShowPwd((v) => !v)} style={st.eyeBtn}>
+                                        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                                            {showPwd ? (
+                                                <>
+                                                    <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke={colors.neutral[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                    <Path d="M1 1l22 22" stroke={colors.neutral[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke={colors.neutral[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                    <Circle cx={12} cy={12} r={3} stroke={colors.neutral[400]} strokeWidth={2} />
+                                                </>
+                                            )}
+                                        </Svg>
+                                    </Pressable>
+                                </View>
+                                <View style={st.passwordFieldWrap}>
+                                    <FormField
+                                        label="Confirm Password"
+                                        value={confirmPassword ?? ''}
+                                        onChangeText={(v) => onConfirmPasswordChange?.(v)}
+                                        placeholder="Re-enter password"
+                                        secureTextEntry={!showConfirmPwd}
+                                    />
+                                    <Pressable onPress={() => setShowConfirmPwd((v) => !v)} style={st.eyeBtn}>
+                                        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                                            {showConfirmPwd ? (
+                                                <>
+                                                    <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke={colors.neutral[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                    <Path d="M1 1l22 22" stroke={colors.neutral[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke={colors.neutral[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                    <Circle cx={12} cy={12} r={3} stroke={colors.neutral[400]} strokeWidth={2} />
+                                                </>
+                                            )}
+                                        </Svg>
+                                    </Pressable>
+                                </View>
+                                <ChipSelect
+                                    label="Role"
+                                    options={['Employee', 'Manager', 'HR', 'Company Admin']}
+                                    selected={
+                                        userRole === 'EMPLOYEE' ? 'Employee' :
+                                        userRole === 'MANAGER' ? 'Manager' :
+                                        userRole === 'HR' ? 'HR' :
+                                        userRole === 'COMPANY_ADMIN' ? 'Company Admin' : 'Employee'
+                                    }
+                                    onSelect={(v) => {
+                                        const mapped = v === 'Employee' ? 'EMPLOYEE' : v === 'Manager' ? 'MANAGER' : v === 'HR' ? 'HR' : v === 'Company Admin' ? 'COMPANY_ADMIN' : 'EMPLOYEE';
+                                        onUserRoleChange?.(mapped);
+                                    }}
+                                />
+                                {(confirmPassword ?? '').length > 0 && userPassword !== confirmPassword && (
+                                    <Text className="font-inter text-[10px] font-semibold text-danger-600">Passwords do not match.</Text>
+                                )}
+                                {(userPassword ?? '').length > 0 && (userPassword ?? '').length < 6 && (
+                                    <Text className="font-inter text-[10px] font-semibold text-danger-600">Password must be at least 6 characters.</Text>
+                                )}
+                            </>
+                        )}
+                    </View>
+                </>
+            )}
         </Animated.View>
     );
 }
@@ -803,6 +922,12 @@ export function EmployeeDetailScreen() {
     const [documents, setDocuments] = React.useState<DocumentsForm>(INITIAL_DOCUMENTS);
     const [profilePhotoUrl, setProfilePhotoUrl] = React.useState<string | null>(null);
     const [employeeStatus, setEmployeeStatus] = React.useState<EmployeeStatus>('Active');
+
+    // Login account state (only for new employees)
+    const [createUserAccount, setCreateUserAccount] = React.useState(false);
+    const [userPassword, setUserPassword] = React.useState('');
+    const [confirmPassword, setConfirmPassword] = React.useState('');
+    const [userRole, setUserRole] = React.useState('EMPLOYEE');
     const [employeeName, setEmployeeName] = React.useState('');
 
     // Data queries
@@ -898,6 +1023,7 @@ export function EmployeeDetailScreen() {
             personalMobile: d.personalMobile ?? d.mobile ?? '',
             alternativeMobile: d.alternativeMobile ?? '',
             personalEmail: d.personalEmail ?? d.email ?? '',
+            officialEmail: d.officialEmail ?? '',
             currentLine1: d.currentAddress?.line1 ?? d.currentLine1 ?? '',
             currentLine2: d.currentAddress?.line2 ?? d.currentLine2 ?? '',
             currentCity: d.currentAddress?.city ?? d.currentCity ?? '',
@@ -992,6 +1118,7 @@ export function EmployeeDetailScreen() {
         category: personal.category, personalMobile: personal.personalMobile,
         alternativeMobile: personal.alternativeMobile,
         personalEmail: personal.personalEmail,
+        officialEmail: personal.officialEmail || undefined,
         currentAddress: {
             line1: personal.currentLine1, line2: personal.currentLine2,
             city: personal.currentCity, state: personal.currentState,
@@ -1044,6 +1171,28 @@ export function EmployeeDetailScreen() {
             showErrorMessage('First Name and Last Name are required.');
             setActiveTab('personal');
             return;
+        }
+
+        // Validate user account creation fields
+        if (isCreateMode && createUserAccount) {
+            if (!personal.officialEmail.trim()) {
+                showErrorMessage('Official Email is required when creating a login account.');
+                setActiveTab('personal');
+                return;
+            }
+            if (!userPassword || userPassword.length < 6) {
+                showErrorMessage('Password must be at least 6 characters.');
+                setActiveTab('personal');
+                return;
+            }
+            if (userPassword !== confirmPassword) {
+                showErrorMessage('Passwords do not match.');
+                setActiveTab('personal');
+                return;
+            }
+            (data as any).createUserAccount = true;
+            (data as any).userPassword = userPassword;
+            (data as any).userRole = userRole;
         }
 
         if (isCreateMode) {
@@ -1222,7 +1371,19 @@ export function EmployeeDetailScreen() {
                 keyboardShouldPersistTaps="handled"
             >
                 {activeTab === 'personal' && (
-                    <PersonalTab form={personal} onChange={(u) => setPersonal((p) => ({ ...p, ...u }))} />
+                    <PersonalTab
+                        form={personal}
+                        onChange={(u) => setPersonal((p) => ({ ...p, ...u }))}
+                        isCreateMode={isCreateMode}
+                        createUserAccount={createUserAccount}
+                        onCreateUserAccountChange={setCreateUserAccount}
+                        userPassword={userPassword}
+                        onUserPasswordChange={setUserPassword}
+                        confirmPassword={confirmPassword}
+                        onConfirmPasswordChange={setConfirmPassword}
+                        userRole={userRole}
+                        onUserRoleChange={setUserRole}
+                    />
                 )}
                 {activeTab === 'professional' && (
                     <ProfessionalTab
@@ -1549,6 +1710,32 @@ const st = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 10,
         marginBottom: 12,
+    },
+    loginAccountCard: {
+        backgroundColor: colors.neutral[50],
+        borderRadius: 14,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        marginTop: 4,
+        gap: 8,
+    },
+    loginWarning: {
+        backgroundColor: colors.warning[50],
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: colors.warning[200],
+    },
+    passwordFieldWrap: {
+        position: 'relative',
+    },
+    eyeBtn: {
+        position: 'absolute',
+        right: 12,
+        top: 30,
+        padding: 4,
     },
     // Read-only card
     readOnlyCard: {

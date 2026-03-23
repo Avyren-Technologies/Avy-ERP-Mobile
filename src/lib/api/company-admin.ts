@@ -115,7 +115,7 @@ export const companyAdminApi = {
     client.get('/dashboard/company-activity', { params: { limit } }),
 
   // ── Module Catalogue ──────────────────────────────────────────────
-  getModuleCatalogue: () => client.get('/company/modules/catalogue'),
+  getModuleCatalogue: () => client.get('/modules/catalogue'),
 
   // ── Billing ──────────────────────────────────────────────────────
   getMySubscription: () => client.get('/company/billing/subscription'),

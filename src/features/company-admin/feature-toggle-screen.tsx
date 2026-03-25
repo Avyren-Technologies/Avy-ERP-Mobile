@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -24,8 +23,12 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { useCompanyUsers } from '@/features/company-admin/api/use-company-admin-queries';
-import { client } from '@/lib/api/client';
+import { useUpdateFeatureToggles } from '@/features/company-admin/api/use-company-admin-mutations';
+import {
+    useCompanyUsers,
+    useFeatureToggleCatalogue,
+    useFeatureToggles,
+} from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ TYPES ============
 
@@ -43,29 +46,13 @@ interface FeatureToggle {
     source: 'role' | 'override' | 'default';
 }
 
-// ============ QUERY HOOKS ============
+// ============ TYPES (catalogue) ============
 
-const featureToggleKeys = {
-    all: ['feature-toggles'] as const,
-    byUser: (userId: string) => ['feature-toggles', 'user', userId] as const,
-};
-
-function useFeatureToggles() {
-    return useQuery({
-        queryKey: featureToggleKeys.all,
-        queryFn: () => client.get('/feature-toggles'),
-    });
-}
-
-function useUpdateFeatureToggle() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (data: { userId: string; feature: string; enabled: boolean }) =>
-            client.post('/feature-toggles', data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: featureToggleKeys.all });
-        },
-    });
+interface CatalogueItem {
+    key: string;
+    label: string;
+    module: string;
+    description?: string;
 }
 
 // ============ HELPERS ============
@@ -176,7 +163,7 @@ function UserRow({
     onToggleFeature: (userId: string, feature: string, enabled: boolean) => void;
     isPending: boolean;
 }) {
-    // Filter toggles that belong to this user or are global defaults
+    // Use per-user toggles passed from parent
     const userToggles = allToggles;
 
     return (
@@ -277,34 +264,77 @@ export function FeatureToggleScreen() {
         return raw.map(mapApiUser);
     }, [usersResponse]);
 
-    // Fetch toggles
+    // Fetch feature toggle catalogue
+    const {
+        data: catalogueResponse,
+        isLoading: catalogueLoading,
+    } = useFeatureToggleCatalogue();
+
+    const catalogue: CatalogueItem[] = React.useMemo(() => {
+        const raw = (catalogueResponse as any)?.data ?? catalogueResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw;
+    }, [catalogueResponse]);
+
+    // Fetch toggles for the expanded user
     const {
         data: togglesResponse,
-        isLoading: togglesLoading,
         refetch: refetchToggles,
-    } = useFeatureToggles();
+    } = useFeatureToggles(expandedUserId ?? undefined);
 
+    // Merge catalogue with user toggles to show all available features
     const allToggles: FeatureToggle[] = React.useMemo(() => {
         const raw = (togglesResponse as any)?.data ?? togglesResponse ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map(mapApiToggle);
-    }, [togglesResponse]);
+        const userToggleList: FeatureToggle[] = Array.isArray(raw) ? raw.map(mapApiToggle) : [];
 
-    const updateToggle = useUpdateFeatureToggle();
+        // Build a map of user's current toggles
+        const toggleMap = new Map<string, FeatureToggle>();
+        for (const t of userToggleList) {
+            toggleMap.set(t.feature, t);
+        }
+
+        // Merge with catalogue: show catalogue items with user's state, defaults to off
+        if (catalogue.length > 0) {
+            const merged: FeatureToggle[] = [];
+            for (const cat of catalogue) {
+                const existing = toggleMap.get(cat.key);
+                if (existing) {
+                    merged.push(existing);
+                } else {
+                    merged.push({
+                        feature: cat.key,
+                        enabled: false,
+                        source: 'default',
+                    });
+                }
+            }
+            return merged;
+        }
+
+        return userToggleList;
+    }, [togglesResponse, catalogue]);
+
+    const updateToggle = useUpdateFeatureToggles();
 
     const handleToggleFeature = (userId: string, feature: string, enabled: boolean) => {
         updateToggle.mutate(
-            { userId, feature, enabled },
-            { onSuccess: () => refetchToggles() }
+            { userId, toggles: { [feature]: enabled } },
+            {
+                onSuccess: () => {
+                    refetchToggles();
+                },
+            }
         );
     };
 
     const handleRefresh = () => {
         refetchUsers();
-        refetchToggles();
+        if (expandedUserId) {
+            refetchToggles();
+        }
     };
 
-    const isLoading = usersLoading || togglesLoading;
+    const isLoading = usersLoading || catalogueLoading;
     const isFetching = usersFetching;
 
     const renderUser = ({ item, index }: { item: UserItem; index: number }) => (
@@ -341,7 +371,7 @@ export function FeatureToggleScreen() {
                     </Text>
                     <Text className="mt-1 font-inter text-sm text-neutral-500">
                         {users.length} user{users.length !== 1 ? 's' : ''} /{' '}
-                        {allToggles.length} toggle{allToggles.length !== 1 ? 's' : ''}
+                        {catalogue.length} feature{catalogue.length !== 1 ? 's' : ''}
                     </Text>
                 </View>
             </Animated.View>

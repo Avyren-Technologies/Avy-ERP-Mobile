@@ -32,6 +32,7 @@ import {
     useUpdateRole,
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import {
+    usePermissionCatalogue,
     useRbacReferenceRoles,
     useRbacRoles,
 } from '@/features/company-admin/api/use-company-admin-queries';
@@ -54,25 +55,16 @@ interface ReferenceRole {
     permissions: string[];
 }
 
-// Permission modules and their available actions
-const PERMISSION_MODULES = [
-    { key: 'hr', label: 'HR' },
-    { key: 'production', label: 'Production' },
-    { key: 'inventory', label: 'Inventory' },
-    { key: 'sales', label: 'Sales' },
-    { key: 'finance', label: 'Finance' },
-    { key: 'maintenance', label: 'Maintenance' },
-    { key: 'vendor', label: 'Vendor' },
-    { key: 'security', label: 'Security' },
-    { key: 'visitor', label: 'Visitor' },
-    { key: 'masters', label: 'Masters' },
-    { key: 'user', label: 'User Mgmt' },
-    { key: 'role', label: 'Role Mgmt' },
-    { key: 'company', label: 'Company' },
-    { key: 'report', label: 'Reports' },
-] as const;
+interface PermissionModule {
+    module: string;
+    label: string;
+    actions: string[];
+}
 
-const PERMISSION_ACTIONS = ['view', 'create', 'edit', 'delete', 'approve'] as const;
+interface PermissionCatalogueResponse {
+    permissions: string[];
+    modules: PermissionModule[];
+}
 
 // ============ HELPERS ============
 
@@ -287,6 +279,17 @@ function RoleFormScreen({
         isLoading: refRolesLoading,
     } = useRbacReferenceRoles();
 
+    // Fetch permission catalogue from API
+    const { data: catalogueRaw, isLoading: catalogueLoading } = usePermissionCatalogue();
+
+    const permissionModules: PermissionModule[] = React.useMemo(() => {
+        const raw = (catalogueRaw as any)?.data ?? catalogueRaw;
+        const catalogue = raw as PermissionCatalogueResponse | undefined;
+        if (!catalogue?.modules || !Array.isArray(catalogue.modules)) return [];
+        // Filter out 'platform' module (admin-only)
+        return catalogue.modules.filter((m) => m.module !== 'platform');
+    }, [catalogueRaw]);
+
     const referenceRoles: ReferenceRole[] = React.useMemo(() => {
         const data = (refRolesRaw as any)?.data ?? refRolesRaw ?? [];
         if (!Array.isArray(data)) return [];
@@ -325,7 +328,9 @@ function RoleFormScreen({
     };
 
     const toggleAllModulePerms = (moduleKey: string) => {
-        const modulePerms = PERMISSION_ACTIONS.map((a) => `${moduleKey}:${a}`);
+        const mod = permissionModules.find((m) => m.module === moduleKey);
+        if (!mod) return;
+        const modulePerms = mod.actions.map((a) => `${moduleKey}:${a}`);
         const allSelected = modulePerms.every((p) => permissions.includes(p));
         if (allSelected) {
             setPermissions((prev) => prev.filter((p) => !modulePerms.includes(p)));
@@ -517,16 +522,23 @@ function RoleFormScreen({
                         Permissions
                     </Text>
 
-                    {PERMISSION_MODULES.map((mod) => {
-                        const isExpanded = expandedModules.includes(mod.key);
-                        const permCount = getModulePermCount(mod.key);
-                        const modulePerms = PERMISSION_ACTIONS.map((a) => `${mod.key}:${a}`);
+                    {catalogueLoading ? (
+                        <View style={{ padding: 20, alignItems: 'center' }}>
+                            <ActivityIndicator color={colors.primary[500]} />
+                            <Text className="mt-2 font-inter text-xs text-neutral-400">
+                                Loading permissions...
+                            </Text>
+                        </View>
+                    ) : permissionModules.map((mod) => {
+                        const isExpanded = expandedModules.includes(mod.module);
+                        const permCount = getModulePermCount(mod.module);
+                        const modulePerms = mod.actions.map((a) => `${mod.module}:${a}`);
                         const allSelected = modulePerms.every((p) => permissions.includes(p));
 
                         return (
-                            <View key={mod.key} style={formStyles.moduleCard}>
+                            <View key={mod.module} style={formStyles.moduleCard}>
                                 <Pressable
-                                    onPress={() => toggleModule(mod.key)}
+                                    onPress={() => toggleModule(mod.module)}
                                     style={formStyles.moduleHeader}
                                 >
                                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -557,7 +569,7 @@ function RoleFormScreen({
                                     <Animated.View entering={FadeIn.duration(150)} style={formStyles.moduleBody}>
                                         {/* Select all for this module */}
                                         <Pressable
-                                            onPress={() => toggleAllModulePerms(mod.key)}
+                                            onPress={() => toggleAllModulePerms(mod.module)}
                                             style={formStyles.selectAllRow}
                                         >
                                             <View
@@ -585,8 +597,8 @@ function RoleFormScreen({
                                         </Pressable>
 
                                         <View style={formStyles.permGrid}>
-                                            {PERMISSION_ACTIONS.map((action) => {
-                                                const perm = `${mod.key}:${action}`;
+                                            {mod.actions.map((action) => {
+                                                const perm = `${mod.module}:${action}`;
                                                 const isSelected = permissions.includes(perm);
                                                 return (
                                                     <Pressable

@@ -43,6 +43,7 @@ import {
     useEmployees,
     useGrades,
 } from '@/features/company-admin/api/use-hr-queries';
+import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ TYPES ============
 
@@ -324,6 +325,7 @@ function DropdownField({
     onSelect,
     required,
     placeholder = 'Select...',
+    createRoute,
 }: {
     label: string;
     options: { id: string; name: string }[];
@@ -331,15 +333,29 @@ function DropdownField({
     onSelect: (id: string) => void;
     required?: boolean;
     placeholder?: string;
+    createRoute?: { route: string; label: string };
 }) {
     const [open, setOpen] = React.useState(false);
     const selectedItem = options.find((o) => o.id === selected);
+    const router = useRouter();
 
     return (
         <View style={[st.field, { zIndex: open ? 100 : 1 }]}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                {label}{required ? <Text className="text-danger-500"> *</Text> : null}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900">
+                    {label}{required ? <Text className="text-danger-500"> *</Text> : null}
+                </Text>
+                {createRoute && (
+                    <Pressable onPress={() => router.push(createRoute.route as any)} hitSlop={8}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                                <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth={2} strokeLinecap="round" />
+                            </Svg>
+                            <Text className="font-inter text-[11px] font-bold text-primary-600">Create</Text>
+                        </View>
+                    </Pressable>
+                )}
+            </View>
             <Pressable
                 onPress={() => setOpen((v) => !v)}
                 style={[st.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
@@ -362,37 +378,43 @@ function DropdownField({
                     />
                 </Svg>
             </Pressable>
-            {open && options.length > 0 && (
+            {open && (
                 <View style={st.dropdown}>
-                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
-                        {options.map((opt, idx) => {
-                            const isActive = opt.id === selected;
-                            return (
-                                <Pressable
-                                    key={opt.id}
-                                    onPress={() => { onSelect(opt.id); setOpen(false); }}
-                                    style={[
-                                        st.dropdownItem,
-                                        isActive && { backgroundColor: colors.primary[50] },
-                                        idx > 0 && { borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-                                    ]}
-                                >
-                                    <Text
-                                        className={`font-inter text-sm ${isActive ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
-                                        numberOfLines={1}
-                                        style={{ flex: 1 }}
+                    {options.length === 0 ? (
+                        <Text className="font-inter text-sm text-neutral-400 py-3 text-center">
+                            No {label.toLowerCase()}s available
+                        </Text>
+                    ) : (
+                        <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
+                            {options.map((opt, idx) => {
+                                const isActive = opt.id === selected;
+                                return (
+                                    <Pressable
+                                        key={opt.id}
+                                        onPress={() => { onSelect(opt.id); setOpen(false); }}
+                                        style={[
+                                            st.dropdownItem,
+                                            isActive && { backgroundColor: colors.primary[50] },
+                                            idx > 0 && { borderTopWidth: 1, borderTopColor: colors.neutral[100] },
+                                        ]}
                                     >
-                                        {opt.name}
-                                    </Text>
-                                    {isActive && (
-                                        <Svg width={14} height={14} viewBox="0 0 24 24">
-                                            <Path d="M5 12l5 5L20 7" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                        </Svg>
-                                    )}
-                                </Pressable>
-                            );
-                        })}
-                    </ScrollView>
+                                        <Text
+                                            className={`font-inter text-sm ${isActive ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
+                                            numberOfLines={1}
+                                            style={{ flex: 1 }}
+                                        >
+                                            {opt.name}
+                                        </Text>
+                                        {isActive && (
+                                            <Svg width={14} height={14} viewBox="0 0 24 24">
+                                                <Path d="M5 12l5 5L20 7" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                            </Svg>
+                                        )}
+                                    </Pressable>
+                                );
+                            })}
+                        </ScrollView>
+                    )}
                 </View>
             )}
         </View>
@@ -404,6 +426,55 @@ function SectionTitle({ title }: { title: string }) {
         <Text className="mb-3 mt-4 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
             {title}
         </Text>
+    );
+}
+
+function RoleChipSelectWithCreate({
+    dynamicRoles,
+    userRole,
+    onUserRoleChange,
+}: {
+    dynamicRoles: { id: string; name: string; isActive?: boolean }[];
+    userRole: string;
+    onUserRoleChange?: (v: string) => void;
+}) {
+    const router = useRouter();
+    return (
+        <View style={st.field}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900">Role</Text>
+                <Pressable onPress={() => router.push('/company/roles' as any)} hitSlop={8}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                            <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth={2} strokeLinecap="round" />
+                        </Svg>
+                        <Text className="font-inter text-[11px] font-bold text-primary-600">Create</Text>
+                    </View>
+                </Pressable>
+            </View>
+            <View style={st.chipRow}>
+                {dynamicRoles.length === 0 ? (
+                    <Text className="font-inter text-sm text-neutral-400 py-1">No roles available</Text>
+                ) : (
+                    dynamicRoles.map((r) => {
+                        const isActive = r.id === userRole;
+                        return (
+                            <Pressable
+                                key={r.id}
+                                onPress={() => onUserRoleChange?.(r.id)}
+                                style={[st.chip, isActive && st.chipActive]}
+                            >
+                                <Text
+                                    className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                                >
+                                    {r.name}
+                                </Text>
+                            </Pressable>
+                        );
+                    })
+                )}
+            </View>
+        </View>
     );
 }
 
@@ -469,6 +540,9 @@ function PersonalTab({
     onConfirmPasswordChange,
     userRole,
     onUserRoleChange,
+    dynamicRoles,
+    rolesError,
+    rolesLoading,
 }: {
     form: PersonalForm;
     onChange: (updates: Partial<PersonalForm>) => void;
@@ -481,6 +555,9 @@ function PersonalTab({
     onConfirmPasswordChange?: (v: string) => void;
     userRole?: string;
     onUserRoleChange?: (v: string) => void;
+    dynamicRoles?: { id: string; name: string; isActive?: boolean }[];
+    rolesError?: boolean;
+    rolesLoading?: boolean;
 }) {
     const [showPwd, setShowPwd] = React.useState(false);
     const [showConfirmPwd, setShowConfirmPwd] = React.useState(false);
@@ -611,20 +688,17 @@ function PersonalTab({
                                         </Svg>
                                     </Pressable>
                                 </View>
-                                <ChipSelect
-                                    label="Role"
-                                    options={['Employee', 'Manager', 'HR', 'Company Admin']}
-                                    selected={
-                                        userRole === 'EMPLOYEE' ? 'Employee' :
-                                        userRole === 'MANAGER' ? 'Manager' :
-                                        userRole === 'HR' ? 'HR' :
-                                        userRole === 'COMPANY_ADMIN' ? 'Company Admin' : 'Employee'
-                                    }
-                                    onSelect={(v) => {
-                                        const mapped = v === 'Employee' ? 'EMPLOYEE' : v === 'Manager' ? 'MANAGER' : v === 'HR' ? 'HR' : v === 'Company Admin' ? 'COMPANY_ADMIN' : 'EMPLOYEE';
-                                        onUserRoleChange?.(mapped);
-                                    }}
-                                />
+                                {rolesError ? (
+                                    <Text className="font-inter text-[10px] font-semibold text-danger-600 mt-2">Failed to load roles. Check permissions or try again.</Text>
+                                ) : rolesLoading ? (
+                                    <Text className="font-inter text-[10px] text-neutral-500 mt-2">Loading roles...</Text>
+                                ) : (
+                                    <RoleChipSelectWithCreate
+                                        dynamicRoles={dynamicRoles || []}
+                                        userRole={userRole || ''}
+                                        onUserRoleChange={onUserRoleChange}
+                                    />
+                                )}
                                 {(confirmPassword ?? '').length > 0 && userPassword !== confirmPassword && (
                                     <Text className="font-inter text-[10px] font-semibold text-danger-600">Passwords do not match.</Text>
                                 )}
@@ -649,6 +723,8 @@ function ProfessionalTab({
     grades,
     costCentres,
     employees,
+    locations,
+    shifts,
 }: {
     form: ProfessionalForm;
     onChange: (updates: Partial<ProfessionalForm>) => void;
@@ -658,23 +734,27 @@ function ProfessionalTab({
     grades: { id: string; name: string }[];
     costCentres: { id: string; name: string }[];
     employees: { id: string; name: string }[];
+    locations?: { id: string; name: string }[];
+    shifts?: { id: string; name: string }[];
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Employment" />
             <FormField label="Joining Date" value={form.joiningDate} onChangeText={(v) => onChange({ joiningDate: v })} placeholder="YYYY-MM-DD" required />
-            <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required />
-            <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required />
-            <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required />
-            <DropdownField label="Grade" options={grades} selected={form.gradeId} onSelect={(v) => onChange({ gradeId: v })} />
+            <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required createRoute={{ route: '/company/hr/employee-types', label: 'Create Employee Type' }} />
+            <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required createRoute={{ route: '/company/hr/departments', label: 'Create Department' }} />
+            <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required createRoute={{ route: '/company/hr/designations', label: 'Create Designation' }} />
+            <DropdownField label="Grade" options={grades} selected={form.gradeId} onSelect={(v) => onChange({ gradeId: v })} createRoute={{ route: '/company/hr/grades', label: 'Create Grade' }} />
 
             <SectionTitle title="Reporting" />
             <DropdownField label="Reporting Manager" options={employees} selected={form.reportingManagerId} onSelect={(v) => onChange({ reportingManagerId: v })} placeholder="Search manager..." />
             <DropdownField label="Functional Manager" options={employees} selected={form.functionalManagerId} onSelect={(v) => onChange({ functionalManagerId: v })} placeholder="Search manager..." />
 
             <SectionTitle title="Work Setup" />
+            <DropdownField label="Location" options={locations || []} selected={form.locationId} onSelect={(v) => onChange({ locationId: v })} placeholder="Select location..." createRoute={{ route: '/company/locations', label: 'Create Location' }} />
+            <DropdownField label="Shift" options={shifts || []} selected={form.shiftId} onSelect={(v) => onChange({ shiftId: v })} placeholder="Select shift..." createRoute={{ route: '/company/shifts', label: 'Create Shift' }} />
             <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} />
-            <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} />
+            <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} />
             <FormField label="Notice Period (Days)" value={form.noticePeriodDays} onChangeText={(v) => onChange({ noticePeriodDays: v })} keyboardType="number-pad" placeholder="e.g. 90" />
             <FormField label="Probation End Date" value={form.probationEndDate} onChangeText={(v) => onChange({ probationEndDate: v })} placeholder="Auto-calculated" editable={false} />
         </Animated.View>
@@ -927,7 +1007,7 @@ export function EmployeeDetailScreen() {
     const [createUserAccount, setCreateUserAccount] = React.useState(false);
     const [userPassword, setUserPassword] = React.useState('');
     const [confirmPassword, setConfirmPassword] = React.useState('');
-    const [userRole, setUserRole] = React.useState('EMPLOYEE');
+    const [userRole, setUserRole] = React.useState('');
     const [employeeName, setEmployeeName] = React.useState('');
 
     // Data queries
@@ -937,6 +1017,9 @@ export function EmployeeDetailScreen() {
     const { data: empTypeResponse } = useEmployeeTypes();
     const { data: gradeResponse } = useGrades();
     const { data: costCentreResponse } = useCostCentres();
+    const { data: rbacRolesResponse, isError: rolesError, isLoading: rolesLoading } = useRbacRoles();
+    const { data: locationResponse } = useCompanyLocations();
+    const { data: shiftResponse } = useCompanyShifts();
     const { data: empListResponse } = useEmployees({ limit: 100 });
     const { data: docsResponse } = useEmployeeDocuments(employeeId);
     const { data: timelineResponse, isLoading: timelineLoading } = useEmployeeTimeline(employeeId);
@@ -980,6 +1063,16 @@ export function EmployeeDetailScreen() {
             name: [e.firstName, e.lastName].filter(Boolean).join(' ') || e.fullName || e.name || '',
         })) : [];
     }, [empListResponse]);
+
+    const locationOptions = React.useMemo(() => {
+        const raw = (locationResponse as any)?.data ?? locationResponse ?? [];
+        return Array.isArray(raw) ? raw.map((l: any) => ({ id: l.id ?? '', name: l.name ?? '' })) : [];
+    }, [locationResponse]);
+
+    const shiftOptions = React.useMemo(() => {
+        const raw = (shiftResponse as any)?.data ?? shiftResponse ?? [];
+        return Array.isArray(raw) ? raw.map((s: any) => ({ id: s.id ?? '', name: s.name ?? '' })) : [];
+    }, [shiftResponse]);
 
     const docItems: DocItem[] = React.useMemo(() => {
         const raw = (docsResponse as any)?.data ?? docsResponse ?? [];
@@ -1192,7 +1285,7 @@ export function EmployeeDetailScreen() {
             }
             (data as any).createUserAccount = true;
             (data as any).userPassword = userPassword;
-            (data as any).userRole = userRole;
+            if (userRole) (data as any).userRole = userRole;
         }
 
         if (isCreateMode) {
@@ -1383,6 +1476,9 @@ export function EmployeeDetailScreen() {
                         onConfirmPasswordChange={setConfirmPassword}
                         userRole={userRole}
                         onUserRoleChange={setUserRole}
+                        dynamicRoles={rbacRolesResponse?.data || []}
+                        rolesError={rolesError}
+                        rolesLoading={rolesLoading}
                     />
                 )}
                 {activeTab === 'professional' && (
@@ -1395,6 +1491,8 @@ export function EmployeeDetailScreen() {
                         grades={gradeOptions}
                         costCentres={costCentreOptions}
                         employees={employeeOptions}
+                        locations={locationOptions}
+                        shifts={shiftOptions}
                     />
                 )}
                 {activeTab === 'salary' && (

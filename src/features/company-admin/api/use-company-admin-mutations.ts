@@ -340,3 +340,19 @@ export function useDeleteRole() {
     onError: showError,
   });
 }
+
+// ── Feature Toggles ─────────────────────────────────────────────────
+
+/** Update feature toggles for a specific user */
+export function useUpdateFeatureToggles() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, toggles }: { userId: string; toggles: Record<string, boolean> }) =>
+      companyAdminApi.updateFeatureToggles(userId, toggles),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.featureToggles(variables.userId) });
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.featureToggles(undefined) });
+    },
+    onError: showError,
+  });
+}

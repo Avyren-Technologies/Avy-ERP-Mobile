@@ -34,6 +34,7 @@ import {
 } from '@/features/company-admin/api/use-transfer-mutations';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useDepartments, useDesignations } from '@/features/company-admin/api/use-hr-queries';
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ TYPES ============
 
@@ -185,13 +186,14 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 // ============ CREATE MODAL ============
 
 function CreateTransferModal({
-    visible, onClose, onSave, isSaving, employeeOptions, departmentOptions, designationOptions,
+    visible, onClose, onSave, isSaving, employeeOptions, departmentOptions, designationOptions, locationOptions,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void; isSaving: boolean;
     employeeOptions: { id: string; label: string }[];
     departmentOptions: { id: string; label: string }[];
     designationOptions: { id: string; label: string }[];
+    locationOptions: { id: string; label: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [employeeId, setEmployeeId] = React.useState('');
@@ -231,10 +233,7 @@ function CreateTransferModal({
                         <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Search employee..." required searchable />
                         <Dropdown label="To Department" value={toDepartment} options={departmentOptions} onSelect={setToDepartment} placeholder="Select department..." required />
                         <Dropdown label="To Designation" value={toDesignation} options={designationOptions} onSelect={setToDesignation} placeholder="Select designation..." />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">To Location</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Mumbai Office" placeholderTextColor={colors.neutral[400]} value={toLocation} onChangeText={setToLocation} /></View>
-                        </View>
+                        <Dropdown label="To Location" value={toLocation} options={locationOptions} onSelect={setToLocation} placeholder="Select location..." />
                         <Dropdown label="To Manager" value={toManagerId} options={employeeOptions} onSelect={setToManagerId} placeholder="Select manager..." searchable />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Effective Date <Text className="text-danger-500">*</Text></Text>
@@ -384,6 +383,7 @@ export function TransferScreen() {
     const { data: empResponse } = useEmployees();
     const { data: deptResponse } = useDepartments();
     const { data: desigResponse } = useDesignations();
+    const { data: locResponse } = useCompanyLocations();
 
     const [formVisible, setFormVisible] = React.useState(false);
     const [rejectionModalVisible, setRejectionModalVisible] = React.useState(false);
@@ -408,6 +408,12 @@ export function TransferScreen() {
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
     }, [desigResponse]);
+
+    const locationOptions = React.useMemo(() => {
+        const raw = (locResponse as any)?.data ?? locResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
+    }, [locResponse]);
 
     const items: TransferItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -517,7 +523,7 @@ export function TransferScreen() {
             />
             <FAB onPress={() => setFormVisible(true)} />
             <CreateTransferModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleCreate} isSaving={createMutation.isPending}
-                employeeOptions={employeeOptions} departmentOptions={departmentOptions} designationOptions={designationOptions} />
+                employeeOptions={employeeOptions} departmentOptions={departmentOptions} designationOptions={designationOptions} locationOptions={locationOptions} />
             <RejectionNoteModal visible={rejectionModalVisible} onClose={() => setRejectionModalVisible(false)} onSubmit={handleRejectSubmit} isSubmitting={rejectMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>

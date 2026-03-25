@@ -143,4 +143,19 @@ export const companyAdminApi = {
     client.patch(`/rbac/roles/${id}`, data),
 
   deleteRole: (id: string) => client.delete(`/rbac/roles/${id}`),
+
+  /** Fetch permission catalogue (modules + actions) */
+  getPermissionCatalogue: () => client.get('/rbac/permissions'),
+
+  // ── Feature Toggles ─────────────────────────────────────────────
+  /** Fetch feature toggle catalogue */
+  getFeatureToggleCatalogue: () => client.get('/feature-toggles/catalogue'),
+
+  /** Fetch feature toggles, optionally filtered by userId */
+  getFeatureToggles: (userId?: string) =>
+    client.get('/feature-toggles', { params: userId ? { userId } : undefined }),
+
+  /** Update feature toggles for a specific user */
+  updateFeatureToggles: (userId: string, toggles: Record<string, boolean>) =>
+    client.put(`/feature-toggles/user/${userId}`, { toggles }),
 };

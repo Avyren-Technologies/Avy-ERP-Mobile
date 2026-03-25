@@ -58,6 +58,7 @@ interface AuthState {
     user: AuthUser | null;
     userRole: UserRole | null;
     permissions: string[];
+    featureToggles: string[];
     signIn: (token: TokenType, user: AuthUser, role?: UserRole) => void;
     signOut: () => void;
     updateTokens: (tokens: TokenType) => void;
@@ -70,19 +71,21 @@ const _useAuthStore = create<AuthState>((set) => ({
     user: null,
     userRole: null,
     permissions: [],
+    featureToggles: [],
     signIn: (token, user, role?) => {
         const resolvedRole = role ?? mapBackendRole(user.role);
         const permissions = user.permissions ?? [];
+        const featureToggles = user.featureToggles ?? [];
         setToken(token);
         setItem(USER_DATA_KEY, user);
-        logger.info('User signed in', { email: user.email, role: resolvedRole, permissionCount: permissions.length });
-        set({ status: 'signIn', token, user, userRole: resolvedRole, permissions });
+        logger.info('User signed in', { email: user.email, role: resolvedRole, permissionCount: permissions.length, featureToggleCount: featureToggles.length });
+        set({ status: 'signIn', token, user, userRole: resolvedRole, permissions, featureToggles });
     },
     signOut: () => {
         removeToken();
         removeItem(USER_DATA_KEY);
         logger.info('User signed out');
-        set({ status: 'signOut', token: null, user: null, userRole: null, permissions: [] });
+        set({ status: 'signOut', token: null, user: null, userRole: null, permissions: [], featureToggles: [] });
     },
     updateTokens: (tokens) => {
         setToken(tokens);
@@ -95,8 +98,9 @@ const _useAuthStore = create<AuthState>((set) => ({
             if (userToken !== null) {
                 const role = userData ? mapBackendRole(userData.role) : null;
                 const permissions = userData?.permissions ?? [];
+                const featureToggles = userData?.featureToggles ?? [];
                 logger.info('Auth hydrated from storage', { email: userData?.email, role });
-                set({ status: 'signIn', token: userToken, user: userData, userRole: role, permissions });
+                set({ status: 'signIn', token: userToken, user: userData, userRole: role, permissions, featureToggles });
             } else {
                 logger.info('No stored session — showing login');
                 set({ status: 'signOut' });
@@ -121,4 +125,10 @@ export const updateTokens = (tokens: TokenType) =>
 export function useHasPermission(permission: string): boolean {
     const permissions = useAuthStore.use.permissions();
     return checkPermission(permissions, permission);
+}
+
+/** Hook: returns true if the current user has the given feature toggle enabled. */
+export function useHasFeature(key: string): boolean {
+    const featureToggles = useAuthStore.use.featureToggles();
+    return featureToggles.includes(key);
 }

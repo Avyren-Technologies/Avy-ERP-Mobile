@@ -111,6 +111,12 @@ function AppSidebar() {
                 {
                     items: [
                         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' as const, isActive: pathname === '/', onPress: () => router.push('/') },
+                    ],
+                },
+                {
+                    moduleSeparator: 'Platform Management',
+                    title: 'Management',
+                    items: [
                         { id: 'companies', label: 'Companies', icon: 'companies' as const, isActive: pathname === '/companies', onPress: () => router.push('/companies') },
                     ],
                 },
@@ -126,14 +132,17 @@ function AppSidebar() {
                     title: 'Administration',
                     items: [
                         { id: 'audit', label: 'Audit Logs', icon: 'audit' as const, isActive: pathname === '/reports/audit', onPress: () => router.push('/(app)/reports/audit' as any) },
-                        { id: 'users', label: 'User Management', icon: 'users' as const, isActive: false, onPress: () => {} },
                     ],
                 },
                 {
+                    moduleSeparator: 'System',
                     title: 'System',
                     items: [
+                        { id: 'module-catalogue', label: 'Module Catalogue', icon: 'settings' as const, isActive: false, onPress: () => {} },
+                        { id: 'platform-monitor', label: 'Platform Monitor', icon: 'dashboard' as const, isActive: false, onPress: () => {} },
+                        { id: 'users', label: 'User Management', icon: 'users' as const, isActive: false, onPress: () => {} },
                         { id: 'settings', label: 'Settings', icon: 'settings' as const, isActive: pathname === '/settings', onPress: () => router.push('/settings') },
-                        { id: 'support', label: 'Support', icon: 'support' as const, isActive: false, onPress: () => {} },
+                        { id: 'support', label: 'Support', icon: 'support' as const, isActive: pathname === '/support', onPress: () => router.push('/support' as any) },
                     ],
                 },
             ];
@@ -141,19 +150,20 @@ function AppSidebar() {
 
         // Build permission-filtered sections for non-super-admin users
         const allSections: Array<{ section: SidebarSection; requiredPerm?: string }> = [
-            // Dashboard — always visible
+            // ── Overview ──
             {
                 section: {
-                    title: 'Dashboard',
                     items: [
                         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' as const, onPress: () => router.push('/'), isActive: pathname === '/' },
                     ],
                 },
             },
-            // Company section — requires company:read
+
+            // ══════════ COMPANY ADMIN ══════════
             {
                 requiredPerm: 'company:read',
                 section: {
+                    moduleSeparator: 'Company Admin',
                     title: 'Company',
                     items: [
                         { id: 'profile', label: 'Company Profile', icon: 'companies' as const, onPress: () => router.push('/company/profile' as any), isActive: pathname.startsWith('/company/profile') },
@@ -163,11 +173,46 @@ function AppSidebar() {
                     ],
                 },
             },
-            // HR & People — requires hr:read
+            {
+                section: {
+                    title: 'People & Access',
+                    items: [
+                        ...(hasPerm('user:read') ? [{ id: 'users', label: 'User Management', icon: 'users' as const, onPress: () => router.push('/company/users' as any), isActive: pathname.startsWith('/company/users') }] : []),
+                        ...(hasPerm('role:read') ? [{ id: 'roles', label: 'Roles & Permissions', icon: 'users' as const, onPress: () => router.push('/company/roles' as any), isActive: pathname.startsWith('/company/roles') }] : []),
+                        ...(hasPerm('role:read') ? [{ id: 'feature-toggles', label: 'Feature Toggles', icon: 'settings' as const, onPress: () => router.push('/company/feature-toggles' as any), isActive: pathname.startsWith('/company/feature-toggles') }] : []),
+                    ],
+                },
+            },
+            {
+                requiredPerm: 'company:read',
+                section: {
+                    title: 'Configuration',
+                    items: [
+                        { id: 'no-series', label: 'Number Series', icon: 'settings' as const, onPress: () => router.push('/company/no-series' as any), isActive: pathname.startsWith('/company/no-series') },
+                        { id: 'iot-reasons', label: 'IOT Reasons', icon: 'settings' as const, onPress: () => router.push('/company/iot-reasons' as any), isActive: pathname.startsWith('/company/iot-reasons') },
+                        ...(hasPerm('company:configure') ? [{ id: 'controls', label: 'System Controls', icon: 'settings' as const, onPress: () => router.push('/company/controls' as any), isActive: pathname.startsWith('/company/controls') }] : []),
+                        { id: 'settings', label: 'Settings', icon: 'settings' as const, onPress: () => router.push('/company/settings' as any), isActive: pathname.startsWith('/company/settings') },
+                    ],
+                },
+            },
+            {
+                requiredPerm: 'company:read',
+                section: {
+                    title: 'Billing',
+                    items: [
+                        { id: 'billing-overview', label: 'Billing Overview', icon: 'billing' as const, onPress: () => router.push('/company/billing' as any), isActive: pathname === '/company/billing' },
+                        { id: 'billing-invoices', label: 'Invoices', icon: 'billing' as const, onPress: () => router.push('/company/billing-invoices' as any), isActive: pathname.startsWith('/company/billing-invoices') },
+                        { id: 'billing-payments', label: 'Payments', icon: 'billing' as const, onPress: () => router.push('/company/billing-payments' as any), isActive: pathname.startsWith('/company/billing-payments') },
+                    ],
+                },
+            },
+
+            // ══════════ HRMS ══════════
             {
                 requiredPerm: 'hr:read',
                 section: {
-                    title: 'HR & People',
+                    moduleSeparator: 'HRMS',
+                    title: 'Org Structure',
                     items: [
                         { id: 'departments', label: 'Departments', icon: 'companies' as const, onPress: () => router.push('/company/hr/departments' as any), isActive: pathname.startsWith('/company/hr/departments') },
                         { id: 'designations', label: 'Designations', icon: 'users' as const, onPress: () => router.push('/company/hr/designations' as any), isActive: pathname.startsWith('/company/hr/designations') },
@@ -178,7 +223,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Attendance — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -192,7 +236,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Leave Management — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -205,7 +248,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Payroll & Compliance — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -214,15 +256,14 @@ function AppSidebar() {
                         { id: 'salary-components', label: 'Salary Components', icon: 'billing' as const, onPress: () => router.push('/company/hr/salary-components' as any), isActive: pathname.startsWith('/company/hr/salary-components') },
                         { id: 'salary-structures', label: 'Salary Structures', icon: 'settings' as const, onPress: () => router.push('/company/hr/salary-structures' as any), isActive: pathname.startsWith('/company/hr/salary-structures') },
                         { id: 'employee-salary', label: 'Employee Salary', icon: 'billing' as const, onPress: () => router.push('/company/hr/employee-salary' as any), isActive: pathname.startsWith('/company/hr/employee-salary') },
-                        { id: 'statutory-config', label: 'Statutory Config', icon: 'settings' as const, onPress: () => router.push('/company/hr/statutory-config' as any), isActive: pathname.startsWith('/company/hr/statutory-config') },
-                        { id: 'tax-config', label: 'Tax & TDS', icon: 'settings' as const, onPress: () => router.push('/company/hr/tax-config' as any), isActive: pathname.startsWith('/company/hr/tax-config') },
-                        { id: 'bank-config', label: 'Bank Config', icon: 'billing' as const, onPress: () => router.push('/company/hr/bank-config' as any), isActive: pathname.startsWith('/company/hr/bank-config') },
+                        ...(hasPerm('hr:configure') ? [{ id: 'statutory-config', label: 'Statutory Config', icon: 'settings' as const, onPress: () => router.push('/company/hr/statutory-config' as any), isActive: pathname.startsWith('/company/hr/statutory-config') }] : []),
+                        ...(hasPerm('hr:configure') ? [{ id: 'tax-config', label: 'Tax & TDS', icon: 'settings' as const, onPress: () => router.push('/company/hr/tax-config' as any), isActive: pathname.startsWith('/company/hr/tax-config') }] : []),
+                        ...(hasPerm('hr:configure') ? [{ id: 'bank-config', label: 'Bank Config', icon: 'billing' as const, onPress: () => router.push('/company/hr/bank-config' as any), isActive: pathname.startsWith('/company/hr/bank-config') }] : []),
                         { id: 'loan-policies', label: 'Loan Policies', icon: 'settings' as const, onPress: () => router.push('/company/hr/loan-policies' as any), isActive: pathname.startsWith('/company/hr/loan-policies') },
                         { id: 'loans', label: 'Loans', icon: 'billing' as const, onPress: () => router.push('/company/hr/loans' as any), isActive: pathname.startsWith('/company/hr/loans') },
                     ],
                 },
             },
-            // Payroll Operations — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -237,22 +278,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // ESS & Workflows — requires hr:read
-            {
-                requiredPerm: 'hr:read',
-                section: {
-                    title: 'ESS & Workflows',
-                    items: [
-                        { id: 'ess-config', label: 'ESS Config', icon: 'settings' as const, onPress: () => router.push('/company/hr/ess-config' as any), isActive: pathname.startsWith('/company/hr/ess-config') },
-                        { id: 'approval-workflows', label: 'Approval Workflows', icon: 'settings' as const, onPress: () => router.push('/company/hr/approval-workflows' as any), isActive: pathname.startsWith('/company/hr/approval-workflows') },
-                        { id: 'approval-requests', label: 'Approval Requests', icon: 'users' as const, onPress: () => router.push('/company/hr/approval-requests' as any), isActive: pathname.startsWith('/company/hr/approval-requests') },
-                        { id: 'notification-templates', label: 'Notification Templates', icon: 'settings' as const, onPress: () => router.push('/company/hr/notification-templates' as any), isActive: pathname.startsWith('/company/hr/notification-templates') },
-                        { id: 'notification-rules', label: 'Notification Rules', icon: 'settings' as const, onPress: () => router.push('/company/hr/notification-rules' as any), isActive: pathname.startsWith('/company/hr/notification-rules') },
-                        { id: 'it-declarations', label: 'IT Declarations', icon: 'billing' as const, onPress: () => router.push('/company/hr/it-declarations' as any), isActive: pathname.startsWith('/company/hr/it-declarations') },
-                    ],
-                },
-            },
-            // Self-Service — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -267,7 +292,20 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Transfers & Promotions — requires hr:read
+            {
+                requiredPerm: 'hr:read',
+                section: {
+                    title: 'ESS & Workflows',
+                    items: [
+                        ...(hasPerm('hr:configure') ? [{ id: 'ess-config', label: 'ESS Config', icon: 'settings' as const, onPress: () => router.push('/company/hr/ess-config' as any), isActive: pathname.startsWith('/company/hr/ess-config') }] : []),
+                        ...(hasPerm('hr:configure') ? [{ id: 'approval-workflows', label: 'Approval Workflows', icon: 'settings' as const, onPress: () => router.push('/company/hr/approval-workflows' as any), isActive: pathname.startsWith('/company/hr/approval-workflows') }] : []),
+                        { id: 'approval-requests', label: 'Approval Requests', icon: 'users' as const, onPress: () => router.push('/company/hr/approval-requests' as any), isActive: pathname.startsWith('/company/hr/approval-requests') },
+                        ...(hasPerm('hr:configure') ? [{ id: 'notification-templates', label: 'Notification Templates', icon: 'settings' as const, onPress: () => router.push('/company/hr/notification-templates' as any), isActive: pathname.startsWith('/company/hr/notification-templates') }] : []),
+                        ...(hasPerm('hr:configure') ? [{ id: 'notification-rules', label: 'Notification Rules', icon: 'settings' as const, onPress: () => router.push('/company/hr/notification-rules' as any), isActive: pathname.startsWith('/company/hr/notification-rules') }] : []),
+                        { id: 'it-declarations', label: 'IT Declarations', icon: 'billing' as const, onPress: () => router.push('/company/hr/it-declarations' as any), isActive: pathname.startsWith('/company/hr/it-declarations') },
+                    ],
+                },
+            },
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -279,7 +317,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Performance — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -295,7 +332,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Recruitment & Training — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -308,7 +344,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Exit & Separation — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -320,7 +355,6 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Advanced HR — requires hr:read
             {
                 requiredPerm: 'hr:read',
                 section: {
@@ -334,9 +368,11 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Operations — permission-gated per item
+
+            // ══════════ OPERATIONS ══════════
             {
                 section: {
+                    moduleSeparator: 'Operations',
                     title: 'Operations',
                     items: [
                         ...(hasPerm('inventory:read') ? [{ id: 'inventory', label: 'Inventory', icon: 'companies' as const, onPress: () => router.push('/company/inventory' as any), isActive: pathname.startsWith('/company/inventory') }] : []),
@@ -345,44 +381,8 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Configuration — requires company:read
-            {
-                requiredPerm: 'company:read',
-                section: {
-                    title: 'Configuration',
-                    items: [
-                        { id: 'module-catalogue', label: 'Module Catalogue', icon: 'settings' as const, onPress: () => router.push('/company/module-catalogue' as any), isActive: pathname.startsWith('/company/module-catalogue') },
-                        { id: 'no-series', label: 'Number Series', icon: 'settings' as const, onPress: () => router.push('/company/no-series' as any), isActive: pathname.startsWith('/company/no-series') },
-                        { id: 'iot-reasons', label: 'IOT Reasons', icon: 'settings' as const, onPress: () => router.push('/company/iot-reasons' as any), isActive: pathname.startsWith('/company/iot-reasons') },
-                        { id: 'controls', label: 'System Controls', icon: 'settings' as const, onPress: () => router.push('/company/controls' as any), isActive: pathname.startsWith('/company/controls') },
-                        { id: 'settings', label: 'Settings', icon: 'settings' as const, onPress: () => router.push('/company/settings' as any), isActive: pathname.startsWith('/company/settings') },
-                    ],
-                },
-            },
-            // Billing — requires company:read
-            {
-                requiredPerm: 'company:read',
-                section: {
-                    title: 'Billing',
-                    items: [
-                        { id: 'billing-overview', label: 'Billing Overview', icon: 'billing' as const, onPress: () => router.push('/company/billing' as any), isActive: pathname === '/company/billing' },
-                        { id: 'billing-invoices', label: 'Invoices', icon: 'billing' as const, onPress: () => router.push('/company/billing-invoices' as any), isActive: pathname.startsWith('/company/billing-invoices') },
-                        { id: 'billing-payments', label: 'Payments', icon: 'billing' as const, onPress: () => router.push('/company/billing-payments' as any), isActive: pathname.startsWith('/company/billing-payments') },
-                    ],
-                },
-            },
-            // People & Access — permission-gated per item
-            {
-                section: {
-                    title: 'People & Access',
-                    items: [
-                        ...(hasPerm('user:read') ? [{ id: 'users', label: 'User Management', icon: 'users' as const, onPress: () => router.push('/company/users' as any), isActive: pathname.startsWith('/company/users') }] : []),
-                        ...(hasPerm('role:read') ? [{ id: 'roles', label: 'Roles & Permissions', icon: 'users' as const, onPress: () => router.push('/company/roles' as any), isActive: pathname.startsWith('/company/roles') }] : []),
-                        ...(hasPerm('role:read') ? [{ id: 'feature-toggles', label: 'Feature Toggles', icon: 'settings' as const, onPress: () => router.push('/company/feature-toggles' as any), isActive: pathname.startsWith('/company/feature-toggles') }] : []),
-                    ],
-                },
-            },
-            // Reports — requires audit:read
+
+            // ══════════ REPORTS & SUPPORT ══════════
             {
                 requiredPerm: 'audit:read',
                 section: {
@@ -392,12 +392,11 @@ function AppSidebar() {
                     ],
                 },
             },
-            // Support — always visible
             {
                 section: {
                     title: 'Support',
                     items: [
-                        { id: 'support', label: 'Help & Support', icon: 'support' as const, onPress: () => {}, isActive: false },
+                        { id: 'support', label: 'Help & Support', icon: 'support' as const, onPress: () => router.push('/support' as any), isActive: pathname === '/support' },
                     ],
                 },
             },

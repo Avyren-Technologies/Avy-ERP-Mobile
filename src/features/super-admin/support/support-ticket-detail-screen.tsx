@@ -28,10 +28,19 @@ import {
     useReplySupportTicket,
     useUpdateTicketStatus,
 } from '@/features/super-admin/api/use-support-mutations';
+import { useTicketSocket } from '@/hooks/use-ticket-socket';
 
 // ============ CONSTANTS ============
 
-const TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'] as const;
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+    OPEN: ['IN_PROGRESS', 'WAITING_ON_CUSTOMER', 'RESOLVED', 'CLOSED'],
+    IN_PROGRESS: ['WAITING_ON_CUSTOMER', 'RESOLVED', 'CLOSED'],
+    WAITING_ON_CUSTOMER: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+    RESOLVED: ['CLOSED'],
+    CLOSED: [],
+};
+
+const TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING_ON_CUSTOMER', 'RESOLVED', 'CLOSED'] as const;
 
 // ============ HELPERS ============
 
@@ -39,7 +48,7 @@ function getStatusColor(status: string) {
     switch (status) {
         case 'OPEN': return { bg: colors.info[50], text: colors.info[700], active: colors.info[500] };
         case 'IN_PROGRESS': return { bg: colors.warning[50], text: colors.warning[700], active: colors.warning[500] };
-        case 'WAITING': return { bg: colors.accent[50], text: colors.accent[700], active: colors.accent[500] };
+        case 'WAITING_ON_CUSTOMER': return { bg: colors.accent[50], text: colors.accent[700], active: colors.accent[500] };
         case 'RESOLVED': return { bg: colors.success[50], text: colors.success[700], active: colors.success[500] };
         case 'CLOSED': return { bg: colors.neutral[100], text: colors.neutral[600], active: colors.neutral[400] };
         default: return { bg: colors.neutral[100], text: colors.neutral[600], active: colors.neutral[400] };
@@ -80,7 +89,19 @@ function SendIcon({ color }: { color: string }) {
 
 // ============ SUB-COMPONENTS ============
 
-function ChatBubble({ message, isAdmin }: { message: any; isAdmin: boolean }) {
+function ChatBubble({ message, isAdmin, isSystem }: { message: any; isAdmin: boolean; isSystem: boolean }) {
+    if (isSystem) {
+        return (
+            <View style={{ alignItems: 'center', paddingVertical: 8, paddingHorizontal: 20 }}>
+                <Text className="font-inter text-xs italic text-neutral-400" style={{ textAlign: 'center' }}>
+                    {message.body ?? message.content ?? message.text}
+                </Text>
+                <Text className="mt-1 font-inter text-[10px] text-neutral-300" style={{ textAlign: 'center' }}>
+                    {formatTime(message.createdAt ?? message.timestamp)}
+                </Text>
+            </View>
+        );
+    }
     return (
         <View style={[styles.bubbleWrap, isAdmin ? styles.bubbleRight : styles.bubbleLeft]}>
             <View style={[styles.bubble, isAdmin ? styles.bubbleAdmin : styles.bubbleUser]}>
@@ -115,15 +136,17 @@ function StatusChips({
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusChipRow}>
                 {TICKET_STATUSES.map(status => {
                     const isActive = current === status;
+                    const allowed = STATUS_TRANSITIONS[current] ?? [];
+                    const isDisabled = isUpdating || isActive || !allowed.includes(status);
                     const style = getStatusColor(status);
                     return (
                         <Pressable
                             key={status}
-                            disabled={isUpdating || isActive}
+                            disabled={isDisabled}
                             onPress={() => onSelect(status)}
                             style={[
                                 styles.statusChip,
-                                { backgroundColor: isActive ? style.active : style.bg, opacity: isUpdating ? 0.6 : 1 },
+                                { backgroundColor: isActive ? style.active : style.bg, opacity: isDisabled ? 0.6 : 1 },
                             ]}
                         >
                             <Text
@@ -318,10 +341,13 @@ export function SupportTicketDetailScreen() {
         );
     }, [id, rejectReason, rejectMutation, ticketQuery]);
 
+    useTicketSocket(id as string, undefined, true);
+
     const renderMessage = React.useCallback(
         ({ item }: { item: any }) => {
-            const isAdmin = item.senderRole === 'SUPER_ADMIN' || item.senderRole === 'admin' || item.isAdmin;
-            return <ChatBubble message={item} isAdmin={isAdmin} />;
+            const isSystem = item.senderRole === 'SYSTEM' || item.isSystemMessage === true;
+            const isAdmin = item.senderRole === 'SUPER_ADMIN' || item.senderRole === 'PLATFORM_ADMIN' || item.senderRole === 'admin';
+            return <ChatBubble message={item} isAdmin={isAdmin} isSystem={isSystem} />;
         },
         [],
     );
@@ -407,29 +433,46 @@ export function SupportTicketDetailScreen() {
                 renderItem={renderMessage}
                 contentContainerStyle={styles.chatContent}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                ListEmptyComponent={
+                    <View style={{ alignItems: 'center', paddingVertical: 40, flex: 1, justifyContent: 'center' }}>
+                        <Text className="font-inter text-sm text-neutral-400">
+                            No messages yet
+                        </Text>
+                    </View>
+                }
             />
 
             {/* Input bar */}
             <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-                <TextInput
-                    value={messageText}
-                    onChangeText={setMessageText}
-                    placeholder="Type a reply..."
-                    placeholderTextColor={colors.neutral[400]}
-                    multiline
-                    style={styles.inputField}
-                />
-                <Pressable
-                    onPress={handleSend}
-                    disabled={!messageText.trim() || replyMutation.isPending}
-                    style={[styles.sendBtn, (!messageText.trim() || replyMutation.isPending) && { opacity: 0.4 }]}
-                >
-                    {replyMutation.isPending ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                        <SendIcon color="#fff" />
-                    )}
-                </Pressable>
+                {currentStatus === 'CLOSED' ? (
+                    <View style={{ alignItems: 'center', paddingVertical: 12, flex: 1 }}>
+                        <Text className="font-inter text-xs text-neutral-500">
+                            Ticket Closed
+                        </Text>
+                    </View>
+                ) : (
+                    <>
+                        <TextInput
+                            value={messageText}
+                            onChangeText={setMessageText}
+                            placeholder="Type a reply..."
+                            placeholderTextColor={colors.neutral[400]}
+                            multiline
+                            style={styles.inputField}
+                        />
+                        <Pressable
+                            onPress={handleSend}
+                            disabled={!messageText.trim() || replyMutation.isPending}
+                            style={[styles.sendBtn, (!messageText.trim() || replyMutation.isPending) && { opacity: 0.4 }]}
+                        >
+                            {replyMutation.isPending ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <SendIcon color="#fff" />
+                            )}
+                        </Pressable>
+                    </>
+                )}
             </View>
 
             <ConfirmModal {...confirmModal.modalProps} />

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { showError } from '@/components/ui/utils';
 import { companyAdminApi } from '@/lib/api/company-admin';
 import { companyAdminKeys } from '@/features/company-admin/api/use-company-admin-queries';
+import { platformSupportKeys } from '@/features/super-admin/api/use-support-queries';
 
 // ── Profile ────────────────────────────────────────────────────────────
 
@@ -367,6 +368,8 @@ export function useCreateSupportTicket() {
       companyAdminApi.createSupportTicket(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
+      queryClient.invalidateQueries({ queryKey: platformSupportKeys.tickets() });
+      queryClient.invalidateQueries({ queryKey: platformSupportKeys.stats() });
     },
     onError: showError,
   });
@@ -380,6 +383,7 @@ export function useSendSupportMessage() {
       companyAdminApi.sendSupportMessage(id, { body }),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.supportTicket(vars.id) });
+      queryClient.invalidateQueries({ queryKey: platformSupportKeys.ticket(vars.id) });
     },
     onError: showError,
   });
@@ -392,6 +396,8 @@ export function useCloseSupportTicket() {
     mutationFn: (id: string) => companyAdminApi.closeSupportTicket(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
+      queryClient.invalidateQueries({ queryKey: platformSupportKeys.tickets() });
+      queryClient.invalidateQueries({ queryKey: platformSupportKeys.stats() });
     },
     onError: showError,
   });

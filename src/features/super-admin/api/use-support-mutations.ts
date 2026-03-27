@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { supportApi } from '@/lib/api/support';
+import { companyAdminKeys } from '@/features/company-admin/api/use-company-admin-queries';
 import { platformSupportKeys } from './use-support-queries';
 
 /** Reply to a support ticket (as platform admin) */
@@ -11,6 +12,7 @@ export function useReplySupportTicket() {
       supportApi.replyToTicket(id, { body }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: platformSupportKeys.ticket(vars.id) });
+      qc.invalidateQueries({ queryKey: companyAdminKeys.supportTicket(vars.id) });
     },
   });
 }
@@ -23,6 +25,7 @@ export function useUpdateTicketStatus() {
       supportApi.updateTicketStatus(id, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: platformSupportKeys.tickets() });
+      qc.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
     },
   });
 }
@@ -35,6 +38,9 @@ export function useApproveModuleChange() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: platformSupportKeys.tickets() });
       qc.invalidateQueries({ queryKey: platformSupportKeys.stats() });
+      qc.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
+      qc.invalidateQueries({ queryKey: companyAdminKeys.locations() });
+      qc.invalidateQueries({ queryKey: companyAdminKeys.profile() });
     },
   });
 }
@@ -48,6 +54,7 @@ export function useRejectModuleChange() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: platformSupportKeys.tickets() });
       qc.invalidateQueries({ queryKey: platformSupportKeys.stats() });
+      qc.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
     },
   });
 }

@@ -26,19 +26,20 @@ import {
     useCloseSupportTicket,
     useSendSupportMessage,
 } from '@/features/company-admin/api/use-company-admin-mutations';
+import { useTicketSocket } from '@/hooks/use-ticket-socket';
 
 // ============ TYPES ============
 
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-type TicketCategory = 'GENERAL' | 'BILLING' | 'TECHNICAL' | 'MODULE_CHANGE' | 'BUG_REPORT' | 'FEATURE_REQUEST';
+type TicketCategory = 'GENERAL' | 'BILLING' | 'TECHNICAL' | 'MODULE_CHANGE';
 
 interface Message {
     id: string;
     body: string;
-    senderId: string;
+    senderUserId: string;
     senderName?: string;
     senderRole?: string;
-    type?: 'USER' | 'ADMIN' | 'SYSTEM';
+    isSystemMessage?: boolean;
     createdAt: string;
 }
 
@@ -70,8 +71,6 @@ const CATEGORY_LABELS: Record<string, string> = {
     BILLING: 'Billing',
     TECHNICAL: 'Technical',
     MODULE_CHANGE: 'Module Change',
-    BUG_REPORT: 'Bug Report',
-    FEATURE_REQUEST: 'Feature Request',
 };
 
 const CATEGORY_STYLES: Record<TicketCategory, { bg: string; text: string }> = {
@@ -79,8 +78,6 @@ const CATEGORY_STYLES: Record<TicketCategory, { bg: string; text: string }> = {
     BILLING: { bg: colors.warning[50], text: colors.warning[700] },
     TECHNICAL: { bg: colors.info[50], text: colors.info[700] },
     MODULE_CHANGE: { bg: colors.accent[50], text: colors.accent[700] },
-    BUG_REPORT: { bg: colors.danger[50], text: colors.danger[700] },
-    FEATURE_REQUEST: { bg: colors.success[50], text: colors.success[700] },
 };
 
 // ============ ICONS ============
@@ -288,13 +285,33 @@ export function TicketChatScreen() {
         });
     };
 
+    useTicketSocket(id as string, ticket?.companyId);
+
     const renderMessage = React.useCallback(
-        ({ item }: { item: Message }) => {
-            const isOwn = item.senderId === user?.id;
-            const isSystem = item.type === 'SYSTEM';
-            return <MessageBubble message={item} isOwn={isOwn} isSystem={isSystem} />;
+        ({ item, index }: { item: Message; index: number }) => {
+            const isOwn = item.senderUserId === user?.id;
+            const isSystem = item.senderRole === 'SYSTEM' || item.isSystemMessage === true;
+
+            // Date separator (inverted list — index 0 is newest)
+            const currentDate = new Date(item.createdAt).toDateString();
+            const nextItem = messages[index + 1];
+            const prevDate = nextItem ? new Date(nextItem.createdAt).toDateString() : null;
+            const showDateSep = !prevDate || prevDate !== currentDate;
+
+            return (
+                <>
+                    <MessageBubble message={item} isOwn={isOwn} isSystem={isSystem} />
+                    {showDateSep && (
+                        <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                            <Text className="font-inter text-[10px] font-semibold text-neutral-400">
+                                {formatDate(item.createdAt)}
+                            </Text>
+                        </View>
+                    )}
+                </>
+            );
         },
-        [user?.id],
+        [user?.id, messages],
     );
 
     const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.OPEN;

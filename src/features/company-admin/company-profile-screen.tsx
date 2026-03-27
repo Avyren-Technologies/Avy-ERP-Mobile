@@ -22,10 +22,12 @@ import colors from '@/components/ui/colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showErrorMessage } from '@/components/ui/utils';
 
-import { useCompanyProfile } from '@/features/company-admin/api/use-company-admin-queries';
-import { useUpdateProfileSection } from '@/features/company-admin/api/use-company-admin-mutations';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 
-import { MODULE_CATALOGUE, USER_TIERS } from '@/features/super-admin/tenant-onboarding/constants';
+import { useCompanyProfile } from '@/features/company-admin/api/use-company-admin-queries';
+import { useUpdateProfileSection, useAddLocationModules, useRemoveLocationModule } from '@/features/company-admin/api/use-company-admin-mutations';
+
+import { MODULE_CATALOGUE, USER_TIERS, FY_OPTIONS, MONTHS } from '@/features/super-admin/tenant-onboarding/constants';
 import type { UserTierKey } from '@/features/super-admin/tenant-onboarding/types';
 import { FormInput } from '@/features/super-admin/tenant-onboarding/atoms';
 
@@ -80,6 +82,8 @@ interface CompanyProfileData {
     corpCountry: string;
     // Fiscal Config (read-only)
     fyType: string;
+    fyCustomStartMonth: string;
+    fyCustomEndMonth: string;
     payrollFreq: string;
     cutoffDay: number | string;
     disbursementDay: number | string;
@@ -102,6 +106,8 @@ interface CompanyProfileData {
     contactsCount: number;
     shiftsCount: number;
     usersCount: number;
+    // Locations (for module display)
+    locations: Array<{ id: string; name: string; isHQ: boolean; moduleIds: string[] }>;
     // Subscription (read-only)
     subscriptionPlan: string;
     subscriptionStatus: string;
@@ -166,6 +172,8 @@ function mapApiToProfile(raw: any): CompanyProfileData {
         corpCountry: corpAddr.country ?? corpAddr.corpCountry ?? 'India',
         // Fiscal Config
         fyType: fiscal.fyType ?? raw.fyType ?? '',
+        fyCustomStartMonth: fiscal.fyCustomStartMonth ?? '',
+        fyCustomEndMonth: fiscal.fyCustomEndMonth ?? '',
         payrollFreq: fiscal.payrollFreq ?? raw.payrollFreq ?? '',
         cutoffDay: fiscal.cutoffDay ?? raw.cutoffDay ?? '',
         disbursementDay: fiscal.disbursementDay ?? raw.disbursementDay ?? '',
@@ -183,6 +191,13 @@ function mapApiToProfile(raw: any): CompanyProfileData {
         emailNotifsEnabled: prefs.emailNotifsEnabled ?? raw.emailNotifsEnabled ?? false,
         smsNotifsEnabled: prefs.smsNotifsEnabled ?? raw.smsNotifsEnabled ?? false,
         pushNotifsEnabled: prefs.pushNotifsEnabled ?? raw.pushNotifsEnabled ?? false,
+        // Locations (for module display)
+        locations: locations.map((loc: any) => ({
+            id: loc.id ?? '',
+            name: loc.name ?? '',
+            isHQ: loc.isHQ ?? false,
+            moduleIds: (loc.moduleIds ?? []) as string[],
+        })),
         // Quick Stats
         locationsCount: stats.locations ?? locations.length ?? 0,
         contactsCount: stats.contacts ?? raw.contacts?.length ?? 0,
@@ -623,6 +638,125 @@ export function CompanyProfileScreen() {
         setEditData(data);
     };
 
+    // ---- Module management ----
+    const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+    const addModulesMutation = useAddLocationModules();
+    const removeModuleMutation = useRemoveLocationModule();
+
+    const getLocationBillingType = (loc: CompanyProfileData['locations'][number]) => {
+        // Check subscription-level billing type, default to monthly
+        const bt = profile?.subscriptionBillingType ?? 'monthly';
+        if (bt === 'one-time' || bt === 'onetime' || bt === 'one_time') return 'one-time' as const;
+        return 'recurring' as const;
+    };
+
+    const getAutoDeps = (moduleId: string, currentModuleIds: string[]): string[] => {
+        const mod = MODULE_CATALOGUE.find((m) => m.id === moduleId);
+        if (!mod) return [];
+        const missing: string[] = [];
+        for (const depId of mod.dependencies) {
+            if (!currentModuleIds.includes(depId)) {
+                missing.push(depId);
+                // Recurse for transitive deps
+                missing.push(...getAutoDeps(depId, [...currentModuleIds, ...missing]));
+            }
+        }
+        return [...new Set(missing)];
+    };
+
+    const handleAddModule = (locationId: string, moduleId: string, locationModuleIds: string[]) => {
+        const mod = MODULE_CATALOGUE.find((m) => m.id === moduleId);
+        if (!mod) return;
+        const billingType = getLocationBillingType(profile!.locations.find((l) => l.id === locationId)!);
+        if (billingType === 'one-time') {
+            router.push({
+                pathname: '/company/support' as any,
+                params: { subject: `Request: Add module "${mod.name}"`, message: `Please add module "${mod.name}" to location ${locationId}.` },
+            });
+            return;
+        }
+        const autoDeps = getAutoDeps(moduleId, locationModuleIds);
+        const allIds = [moduleId, ...autoDeps];
+        const depNames = autoDeps.map((id) => MODULE_CATALOGUE.find((m) => m.id === id)?.name ?? id);
+        const totalPrice = allIds.reduce((sum, id) => sum + (MODULE_CATALOGUE.find((m) => m.id === id)?.price ?? 0), 0);
+        const depMsg = depNames.length > 0 ? `\n\nAuto-includes dependencies: ${depNames.join(', ')}` : '';
+        showConfirm({
+            title: `Add ${mod.name}?`,
+            message: `This will add ${mod.name} (Rs ${mod.price}/mo).${depMsg}\n\nEstimated additional: Rs ${totalPrice}/mo`,
+            variant: 'primary',
+            confirmText: 'Add Module',
+            onConfirm: () => {
+                addModulesMutation.mutate(
+                    { locationId, moduleIds: allIds },
+                    {
+                        onSuccess: () => {
+                            showSuccess(`${mod.name} added successfully`);
+                            refetch();
+                        },
+                        onError: (err: any) => {
+                            const status = err?.response?.status ?? err?.status;
+                            if (status === 409) {
+                                showConfirm({
+                                    title: 'Cannot Add Module',
+                                    message: err?.response?.data?.message ?? err?.message ?? 'This module conflicts with existing configuration.',
+                                    variant: 'warning',
+                                    confirmText: 'OK',
+                                    onConfirm: () => {},
+                                });
+                            } else {
+                                showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to add module');
+                            }
+                        },
+                    },
+                );
+            },
+        });
+    };
+
+    const handleRemoveModule = (locationId: string, moduleId: string) => {
+        const mod = MODULE_CATALOGUE.find((m) => m.id === moduleId);
+        if (!mod) return;
+        const billingType = getLocationBillingType(profile!.locations.find((l) => l.id === locationId)!);
+        if (billingType === 'one-time') {
+            router.push({
+                pathname: '/company/support' as any,
+                params: { subject: `Request: Remove module "${mod.name}"`, message: `Please remove module "${mod.name}" from location ${locationId}.` },
+            });
+            return;
+        }
+        showConfirm({
+            title: `Remove ${mod.name}?`,
+            message: `This will remove ${mod.name} from this location. Modules that depend on it may also be affected.`,
+            variant: 'danger',
+            confirmText: 'Remove',
+            onConfirm: () => {
+                removeModuleMutation.mutate(
+                    { locationId, moduleId },
+                    {
+                        onSuccess: () => {
+                            showSuccess(`${mod.name} removed`);
+                            refetch();
+                        },
+                        onError: (err: any) => {
+                            const status = err?.response?.status ?? err?.status;
+                            if (status === 409) {
+                                showConfirm({
+                                    title: 'Cannot Remove Module',
+                                    message: err?.response?.data?.message ?? err?.message ?? 'Other modules depend on this one. Remove them first.',
+                                    variant: 'warning',
+                                    confirmText: 'OK',
+                                    onConfirm: () => {},
+                                });
+                            } else {
+                                showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to remove module');
+                            }
+                        },
+                    },
+                );
+            },
+        });
+    };
+
     // --- Loading state ---
     if (isLoading || !profile) {
         return (
@@ -841,7 +975,15 @@ export function CompanyProfileScreen() {
                     <Animated.View entering={FadeInUp.duration(400).delay(700)} style={s.section}>
                         <SectionHeader title="Fiscal Configuration" iconType="fiscal" readOnly />
                         <View style={s.sectionCard}>
-                            <InfoRow label="Fiscal Year Type" value={profile.fyType} />
+                            <InfoRow label="Financial Year" value={(() => {
+                                const fyOpt = FY_OPTIONS.find((o) => o.key === profile.fyType);
+                                if (profile.fyType === 'custom' && profile.fyCustomStartMonth && profile.fyCustomEndMonth) {
+                                    const startMonth = MONTHS.find((m) => m.key === profile.fyCustomStartMonth || m.label === profile.fyCustomStartMonth);
+                                    const endMonth = MONTHS.find((m) => m.key === profile.fyCustomEndMonth || m.label === profile.fyCustomEndMonth);
+                                    return `${startMonth?.label ?? profile.fyCustomStartMonth} – ${endMonth?.label ?? profile.fyCustomEndMonth}`;
+                                }
+                                return fyOpt?.label ?? profile.fyType;
+                            })()} />
                             <InfoRow label="Payroll Frequency" value={profile.payrollFreq} />
                             <InfoRow label="Cutoff Day" value={String(profile.cutoffDay)} />
                             <InfoRow label="Disbursement Day" value={String(profile.disbursementDay)} />
@@ -879,6 +1021,117 @@ export function CompanyProfileScreen() {
                             </View>
                         </View>
                     </Animated.View>
+
+                    {/* ---- Module Management (per location) ---- */}
+                    {profile.locations.length > 0 && (
+                        <Animated.View entering={FadeInUp.duration(400).delay(850)} style={s.section}>
+                            <SectionHeader title="Module Management" iconType="modules" readOnly />
+                            {profile.locations.map((loc) => {
+                                const billingType = getLocationBillingType(loc);
+                                const isOneTime = billingType === 'one-time';
+                                return (
+                                    <View key={loc.id} style={[s.sectionCard, { marginBottom: 12 }]}>
+                                        {/* Location header */}
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                                            <View style={{ backgroundColor: colors.primary[100], paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 }}>
+                                                <Text className="font-inter text-[11px] font-bold text-primary-700 uppercase">{loc.name}</Text>
+                                            </View>
+                                            {loc.isHQ && (
+                                                <View style={{ backgroundColor: colors.warning[100], paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                                                    <Text className="font-inter text-[9px] font-bold text-warning-700">HQ</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        {/* Module grid */}
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                            {MODULE_CATALOGUE.map((mod) => {
+                                                const isActive = loc.moduleIds.includes(mod.id);
+                                                const isMasters = mod.id === 'masters';
+                                                const isMutating = addModulesMutation.isPending || removeModuleMutation.isPending;
+
+                                                const cardStyle = isMasters
+                                                    ? { backgroundColor: colors.primary[50], borderColor: colors.primary[200], borderWidth: 1.5 as number }
+                                                    : isActive
+                                                        ? { backgroundColor: colors.success[50], borderColor: colors.success[300], borderWidth: 1.5 as number }
+                                                        : { backgroundColor: colors.neutral[50], borderColor: colors.neutral[200], borderWidth: 1 as number, borderStyle: 'dashed' as const };
+
+                                                return (
+                                                    <View
+                                                        key={mod.id}
+                                                        style={[
+                                                            {
+                                                                paddingHorizontal: 12,
+                                                                paddingVertical: 10,
+                                                                borderRadius: 12,
+                                                                width: '48%',
+                                                            },
+                                                            cardStyle,
+                                                        ]}
+                                                    >
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                                            <Text className="font-inter text-base">{mod.icon}</Text>
+                                                            <Text className="font-inter text-xs font-semibold text-neutral-800" numberOfLines={1} style={{ flex: 1 }}>
+                                                                {mod.name}
+                                                            </Text>
+                                                        </View>
+                                                        <Text className="font-inter text-[10px] text-neutral-500 mb-1">
+                                                            Rs {mod.price}/mo
+                                                        </Text>
+                                                        {/* Action */}
+                                                        {isMasters ? (
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                                                <Svg width={10} height={10} viewBox="0 0 24 24">
+                                                                    <Rect x="3" y="11" width="18" height="11" rx="2" stroke={colors.neutral[400]} strokeWidth="2" fill="none" />
+                                                                    <Path d="M7 11V7a5 5 0 0110 0v4" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" />
+                                                                </Svg>
+                                                                <Text className="font-inter text-[10px] text-neutral-400">Locked</Text>
+                                                            </View>
+                                                        ) : isActive ? (
+                                                            <Pressable
+                                                                disabled={isMutating}
+                                                                onPress={() => handleRemoveModule(loc.id, mod.id)}
+                                                                style={{
+                                                                    alignSelf: 'flex-start',
+                                                                    paddingHorizontal: 10,
+                                                                    paddingVertical: 4,
+                                                                    borderRadius: 10,
+                                                                    backgroundColor: isOneTime ? colors.accent[100] : colors.danger[100],
+                                                                    marginTop: 2,
+                                                                    opacity: isMutating ? 0.5 : 1,
+                                                                }}
+                                                            >
+                                                                <Text className={`font-inter text-[10px] font-semibold ${isOneTime ? 'text-accent-700' : 'text-danger-700'}`}>
+                                                                    {isOneTime ? 'Request Remove' : 'Remove'}
+                                                                </Text>
+                                                            </Pressable>
+                                                        ) : (
+                                                            <Pressable
+                                                                disabled={isMutating}
+                                                                onPress={() => handleAddModule(loc.id, mod.id, loc.moduleIds)}
+                                                                style={{
+                                                                    alignSelf: 'flex-start',
+                                                                    paddingHorizontal: 10,
+                                                                    paddingVertical: 4,
+                                                                    borderRadius: 10,
+                                                                    backgroundColor: isOneTime ? colors.accent[100] : colors.primary[100],
+                                                                    marginTop: 2,
+                                                                    opacity: isMutating ? 0.5 : 1,
+                                                                }}
+                                                            >
+                                                                <Text className={`font-inter text-[10px] font-semibold ${isOneTime ? 'text-accent-700' : 'text-primary-700'}`}>
+                                                                    {isOneTime ? 'Request Add' : 'Add'}
+                                                                </Text>
+                                                            </Pressable>
+                                                        )}
+                                                    </View>
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </Animated.View>
+                    )}
 
                     {/* ---- Subscription Info (read-only) ---- */}
                     {profile.subscriptionPlan || profile.subscriptionStatus ? (
@@ -937,6 +1190,9 @@ export function CompanyProfileScreen() {
                     onSaved={() => refetch()}
                 />
             ) : null}
+
+            {/* Confirm Modal for module add/remove */}
+            <ConfirmModal {...confirmModalProps} />
         </View>
     );
 }

@@ -142,7 +142,7 @@ function AppSidebar() {
                         { id: 'platform-monitor', label: 'Platform Monitor', icon: 'dashboard' as const, isActive: false, onPress: () => {} },
                         { id: 'users', label: 'User Management', icon: 'users' as const, isActive: false, onPress: () => {} },
                         { id: 'settings', label: 'Settings', icon: 'settings' as const, isActive: pathname === '/settings', onPress: () => router.push('/settings') },
-                        { id: 'support', label: 'Support', icon: 'support' as const, isActive: pathname === '/support', onPress: () => router.push('/support' as any) },
+                        { id: 'support', label: 'Support', icon: 'support' as const, isActive: pathname === '/admin-support', onPress: () => router.push('/admin-support' as any) },
                     ],
                 },
             ];

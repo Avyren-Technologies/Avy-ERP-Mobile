@@ -38,6 +38,10 @@ export const companyAdminKeys = {
   payments: (params?: CompanyAdminListParams) =>
     [...companyAdminKeys.all, 'payments', params] as const,
   costBreakdown: () => [...companyAdminKeys.all, 'cost-breakdown'] as const,
+  supportTickets: (params?: Record<string, unknown>) =>
+    [...companyAdminKeys.all, 'support-tickets', params] as const,
+  supportTicket: (id: string) =>
+    [...companyAdminKeys.all, 'support-ticket', id] as const,
 };
 
 // --- Queries ---
@@ -244,5 +248,25 @@ export function useMyCostBreakdown() {
   return useQuery({
     queryKey: companyAdminKeys.costBreakdown(),
     queryFn: () => companyAdminApi.getMyCostBreakdown(),
+  });
+}
+
+// --- Support Tickets ---
+
+/** Company support tickets with optional filters */
+export function useSupportTickets(params?: { status?: string; category?: string; search?: string; page?: number }) {
+  return useQuery({
+    queryKey: companyAdminKeys.supportTickets(params),
+    queryFn: () => companyAdminApi.listSupportTickets(params),
+  });
+}
+
+/** Single support ticket by ID (auto-refreshes every 10s) */
+export function useSupportTicket(id: string) {
+  return useQuery({
+    queryKey: companyAdminKeys.supportTicket(id),
+    queryFn: () => companyAdminApi.getSupportTicket(id),
+    enabled: !!id,
+    refetchInterval: 10000,
   });
 }

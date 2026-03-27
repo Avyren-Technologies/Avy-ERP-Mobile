@@ -158,4 +158,27 @@ export const companyAdminApi = {
   /** Update feature toggles for a specific user */
   updateFeatureToggles: (userId: string, toggles: Record<string, boolean>) =>
     client.put(`/feature-toggles/user/${userId}`, { toggles }),
+
+  // ── Support Tickets ─────────────────────────────────────────────────
+  createSupportTicket: (data: { subject: string; category?: string; priority?: string; message: string; metadata?: Record<string, unknown> }) =>
+    client.post('/company/support/tickets', data),
+
+  listSupportTickets: (params?: { status?: string; category?: string; search?: string; page?: number; limit?: number }) =>
+    client.get('/company/support/tickets', { params }),
+
+  getSupportTicket: (id: string) =>
+    client.get(`/company/support/tickets/${id}`),
+
+  sendSupportMessage: (id: string, data: { body: string }) =>
+    client.post(`/company/support/tickets/${id}/messages`, data),
+
+  closeSupportTicket: (id: string) =>
+    client.patch(`/company/support/tickets/${id}/close`),
+
+  // ── Module CRUD ─────────────────────────────────────────────────────
+  addLocationModules: (locationId: string, data: { moduleIds: string[] }) =>
+    client.post(`/company/locations/${locationId}/modules`, data),
+
+  removeLocationModule: (locationId: string, moduleId: string) =>
+    client.delete(`/company/locations/${locationId}/modules/${moduleId}`),
 };

@@ -356,3 +356,73 @@ export function useUpdateFeatureToggles() {
     onError: showError,
   });
 }
+
+// ── Support Tickets ─────────────────────────────────────────────────
+
+/** Create a new support ticket */
+export function useCreateSupportTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { subject: string; category?: string; priority?: string; message: string; metadata?: Record<string, unknown> }) =>
+      companyAdminApi.createSupportTicket(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
+    },
+    onError: showError,
+  });
+}
+
+/** Send a message on a support ticket */
+export function useSendSupportMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: string }) =>
+      companyAdminApi.sendSupportMessage(id, { body }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.supportTicket(vars.id) });
+    },
+    onError: showError,
+  });
+}
+
+/** Close a support ticket */
+export function useCloseSupportTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => companyAdminApi.closeSupportTicket(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.supportTickets() });
+    },
+    onError: showError,
+  });
+}
+
+// ── Module CRUD ─────────────────────────────────────────────────────
+
+/** Add modules to a location */
+export function useAddLocationModules() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ locationId, moduleIds }: { locationId: string; moduleIds: string[] }) =>
+      companyAdminApi.addLocationModules(locationId, { moduleIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.locations() });
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.profile() });
+    },
+    onError: showError,
+  });
+}
+
+/** Remove a module from a location */
+export function useRemoveLocationModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ locationId, moduleId }: { locationId: string; moduleId: string }) =>
+      companyAdminApi.removeLocationModule(locationId, moduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.locations() });
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.profile() });
+    },
+    onError: showError,
+  });
+}

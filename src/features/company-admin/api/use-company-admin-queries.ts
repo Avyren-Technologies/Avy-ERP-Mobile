@@ -19,27 +19,27 @@ export const companyAdminKeys = {
   controls: () => [...companyAdminKeys.all, 'controls'] as const,
   settings: () => [...companyAdminKeys.all, 'settings'] as const,
   users: (params?: CompanyAdminListParams) =>
-    [...companyAdminKeys.all, 'users', params] as const,
+    params ? [...companyAdminKeys.all, 'users', params] as const : [...companyAdminKeys.all, 'users'] as const,
   user: (id: string) => [...companyAdminKeys.all, 'user', id] as const,
   auditLogs: (params?: CompanyAdminListParams) =>
-    [...companyAdminKeys.all, 'audit-logs', params] as const,
+    params ? [...companyAdminKeys.all, 'audit-logs', params] as const : [...companyAdminKeys.all, 'audit-logs'] as const,
   activity: (limit?: number) =>
-    [...companyAdminKeys.all, 'activity', limit] as const,
+    limit !== undefined ? [...companyAdminKeys.all, 'activity', limit] as const : [...companyAdminKeys.all, 'activity'] as const,
   rbacRoles: () => [...companyAdminKeys.all, 'rbac-roles'] as const,
   rbacReferenceRoles: () => [...companyAdminKeys.all, 'rbac-reference-roles'] as const,
   permissionCatalogue: () => [...companyAdminKeys.all, 'permission-catalogue'] as const,
   featureToggleCatalogue: () => [...companyAdminKeys.all, 'feature-toggle-catalogue'] as const,
-  featureToggles: (userId?: string) => [...companyAdminKeys.all, 'feature-toggles', userId] as const,
+  featureToggles: (userId?: string) => userId ? [...companyAdminKeys.all, 'feature-toggles', userId] as const : [...companyAdminKeys.all, 'feature-toggles'] as const,
   moduleCatalogue: () => [...companyAdminKeys.all, 'module-catalogue'] as const,
   subscription: () => [...companyAdminKeys.all, 'subscription'] as const,
   invoices: (params?: CompanyAdminListParams) =>
-    [...companyAdminKeys.all, 'invoices', params] as const,
+    params ? [...companyAdminKeys.all, 'invoices', params] as const : [...companyAdminKeys.all, 'invoices'] as const,
   invoiceDetail: (id: string) => [...companyAdminKeys.all, 'invoice', id] as const,
   payments: (params?: CompanyAdminListParams) =>
-    [...companyAdminKeys.all, 'payments', params] as const,
+    params ? [...companyAdminKeys.all, 'payments', params] as const : [...companyAdminKeys.all, 'payments'] as const,
   costBreakdown: () => [...companyAdminKeys.all, 'cost-breakdown'] as const,
   supportTickets: (params?: Record<string, unknown>) =>
-    [...companyAdminKeys.all, 'support-tickets', params] as const,
+    params ? [...companyAdminKeys.all, 'support-tickets', params] as const : [...companyAdminKeys.all, 'support-tickets'] as const,
   supportTicket: (id: string) =>
     [...companyAdminKeys.all, 'support-ticket', id] as const,
 };

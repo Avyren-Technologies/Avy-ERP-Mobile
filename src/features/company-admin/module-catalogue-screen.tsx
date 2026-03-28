@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     FlatList,
+    Pressable,
     RefreshControl,
     StyleSheet,
     View,
@@ -10,14 +11,17 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useModuleCatalogue } from '@/features/company-admin/api/use-company-admin-queries';
+import { useAddLocationModules, useRemoveLocationModule } from '@/features/company-admin/api/use-company-admin-mutations';
 
 // ============ TYPES ============
 
@@ -118,7 +122,29 @@ function ModuleIcon({ name, color }: { name: string; color: string }) {
 
 // ============ MODULE CARD ============
 
-function ModuleCard({ item, index }: { item: ModuleItem; index: number }) {
+interface LocationModuleInfo {
+    locationId: string;
+    locationName: string;
+    activeModuleIds: string[];
+}
+
+function ModuleCard({
+    item,
+    index,
+    locationModules,
+    isOneTimeBilling,
+    isMutating,
+    onAddModule,
+    onRemoveModule,
+}: {
+    item: ModuleItem;
+    index: number;
+    locationModules: LocationModuleInfo[];
+    isOneTimeBilling: boolean;
+    isMutating: boolean;
+    onAddModule: (locationId: string, moduleId: string, moduleName: string) => void;
+    onRemoveModule: (locationId: string, moduleId: string, moduleName: string) => void;
+}) {
     const iconColor = item.isActive ? colors.primary[600] : colors.neutral[400];
     const iconBg = item.isActive ? colors.primary[50] : colors.neutral[100];
 
@@ -162,6 +188,52 @@ function ModuleCard({ item, index }: { item: ModuleItem; index: number }) {
                     /{item.billingCycle || 'month'}
                 </Text>
             </View>
+
+            {/* Module Actions */}
+            {locationModules.length > 0 && (
+                <View style={styles.locationActions}>
+                    {locationModules.map((loc) => {
+                        const isActiveOnLoc = loc.activeModuleIds.includes(item.id);
+                        const isMasters = item.id === 'masters';
+                        return (
+                            <View key={loc.locationId} style={styles.locationRow}>
+                                <Text className="font-inter text-xs text-neutral-500" numberOfLines={1} style={{ flex: 1 }}>
+                                    {loc.locationName}
+                                </Text>
+                                {isMasters ? (
+                                    <Text className="font-inter text-[10px] text-neutral-400">Required</Text>
+                                ) : isActiveOnLoc ? (
+                                    <Pressable
+                                        onPress={() => onRemoveModule(loc.locationId, item.id, item.name)}
+                                        disabled={isMutating}
+                                        style={({ pressed }) => [
+                                            styles.actionBtn,
+                                            { backgroundColor: colors.danger[50], opacity: pressed || isMutating ? 0.6 : 1 },
+                                        ]}
+                                    >
+                                        <Text className="font-inter text-[10px] font-bold text-danger-600">
+                                            {isOneTimeBilling ? 'Request Remove' : 'Remove'}
+                                        </Text>
+                                    </Pressable>
+                                ) : (
+                                    <Pressable
+                                        onPress={() => onAddModule(loc.locationId, item.id, item.name)}
+                                        disabled={isMutating}
+                                        style={({ pressed }) => [
+                                            styles.actionBtn,
+                                            { backgroundColor: colors.success[50], opacity: pressed || isMutating ? 0.6 : 1 },
+                                        ]}
+                                    >
+                                        <Text className="font-inter text-[10px] font-bold text-success-600">
+                                            {isOneTimeBilling ? 'Request Add' : 'Add'}
+                                        </Text>
+                                    </Pressable>
+                                )}
+                            </View>
+                        );
+                    })}
+                </View>
+            )}
         </Animated.View>
     );
 }
@@ -171,12 +243,18 @@ function ModuleCard({ item, index }: { item: ModuleItem; index: number }) {
 export function ModuleCatalogueScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
+    const router = useRouter();
     const { data, isLoading, refetch, isRefetching } = useModuleCatalogue();
+    const addModulesMutation = useAddLocationModules();
+    const removeModuleMutation = useRemoveLocationModule();
+    const confirmModal = useConfirmModal();
+    const isMutating = addModulesMutation.isPending || removeModuleMutation.isPending;
+
+    const rawData = (data as any)?.data ?? data;
 
     const modules: ModuleItem[] = React.useMemo(() => {
         // Backend returns { data: { catalogue: [...], companyActiveModuleIds: [...] } }
-        const wrapper = (data as any)?.data ?? data;
-        const raw = wrapper?.catalogue ?? (Array.isArray(wrapper) ? wrapper : []);
+        const raw = rawData?.catalogue ?? (Array.isArray(rawData) ? rawData : []);
         if (!Array.isArray(raw)) return [];
         return raw.map((m: any) => ({
             id: m.id ?? m.moduleId ?? m.name,
@@ -188,9 +266,78 @@ export function ModuleCatalogueScreen() {
             isActive: m.isActive ?? m.subscribed ?? m.enabled ?? false,
             icon: m.icon,
         }));
-    }, [data]);
+    }, [rawData]);
+
+    const locationModules: LocationModuleInfo[] = React.useMemo(
+        () => rawData?.locationModules ?? [],
+        [rawData],
+    );
+    const billingType: string = rawData?.billingType ?? 'monthly';
+    const isOneTimeBilling = billingType === 'one-time';
 
     const activeCount = modules.filter((m) => m.isActive).length;
+
+    const handleAddModule = React.useCallback((locationId: string, moduleId: string, moduleName: string) => {
+        if (isOneTimeBilling) {
+            router.push({
+                pathname: '/(app)/support' as any,
+                params: { prefillCategory: 'MODULE_CHANGE', prefillType: 'ADD', prefillLocationId: locationId, prefillModuleId: moduleId, prefillModuleName: moduleName },
+            });
+            return;
+        }
+        confirmModal.show({
+            title: `Add ${moduleName}?`,
+            message: `This will add ${moduleName} to your subscription. Billing will be updated accordingly.`,
+            variant: 'primary',
+            confirmText: 'Add Module',
+            onConfirm: () => {
+                addModulesMutation.mutate(
+                    { locationId, moduleIds: [moduleId] },
+                    {
+                        onError: (err: any) =>
+                            confirmModal.show({
+                                title: 'Error',
+                                message: err?.message ?? 'Failed to add module',
+                                variant: 'danger',
+                                confirmText: 'OK',
+                                onConfirm: () => {},
+                            }),
+                    },
+                );
+            },
+        });
+    }, [isOneTimeBilling, router, confirmModal, addModulesMutation]);
+
+    const handleRemoveModule = React.useCallback((locationId: string, moduleId: string, moduleName: string) => {
+        if (isOneTimeBilling) {
+            router.push({
+                pathname: '/(app)/support' as any,
+                params: { prefillCategory: 'MODULE_CHANGE', prefillType: 'REMOVE', prefillLocationId: locationId, prefillModuleId: moduleId, prefillModuleName: moduleName },
+            });
+            return;
+        }
+        confirmModal.show({
+            title: `Remove ${moduleName}?`,
+            message: `This will remove ${moduleName} from your subscription. Any dependent modules may also be affected.`,
+            variant: 'danger',
+            confirmText: 'Remove Module',
+            onConfirm: () => {
+                removeModuleMutation.mutate(
+                    { locationId, moduleId },
+                    {
+                        onError: (err: any) =>
+                            confirmModal.show({
+                                title: 'Error',
+                                message: err?.message ?? 'Failed to remove module',
+                                variant: 'danger',
+                                confirmText: 'OK',
+                                onConfirm: () => {},
+                            }),
+                    },
+                );
+            },
+        });
+    }, [isOneTimeBilling, router, confirmModal, removeModuleMutation]);
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -232,7 +379,15 @@ export function ModuleCatalogueScreen() {
                     data={modules}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item, index }) => (
-                        <ModuleCard item={item} index={index} />
+                        <ModuleCard
+                            item={item}
+                            index={index}
+                            locationModules={locationModules}
+                            isOneTimeBilling={isOneTimeBilling}
+                            isMutating={isMutating}
+                            onAddModule={handleAddModule}
+                            onRemoveModule={handleRemoveModule}
+                        />
                     )}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
@@ -246,6 +401,8 @@ export function ModuleCatalogueScreen() {
                     }
                 />
             )}
+
+            <ConfirmModal {...confirmModal.modalProps} />
         </View>
     );
 }
@@ -325,5 +482,22 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.neutral[100],
         gap: 2,
+    },
+    locationActions: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 4,
+    },
+    actionBtn: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
     },
 });

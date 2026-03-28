@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import Env from 'env';
+import { getToken } from '@/lib/auth/utils';
 
 let socket: Socket | null = null;
 
@@ -17,6 +18,11 @@ export function getSocket(): Socket {
 
 export function connectSocket() {
     const s = getSocket();
+    // Attach auth token before connecting
+    const tokenData = getToken();
+    if (tokenData?.access) {
+        s.auth = { token: tokenData.access };
+    }
     if (!s.connected) s.connect();
     return s;
 }

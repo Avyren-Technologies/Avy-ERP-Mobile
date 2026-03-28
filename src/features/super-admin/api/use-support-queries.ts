@@ -5,7 +5,7 @@ import { supportApi } from '@/lib/api/support';
 export const platformSupportKeys = {
   all: ['platform-support'] as const,
   tickets: (params?: Record<string, unknown>) =>
-    [...platformSupportKeys.all, 'tickets', params] as const,
+    params ? [...platformSupportKeys.all, 'tickets', params] as const : [...platformSupportKeys.all, 'tickets'] as const,
   ticket: (id: string) =>
     [...platformSupportKeys.all, 'ticket', id] as const,
   stats: () => [...platformSupportKeys.all, 'stats'] as const,

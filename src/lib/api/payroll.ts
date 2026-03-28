@@ -187,4 +187,14 @@ export const payrollApi = {
 
   updateTaxConfig: (data: Record<string, unknown>) =>
     client.patch('/hr/payroll/tax-config', data),
+
+  // ── Travel Advances ─────────────────────────────────────────────
+  createTravelAdvance: (data: Record<string, unknown>) =>
+    client.post('/hr/loans/travel-advance', data),
+
+  listTravelAdvances: (params?: Record<string, unknown>) =>
+    client.get('/hr/loans/travel-advances', { params }),
+
+  settleTravelAdvance: (id: string, data: { expenseClaimId: string }) =>
+    client.post(`/hr/loans/${id}/settle-travel`, data),
 };

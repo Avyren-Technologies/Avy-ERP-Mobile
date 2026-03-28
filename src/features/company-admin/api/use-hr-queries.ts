@@ -55,6 +55,12 @@ export const hrKeys = {
     [...hrKeys.all, 'employee', employeeId, 'documents'] as const,
   timeline: (employeeId: string) =>
     [...hrKeys.all, 'employee', employeeId, 'timeline'] as const,
+
+  // Probation
+  probationDue: () => [...hrKeys.all, 'probation-due'] as const,
+
+  // Org Chart
+  orgChart: () => [...hrKeys.all, 'org-chart'] as const,
 };
 
 // --- Department Queries ---
@@ -215,5 +221,25 @@ export function useEmployeeTimeline(employeeId: string) {
     queryKey: hrKeys.timeline(employeeId),
     queryFn: () => hrApi.getTimeline(employeeId),
     enabled: !!employeeId,
+  });
+}
+
+// --- Probation Queries ---
+
+/** List employees with probation reviews due */
+export function useProbationDue() {
+  return useQuery({
+    queryKey: hrKeys.probationDue(),
+    queryFn: () => hrApi.listProbationDue(),
+  });
+}
+
+// --- Org Chart Queries ---
+
+/** Get the organisation chart */
+export function useOrgChart() {
+  return useQuery({
+    queryKey: hrKeys.orgChart(),
+    queryFn: () => hrApi.getOrgChart(),
   });
 }

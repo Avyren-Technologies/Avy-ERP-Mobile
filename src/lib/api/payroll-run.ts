@@ -183,4 +183,14 @@ export const payrollRunApi = {
 
   getVarianceReport: (params?: PayrollReportParams) =>
     client.get('/hr/payroll-reports/variance', { params }),
+
+  // ── Form 16 & 24Q Reports ─────────────────────────────────────
+  generateForm16: (data: { financialYear: string }) =>
+    client.post('/hr/payroll-reports/form-16', data),
+
+  generateForm24Q: (data: { quarter: number; financialYear: string }) =>
+    client.post('/hr/payroll-reports/form-24q', data),
+
+  bulkEmailForm16: (data: { financialYear: string }) =>
+    client.post('/hr/payroll-reports/form-16/bulk-email', data),
 };

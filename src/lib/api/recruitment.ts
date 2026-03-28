@@ -261,6 +261,15 @@ export const recruitmentApi = {
   generateLetterPdf: (id: string) =>
     client.post(`/hr/hr-letters/${id}/generate-pdf`),
 
+  dispatchESign: (letterId: string) =>
+    client.post(`/hr/hr-letters/${letterId}/dispatch-esign`),
+
+  getESignStatus: (letterId: string) =>
+    client.get(`/hr/hr-letters/${letterId}/esign-status`),
+
+  listPendingESign: () =>
+    client.get('/hr/hr-letters/pending-esign'),
+
   // ── Grievance Categories ──────────────────────────────────────
   listGrievanceCategories: (params?: GrievanceCategoryListParams) =>
     client.get('/hr/grievance-categories', { params }),

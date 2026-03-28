@@ -209,4 +209,15 @@ export const hrApi = {
   // ── Employee Sub-resources: Timeline ────────────────────────────────
   getTimeline: (employeeId: string) =>
     client.get(`/hr/employees/${employeeId}/timeline`),
+
+  // ── Probation ─────────────────────────────────────────────────────
+  listProbationDue: () =>
+    client.get('/hr/employees/probation-due'),
+
+  submitProbationReview: (id: string, data: Record<string, unknown>) =>
+    client.post(`/hr/employees/${id}/probation-review`, data),
+
+  // ── Org Chart ─────────────────────────────────────────────────────
+  getOrgChart: () =>
+    client.get('/hr/employees/org-chart'),
 };

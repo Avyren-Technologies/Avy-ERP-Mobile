@@ -249,3 +249,29 @@ export function useUpdateStatutoryFiling() {
     },
   });
 }
+
+// ── Form 16 & 24Q Reports ──────────────────────────────────────────
+
+/** Generate Form 16 for a financial year */
+export function useGenerateForm16() {
+  return useMutation({
+    mutationFn: (data: { financialYear: string }) =>
+      payrollRunApi.generateForm16(data),
+  });
+}
+
+/** Generate Form 24Q for a quarter */
+export function useGenerateForm24Q() {
+  return useMutation({
+    mutationFn: (data: { quarter: number; financialYear: string }) =>
+      payrollRunApi.generateForm24Q(data),
+  });
+}
+
+/** Bulk email Form 16 to all employees */
+export function useBulkEmailForm16() {
+  return useMutation({
+    mutationFn: (data: { financialYear: string }) =>
+      payrollRunApi.bulkEmailForm16(data),
+  });
+}

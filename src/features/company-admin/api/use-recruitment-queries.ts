@@ -93,6 +93,12 @@ export const recruitmentKeys = {
   letter: (id: string) =>
     [...recruitmentKeys.all, 'letter', id] as const,
 
+  // E-Sign
+  eSignStatus: (letterId: string) =>
+    [...recruitmentKeys.all, 'esign-status', letterId] as const,
+  pendingESign: () =>
+    [...recruitmentKeys.all, 'pending-esign'] as const,
+
   // Grievance Categories
   grievanceCategories: (params?: GrievanceCategoryListParams) =>
     [...recruitmentKeys.all, 'grievance-categories', params] as const,
@@ -298,6 +304,25 @@ export function useLetter(id: string) {
     queryKey: recruitmentKeys.letter(id),
     queryFn: () => recruitmentApi.getLetter(id),
     enabled: !!id,
+  });
+}
+
+// --- E-Sign Queries ---
+
+/** Get e-sign status for a letter */
+export function useESignStatus(letterId: string) {
+  return useQuery({
+    queryKey: recruitmentKeys.eSignStatus(letterId),
+    queryFn: () => recruitmentApi.getESignStatus(letterId),
+    enabled: !!letterId,
+  });
+}
+
+/** List letters pending e-sign */
+export function usePendingESign() {
+  return useQuery({
+    queryKey: recruitmentKeys.pendingESign(),
+    queryFn: () => recruitmentApi.listPendingESign(),
   });
 }
 

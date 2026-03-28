@@ -70,6 +70,12 @@ export const payrollRunKeys = {
     [...payrollRunKeys.all, 'pt-challan', params] as const,
   varianceReport: (params?: PayrollReportParams) =>
     [...payrollRunKeys.all, 'variance', params] as const,
+
+  // Form 16 / 24Q
+  form16: (financialYear: string) =>
+    [...payrollRunKeys.all, 'form-16', financialYear] as const,
+  form24Q: (quarter: number, financialYear: string) =>
+    [...payrollRunKeys.all, 'form-24q', quarter, financialYear] as const,
 };
 
 // --- Payroll Run Queries ---

@@ -79,6 +79,19 @@ export default function HRLayout() {
       <Stack.Screen name="skills" />
       <Stack.Screen name="succession" />
       <Stack.Screen name="performance-dashboard" />
+      {/* New screens */}
+      <Stack.Screen name="org-chart" />
+      <Stack.Screen name="biometric-devices" />
+      <Stack.Screen name="shift-rotations" />
+      <Stack.Screen name="bonus-batches" />
+      <Stack.Screen name="form-16" />
+      <Stack.Screen name="travel-advances" />
+      <Stack.Screen name="esign" />
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="probation-reviews" />
+      <Stack.Screen name="chatbot" />
+      <Stack.Screen name="data-retention" />
+      <Stack.Screen name="production-incentives" />
     </Stack>
   );
 }

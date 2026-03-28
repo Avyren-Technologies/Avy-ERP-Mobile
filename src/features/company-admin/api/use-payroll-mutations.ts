@@ -347,3 +347,31 @@ export function useUpdateTaxConfig() {
     },
   });
 }
+
+// ── Travel Advances ─────────────────────────────────────────────────
+
+/** Create a travel advance */
+export function useCreateTravelAdvance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      payrollApi.createTravelAdvance(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.travelAdvances() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.loans() });
+    },
+  });
+}
+
+/** Settle a travel advance against an expense claim */
+export function useSettleTravelAdvance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { expenseClaimId: string } }) =>
+      payrollApi.settleTravelAdvance(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.travelAdvances() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.loans() });
+    },
+  });
+}

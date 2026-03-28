@@ -22,7 +22,7 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { client } from '@/lib/api/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TRACK_H = 64;
@@ -245,16 +245,27 @@ export function ShiftCheckInScreen() {
         })();
     }, []);
 
-    // Attendance status
-    const { data: statusData, isLoading, refetch } = useQuery({
+    // Attendance status — background polling keeps previous data visible (no skeleton flash on refetch)
+    const [pullRefreshing, setPullRefreshing] = React.useState(false);
+    const { data: statusData, isPending, refetch } = useQuery({
         queryKey: ['attendance', 'my-status'],
         queryFn: async () => {
             const r = await client.get('/hr/attendance/my-status');
             return (r as any)?.data?.data ?? (r as any)?.data ?? r;
         },
-        refetchInterval: 60000, // every 60s, not 30s
+        placeholderData: keepPreviousData,
+        refetchInterval: 60000,
         refetchOnWindowFocus: false,
     });
+
+    const onPullRefresh = React.useCallback(async () => {
+        setPullRefreshing(true);
+        try {
+            await refetch();
+        } finally {
+            setPullRefreshing(false);
+        }
+    }, [refetch]);
 
     const attStatus: AttStatus = statusData?.status ?? 'NOT_CHECKED_IN';
     const record: AttendanceRecord | null = statusData?.record ?? null;
@@ -268,7 +279,7 @@ export function ShiftCheckInScreen() {
         setElapsed(base);
         const id = setInterval(() => setElapsed(base + Math.floor((Date.now() - start) / 1000)), 1000);
         return () => clearInterval(id);
-    }, [attStatus, record?.punchIn]);
+    }, [attStatus, record?.punchIn, statusData?.elapsedSeconds]);
 
     // Mutations
     const checkInMut = useMutation({
@@ -317,14 +328,20 @@ export function ShiftCheckInScreen() {
                 </View>
             </LinearGradient>
 
-            {isLoading ? (
+            {isPending ? (
                 <View style={{ padding: 20, gap: 16 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             ) : (
                 <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={$.content}
                     showsVerticalScrollIndicator={false}
-                    refreshControl={<RefreshControl refreshing={false} onRefresh={() => refetch()} tintColor={colors.primary[500]} />}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={pullRefreshing}
+                            onRefresh={onPullRefresh}
+                            tintColor={colors.primary[500]}
+                        />
+                    }
                 >
                     {/* Clock Card */}
                     <AnimatedRN.View entering={FadeInDown.duration(400).delay(100)} style={$.clockCard}>

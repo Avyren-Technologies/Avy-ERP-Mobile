@@ -32,6 +32,7 @@ import {
     useCreateTravelAdvance,
     useSettleTravelAdvance,
 } from '@/features/company-admin/api/use-payroll-mutations';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 
 // ============ TYPES ============
 
@@ -55,6 +56,8 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     REJECTED: { bg: colors.danger[50], text: 'text-danger-600' },
 };
 
+const TRAVEL_MODES = ['Flight', 'Train', 'Bus', 'Car', 'Other'];
+
 // ============ BADGES ============
 
 function StatusBadge({ status }: { status: string }) {
@@ -74,6 +77,97 @@ function SettledBadge({ settled }: { settled: boolean }) {
     );
 }
 
+// ============ EMPLOYEE PICKER MODAL ============
+
+function EmployeePickerModal({
+    visible,
+    onClose,
+    employees,
+    onSelect,
+}: {
+    visible: boolean;
+    onClose: () => void;
+    employees: any[];
+    onSelect: (emp: any) => void;
+}) {
+    const insets = useSafeAreaInsets();
+    const [searchText, setSearchText] = React.useState('');
+
+    React.useEffect(() => { if (visible) setSearchText(''); }, [visible]);
+
+    const filtered = React.useMemo(() => {
+        if (!searchText.trim()) return employees;
+        const q = searchText.toLowerCase();
+        return employees.filter((e: any) => {
+            const name = `${e.firstName ?? ''} ${e.lastName ?? ''}`.toLowerCase();
+            const eid = (e.employeeId ?? '').toLowerCase();
+            return name.includes(q) || eid.includes(q);
+        });
+    }, [employees, searchText]);
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '80%' }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-3">Select Employee</Text>
+                    <View style={[styles.inputWrap, { marginBottom: 12 }]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Search by name or ID..."
+                            placeholderTextColor={colors.neutral[400]}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            autoFocus
+                        />
+                    </View>
+                    <FlatList
+                        data={filtered}
+                        keyExtractor={item => item.id}
+                        keyboardShouldPersistTaps="handled"
+                        style={{ maxHeight: 300 }}
+                        renderItem={({ item }) => (
+                            <Pressable
+                                onPress={() => { onSelect(item); onClose(); }}
+                                style={styles.selectOption}
+                            >
+                                <View style={{ flex: 1 }}>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950">
+                                        {`${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.id}
+                                    </Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500">{item.employeeId ?? item.id}</Text>
+                                </View>
+                            </Pressable>
+                        )}
+                        ListEmptyComponent={<Text className="font-inter text-sm text-neutral-500 text-center py-4">No employees found</Text>}
+                    />
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ CHIP SELECTOR ============
+
+function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
+    return (
+        <View style={styles.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {options.map(opt => {
+                    const selected = opt === value;
+                    return (
+                        <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                        </Pressable>
+                    );
+                })}
+            </View>
+        </View>
+    );
+}
+
 // ============ CREATE FORM MODAL ============
 
 function CreateFormModal({
@@ -84,13 +178,41 @@ function CreateFormModal({
 }) {
     const insets = useSafeAreaInsets();
     const [employeeId, setEmployeeId] = React.useState('');
+    const [employeeName, setEmployeeName] = React.useState('');
     const [amount, setAmount] = React.useState('');
     const [tripPurpose, setTripPurpose] = React.useState('');
-    const [estimatedDate, setEstimatedDate] = React.useState('');
+    const [tripDestination, setTripDestination] = React.useState('');
+    const [travelDateFrom, setTravelDateFrom] = React.useState('');
+    const [travelDateTo, setTravelDateTo] = React.useState('');
+    const [travelMode, setTravelMode] = React.useState('');
+    const [showBreakdown, setShowBreakdown] = React.useState(false);
+    const [accommodationEstimate, setAccommodationEstimate] = React.useState('');
+    const [transportEstimate, setTransportEstimate] = React.useState('');
+    const [mealsEstimate, setMealsEstimate] = React.useState('');
+    const [otherEstimate, setOtherEstimate] = React.useState('');
+    const [empPickerVisible, setEmpPickerVisible] = React.useState(false);
+
+    const { data: empData } = useEmployees();
+    const employees: any[] = React.useMemo(() => {
+        const raw = (empData as any)?.data ?? empData;
+        return Array.isArray(raw) ? raw : [];
+    }, [empData]);
 
     React.useEffect(() => {
-        if (visible) { setEmployeeId(''); setAmount(''); setTripPurpose(''); setEstimatedDate(''); }
+        if (visible) {
+            setEmployeeId(''); setEmployeeName(''); setAmount(''); setTripPurpose('');
+            setTripDestination(''); setTravelDateFrom(''); setTravelDateTo('');
+            setTravelMode(''); setShowBreakdown(false);
+            setAccommodationEstimate(''); setTransportEstimate('');
+            setMealsEstimate(''); setOtherEstimate('');
+        }
     }, [visible]);
+
+    const breakdownTotal =
+        (Number(accommodationEstimate) || 0) +
+        (Number(transportEstimate) || 0) +
+        (Number(mealsEstimate) || 0) +
+        (Number(otherEstimate) || 0);
 
     const handleSave = () => {
         if (!employeeId.trim() || !amount.trim() || !tripPurpose.trim()) return;
@@ -98,7 +220,17 @@ function CreateFormModal({
             employeeId: employeeId.trim(),
             amount: Number(amount),
             tripPurpose: tripPurpose.trim(),
-            estimatedDate: estimatedDate.trim() || undefined,
+            tripDestination: tripDestination.trim() || undefined,
+            travelDateFrom: travelDateFrom.trim() || undefined,
+            travelDateTo: travelDateTo.trim() || undefined,
+            travelMode: travelMode || undefined,
+            estimatedExpenses: showBreakdown ? {
+                accommodation: Number(accommodationEstimate) || 0,
+                transport: Number(transportEstimate) || 0,
+                meals: Number(mealsEstimate) || 0,
+                other: Number(otherEstimate) || 0,
+                total: breakdownTotal,
+            } : undefined,
         });
     };
 
@@ -108,26 +240,86 @@ function CreateFormModal({
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '92%' }]}>
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">New Travel Advance</Text>
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                        {/* Employee Picker */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employee ID <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Enter employee ID" placeholderTextColor={colors.neutral[400]} value={employeeId} onChangeText={setEmployeeId} /></View>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employee <Text className="text-danger-500">*</Text></Text>
+                            <Pressable onPress={() => setEmpPickerVisible(true)} style={styles.inputWrap}>
+                                <Text className={`font-inter text-sm ${employeeId ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                    {employeeName || 'Search employee...'}
+                                </Text>
+                            </Pressable>
                         </View>
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Amount ({'\u20B9'}) <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="10000" placeholderTextColor={colors.neutral[400]} value={amount} onChangeText={setAmount} keyboardType="numeric" /></View>
-                        </View>
+
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Trip Purpose <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, { height: 80 }]}><TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="e.g. Client meeting in Mumbai" placeholderTextColor={colors.neutral[400]} value={tripPurpose} onChangeText={setTripPurpose} multiline /></View>
                         </View>
+
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Estimated Travel Date</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={estimatedDate} onChangeText={setEstimatedDate} /></View>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Trip Destination</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Mumbai, Maharashtra" placeholderTextColor={colors.neutral[400]} value={tripDestination} onChangeText={setTripDestination} /></View>
                         </View>
+
+                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                            <View style={{ flex: 1 }}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Travel From</Text>
+                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={travelDateFrom} onChangeText={setTravelDateFrom} /></View>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Travel To</Text>
+                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={travelDateTo} onChangeText={setTravelDateTo} /></View>
+                            </View>
+                        </View>
+
+                        <ChipSelector label="Travel Mode" options={TRAVEL_MODES} value={travelMode} onSelect={setTravelMode} />
+
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Amount ({'\u20B9'}) <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="10000" placeholderTextColor={colors.neutral[400]} value={amount} onChangeText={setAmount} keyboardType="numeric" /></View>
+                        </View>
+
+                        {/* Expense Breakdown */}
+                        <Pressable onPress={() => setShowBreakdown(!showBreakdown)} style={styles.breakdownToggle}>
+                            <Text className="font-inter text-xs font-bold text-primary-600">
+                                {showBreakdown ? 'Hide' : 'Show'} Expense Breakdown (optional)
+                            </Text>
+                            <Svg width={14} height={14} viewBox="0 0 24 24">
+                                <Path d={showBreakdown ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                        </Pressable>
+
+                        {showBreakdown && (
+                            <View style={styles.breakdownCard}>
+                                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="mb-1 font-inter text-[10px] font-bold text-neutral-500 uppercase">Accommodation</Text>
+                                        <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={accommodationEstimate} onChangeText={setAccommodationEstimate} keyboardType="numeric" /></View>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="mb-1 font-inter text-[10px] font-bold text-neutral-500 uppercase">Transport</Text>
+                                        <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={transportEstimate} onChangeText={setTransportEstimate} keyboardType="numeric" /></View>
+                                    </View>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="mb-1 font-inter text-[10px] font-bold text-neutral-500 uppercase">Meals</Text>
+                                        <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={mealsEstimate} onChangeText={setMealsEstimate} keyboardType="numeric" /></View>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="mb-1 font-inter text-[10px] font-bold text-neutral-500 uppercase">Other</Text>
+                                        <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={otherEstimate} onChangeText={setOtherEstimate} keyboardType="numeric" /></View>
+                                    </View>
+                                </View>
+                                <View style={{ borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
+                                    <Text className="font-inter text-[10px] font-bold text-neutral-500 uppercase">Estimated Total</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-700">{'\u20B9'}{breakdownTotal.toLocaleString('en-IN')}</Text>
+                                </View>
+                            </View>
+                        )}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
@@ -137,6 +329,17 @@ function CreateFormModal({
                     </View>
                 </View>
             </View>
+
+            {/* Employee Picker */}
+            <EmployeePickerModal
+                visible={empPickerVisible}
+                onClose={() => setEmpPickerVisible(false)}
+                employees={employees}
+                onSelect={(emp) => {
+                    setEmployeeId(emp.id);
+                    setEmployeeName(`${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || emp.employeeId || emp.id);
+                }}
+            />
         </Modal>
     );
 }
@@ -168,6 +371,12 @@ function SettleModal({
                         <Text className="font-inter text-sm font-bold text-primary-950">{advance.employeeName ?? advance.employeeId}</Text>
                         <Text className="font-inter text-xs text-neutral-500 mt-3 mb-1">Advance Amount</Text>
                         <Text className="font-inter text-lg font-bold text-primary-600">{'\u20B9'}{Number(advance.amount ?? 0).toLocaleString('en-IN')}</Text>
+                        {advance.tripPurpose ? (
+                            <>
+                                <Text className="font-inter text-xs text-neutral-500 mt-3 mb-1">Trip Purpose</Text>
+                                <Text className="font-inter text-sm text-primary-950">{advance.tripPurpose}</Text>
+                            </>
+                        ) : null}
                     </View>
                     <View style={styles.fieldWrap}>
                         <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Expense Claim ID (optional)</Text>
@@ -216,7 +425,7 @@ function SettlementResultModal({
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Settlement Summary</Text>
                     <View style={{ backgroundColor: colors.neutral[50], borderRadius: 14, padding: 16, width: '100%', marginBottom: 16 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <Text className="font-inter text-xs text-neutral-500">Advance</Text>
+                            <Text className="font-inter text-xs text-neutral-500">Original Advance</Text>
                             <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{Number(result.advanceAmount).toLocaleString('en-IN')}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -416,4 +625,7 @@ const styles = StyleSheet.create({
     settleBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.accent[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.accent[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
     chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
+    selectOption: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    breakdownToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 },
+    breakdownCard: { backgroundColor: colors.neutral[50], borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.neutral[100] },
 });

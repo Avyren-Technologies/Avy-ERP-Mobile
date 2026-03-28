@@ -29,10 +29,12 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useBonusBatches, useBonusBatch } from '@/features/company-admin/api/use-bonus-batch-queries';
 import { useCreateBonusBatch, useApproveBonusBatch, useMergeBonusBatch } from '@/features/company-admin/api/use-bonus-batch-mutations';
+import { useDepartments, useDesignations, useEmployees } from '@/features/company-admin/api/use-hr-queries';
 
 // ============ TYPES ============
 
 type BonusType = 'PERFORMANCE' | 'FESTIVE' | 'SPOT' | 'REFERRAL' | 'RETENTION' | 'STATUTORY';
+type SelectionMode = 'department' | 'designation' | 'employee';
 
 interface BonusBatchItem {
     id: string;
@@ -105,6 +107,90 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
                 })}
             </View>
         </View>
+    );
+}
+
+// ============ SEARCHABLE SELECT MODAL (Mobile) ============
+
+function SearchableSelectModal({
+    visible,
+    onClose,
+    options,
+    onSelect,
+    title,
+    multiple,
+    selectedValues,
+}: {
+    visible: boolean;
+    onClose: () => void;
+    options: { value: string; label: string; sublabel?: string }[];
+    onSelect: (value: string) => void;
+    title: string;
+    multiple?: boolean;
+    selectedValues?: string[];
+}) {
+    const insets = useSafeAreaInsets();
+    const [searchText, setSearchText] = React.useState('');
+
+    React.useEffect(() => { if (visible) setSearchText(''); }, [visible]);
+
+    const filtered = React.useMemo(() => {
+        if (!searchText.trim()) return options;
+        const q = searchText.toLowerCase();
+        return options.filter(o => o.label.toLowerCase().includes(q) || (o.sublabel ?? '').toLowerCase().includes(q));
+    }, [options, searchText]);
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '80%' }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-3">{title}</Text>
+                    <View style={[styles.inputWrapStyle, { marginBottom: 12 }]}>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="Search..."
+                            placeholderTextColor={colors.neutral[400]}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            autoFocus
+                        />
+                    </View>
+                    <FlatList
+                        data={filtered}
+                        keyExtractor={item => item.value}
+                        keyboardShouldPersistTaps="handled"
+                        style={{ maxHeight: 300 }}
+                        renderItem={({ item }) => {
+                            const isSelected = multiple ? selectedValues?.includes(item.value) : false;
+                            return (
+                                <Pressable
+                                    onPress={() => onSelect(item.value)}
+                                    style={[styles.selectOption, isSelected && { backgroundColor: colors.primary[50] }]}
+                                >
+                                    {multiple && (
+                                        <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+                                            {isSelected && <Text className="font-inter text-[10px] font-bold text-white">{'✓'}</Text>}
+                                        </View>
+                                    )}
+                                    <View style={{ flex: 1 }}>
+                                        <Text className={`font-inter text-sm ${isSelected ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{item.label}</Text>
+                                        {item.sublabel && <Text className="font-inter text-[10px] text-neutral-500">{item.sublabel}</Text>}
+                                    </View>
+                                </Pressable>
+                            );
+                        }}
+                        ListEmptyComponent={<Text className="font-inter text-sm text-neutral-500 text-center py-4">No results found</Text>}
+                    />
+                    {multiple && (
+                        <Pressable onPress={onClose} style={[styles.saveBtn, { marginTop: 12 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">Done ({selectedValues?.length ?? 0} selected)</Text>
+                        </Pressable>
+                    )}
+                </View>
+            </View>
+        </Modal>
     );
 }
 
@@ -212,68 +298,326 @@ function CreateModal({
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [type, setType] = React.useState('PERFORMANCE');
-    const [items, setItems] = React.useState<BonusLineItem[]>([{ employeeId: '', employeeName: '', amount: 0, remarks: '' }]);
+    const [selectionMode, setSelectionMode] = React.useState<SelectionMode>('employee');
+    const [selectedDepartmentId, setSelectedDepartmentId] = React.useState('');
+    const [selectedDesignationId, setSelectedDesignationId] = React.useState('');
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
+    const [sameAmountForAll, setSameAmountForAll] = React.useState(true);
+    const [bulkAmount, setBulkAmount] = React.useState('');
+    const [individualAmounts, setIndividualAmounts] = React.useState<Record<string, string>>({});
+    const [individualRemarks, setIndividualRemarks] = React.useState<Record<string, string>>({});
+    const [showPreview, setShowPreview] = React.useState(false);
+
+    // Picker modals
+    const [deptPickerVisible, setDeptPickerVisible] = React.useState(false);
+    const [desigPickerVisible, setDesigPickerVisible] = React.useState(false);
+    const [empPickerVisible, setEmpPickerVisible] = React.useState(false);
+
+    // HR data
+    const { data: deptData } = useDepartments();
+    const { data: desigData } = useDesignations();
+    const deptFilterParams = React.useMemo(() => (selectedDepartmentId ? { departmentId: selectedDepartmentId } : undefined), [selectedDepartmentId]);
+    const desigFilterParams = React.useMemo(() => (selectedDesignationId ? { designationId: selectedDesignationId } as any : undefined), [selectedDesignationId]);
+    const { data: empByDept } = useEmployees(selectionMode === 'department' && selectedDepartmentId ? deptFilterParams : undefined);
+    const { data: empByDesig } = useEmployees(selectionMode === 'designation' && selectedDesignationId ? desigFilterParams : undefined);
+    const { data: allEmpData } = useEmployees();
+
+    const departments: any[] = React.useMemo(() => { const raw = (deptData as any)?.data ?? deptData; return Array.isArray(raw) ? raw : []; }, [deptData]);
+    const designations: any[] = React.useMemo(() => { const raw = (desigData as any)?.data ?? desigData; return Array.isArray(raw) ? raw : []; }, [desigData]);
+    const allEmployees: any[] = React.useMemo(() => { const raw = (allEmpData as any)?.data ?? allEmpData; return Array.isArray(raw) ? raw : []; }, [allEmpData]);
+    const deptEmployees: any[] = React.useMemo(() => { const raw = (empByDept as any)?.data ?? empByDept; return Array.isArray(raw) ? raw : []; }, [empByDept]);
+    const desigEmployees: any[] = React.useMemo(() => { const raw = (empByDesig as any)?.data ?? empByDesig; return Array.isArray(raw) ? raw : []; }, [empByDesig]);
 
     React.useEffect(() => {
         if (visible) {
             setName('');
             setType('PERFORMANCE');
-            setItems([{ employeeId: '', employeeName: '', amount: 0, remarks: '' }]);
+            setSelectionMode('employee');
+            setSelectedDepartmentId('');
+            setSelectedDesignationId('');
+            setSelectedEmployeeIds([]);
+            setSameAmountForAll(true);
+            setBulkAmount('');
+            setIndividualAmounts({});
+            setIndividualRemarks({});
+            setShowPreview(false);
         }
     }, [visible]);
 
-    const addItem = () => setItems(p => [...p, { employeeId: '', employeeName: '', amount: 0, remarks: '' }]);
-    const updateItem = (idx: number, key: keyof BonusLineItem, val: any) =>
-        setItems(p => p.map((item, i) => (i === idx ? { ...item, [key]: val } : item)));
-    const removeItem = (idx: number) => setItems(p => p.filter((_, i) => i !== idx));
+    const departmentOptions = departments.map((d: any) => ({ value: d.id, label: d.name }));
+    const designationOptions = designations.map((d: any) => ({ value: d.id, label: d.name }));
+    const employeeOptions = allEmployees.map((e: any) => ({
+        value: e.id,
+        label: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.id,
+        sublabel: e.employeeId ?? e.id,
+    }));
+
+    const getEmpName = (id: string) => {
+        const e = allEmployees.find((emp: any) => emp.id === id);
+        return e ? `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeId || id : id;
+    };
+
+    const previewItems: BonusLineItem[] = React.useMemo(() => {
+        if (selectionMode === 'department') {
+            if (!selectedDepartmentId) return [];
+            return deptEmployees.map((e: any) => ({
+                employeeId: e.id,
+                employeeName: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeId || e.id,
+                amount: Number(bulkAmount) || 0,
+                remarks: individualRemarks[e.id] ?? '',
+            }));
+        }
+        if (selectionMode === 'designation') {
+            if (!selectedDesignationId) return [];
+            return desigEmployees.map((e: any) => ({
+                employeeId: e.id,
+                employeeName: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeId || e.id,
+                amount: Number(bulkAmount) || 0,
+                remarks: individualRemarks[e.id] ?? '',
+            }));
+        }
+        return selectedEmployeeIds.map((id) => ({
+            employeeId: id,
+            employeeName: getEmpName(id),
+            amount: sameAmountForAll ? (Number(bulkAmount) || 0) : (Number(individualAmounts[id]) || 0),
+            remarks: individualRemarks[id] ?? '',
+        }));
+    }, [selectionMode, selectedDepartmentId, selectedDesignationId, selectedEmployeeIds, deptEmployees, desigEmployees, allEmployees, bulkAmount, sameAmountForAll, individualAmounts, individualRemarks]);
+
+    const totalAmount = previewItems.reduce((sum, i) => sum + i.amount, 0);
+
+    const resolvedEmployeeCount =
+        selectionMode === 'department' ? deptEmployees.length :
+        selectionMode === 'designation' ? desigEmployees.length :
+        selectedEmployeeIds.length;
+
+    const canSubmit = name.trim() && type && previewItems.some(i => i.amount > 0);
+
+    const handleEmpSelect = (value: string) => {
+        setSelectedEmployeeIds(prev => {
+            const idx = prev.indexOf(value);
+            if (idx >= 0) return prev.filter(v => v !== value);
+            return [...prev, value];
+        });
+    };
+
+    const selectedDeptName = departments.find((d: any) => d.id === selectedDepartmentId)?.name ?? '';
+    const selectedDesigName = designations.find((d: any) => d.id === selectedDesignationId)?.name ?? '';
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '90%' }]}>
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '92%' }]}>
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Create Bonus Batch</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                        {/* Batch Name */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Batch Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="e.g. Q1 Performance Bonus" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <ChipSelector label="Bonus Type" options={BONUS_TYPES} value={type} onSelect={setType} />
 
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <Text className="font-inter text-xs font-bold text-neutral-500 uppercase">Items</Text>
-                            <Pressable onPress={addItem}>
-                                <Text className="font-inter text-xs font-bold text-primary-600">+ Add Row</Text>
-                            </Pressable>
+                        {/* Selection Mode Tabs */}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Selection Mode</Text>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                {(['department', 'designation', 'employee'] as SelectionMode[]).map(mode => {
+                                    const labels: Record<SelectionMode, string> = { department: 'By Dept', designation: 'By Desig', employee: 'By Employee' };
+                                    const selected = selectionMode === mode;
+                                    return (
+                                        <Pressable key={mode} onPress={() => {
+                                            setSelectionMode(mode);
+                                            setSelectedDepartmentId('');
+                                            setSelectedDesignationId('');
+                                            setSelectedEmployeeIds([]);
+                                            setBulkAmount('');
+                                            setIndividualAmounts({});
+                                            setIndividualRemarks({});
+                                            setShowPreview(false);
+                                        }} style={[styles.chip, selected && styles.chipActive]}>
+                                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{labels[mode]}</Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
                         </View>
 
-                        {items.map((item, idx) => (
-                            <View key={idx} style={styles.itemFormCard}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                    <Text className="font-inter text-[10px] font-bold text-neutral-500">#{idx + 1}</Text>
-                                    {items.length > 1 && (
-                                        <Pressable onPress={() => removeItem(idx)} hitSlop={8}>
-                                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                        </Pressable>
-                                    )}
+                        {/* By Department */}
+                        {selectionMode === 'department' && (
+                            <>
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department <Text className="text-danger-500">*</Text></Text>
+                                    <Pressable onPress={() => setDeptPickerVisible(true)} style={styles.inputWrapStyle}>
+                                        <Text className={`font-inter text-sm ${selectedDepartmentId ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                            {selectedDeptName || 'Select department...'}
+                                        </Text>
+                                    </Pressable>
                                 </View>
-                                <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Employee ID" placeholderTextColor={colors.neutral[400]} value={item.employeeId} onChangeText={v => updateItem(idx, 'employeeId', v)} /></View>
-                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                                    <View style={[styles.inputWrapStyle, { flex: 1 }]}><TextInput style={styles.textInput} placeholder="Amount" placeholderTextColor={colors.neutral[400]} value={item.amount ? String(item.amount) : ''} onChangeText={v => updateItem(idx, 'amount', Number(v) || 0)} keyboardType="numeric" /></View>
-                                    <View style={[styles.inputWrapStyle, { flex: 1 }]}><TextInput style={styles.textInput} placeholder="Remarks" placeholderTextColor={colors.neutral[400]} value={item.remarks} onChangeText={v => updateItem(idx, 'remarks', v)} /></View>
+                                {selectedDepartmentId ? (
+                                    <View style={[styles.infoBanner, { marginBottom: 14 }]}>
+                                        <Text className="font-inter text-sm font-bold text-primary-700">{deptEmployees.length} employees found</Text>
+                                    </View>
+                                ) : null}
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bonus Amount (for all)</Text>
+                                    <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter amount" placeholderTextColor={colors.neutral[400]} value={bulkAmount} onChangeText={setBulkAmount} keyboardType="numeric" /></View>
                                 </View>
+                            </>
+                        )}
+
+                        {/* By Designation */}
+                        {selectionMode === 'designation' && (
+                            <>
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Designation <Text className="text-danger-500">*</Text></Text>
+                                    <Pressable onPress={() => setDesigPickerVisible(true)} style={styles.inputWrapStyle}>
+                                        <Text className={`font-inter text-sm ${selectedDesignationId ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                            {selectedDesigName || 'Select designation...'}
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                                {selectedDesignationId ? (
+                                    <View style={[styles.infoBanner, { marginBottom: 14 }]}>
+                                        <Text className="font-inter text-sm font-bold text-primary-700">{desigEmployees.length} employees found</Text>
+                                    </View>
+                                ) : null}
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bonus Amount (for all)</Text>
+                                    <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter amount" placeholderTextColor={colors.neutral[400]} value={bulkAmount} onChangeText={setBulkAmount} keyboardType="numeric" /></View>
+                                </View>
+                            </>
+                        )}
+
+                        {/* By Employee */}
+                        {selectionMode === 'employee' && (
+                            <>
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employees <Text className="text-danger-500">*</Text></Text>
+                                    <Pressable onPress={() => setEmpPickerVisible(true)} style={styles.inputWrapStyle}>
+                                        <Text className={`font-inter text-sm ${selectedEmployeeIds.length > 0 ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                            {selectedEmployeeIds.length > 0 ? `${selectedEmployeeIds.length} selected` : 'Select employees...'}
+                                        </Text>
+                                    </Pressable>
+                                </View>
+
+                                {/* Selected chips */}
+                                {selectedEmployeeIds.length > 0 && (
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                                        {selectedEmployeeIds.map(id => (
+                                            <Pressable key={id} onPress={() => setSelectedEmployeeIds(p => p.filter(v => v !== id))} style={styles.selectedChip}>
+                                                <Text className="font-inter text-[10px] font-bold text-primary-700">{getEmpName(id)}</Text>
+                                                <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.primary[600]} strokeWidth="2.5" strokeLinecap="round" /></Svg>
+                                            </Pressable>
+                                        ))}
+                                    </View>
+                                )}
+
+                                {selectedEmployeeIds.length > 0 && (
+                                    <>
+                                        {/* Same vs Individual toggle */}
+                                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                                            <Pressable onPress={() => setSameAmountForAll(true)} style={[styles.chip, sameAmountForAll && styles.chipActive]}>
+                                                <Text className={`font-inter text-[10px] font-bold ${sameAmountForAll ? 'text-white' : 'text-neutral-600'}`}>Same for All</Text>
+                                            </Pressable>
+                                            <Pressable onPress={() => setSameAmountForAll(false)} style={[styles.chip, !sameAmountForAll && styles.chipActive]}>
+                                                <Text className={`font-inter text-[10px] font-bold ${!sameAmountForAll ? 'text-white' : 'text-neutral-600'}`}>Individual</Text>
+                                            </Pressable>
+                                        </View>
+
+                                        {sameAmountForAll ? (
+                                            <View style={styles.fieldWrap}>
+                                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bonus Amount (for all)</Text>
+                                                <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter amount" placeholderTextColor={colors.neutral[400]} value={bulkAmount} onChangeText={setBulkAmount} keyboardType="numeric" /></View>
+                                            </View>
+                                        ) : (
+                                            <>
+                                                {selectedEmployeeIds.map(id => (
+                                                    <View key={id} style={styles.itemFormCard}>
+                                                        <Text className="font-inter text-xs font-bold text-primary-950 mb-2">{getEmpName(id)}</Text>
+                                                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                            <View style={[styles.inputWrapStyle, { flex: 1 }]}>
+                                                                <TextInput style={styles.textInput} placeholder="Amount" placeholderTextColor={colors.neutral[400]} value={individualAmounts[id] ?? ''} onChangeText={v => setIndividualAmounts(p => ({ ...p, [id]: v }))} keyboardType="numeric" />
+                                                            </View>
+                                                            <View style={[styles.inputWrapStyle, { flex: 1 }]}>
+                                                                <TextInput style={styles.textInput} placeholder="Remarks" placeholderTextColor={colors.neutral[400]} value={individualRemarks[id] ?? ''} onChangeText={v => setIndividualRemarks(p => ({ ...p, [id]: v }))} />
+                                                            </View>
+                                                        </View>
+                                                    </View>
+                                                ))}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        {/* Preview */}
+                        {resolvedEmployeeCount > 0 && (
+                            <View style={{ borderTopWidth: 1, borderTopColor: colors.neutral[100], paddingTop: 12, marginTop: 4 }}>
+                                <Pressable onPress={() => setShowPreview(!showPreview)}>
+                                    <Text className="font-inter text-xs font-bold text-primary-600 mb-2">{showPreview ? 'Hide Preview' : 'Show Preview'}</Text>
+                                </Pressable>
+                                {showPreview && (
+                                    <>
+                                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                                            <View style={[styles.infoBanner, { flex: 1 }]}>
+                                                <Text className="font-inter text-[10px] text-neutral-500 uppercase">Employees</Text>
+                                                <Text className="font-inter text-base font-bold text-primary-700">{previewItems.length}</Text>
+                                            </View>
+                                            <View style={[styles.infoBanner, { flex: 1, backgroundColor: colors.success[50] }]}>
+                                                <Text className="font-inter text-[10px] text-neutral-500 uppercase">Total</Text>
+                                                <Text className="font-inter text-base font-bold text-success-700">{'\u20B9'}{totalAmount.toLocaleString('en-IN')}</Text>
+                                            </View>
+                                        </View>
+                                        {previewItems.slice(0, 10).map(item => (
+                                            <View key={item.employeeId} style={styles.itemRow}>
+                                                <Text className="font-inter text-xs font-semibold text-primary-950" style={{ flex: 1 }}>{item.employeeName}</Text>
+                                                <Text className="font-inter text-xs font-bold text-primary-700">{'\u20B9'}{item.amount.toLocaleString('en-IN')}</Text>
+                                            </View>
+                                        ))}
+                                        {previewItems.length > 10 && (
+                                            <Text className="font-inter text-[10px] text-neutral-500 text-center py-2">...and {previewItems.length - 10} more</Text>
+                                        )}
+                                    </>
+                                )}
                             </View>
-                        ))}
+                        )}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
-                        <Pressable onPress={() => onSave({ name, type, items: items.filter(i => i.employeeId && i.amount > 0) })} disabled={!name.trim() || !type || isSaving} style={[styles.saveBtn, (!name.trim() || isSaving) && { opacity: 0.5 }]}>
-                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Creating...' : 'Create Batch'}</Text>
+                        <Pressable onPress={() => onSave({ name, type, items: previewItems.filter(i => i.employeeId && i.amount > 0) })} disabled={!canSubmit || isSaving} style={[styles.saveBtn, (!canSubmit || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Creating...' : `Create (${previewItems.length})`}</Text>
                         </Pressable>
                     </View>
                 </View>
             </View>
+
+            {/* Picker Modals */}
+            <SearchableSelectModal
+                visible={deptPickerVisible}
+                onClose={() => setDeptPickerVisible(false)}
+                options={departmentOptions}
+                onSelect={(v) => { setSelectedDepartmentId(v); setDeptPickerVisible(false); }}
+                title="Select Department"
+            />
+            <SearchableSelectModal
+                visible={desigPickerVisible}
+                onClose={() => setDesigPickerVisible(false)}
+                options={designationOptions}
+                onSelect={(v) => { setSelectedDesignationId(v); setDesigPickerVisible(false); }}
+                title="Select Designation"
+            />
+            <SearchableSelectModal
+                visible={empPickerVisible}
+                onClose={() => setEmpPickerVisible(false)}
+                options={employeeOptions}
+                onSelect={handleEmpSelect}
+                title="Select Employees"
+                multiple
+                selectedValues={selectedEmployeeIds}
+            />
         </Modal>
     );
 }
@@ -492,4 +836,9 @@ const styles = StyleSheet.create({
     infoCard: { flex: 1, backgroundColor: colors.neutral[50], borderRadius: 12, padding: 10 },
     itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     itemFormCard: { backgroundColor: colors.neutral[50], borderRadius: 14, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.neutral[100] },
+    infoBanner: { backgroundColor: colors.primary[50], borderRadius: 12, padding: 10 },
+    selectedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary[50], borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: colors.primary[200] },
+    selectOption: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1.5, borderColor: colors.neutral[300], justifyContent: 'center', alignItems: 'center' },
+    checkboxActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
 });

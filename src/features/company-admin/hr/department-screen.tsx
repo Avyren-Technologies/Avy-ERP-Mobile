@@ -27,12 +27,23 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useDepartments } from '@/features/company-admin/api/use-hr-queries';
+import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
     useCreateDepartment,
     useDeleteDepartment,
     useUpdateDepartment,
 } from '@/features/company-admin/api/use-hr-mutations';
+
+// ============ HELPERS ============
+
+function generateCode(name: string): string {
+    if (!name.trim()) return '';
+    const words = name.trim().split(/\s+/);
+    const abbr = words.length >= 2
+        ? words.map(w => w[0]!.toUpperCase()).join('').slice(0, 4)
+        : name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    return `${abbr}-001`;
+}
 
 // ============ TYPES ============
 
@@ -176,6 +187,105 @@ function ChipSelector({
     );
 }
 
+// ============ SEARCHABLE EMPLOYEE PICKER ============
+
+function SearchableEmployeePicker({
+    label,
+    value,
+    displayValue,
+    onSelect,
+    employees,
+}: {
+    label: string;
+    value: string;
+    displayValue: string;
+    onSelect: (id: string, name: string) => void;
+    employees: { id: string; name: string; code: string }[];
+}) {
+    const [open, setOpen] = React.useState(false);
+    const [searchText, setSearchText] = React.useState('');
+
+    const filtered = React.useMemo(() => {
+        if (!searchText.trim()) return employees;
+        const q = searchText.toLowerCase();
+        return employees.filter(e =>
+            e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q),
+        );
+    }, [employees, searchText]);
+
+    return (
+        <View style={styles.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
+                <Text
+                    className={`font-inter text-sm ${displayValue ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}
+                    numberOfLines={1}
+                >
+                    {displayValue || 'Search employee...'}
+                </Text>
+                <Svg width={14} height={14} viewBox="0 0 24 24">
+                    <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+            </Pressable>
+
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                    <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
+                    <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '70%' }]}>
+                        <View style={styles.sheetHandle} />
+                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <View style={[styles.inputWrap, { marginBottom: 12 }]}>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Search by name or code..."
+                                placeholderTextColor={colors.neutral[400]}
+                                value={searchText}
+                                onChangeText={setSearchText}
+                                autoFocus
+                            />
+                        </View>
+                        <Pressable
+                            onPress={() => { onSelect('', ''); setOpen(false); }}
+                            style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}
+                        >
+                            <Text className="font-inter text-sm text-neutral-400">None</Text>
+                        </Pressable>
+                        <FlatList
+                            data={filtered}
+                            keyExtractor={item => item.id}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item: emp }) => (
+                                <Pressable
+                                    onPress={() => { onSelect(emp.id, emp.name); setOpen(false); }}
+                                    style={{
+                                        paddingVertical: 12,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: colors.neutral[100],
+                                        backgroundColor: emp.id === value ? colors.primary[50] : undefined,
+                                        paddingHorizontal: 4,
+                                        borderRadius: 8,
+                                    }}
+                                >
+                                    <Text className={`font-inter text-sm ${emp.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                        {emp.name}
+                                    </Text>
+                                    <Text className="font-inter text-xs text-neutral-400">{emp.code}</Text>
+                                </Pressable>
+                            )}
+                            ListEmptyComponent={
+                                <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                                    <Text className="font-inter text-sm text-neutral-400">No employees found</Text>
+                                </View>
+                            }
+                        />
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+}
+
 // ============ FORM MODAL ============
 
 function DepartmentFormModal({
@@ -185,6 +295,7 @@ function DepartmentFormModal({
     initialData,
     isSaving,
     departments,
+    employeeList,
 }: {
     visible: boolean;
     onClose: () => void;
@@ -192,12 +303,15 @@ function DepartmentFormModal({
     initialData?: DepartmentItem | null;
     isSaving: boolean;
     departments: DepartmentItem[];
+    employeeList: { id: string; name: string; code: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [code, setCode] = React.useState('');
+    const [codeManuallyEdited, setCodeManuallyEdited] = React.useState(false);
     const [parentDepartmentId, setParentDepartmentId] = React.useState('');
     const [headEmployee, setHeadEmployee] = React.useState('');
+    const [headEmployeeDisplay, setHeadEmployeeDisplay] = React.useState('');
     const [costCentreCode, setCostCentreCode] = React.useState('');
     const [status, setStatus] = React.useState<'Active' | 'Inactive'>('Active');
 
@@ -206,15 +320,19 @@ function DepartmentFormModal({
             if (initialData) {
                 setName(initialData.name);
                 setCode(initialData.code);
+                setCodeManuallyEdited(true);
                 setParentDepartmentId(initialData.parentDepartmentId);
                 setHeadEmployee(initialData.headEmployee);
+                setHeadEmployeeDisplay(initialData.headEmployee);
                 setCostCentreCode(initialData.costCentreCode);
                 setStatus(initialData.status);
             } else {
                 setName('');
                 setCode('');
+                setCodeManuallyEdited(false);
                 setParentDepartmentId('');
                 setHeadEmployee('');
+                setHeadEmployeeDisplay('');
                 setCostCentreCode('');
                 setStatus('Active');
             }
@@ -236,7 +354,7 @@ function DepartmentFormModal({
             code: code.trim().toUpperCase(),
             parentDepartmentId,
             parentDepartment: parentDept?.name ?? '',
-            headEmployee: headEmployee.trim(),
+            headEmployee: headEmployeeDisplay.trim() || headEmployee.trim(),
             costCentreCode: costCentreCode.trim(),
             status,
         });
@@ -266,7 +384,12 @@ function DepartmentFormModal({
                                     placeholder='e.g. "Engineering"'
                                     placeholderTextColor={colors.neutral[400]}
                                     value={name}
-                                    onChangeText={setName}
+                                    onChangeText={(val) => {
+                                        setName(val);
+                                        if (!codeManuallyEdited) {
+                                            setCode(generateCode(val));
+                                        }
+                                    }}
                                     autoCapitalize="words"
                                 />
                             </View>
@@ -283,7 +406,10 @@ function DepartmentFormModal({
                                     placeholder='e.g. "ENG"'
                                     placeholderTextColor={colors.neutral[400]}
                                     value={code}
-                                    onChangeText={setCode}
+                                    onChangeText={(val) => {
+                                        setCode(val);
+                                        setCodeManuallyEdited(true);
+                                    }}
                                     autoCapitalize="characters"
                                 />
                             </View>
@@ -299,19 +425,16 @@ function DepartmentFormModal({
                         />
 
                         {/* Head Employee */}
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Head Employee</Text>
-                            <View style={styles.inputWrap}>
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="Search employee..."
-                                    placeholderTextColor={colors.neutral[400]}
-                                    value={headEmployee}
-                                    onChangeText={setHeadEmployee}
-                                    autoCapitalize="words"
-                                />
-                            </View>
-                        </View>
+                        <SearchableEmployeePicker
+                            label="Head Employee"
+                            value={headEmployee}
+                            displayValue={headEmployeeDisplay}
+                            onSelect={(id, empName) => {
+                                setHeadEmployee(id || empName);
+                                setHeadEmployeeDisplay(empName);
+                            }}
+                            employees={employeeList}
+                        />
 
                         {/* Cost Centre Code */}
                         <View style={styles.fieldWrap}>
@@ -433,6 +556,7 @@ export function DepartmentScreen() {
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data: response, isLoading, error, refetch, isFetching } = useDepartments();
+    const { data: empResponse } = useEmployees();
     const createMutation = useCreateDepartment();
     const updateMutation = useUpdateDepartment();
     const deleteMutation = useDeleteDepartment();
@@ -440,6 +564,16 @@ export function DepartmentScreen() {
     const [formVisible, setFormVisible] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<DepartmentItem | null>(null);
     const [search, setSearch] = React.useState('');
+
+    const employeeList = React.useMemo(() => {
+        const raw = (empResponse as any)?.data ?? empResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((e: any) => ({
+            id: e.id ?? '',
+            name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.name || '',
+            code: e.employeeId ?? e.code ?? '',
+        }));
+    }, [empResponse]);
 
     const departments: DepartmentItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -562,6 +696,7 @@ export function DepartmentScreen() {
                 initialData={editingItem}
                 isSaving={createMutation.isPending || updateMutation.isPending}
                 departments={departments}
+                employeeList={employeeList}
             />
 
             <ConfirmModal {...confirmModalProps} />

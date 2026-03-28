@@ -52,6 +52,17 @@ interface DesignationItem {
     status: 'Active' | 'Inactive';
 }
 
+// ============ HELPERS ============
+
+function generateCode(name: string): string {
+    if (!name.trim()) return '';
+    const words = name.trim().split(/\s+/);
+    const abbr = words.length >= 2
+        ? words.map(w => w[0]!.toUpperCase()).join('').slice(0, 4)
+        : name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    return `${abbr}-001`;
+}
+
 // ============ JOB LEVELS ============
 
 const JOB_LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'];
@@ -128,21 +139,124 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
     );
 }
 
+// ============ SEARCHABLE DESIGNATION PICKER ============
+
+function SearchableDesignationPicker({
+    label,
+    value,
+    onSelect,
+    designations,
+    excludeId,
+}: {
+    label: string;
+    value: string;
+    onSelect: (designationName: string) => void;
+    designations: { id: string; name: string; code: string }[];
+    excludeId?: string;
+}) {
+    const [open, setOpen] = React.useState(false);
+    const [searchText, setSearchText] = React.useState('');
+
+    const available = React.useMemo(() => {
+        let list = designations;
+        if (excludeId) list = list.filter(d => d.id !== excludeId);
+        if (!searchText.trim()) return list;
+        const q = searchText.toLowerCase();
+        return list.filter(d =>
+            d.name.toLowerCase().includes(q) || d.code.toLowerCase().includes(q),
+        );
+    }, [designations, searchText, excludeId]);
+
+    return (
+        <View style={styles.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
+                <Text
+                    className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}
+                    numberOfLines={1}
+                >
+                    {value || 'Search designation...'}
+                </Text>
+                <Svg width={14} height={14} viewBox="0 0 24 24">
+                    <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+            </Pressable>
+
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                    <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
+                    <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '70%' }]}>
+                        <View style={styles.sheetHandle} />
+                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <View style={[styles.inputWrap, { marginBottom: 12 }]}>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Search by name or code..."
+                                placeholderTextColor={colors.neutral[400]}
+                                value={searchText}
+                                onChangeText={setSearchText}
+                                autoFocus
+                            />
+                        </View>
+                        <Pressable
+                            onPress={() => { onSelect(''); setOpen(false); }}
+                            style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}
+                        >
+                            <Text className="font-inter text-sm text-neutral-400">None</Text>
+                        </Pressable>
+                        <FlatList
+                            data={available}
+                            keyExtractor={item => item.id}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item: desig }) => (
+                                <Pressable
+                                    onPress={() => { onSelect(desig.name); setOpen(false); }}
+                                    style={{
+                                        paddingVertical: 12,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: colors.neutral[100],
+                                        backgroundColor: desig.name === value ? colors.primary[50] : undefined,
+                                        paddingHorizontal: 4,
+                                        borderRadius: 8,
+                                    }}
+                                >
+                                    <Text className={`font-inter text-sm ${desig.name === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                        {desig.name}
+                                    </Text>
+                                    <Text className="font-inter text-xs text-neutral-400">{desig.code}</Text>
+                                </Pressable>
+                            )}
+                            ListEmptyComponent={
+                                <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                                    <Text className="font-inter text-sm text-neutral-400">No designations found</Text>
+                                </View>
+                            }
+                        />
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+}
+
 // ============ FORM MODAL ============
 
 function DesignationFormModal({
     visible, onClose, onSave, initialData, isSaving,
-    departmentOptions, gradeOptions,
+    departmentOptions, gradeOptions, allDesignations,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Omit<DesignationItem, 'id'>) => void;
     initialData?: DesignationItem | null; isSaving: boolean;
     departmentOptions: { id: string; label: string }[];
     gradeOptions: { id: string; label: string }[];
+    allDesignations: { id: string; name: string; code: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [code, setCode] = React.useState('');
+    const [codeManuallyEdited, setCodeManuallyEdited] = React.useState(false);
     const [departmentId, setDepartmentId] = React.useState('');
     const [gradeId, setGradeId] = React.useState('');
     const [jobLevel, setJobLevel] = React.useState('L1');
@@ -156,6 +270,7 @@ function DesignationFormModal({
             if (initialData) {
                 setName(initialData.name);
                 setCode(initialData.code);
+                setCodeManuallyEdited(true);
                 setDepartmentId(initialData.departmentId);
                 setGradeId(initialData.gradeId);
                 setJobLevel(initialData.jobLevel || 'L1');
@@ -164,7 +279,8 @@ function DesignationFormModal({
                 setProbationDays(initialData.probationDays ? String(initialData.probationDays) : '');
                 setStatus(initialData.status);
             } else {
-                setName(''); setCode(''); setDepartmentId(''); setGradeId('');
+                setName(''); setCode(''); setCodeManuallyEdited(false);
+                setDepartmentId(''); setGradeId('');
                 setJobLevel('L1'); setIsManagerial(false); setReportsTo('');
                 setProbationDays(''); setStatus('Active');
             }
@@ -197,11 +313,11 @@ function DesignationFormModal({
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Senior Engineer"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" /></View>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Senior Engineer"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={(val) => { setName(val); if (!codeManuallyEdited) { setCode(generateCode(val)); } }} autoCapitalize="words" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Code <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "SR-ENG"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={setCode} autoCapitalize="characters" /></View>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "SR-ENG"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={(val) => { setCode(val); setCodeManuallyEdited(true); }} autoCapitalize="characters" /></View>
                         </View>
                         <Dropdown label="Department" value={departmentId} options={departmentOptions} onSelect={setDepartmentId} placeholder="Select department..." />
                         <Dropdown label="Grade" value={gradeId} options={gradeOptions} onSelect={setGradeId} placeholder="Select grade..." />
@@ -216,10 +332,13 @@ function DesignationFormModal({
                             <Switch value={isManagerial} onValueChange={setIsManagerial} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isManagerial ? colors.primary[600] : colors.neutral[300]} />
                         </View>
 
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reports To</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Designation code / name" placeholderTextColor={colors.neutral[400]} value={reportsTo} onChangeText={setReportsTo} /></View>
-                        </View>
+                        <SearchableDesignationPicker
+                            label="Reports To"
+                            value={reportsTo}
+                            onSelect={setReportsTo}
+                            designations={allDesignations}
+                            excludeId={initialData?.id}
+                        />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Probation Days</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 90" placeholderTextColor={colors.neutral[400]} value={probationDays} onChangeText={setProbationDays} keyboardType="number-pad" /></View>
@@ -327,6 +446,11 @@ export function DesignationScreen() {
         return raw.map((g: any) => ({ id: g.id ?? '', label: `${g.name ?? ''} (${g.code ?? ''})` }));
     }, [gradeResponse]);
 
+    const allDesignationsList = React.useMemo(() =>
+        designations.map(d => ({ id: d.id, name: d.name, code: d.code })),
+        [designations],
+    );
+
     const filtered = React.useMemo(() => {
         if (!search.trim()) return designations;
         const q = search.toLowerCase();
@@ -388,7 +512,7 @@ export function DesignationScreen() {
             <FAB onPress={handleAdd} />
             <DesignationFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave}
                 initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending}
-                departmentOptions={departmentOptions} gradeOptions={gradeOptions} />
+                departmentOptions={departmentOptions} gradeOptions={gradeOptions} allDesignations={allDesignationsList} />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );

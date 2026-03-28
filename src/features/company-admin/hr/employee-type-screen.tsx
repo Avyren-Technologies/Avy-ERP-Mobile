@@ -35,6 +35,17 @@ import {
     useUpdateEmployeeType,
 } from '@/features/company-admin/api/use-hr-mutations';
 
+// ============ HELPERS ============
+
+function generateCode(name: string): string {
+    if (!name.trim()) return '';
+    const words = name.trim().split(/\s+/);
+    const abbr = words.length >= 2
+        ? words.map(w => w[0]!.toUpperCase()).join('').slice(0, 4)
+        : name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    return `${abbr}-001`;
+}
+
 // ============ TYPES ============
 
 interface EmployeeTypeItem {
@@ -113,6 +124,7 @@ function EmployeeTypeFormModal({
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [code, setCode] = React.useState('');
+    const [codeManuallyEdited, setCodeManuallyEdited] = React.useState(false);
     const [pfApplicable, setPfApplicable] = React.useState(true);
     const [esiApplicable, setEsiApplicable] = React.useState(true);
     const [ptApplicable, setPtApplicable] = React.useState(true);
@@ -124,11 +136,13 @@ function EmployeeTypeFormModal({
         if (visible) {
             if (initialData) {
                 setName(initialData.name); setCode(initialData.code);
+                setCodeManuallyEdited(true);
                 setPfApplicable(initialData.pfApplicable); setEsiApplicable(initialData.esiApplicable);
                 setPtApplicable(initialData.ptApplicable); setGratuityEligible(initialData.gratuityEligible);
                 setBonusEligible(initialData.bonusEligible); setStatus(initialData.status);
             } else {
-                setName(''); setCode(''); setPfApplicable(true); setEsiApplicable(true);
+                setName(''); setCode(''); setCodeManuallyEdited(false);
+                setPfApplicable(true); setEsiApplicable(true);
                 setPtApplicable(true); setGratuityEligible(true); setBonusEligible(true);
                 setStatus('Active');
             }
@@ -158,11 +172,11 @@ function EmployeeTypeFormModal({
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Permanent"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" /></View>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Permanent"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={(val) => { setName(val); if (!codeManuallyEdited) { setCode(generateCode(val)); } }} autoCapitalize="words" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Code <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "PERM"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={setCode} autoCapitalize="characters" /></View>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "PERM"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={(val) => { setCode(val); setCodeManuallyEdited(true); }} autoCapitalize="characters" /></View>
                         </View>
 
                         <Text className="mb-2 mt-1 font-inter text-xs font-bold text-neutral-500">Statutory Applicability</Text>

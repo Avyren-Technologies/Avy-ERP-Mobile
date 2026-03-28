@@ -101,7 +101,7 @@ function FilingCard({ item, index }: { item: any; index: number }) {
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">FY: {item.financialYear ?? '\u2014'}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">FY: {item.financialYear ?? '—'}</Text>
                     </View>
                     {item.quarter ? (
                         <View style={styles.metaChip}>
@@ -110,11 +110,11 @@ function FilingCard({ item, index }: { item: any; index: number }) {
                     ) : null}
                     <View style={styles.metaChip}>
                         <Text className="font-inter text-[10px] text-neutral-500">
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '\u2014'}
+                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                         </Text>
                     </View>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">Records: {item.employeeCount ?? item.deducteeCount ?? item.recordCount ?? '\u2014'}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">Records: {item.employeeCount ?? item.deducteeCount ?? item.recordCount ?? '—'}</Text>
                     </View>
                 </View>
             </View>
@@ -183,7 +183,7 @@ export function Form16Screen() {
                 <InfoRow label="Financial Year" value={selectedFY} />
                 {form16Filings.length > 0 && (
                     <>
-                        <InfoRow label="Employees" value={String(form16Filings[0]?.employeeCount ?? '\u2014')} />
+                        <InfoRow label="Employees" value={String(form16Filings[0]?.employeeCount ?? '—')} />
                         <InfoRow label="Status" value={<StatusBadge status={form16Filings[0]?.status ?? 'Pending'} />} />
                     </>
                 )}
@@ -215,8 +215,8 @@ export function Form16Screen() {
                 </View>
                 {form24QFilings.length > 0 && (
                     <>
-                        <InfoRow label="Deductees" value={String(form24QFilings[0]?.deducteeCount ?? '\u2014')} />
-                        <InfoRow label="Total TDS" value={form24QFilings[0]?.totalTds ? `\u20B9${Number(form24QFilings[0].totalTds).toLocaleString('en-IN')}` : '\u2014'} />
+                        <InfoRow label="Deductees" value={String(form24QFilings[0]?.deducteeCount ?? '—')} />
+                        <InfoRow label="Total TDS" value={form24QFilings[0]?.totalTds ? `\u20B9${Number(form24QFilings[0].totalTds).toLocaleString('en-IN')}` : '—'} />
                     </>
                 )}
                 <Pressable onPress={handleGenerateForm24Q} disabled={generateForm24Q.isPending} style={[styles.accentBtn, generateForm24Q.isPending && { opacity: 0.5 }]}>

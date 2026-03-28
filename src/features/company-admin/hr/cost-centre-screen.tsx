@@ -52,6 +52,15 @@ interface CostCentreItem {
 
 // ============ HELPERS ============
 
+function generateCode(name: string): string {
+    if (!name.trim()) return '';
+    const words = name.trim().split(/\s+/);
+    const abbr = words.length >= 2
+        ? words.map(w => w[0]!.toUpperCase()).join('').slice(0, 4)
+        : name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    return `${abbr}-001`;
+}
+
 function formatCurrency(n: number): string {
     if (!n) return '-';
     if (n >= 10000000) return `\u20B9${(n / 10000000).toFixed(2)}Cr`;
@@ -128,6 +137,7 @@ function CostCentreFormModal({
 }) {
     const insets = useSafeAreaInsets();
     const [code, setCode] = React.useState('');
+    const [codeManuallyEdited, setCodeManuallyEdited] = React.useState(false);
     const [name, setName] = React.useState('');
     const [departmentId, setDepartmentId] = React.useState('');
     const [locationId, setLocationId] = React.useState('');
@@ -138,12 +148,14 @@ function CostCentreFormModal({
     React.useEffect(() => {
         if (visible) {
             if (initialData) {
-                setCode(initialData.code); setName(initialData.name);
+                setCode(initialData.code); setCodeManuallyEdited(true);
+                setName(initialData.name);
                 setDepartmentId(initialData.departmentId); setLocationId(initialData.locationId);
                 setAnnualBudget(initialData.annualBudget ? String(initialData.annualBudget) : '');
                 setGlAccountCode(initialData.glAccountCode); setStatus(initialData.status);
             } else {
-                setCode(''); setName(''); setDepartmentId(''); setLocationId('');
+                setCode(''); setCodeManuallyEdited(false); setName('');
+                setDepartmentId(''); setLocationId('');
                 setAnnualBudget(''); setGlAccountCode(''); setStatus('Active');
             }
         }
@@ -173,12 +185,12 @@ function CostCentreFormModal({
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Code <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "CC-ENG-01"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={setCode} autoCapitalize="characters" /></View>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Engineering Cost Centre"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={(val) => { setName(val); if (!codeManuallyEdited) { setCode(generateCode(val)); } }} autoCapitalize="words" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Engineering Cost Centre"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" /></View>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Code <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "CC-ENG-01"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={(val) => { setCode(val); setCodeManuallyEdited(true); }} autoCapitalize="characters" /></View>
                         </View>
                         <Dropdown label="Department" value={departmentId} options={departmentOptions} onSelect={setDepartmentId} placeholder="Select department..." />
                         <Dropdown label="Location" value={locationId} options={locationOptions} onSelect={setLocationId} placeholder="Select location..." />
@@ -190,8 +202,13 @@ function CostCentreFormModal({
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">GL Account Code</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "4100-01"' placeholderTextColor={colors.neutral[400]} value={glAccountCode} onChangeText={setGlAccountCode} /></View>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                                GL Account Code <Text className="font-inter text-[10px] font-normal text-neutral-400">(Coming soon)</Text>
+                            </Text>
+                            <View style={[styles.inputWrap, { backgroundColor: colors.neutral[100], borderColor: colors.neutral[200] }]}>
+                                <TextInput style={[styles.textInput, { color: colors.neutral[400] }]} placeholder='e.g. "4100-01"' placeholderTextColor={colors.neutral[300]} value={glAccountCode} editable={false} />
+                            </View>
+                            <Text className="mt-1 font-inter text-[10px] text-neutral-400">GL mapping will be available once the Accounting module is enabled.</Text>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>

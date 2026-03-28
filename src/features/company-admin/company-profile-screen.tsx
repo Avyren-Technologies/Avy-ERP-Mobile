@@ -350,7 +350,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         <View style={s.infoRow}>
             <Text className="font-inter text-xs font-medium text-neutral-500">{label}</Text>
             <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
-                {value || '\u2014'}
+                {value || '—'}
             </Text>
         </View>
     );

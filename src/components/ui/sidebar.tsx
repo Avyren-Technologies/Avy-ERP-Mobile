@@ -43,6 +43,8 @@ export interface SidebarNavItem {
 
 export interface SidebarSection {
     title?: string;
+    /** When set, renders a styled module divider above this section (e.g. "HRMS", "COMPANY ADMIN") */
+    moduleSeparator?: string;
     items: SidebarNavItem[];
 }
 
@@ -398,17 +400,29 @@ export function Sidebar({
                     removeClippedSubviews={true}
                 >
                     {sections.map((section) => (
-                        <View key={section.title ?? section.items[0]?.id ?? 'default'} style={styles.navSection}>
-                            {section.title && (
-                                <View style={styles.sectionTitleWrap}>
-                                    <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400">
-                                        {section.title}
+                        <View key={section.title ?? section.items[0]?.id ?? 'default'}>
+                            {/* Module separator */}
+                            {section.moduleSeparator && (
+                                <View style={styles.moduleSeparator}>
+                                    <View style={styles.moduleSeparatorLine} />
+                                    <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
+                                        {section.moduleSeparator}
                                     </Text>
+                                    <View style={styles.moduleSeparatorLine} />
                                 </View>
                             )}
-                            {section.items.map((item) => (
-                                <SidebarNavItem key={item.id} item={item} onClose={close} />
-                            ))}
+                            <View style={styles.navSection}>
+                                {section.title && (
+                                    <View style={styles.sectionTitleWrap}>
+                                        <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400">
+                                            {section.title}
+                                        </Text>
+                                    </View>
+                                )}
+                                {section.items.map((item) => (
+                                    <SidebarNavItem key={item.id} item={item} onClose={close} />
+                                ))}
+                            </View>
                         </View>
                     ))}
                 </ScrollView>
@@ -673,5 +687,18 @@ const styles = StyleSheet.create({
     hamburgerPressed: {
         opacity: 0.5,
         backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    moduleSeparator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 4,
+        gap: 8,
+    },
+    moduleSeparatorLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: colors.primary[100],
     },
 });

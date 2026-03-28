@@ -188,6 +188,7 @@ function AppSidebar() {
                 section: {
                     title: 'Configuration',
                     items: [
+                        { id: 'module-catalogue', label: 'Module Catalogue', icon: 'settings' as const, onPress: () => router.push('/company/module-catalogue' as any), isActive: pathname.startsWith('/company/module-catalogue') },
                         { id: 'no-series', label: 'Number Series', icon: 'settings' as const, onPress: () => router.push('/company/no-series' as any), isActive: pathname.startsWith('/company/no-series') },
                         { id: 'iot-reasons', label: 'IOT Reasons', icon: 'settings' as const, onPress: () => router.push('/company/iot-reasons' as any), isActive: pathname.startsWith('/company/iot-reasons') },
                         ...(hasPerm('company:configure') ? [{ id: 'controls', label: 'System Controls', icon: 'settings' as const, onPress: () => router.push('/company/controls' as any), isActive: pathname.startsWith('/company/controls') }] : []),
@@ -477,9 +478,29 @@ function SettingsIcon({ color, focused }: { color: string; focused: boolean }) {
     );
 }
 
+function SupportIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+        <View style={styles.tabIconContainer}>
+            {focused && <View style={styles.tabActiveIndicator} />}
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Path
+                    d="M21 12a8 8 0 10-16 0v6a2 2 0 002 2h3v-4H7v-4a6 6 0 1112 0v4h-3v4h3a2 2 0 002-2v-6z"
+                    stroke={color}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </Svg>
+        </View>
+    );
+}
+
 function TabLayoutInner() {
     const status = useAuth.use.status();
     const userRole = useAuth.use.userRole();
+    const permissions = useAuth.use.permissions();
+    const router = useRouter();
     const [isFirstTime] = useIsFirstTime();
     const insets = useSafeAreaInsets();
     const isSuperAdmin = userRole === 'super-admin';
@@ -506,6 +527,38 @@ function TabLayoutInner() {
     }
     if (status === 'signOut') {
         return <Redirect href="/login" />;
+    }
+
+    const hasPerm = (perm: string) => checkPermission(permissions, perm);
+    const canViewCompany = hasPerm('company:read');
+    const canViewHr = hasPerm('hr:read');
+    const canViewOps = hasPerm('inventory:read') || hasPerm('production:read') || hasPerm('maintenance:read');
+    const canViewReports = hasPerm('audit:read');
+    const canViewSettings = hasPerm('company:configure') || hasPerm('role:read') || hasPerm('user:read');
+
+    const visibleTabs = new Set<string>(['index']);
+
+    if (isSuperAdmin) {
+        visibleTabs.add('companies');
+        visibleTabs.add('billing');
+        visibleTabs.add('admin-support');
+        visibleTabs.add('settings');
+    } else if (isCompanyAdmin) {
+        visibleTabs.add('companies');
+        visibleTabs.add('billing');
+        visibleTabs.add('support');
+        visibleTabs.add('settings');
+    } else {
+        const dynamicCandidates = [
+            canViewCompany ? 'companies' : null,
+            canViewHr ? 'billing' : null,
+            canViewOps ? 'more' : null,
+            canViewReports ? 'reports' : null,
+            'support',
+            canViewSettings ? 'settings' : null,
+        ].filter((tab): tab is string => Boolean(tab));
+
+        dynamicCandidates.slice(0, 4).forEach((tab) => visibleTabs.add(tab));
     }
 
     return (
@@ -550,53 +603,85 @@ function TabLayoutInner() {
                 <Tabs.Screen
                     name="companies"
                     options={{
-                        title: isCompanyAdmin ? 'Company' : 'Companies',
+                        title: isCompanyAdmin || userRole === 'user' ? 'Company' : 'Companies',
                         tabBarIcon: ({ color, focused }) => (
                             isCompanyAdmin
                                 ? <CompanyIcon color={color} focused={focused} />
                                 : <CompaniesIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'companies-tab',
-                        href: (isSuperAdmin || isCompanyAdmin) ? undefined : null,
+                        href: visibleTabs.has('companies') ? undefined : null,
                     }}
-                    listeners={isCompanyAdmin ? {
+                    listeners={(isCompanyAdmin || (userRole === 'user' && canViewCompany)) ? {
                         tabPress: (e) => {
                             e.preventDefault();
                             // Use navigate (not push) to avoid corrupting the back stack
-                            require('expo-router').router.navigate('/company/profile');
+                            router.navigate('/company/profile');
                         },
                     } : undefined}
                 />
                 <Tabs.Screen
                     name="billing"
                     options={{
-                        title: isCompanyAdmin ? 'HR' : 'Billing',
+                        title: isCompanyAdmin || (userRole === 'user' && canViewHr) ? 'HR' : 'Billing',
                         tabBarIcon: ({ color, focused }) => (
                             isCompanyAdmin
                                 ? <HRIcon color={color} focused={focused} />
                                 : <BillingIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'billing-tab',
-                        href: (isSuperAdmin || isCompanyAdmin) ? undefined : null,
+                        href: visibleTabs.has('billing') ? undefined : null,
                     }}
-                    listeners={isCompanyAdmin ? {
+                    listeners={(isCompanyAdmin || (userRole === 'user' && canViewHr)) ? {
                         tabPress: (e) => {
                             e.preventDefault();
-                            require('expo-router').router.navigate('/company/hr/employees');
+                            router.navigate('/company/hr/employees');
                         },
                     } : undefined}
                 />
                 <Tabs.Screen
                     name="more"
                     options={{
-                        title: 'More',
+                        title: 'Ops',
                         tabBarIcon: ({ color, focused }) => (
                             <MoreIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'more-tab',
+                        href: visibleTabs.has('more') ? undefined : null,
                     }}
+                    listeners={(userRole === 'user' && canViewOps) ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            if (hasPerm('inventory:read')) {
+                                router.navigate('/company/inventory');
+                                return;
+                            }
+                            if (hasPerm('production:read')) {
+                                router.navigate('/company/production');
+                                return;
+                            }
+                            if (hasPerm('maintenance:read')) {
+                                router.navigate('/company/maintenance');
+                            }
+                        },
+                    } : undefined}
                 />
-                <Tabs.Screen name="reports" options={{ href: null }} />
+                <Tabs.Screen
+                    name="reports"
+                    options={{
+                        title: 'Reports',
+                        tabBarIcon: ({ color, focused }) => (
+                            <MoreIcon color={color} focused={focused} />
+                        ),
+                        href: visibleTabs.has('reports') ? undefined : null,
+                    }}
+                    listeners={(userRole === 'user' && canViewReports) ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            router.navigate('/reports/audit');
+                        },
+                    } : undefined}
+                />
                 <Tabs.Screen
                     name="settings"
                     options={{
@@ -605,14 +690,34 @@ function TabLayoutInner() {
                             <SettingsIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'settings-tab',
-                        href: isCompanyAdmin ? undefined : null,
+                        href: visibleTabs.has('settings') ? undefined : null,
                     }}
-                    listeners={isCompanyAdmin ? {
+                    listeners={(isCompanyAdmin || (userRole === 'user' && canViewSettings)) ? {
                         tabPress: (e) => {
                             e.preventDefault();
-                            require('expo-router').router.navigate('/company/settings');
+                            router.navigate('/company/settings');
                         },
                     } : undefined}
+                />
+                <Tabs.Screen
+                    name="support"
+                    options={{
+                        title: 'Support',
+                        tabBarIcon: ({ color, focused }) => (
+                            <SupportIcon color={color} focused={focused} />
+                        ),
+                        href: visibleTabs.has('support') ? undefined : null,
+                    }}
+                />
+                <Tabs.Screen
+                    name="admin-support"
+                    options={{
+                        title: 'Support',
+                        tabBarIcon: ({ color, focused }) => (
+                            <SupportIcon color={color} focused={focused} />
+                        ),
+                        href: visibleTabs.has('admin-support') ? undefined : null,
+                    }}
                 />
                 <Tabs.Screen name="tenant/[id]" options={{ href: null }} />
                 <Tabs.Screen

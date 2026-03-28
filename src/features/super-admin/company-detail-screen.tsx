@@ -27,7 +27,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { showSuccess } from '@/components/ui/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
+import { MODULE_CATALOGUE, USER_TIERS, FY_OPTIONS, MONTHS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
 
 import { useTenantDetail, useUpdateCompanyStatus, useDeleteCompany } from '@/features/super-admin/api/use-tenant-queries';
@@ -57,7 +57,7 @@ interface CompanyDetailUI {
     emailDomain: string;
     pan: string; tan: string; gstin: string; pfRegNo: string; esiCode: string; ptReg: string; lwfrNo: string; rocState: string;
     regLine1: string; regLine2: string; regCity: string; regDistrict: string; regPin: string; regState: string; regCountry: string; sameAsRegistered: boolean;
-    fyType: string; payrollFreq: string; cutoffDay: string; disbursementDay: string; weekStart: string; timezone: string; workingDays: string[];
+    fyType: string; fyCustomStartMonth: string; fyCustomEndMonth: string; payrollFreq: string; cutoffDay: string; disbursementDay: string; weekStart: string; timezone: string; workingDays: string[];
     currency: string; language: string; dateFormat: string; indiaCompliance: boolean; mobileApp: boolean; webApp: boolean; bankIntegration: boolean; biometric: boolean; emailNotif: boolean; mfa: boolean;
     endpointType: 'default' | 'custom'; endpointUrl: string;
     multiLocationMode: boolean; locationConfig: string;
@@ -142,7 +142,7 @@ function mapApiToDetailUI(raw: any): CompanyDetailUI {
         emailDomain: identity.emailDomain ?? raw.emailDomain ?? '',
         pan: statutory.pan ?? '', tan: statutory.tan ?? '', gstin: statutory.gstin ?? '', pfRegNo: statutory.pfRegNo ?? '', esiCode: statutory.esiCode ?? '', ptReg: statutory.ptReg ?? '', lwfrNo: statutory.lwfrNo ?? '', rocState: statutory.rocState ?? '',
         regLine1: address.line1 ?? address.regLine1 ?? '', regLine2: address.line2 ?? address.regLine2 ?? '', regCity: address.city ?? address.regCity ?? '', regDistrict: address.district ?? address.regDistrict ?? '', regPin: address.pin ?? address.regPin ?? '', regState: address.state ?? address.regState ?? '', regCountry: address.country ?? address.regCountry ?? 'India', sameAsRegistered: raw.address?.sameAsRegistered ?? raw.sameAsRegistered ?? true,
-        fyType: fiscal.fyType ?? '', payrollFreq: fiscal.payrollFreq ?? '', cutoffDay: fiscal.cutoffDay ?? '', disbursementDay: fiscal.disbursementDay ?? '', weekStart: fiscal.weekStart ?? '', timezone: fiscal.timezone ?? '', workingDays: fiscal.workingDays ?? [],
+        fyType: fiscal.fyType ?? '', fyCustomStartMonth: fiscal.fyCustomStartMonth ?? '', fyCustomEndMonth: fiscal.fyCustomEndMonth ?? '', payrollFreq: fiscal.payrollFreq ?? '', cutoffDay: fiscal.cutoffDay ?? '', disbursementDay: fiscal.disbursementDay ?? '', weekStart: fiscal.weekStart ?? '', timezone: fiscal.timezone ?? '', workingDays: fiscal.workingDays ?? [],
         currency: preferences.currency ?? '', language: preferences.language ?? '', dateFormat: preferences.dateFormat ?? '', indiaCompliance: preferences.indiaCompliance ?? false, mobileApp: preferences.mobileApp ?? false, webApp: preferences.webApp ?? false, bankIntegration: preferences.bankIntegration ?? false, biometric: preferences.biometric ?? false, emailNotif: preferences.emailNotif ?? false, mfa: controls.mfa ?? preferences.mfa ?? false,
         endpointType: (endpoint.endpointType ?? raw.endpointType ?? 'default') as 'default' | 'custom', endpointUrl: endpoint.customBaseUrl ?? raw.customEndpointUrl ?? 'https://api.avyerp.com',
         multiLocationMode: strategy.multiLocationMode ?? raw.multiLocationMode ?? false, locationConfig: strategy.locationConfig ?? raw.locationConfig ?? 'common',
@@ -910,7 +910,15 @@ export function CompanyDetailScreen() {
                     <Animated.View entering={FadeInUp.duration(400).delay(250)} style={styles.section}>
                         <SectionHeader title="Fiscal & Calendar" iconType="fiscal" onEdit={() => openEditModal('fiscal')} />
                         <View style={styles.sectionCard}>
-                            <InfoRow label="Financial Year" value={company.fyType === 'apr-mar' ? 'April – March (India)' : company.fyType} />
+                            <InfoRow label="Financial Year" value={(() => {
+                                const fyOpt = FY_OPTIONS.find((o) => o.key === company.fyType);
+                                if (company.fyType === 'custom' && company.fyCustomStartMonth && company.fyCustomEndMonth) {
+                                    const startMonth = MONTHS.find((m) => m.key === company.fyCustomStartMonth || m.label === company.fyCustomStartMonth);
+                                    const endMonth = MONTHS.find((m) => m.key === company.fyCustomEndMonth || m.label === company.fyCustomEndMonth);
+                                    return `${startMonth?.label ?? company.fyCustomStartMonth} – ${endMonth?.label ?? company.fyCustomEndMonth}`;
+                                }
+                                return fyOpt?.label ?? company.fyType;
+                            })()} />
                             <InfoRow label="Payroll Frequency" value={company.payrollFreq} />
                             <InfoRow label="Cutoff Day" value={company.cutoffDay} />
                             <InfoRow label="Disbursement Day" value={company.disbursementDay} />

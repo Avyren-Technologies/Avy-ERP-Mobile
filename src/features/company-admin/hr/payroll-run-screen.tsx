@@ -38,7 +38,15 @@ import {
 
 // ============ TYPES ============
 
-type RunStatus = 'DRAFT' | 'LOCKED' | 'COMPUTED' | 'APPROVED' | 'DISBURSED';
+type RunStatus =
+    | 'DRAFT'
+    | 'ATTENDANCE_LOCKED'
+    | 'EXCEPTIONS_REVIEWED'
+    | 'COMPUTED'
+    | 'STATUTORY_DONE'
+    | 'APPROVED'
+    | 'DISBURSED'
+    | 'ARCHIVED';
 
 interface PayrollRunItem {
     id: string;
@@ -74,10 +82,24 @@ const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'J
 
 const STATUS_COLORS: Record<RunStatus, { bg: string; text: string; dot: string }> = {
     DRAFT: { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] },
-    LOCKED: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
+    ATTENDANCE_LOCKED: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
+    EXCEPTIONS_REVIEWED: { bg: colors.warning[50], text: colors.warning[600], dot: colors.warning[400] },
     COMPUTED: { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] },
+    STATUTORY_DONE: { bg: colors.info[50], text: colors.info[600], dot: colors.info[400] },
     APPROVED: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
     DISBURSED: { bg: colors.primary[50], text: colors.primary[700], dot: colors.primary[500] },
+    ARCHIVED: { bg: colors.primary[100], text: colors.primary[800], dot: colors.primary[600] },
+};
+
+const STATUS_LABELS: Record<RunStatus, string> = {
+    DRAFT: 'Draft',
+    ATTENDANCE_LOCKED: 'Attendance Locked',
+    EXCEPTIONS_REVIEWED: 'Exceptions Reviewed',
+    COMPUTED: 'Computed',
+    STATUTORY_DONE: 'Statutory Done',
+    APPROVED: 'Approved',
+    DISBURSED: 'Disbursed',
+    ARCHIVED: 'Archived',
 };
 
 const WIZARD_STEPS = [
@@ -91,10 +113,13 @@ const WIZARD_STEPS = [
 
 const STATUS_TO_STEP: Record<RunStatus, number> = {
     DRAFT: 0,
-    LOCKED: 1,
-    COMPUTED: 2,
-    APPROVED: 4,
-    DISBURSED: 5,
+    ATTENDANCE_LOCKED: 1,
+    EXCEPTIONS_REVIEWED: 2,
+    COMPUTED: 3,
+    STATUTORY_DONE: 4,
+    APPROVED: 5,
+    DISBURSED: 6,
+    ARCHIVED: 6,
 };
 
 // ============ HELPERS ============
@@ -115,7 +140,7 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
     return (
         <View style={[styles.statusBadge, { backgroundColor: scheme.bg }]}>
             <View style={[styles.statusDot, { backgroundColor: scheme.dot }]} />
-            <Text style={{ color: scheme.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{status}</Text>
+            <Text style={{ color: scheme.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{STATUS_LABELS[status] ?? status}</Text>
         </View>
     );
 }
@@ -316,7 +341,7 @@ function Step2ReviewExceptions({ run, onMarkAllReviewed, isReviewing }: { run: P
 }
 
 function Step3ComputeSalaries({ run, onCompute, isComputing }: { run: PayrollRunItem; onCompute: () => void; isComputing: boolean }) {
-    const hasComputed = run.status === 'COMPUTED' || run.status === 'APPROVED' || run.status === 'DISBURSED';
+    const hasComputed = run.status === 'COMPUTED' || run.status === 'STATUTORY_DONE' || run.status === 'APPROVED' || run.status === 'DISBURSED' || run.status === 'ARCHIVED';
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
@@ -445,7 +470,7 @@ function Step6Disburse({ run, onDisburse, isDisbursing, disbursed }: { run: Payr
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
                 <Text className="font-inter text-base font-bold text-primary-950 mb-3">Disburse</Text>
-                {disbursed || run.status === 'DISBURSED' ? (
+                {disbursed || run.status === 'DISBURSED' || run.status === 'ARCHIVED' ? (
                     <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                         <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.success[100], justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                             <Svg width={28} height={28} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.success[600]} strokeWidth="2" fill="none" /></Svg>
@@ -629,7 +654,7 @@ export function PayrollRunScreen() {
                     {currentStep === 2 && <Step3ComputeSalaries run={selectedRun} onCompute={handleCompute} isComputing={computeMutation.isPending} />}
                     {currentStep === 3 && <Step4StatutoryDeductions run={selectedRun} onCompute={handleStatutory} isComputing={statutoryMutation.isPending} />}
                     {currentStep === 4 && <Step5Approve run={selectedRun} onApprove={handleApprove} />}
-                    {currentStep === 5 && <Step6Disburse run={selectedRun} onDisburse={handleDisburse} isDisbursing={disburseMutation.isPending} disbursed={disbursed} />}
+                    {(currentStep === 5 || currentStep === 6) && <Step6Disburse run={selectedRun} onDisburse={handleDisburse} isDisbursing={disburseMutation.isPending} disbursed={disbursed} />}
                 </ScrollView>
                 <ConfirmModal {...confirmModalProps} />
             </View>

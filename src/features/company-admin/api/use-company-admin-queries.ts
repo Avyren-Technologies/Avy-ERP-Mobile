@@ -42,6 +42,7 @@ export const companyAdminKeys = {
     params ? [...companyAdminKeys.all, 'support-tickets', params] as const : [...companyAdminKeys.all, 'support-tickets'] as const,
   supportTicket: (id: string) =>
     [...companyAdminKeys.all, 'support-ticket', id] as const,
+  navigationManifest: () => [...companyAdminKeys.all, 'navigation-manifest'] as const,
 };
 
 // --- Queries ---
@@ -268,5 +269,16 @@ export function useSupportTicket(id: string) {
     queryFn: () => companyAdminApi.getSupportTicket(id),
     enabled: !!id,
     refetchInterval: 10000,
+  });
+}
+
+// --- Navigation Manifest ---
+
+/** Navigation manifest (permission-filtered sidebar sections from backend) */
+export function useNavigationManifest() {
+  return useQuery({
+    queryKey: companyAdminKeys.navigationManifest(),
+    queryFn: () => companyAdminApi.getNavigationManifest(),
+    staleTime: 5 * 60 * 1000,
   });
 }

@@ -181,4 +181,7 @@ export const companyAdminApi = {
 
   removeLocationModule: (locationId: string, moduleId: string) =>
     client.delete(`/company/locations/${locationId}/modules/${moduleId}`),
+
+  // ── Navigation Manifest ──
+  getNavigationManifest: () => client.get('/rbac/navigation-manifest'),
 };

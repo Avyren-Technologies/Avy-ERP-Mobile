@@ -60,6 +60,18 @@ export const essKeys = {
   myDeclarations: () =>
     [...essKeys.all, 'my-declarations'] as const,
 
+  // ESS Self-Service (Goals, Grievances, Training, Assets, Form16)
+  myGoals: () =>
+    [...essKeys.all, 'my-goals'] as const,
+  myGrievances: () =>
+    [...essKeys.all, 'my-grievances'] as const,
+  myTraining: () =>
+    [...essKeys.all, 'my-training'] as const,
+  myAssets: () =>
+    [...essKeys.all, 'my-assets'] as const,
+  myForm16: () =>
+    [...essKeys.all, 'my-form16'] as const,
+
   // MSS Manager Self-Service
   teamMembers: (params?: MssTeamMembersParams) =>
     [...essKeys.all, 'team-members', params] as const,
@@ -205,6 +217,48 @@ export function useMyDeclarations() {
   return useQuery({
     queryKey: essKeys.myDeclarations(),
     queryFn: () => essApi.getMyDeclarations(),
+  });
+}
+
+// --- ESS Self-Service (Goals, Grievances, Training, Assets, Form16) ---
+
+/** Employee's own goals */
+export function useMyGoals() {
+  return useQuery({
+    queryKey: essKeys.myGoals(),
+    queryFn: () => essApi.getMyGoals(),
+  });
+}
+
+/** Employee's own grievances */
+export function useMyGrievances() {
+  return useQuery({
+    queryKey: essKeys.myGrievances(),
+    queryFn: () => essApi.getMyGrievances(),
+  });
+}
+
+/** Employee's training nominations */
+export function useMyTraining() {
+  return useQuery({
+    queryKey: essKeys.myTraining(),
+    queryFn: () => essApi.getMyTraining(),
+  });
+}
+
+/** Employee's assigned assets */
+export function useMyAssets() {
+  return useQuery({
+    queryKey: essKeys.myAssets(),
+    queryFn: () => essApi.getMyAssets(),
+  });
+}
+
+/** Employee's Form-16 / tax records */
+export function useMyForm16() {
+  return useQuery({
+    queryKey: essKeys.myForm16(),
+    queryFn: () => essApi.getMyForm16(),
   });
 }
 

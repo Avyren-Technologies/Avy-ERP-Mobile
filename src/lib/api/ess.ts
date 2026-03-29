@@ -167,6 +167,25 @@ export const essApi = {
   regularizeAttendance: (data: Record<string, unknown>) =>
     client.post('/hr/ess/regularize-attendance', data),
 
+  // ── ESS Self-Service (Goals, Grievances, Training, Assets, Form16) ──
+  getMyGoals: () =>
+    client.get('/hr/ess/my-goals'),
+
+  getMyGrievances: () =>
+    client.get('/hr/ess/my-grievances'),
+
+  fileGrievance: (data: { categoryId: string; description: string; isAnonymous?: boolean }) =>
+    client.post('/hr/ess/file-grievance', data),
+
+  getMyTraining: () =>
+    client.get('/hr/ess/my-training'),
+
+  getMyAssets: () =>
+    client.get('/hr/ess/my-assets'),
+
+  getMyForm16: () =>
+    client.get('/hr/ess/my-form16'),
+
   // ── MSS Manager Self-Service ──────────────────────────────────
   getTeamMembers: (params?: MssTeamMembersParams) =>
     client.get('/hr/mss/team-members', { params }),

@@ -222,6 +222,20 @@ export function useLockITDeclaration() {
   });
 }
 
+// ── ESS Self-Service (File Grievance) ────────────────────────────
+
+/** File a grievance (employee) */
+export function useFileGrievance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { categoryId: string; description: string; isAnonymous?: boolean }) =>
+      essApi.fileGrievance(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myGrievances() });
+    },
+  });
+}
+
 // ── ESS Self-Service Mutations ────────────────────────────────────
 
 /** Apply for leave (employee) */

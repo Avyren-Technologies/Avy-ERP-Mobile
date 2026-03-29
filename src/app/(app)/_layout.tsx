@@ -81,6 +81,31 @@ function MoreIcon({ color, focused }: { color: string; focused: boolean }) {
     );
 }
 
+function LeaveIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+        <View style={styles.tabIconContainer}>
+            {focused && <View style={styles.tabActiveIndicator} />}
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
+                <Path d="M16 2v4M8 2v4M3 10h18" stroke={focused ? 'rgba(255,255,255,0.6)' : color} strokeWidth="1.8" strokeLinecap="round" />
+                <Path d="M9 16l2 2 4-4" stroke={focused ? '#FFFFFF' : color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+        </View>
+    );
+}
+
+function AttendanceIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+        <View style={styles.tabIconContainer}>
+            {focused && <View style={styles.tabActiveIndicator} />}
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
+                <Path d="M12 6v6l4 2" stroke={focused ? '#FFFFFF' : color} strokeWidth="1.8" strokeLinecap="round" />
+            </Svg>
+        </View>
+    );
+}
+
 // ============ SIDEBAR ROOT (inside SidebarProvider) ============
 
 function AppSidebar() {
@@ -155,6 +180,24 @@ function AppSidebar() {
                 section: {
                     items: [
                         { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' as const, onPress: () => router.push('/'), isActive: pathname === '/' },
+                    ],
+                },
+            },
+
+            // ══════════ SELF-SERVICE (ESS) ══════════
+            // Visible to anyone with ESS permissions OR hr:read (company admins)
+            {
+                section: {
+                    moduleSeparator: 'Self-Service',
+                    title: 'My Workspace',
+                    items: [
+                        ...(hasPerm('ess:view-profile') || hasPerm('hr:read') ? [{ id: 'my-profile', label: 'My Profile', icon: 'users' as const, onPress: () => router.push('/company/hr/my-profile' as any), isActive: pathname.startsWith('/company/hr/my-profile') }] : []),
+                        ...(hasPerm('ess:view-payslips') || hasPerm('hr:read') ? [{ id: 'my-payslips', label: 'My Payslips', icon: 'billing' as const, onPress: () => router.push('/company/hr/my-payslips' as any), isActive: pathname.startsWith('/company/hr/my-payslips') }] : []),
+                        ...(hasPerm('ess:view-leave') || hasPerm('hr:read') ? [{ id: 'my-leave', label: 'My Leave', icon: 'reports' as const, onPress: () => router.push('/company/hr/my-leave' as any), isActive: pathname.startsWith('/company/hr/my-leave') }] : []),
+                        ...(hasPerm('ess:view-attendance') || hasPerm('hr:read') ? [{ id: 'my-attendance', label: 'My Attendance', icon: 'audit' as const, onPress: () => router.push('/company/hr/my-attendance' as any), isActive: pathname.startsWith('/company/hr/my-attendance') }] : []),
+                        ...(hasPerm('ess:view-attendance') || hasPerm('hr:read') ? [{ id: 'shift-check-in', label: 'Shift Check-In', icon: 'settings' as const, onPress: () => router.push('/company/hr/shift-check-in' as any), isActive: pathname.startsWith('/company/hr/shift-check-in') }] : []),
+                        ...(hasPerm('ess:view-holidays') || hasPerm('hr:read') ? [{ id: 'holidays-ess', label: 'Holiday Calendar', icon: 'reports' as const, onPress: () => router.push('/company/hr/holidays' as any), isActive: pathname.startsWith('/company/hr/holidays') }] : []),
+                        ...(hasPerm('hr:read') ? [{ id: 'team-view', label: 'Team View (MSS)', icon: 'users' as const, onPress: () => router.push('/company/hr/team-view' as any), isActive: pathname.startsWith('/company/hr/team-view') }] : []),
                     ],
                 },
             },
@@ -282,20 +325,6 @@ function AppSidebar() {
                         { id: 'bonus-batches', label: 'Bonus Batches', icon: 'billing' as const, onPress: () => router.push('/company/hr/bonus-batches' as any), isActive: pathname.startsWith('/company/hr/bonus-batches') },
                         { id: 'form-16', label: 'Form 16 & 24Q', icon: 'reports' as const, onPress: () => router.push('/company/hr/form-16' as any), isActive: pathname.startsWith('/company/hr/form-16') },
                         { id: 'travel-advances', label: 'Travel Advances', icon: 'billing' as const, onPress: () => router.push('/company/hr/travel-advances' as any), isActive: pathname.startsWith('/company/hr/travel-advances') },
-                    ],
-                },
-            },
-            {
-                requiredPerm: 'hr:read',
-                section: {
-                    title: 'Self-Service',
-                    items: [
-                        { id: 'my-profile', label: 'My Profile', icon: 'users' as const, onPress: () => router.push('/company/hr/my-profile' as any), isActive: pathname.startsWith('/company/hr/my-profile') },
-                        { id: 'my-payslips', label: 'My Payslips', icon: 'billing' as const, onPress: () => router.push('/company/hr/my-payslips' as any), isActive: pathname.startsWith('/company/hr/my-payslips') },
-                        { id: 'my-leave', label: 'My Leave', icon: 'settings' as const, onPress: () => router.push('/company/hr/my-leave' as any), isActive: pathname.startsWith('/company/hr/my-leave') },
-                        { id: 'my-attendance', label: 'My Attendance', icon: 'settings' as const, onPress: () => router.push('/company/hr/my-attendance' as any), isActive: pathname.startsWith('/company/hr/my-attendance') },
-                        { id: 'shift-check-in', label: 'Shift Check-In', icon: 'settings' as const, onPress: () => router.push('/company/hr/shift-check-in' as any), isActive: pathname.startsWith('/company/hr/shift-check-in') },
-                        { id: 'team-view', label: 'Team View (MSS)', icon: 'users' as const, onPress: () => router.push('/company/hr/team-view' as any), isActive: pathname.startsWith('/company/hr/team-view') },
                     ],
                 },
             },
@@ -517,6 +546,13 @@ function TabLayoutInner() {
     const insets = useSafeAreaInsets();
     const isSuperAdmin = userRole === 'super-admin';
     const isCompanyAdmin = userRole === 'company-admin';
+    const isEmployee =
+        userRole !== 'super-admin' &&
+        userRole !== 'company-admin' &&
+        permissions.some((p: string) => p.startsWith('ess:')) &&
+        !permissions.some(
+            (p: string) => p === 'company:read' || p === 'company:*'
+        );
     // iOS base: 54px content + dynamic home indicator clearance
     // Android base: 68px content (larger touch targets) + gesture nav inset if present
     const TAB_BAR_HEIGHT = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
@@ -555,6 +591,11 @@ function TabLayoutInner() {
         visibleTabs.add('billing');
         visibleTabs.add('admin-support');
         visibleTabs.add('settings');
+    } else if (isEmployee) {
+        // Employee gets: Dashboard, Leave, Attendance, More
+        visibleTabs.add('my-leave');
+        visibleTabs.add('my-attendance');
+        visibleTabs.add('more');
     } else if (isCompanyAdmin) {
         visibleTabs.add('companies');
         visibleTabs.add('billing');
@@ -654,14 +695,14 @@ function TabLayoutInner() {
                 <Tabs.Screen
                     name="more"
                     options={{
-                        title: 'Ops',
+                        title: isEmployee ? 'More' : 'Ops',
                         tabBarIcon: ({ color, focused }) => (
                             <MoreIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'more-tab',
                         href: visibleTabs.has('more') ? undefined : null,
                     }}
-                    listeners={(userRole === 'user' && canViewOps) ? {
+                    listeners={(!isEmployee && userRole === 'user' && canViewOps) ? {
                         tabPress: (e) => {
                             e.preventDefault();
                             if (hasPerm('inventory:read')) {
@@ -730,6 +771,41 @@ function TabLayoutInner() {
                         ),
                         href: visibleTabs.has('admin-support') ? undefined : null,
                     }}
+                />
+                {/* ── Employee-specific tabs ── */}
+                <Tabs.Screen
+                    name="my-leave"
+                    options={{
+                        title: 'Leave',
+                        tabBarIcon: ({ color, focused }) => (
+                            <LeaveIcon color={color} focused={focused} />
+                        ),
+                        tabBarButtonTestID: 'my-leave-tab',
+                        href: visibleTabs.has('my-leave') ? '/my-leave' : null,
+                    }}
+                    listeners={isEmployee ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            router.navigate('/company/hr/my-leave');
+                        },
+                    } : undefined}
+                />
+                <Tabs.Screen
+                    name="my-attendance"
+                    options={{
+                        title: 'Attendance',
+                        tabBarIcon: ({ color, focused }) => (
+                            <AttendanceIcon color={color} focused={focused} />
+                        ),
+                        tabBarButtonTestID: 'my-attendance-tab',
+                        href: visibleTabs.has('my-attendance') ? '/my-attendance' : null,
+                    }}
+                    listeners={isEmployee ? {
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            router.navigate('/company/hr/my-attendance');
+                        },
+                    } : undefined}
                 />
                 <Tabs.Screen name="tenant/[id]" options={{ href: null }} />
                 <Tabs.Screen

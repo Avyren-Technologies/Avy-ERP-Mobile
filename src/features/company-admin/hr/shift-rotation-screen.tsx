@@ -28,6 +28,8 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
+import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useShiftSchedules } from '@/features/company-admin/api/use-shift-rotation-queries';
 import {
     useCreateShiftSchedule,
@@ -47,9 +49,25 @@ interface ShiftSchedule {
     shiftCount: number;
     employeeCount: number;
     effectiveFrom: string;
+    effectiveTo: string;
+    description: string;
     isActive: boolean;
     shifts: { shiftId: string; shiftName: string; weekNumber: number }[];
     assignedEmployees: { id: string; name: string }[];
+}
+
+interface CompanyShift {
+    id: string;
+    name: string;
+    fromTime: string;
+    toTime: string;
+}
+
+interface Employee {
+    id: string;
+    firstName: string;
+    lastName: string;
+    employeeId: string;
 }
 
 const PATTERNS = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'];
@@ -99,42 +117,128 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
     );
 }
 
+// ============ SHIFT PICKER MODAL ============
+
+function ShiftPickerModal({ visible, onClose, onSelect, availableShifts, searchText, setSearchText }: {
+    visible: boolean; onClose: () => void; onSelect: (shift: CompanyShift) => void;
+    availableShifts: CompanyShift[]; searchText: string; setSearchText: (v: string) => void;
+}) {
+    const insets = useSafeAreaInsets();
+    const filtered = React.useMemo(() => {
+        if (!searchText.trim()) return availableShifts;
+        const q = searchText.toLowerCase();
+        return availableShifts.filter(s => s.name.toLowerCase().includes(q));
+    }, [availableShifts, searchText]);
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '70%' }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-3">Select Shift</Text>
+                    <View style={[styles.inputWrap, { marginBottom: 12, height: 42 }]}>
+                        <TextInput
+                            style={[styles.textInput, { fontSize: 13 }]}
+                            placeholder="Search shifts..."
+                            placeholderTextColor={colors.neutral[400]}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                        />
+                    </View>
+                    <FlatList
+                        data={filtered}
+                        keyExtractor={item => item.id}
+                        renderItem={({ item }) => (
+                            <Pressable
+                                onPress={() => { onSelect(item); onClose(); }}
+                                style={({ pressed }) => [styles.pickerRow, pressed && { backgroundColor: colors.primary[50] }]}
+                            >
+                                <View style={{ flex: 1 }}>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950">{item.name}</Text>
+                                    <Text className="font-inter text-xs text-neutral-500">{item.fromTime} — {item.toTime}</Text>
+                                </View>
+                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                    <Path d="M9 18l6-6-6-6" stroke={colors.neutral[400]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                            </Pressable>
+                        )}
+                        ListEmptyComponent={
+                            <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                                <Text className="font-inter text-sm text-neutral-400">No shifts found.</Text>
+                            </View>
+                        }
+                        showsVerticalScrollIndicator={false}
+                    />
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
 // ============ FORM MODAL ============
 
 function ScheduleFormModal({
-    visible, onClose, onSave, initialData, isSaving,
+    visible, onClose, onSave, initialData, isSaving, availableShifts,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     initialData?: ShiftSchedule | null; isSaving: boolean;
+    availableShifts: CompanyShift[];
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [pattern, setPattern] = React.useState('WEEKLY');
     const [effectiveFrom, setEffectiveFrom] = React.useState('');
+    const [effectiveTo, setEffectiveTo] = React.useState('');
+    const [description, setDescription] = React.useState('');
     const [isActive, setIsActive] = React.useState(true);
     const [shifts, setShifts] = React.useState<{ shiftId: string; shiftName: string; weekNumber: number }[]>([]);
+    const [shiftPickerVisible, setShiftPickerVisible] = React.useState(false);
+    const [shiftPickerIndex, setShiftPickerIndex] = React.useState(-1);
+    const [shiftSearchText, setShiftSearchText] = React.useState('');
 
     React.useEffect(() => {
         if (visible) {
             if (initialData) {
                 setName(initialData.name); setPattern(initialData.pattern);
                 setEffectiveFrom(initialData.effectiveFrom ? initialData.effectiveFrom.substring(0, 10) : '');
-                setIsActive(initialData.isActive); setShifts(initialData.shifts ?? []);
+                setEffectiveTo(initialData.effectiveTo ? initialData.effectiveTo.substring(0, 10) : '');
+                setDescription(initialData.description ?? '');
+                setIsActive(initialData.isActive);
+                setShifts((initialData.shifts ?? []).map((s, i) => ({
+                    shiftId: s.shiftId ?? '',
+                    shiftName: s.shiftName ?? availableShifts.find(sh => sh.id === s.shiftId)?.name ?? '',
+                    weekNumber: s.weekNumber ?? i + 1,
+                })));
             } else {
-                setName(''); setPattern('WEEKLY'); setEffectiveFrom('');
-                setIsActive(true); setShifts([]);
+                setName(''); setPattern('WEEKLY'); setEffectiveFrom(''); setEffectiveTo('');
+                setDescription(''); setIsActive(true); setShifts([]);
             }
         }
     }, [visible, initialData]);
 
     const addShift = () => setShifts(p => [...p, { shiftId: '', shiftName: '', weekNumber: p.length + 1 }]);
     const removeShift = (i: number) => setShifts(p => p.filter((_, idx) => idx !== i));
-    const updateShift = (i: number, field: string, val: any) => setShifts(p => p.map((s, idx) => idx === i ? { ...s, [field]: val } : s));
+
+    const openShiftPicker = (index: number) => {
+        setShiftPickerIndex(index);
+        setShiftSearchText('');
+        setShiftPickerVisible(true);
+    };
+
+    const handleShiftSelected = (shift: CompanyShift) => {
+        setShifts(p => p.map((s, idx) => idx === shiftPickerIndex ? { ...s, shiftId: shift.id, shiftName: shift.name } : s));
+    };
 
     const handleSave = () => {
         if (!name.trim()) return;
-        onSave({ name: name.trim(), pattern, effectiveFrom, isActive, shifts });
+        onSave({
+            name: name.trim(), rotationPattern: pattern, effectiveFrom, isActive,
+            effectiveTo: effectiveTo || undefined,
+            description: description || undefined,
+            shifts: shifts.map((s, i) => ({ shiftId: s.shiftId, weekNumber: i + 1 })),
+        });
     };
 
     return (
@@ -156,6 +260,16 @@ function ScheduleFormModal({
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Effective From</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={effectiveFrom} onChangeText={setEffectiveFrom} /></View>
                         </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Effective To</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD (optional)" placeholderTextColor={colors.neutral[400]} value={effectiveTo} onChangeText={setEffectiveTo} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <View style={[styles.inputWrap, { height: 70 }]}>
+                                <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Notes about this schedule..." placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline />
+                            </View>
+                        </View>
                         <View style={styles.toggleRow}>
                             <Text className="font-inter text-sm font-semibold text-primary-950">Active</Text>
                             <Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isActive ? colors.primary[600] : colors.neutral[300]} />
@@ -165,16 +279,33 @@ function ScheduleFormModal({
                             <Text className="font-inter text-xs font-bold text-primary-900">Shifts</Text>
                             <Pressable onPress={addShift}><Text className="font-inter text-xs font-bold text-primary-600">+ Add</Text></Pressable>
                         </View>
-                        {shifts.map((s, i) => (
-                            <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                                <View style={[styles.inputWrap, { flex: 2, height: 40 }]}><TextInput style={[styles.textInput, { fontSize: 12 }]} placeholder="Shift name" placeholderTextColor={colors.neutral[400]} value={s.shiftName} onChangeText={v => updateShift(i, 'shiftName', v)} /></View>
-                                <View style={[styles.inputWrap, { flex: 1, height: 40 }]}><TextInput style={[styles.textInput, { fontSize: 12 }]} placeholder="ID" placeholderTextColor={colors.neutral[400]} value={s.shiftId} onChangeText={v => updateShift(i, 'shiftId', v)} /></View>
-                                <View style={[styles.inputWrap, { width: 50, height: 40 }]}><TextInput style={[styles.textInput, { fontSize: 12 }]} placeholder="Wk" placeholderTextColor={colors.neutral[400]} value={String(s.weekNumber)} onChangeText={v => updateShift(i, 'weekNumber', Number(v))} keyboardType="numeric" /></View>
-                                <Pressable onPress={() => removeShift(i)} style={{ justifyContent: 'center' }}>
-                                    <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" strokeLinecap="round" /></Svg>
-                                </Pressable>
-                            </View>
-                        ))}
+                        {shifts.map((s, i) => {
+                            const shiftInfo = availableShifts.find(sh => sh.id === s.shiftId);
+                            return (
+                                <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                                    <Pressable
+                                        onPress={() => openShiftPicker(i)}
+                                        style={[styles.inputWrap, { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }]}
+                                    >
+                                        {s.shiftId ? (
+                                            <View style={{ flex: 1 }}>
+                                                <Text className="font-inter text-xs font-semibold text-primary-950" numberOfLines={1}>{s.shiftName || 'Unknown Shift'}</Text>
+                                                {shiftInfo && <Text className="font-inter text-[10px] text-neutral-500">{shiftInfo.fromTime} — {shiftInfo.toTime}</Text>}
+                                            </View>
+                                        ) : (
+                                            <Text className="font-inter text-xs text-neutral-400">Select shift...</Text>
+                                        )}
+                                        <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                    </Pressable>
+                                    <View style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center' }}>
+                                        <Text className="font-inter text-xs font-bold text-neutral-600">#{i + 1}</Text>
+                                    </View>
+                                    <Pressable onPress={() => removeShift(i)} style={{ justifyContent: 'center' }}>
+                                        <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" strokeLinecap="round" /></Svg>
+                                    </Pressable>
+                                </View>
+                            );
+                        })}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
@@ -184,37 +315,102 @@ function ScheduleFormModal({
                     </View>
                 </View>
             </View>
+            <ShiftPickerModal
+                visible={shiftPickerVisible}
+                onClose={() => setShiftPickerVisible(false)}
+                onSelect={handleShiftSelected}
+                availableShifts={availableShifts}
+                searchText={shiftSearchText}
+                setSearchText={setShiftSearchText}
+            />
         </Modal>
     );
 }
 
-// ============ ASSIGN MODAL ============
+// ============ ASSIGN MODAL (Multi-select Employee Picker) ============
 
-function AssignModal({ visible, onClose, onAssign, isAssigning }: {
+function AssignModal({ visible, onClose, onAssign, isAssigning, allEmployees }: {
     visible: boolean; onClose: () => void; onAssign: (ids: string[]) => void; isAssigning: boolean;
+    allEmployees: Employee[];
 }) {
     const insets = useSafeAreaInsets();
-    const [text, setText] = React.useState('');
+    const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+    const [searchText, setSearchText] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) { setSelectedIds([]); setSearchText(''); }
+    }, [visible]);
+
+    const filtered = React.useMemo(() => {
+        if (!searchText.trim()) return allEmployees;
+        const q = searchText.toLowerCase();
+        return allEmployees.filter(e =>
+            `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||
+            e.employeeId?.toLowerCase().includes(q)
+        );
+    }, [allEmployees, searchText]);
+
+    const toggleEmployee = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '80%' }]}>
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Assign Employees</Text>
-                    <Text className="font-inter text-sm text-neutral-500 mb-4">Enter employee IDs, comma-separated.</Text>
-                    <View style={[styles.inputWrap, { height: 80 }]}>
-                        <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="e.g. emp-001, emp-002" placeholderTextColor={colors.neutral[400]} value={text} onChangeText={setText} multiline />
+                    <Text className="font-inter text-sm text-neutral-500 mb-3">Select employees to assign to this schedule.</Text>
+                    <View style={[styles.inputWrap, { marginBottom: 12, height: 42 }]}>
+                        <TextInput
+                            style={[styles.textInput, { fontSize: 13 }]}
+                            placeholder="Search employees..."
+                            placeholderTextColor={colors.neutral[400]}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                        />
                     </View>
+                    <FlatList
+                        data={filtered}
+                        keyExtractor={item => item.id}
+                        renderItem={({ item }) => {
+                            const isSelected = selectedIds.includes(item.id);
+                            return (
+                                <Pressable
+                                    onPress={() => toggleEmployee(item.id)}
+                                    style={[styles.pickerRow, isSelected && { backgroundColor: colors.primary[50] }]}
+                                >
+                                    <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+                                        {isSelected && (
+                                            <Svg width={12} height={12} viewBox="0 0 24 24">
+                                                <Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                            </Svg>
+                                        )}
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text className="font-inter text-sm font-semibold text-primary-950">{item.firstName} {item.lastName}</Text>
+                                        <Text className="font-inter text-xs text-neutral-500">{item.employeeId}</Text>
+                                    </View>
+                                </Pressable>
+                            );
+                        }}
+                        ListEmptyComponent={
+                            <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                                <Text className="font-inter text-sm text-neutral-400">No employees found.</Text>
+                            </View>
+                        }
+                        showsVerticalScrollIndicator={false}
+                        style={{ maxHeight: 300 }}
+                    />
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
                         <Pressable
-                            onPress={() => onAssign(text.split(',').map(s => s.trim()).filter(Boolean))}
-                            disabled={!text.trim() || isAssigning}
-                            style={[styles.saveBtn, (!text.trim() || isAssigning) && { opacity: 0.5 }]}
+                            onPress={() => onAssign(selectedIds)}
+                            disabled={selectedIds.length === 0 || isAssigning}
+                            style={[styles.saveBtn, (selectedIds.length === 0 || isAssigning) && { opacity: 0.5 }]}
                         >
-                            <Text className="font-inter text-sm font-bold text-white">{isAssigning ? 'Assigning...' : 'Assign'}</Text>
+                            <Text className="font-inter text-sm font-bold text-white">{isAssigning ? 'Assigning...' : `Assign (${selectedIds.length})`}</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -297,6 +493,24 @@ export function ShiftRotationScreen() {
     const removeMutation = useRemoveShiftSchedule();
     const executeMutation = useExecuteShiftRotation();
 
+    // Fetch available shifts and employees for pickers
+    const { data: shiftsResponse } = useCompanyShifts();
+    const availableShifts: CompanyShift[] = React.useMemo(() => {
+        const raw = (shiftsResponse as any)?.data ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((s: any) => ({ id: s.id, name: s.name, fromTime: s.fromTime ?? '', toTime: s.toTime ?? '' }));
+    }, [shiftsResponse]);
+
+    const { data: empResponse } = useEmployees();
+    const allEmployees: Employee[] = React.useMemo(() => {
+        const raw = (empResponse as any)?.data ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((e: any) => ({ id: e.id, firstName: e.firstName ?? '', lastName: e.lastName ?? '', employeeId: e.employeeId ?? '' }));
+    }, [empResponse]);
+
+    // Build lookup map for employee display in detail panel
+    const employeeMap = React.useMemo(() => new Map(allEmployees.map(e => [e.id, `${e.firstName} ${e.lastName} (${e.employeeId})`])), [allEmployees]);
+
     const schedules: ShiftSchedule[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
@@ -305,6 +519,8 @@ export function ShiftRotationScreen() {
             shiftCount: item.shiftCount ?? item.shifts?.length ?? 0,
             employeeCount: item.employeeCount ?? item.assignedEmployees?.length ?? 0,
             effectiveFrom: item.effectiveFrom ?? '',
+            effectiveTo: item.effectiveTo ?? '',
+            description: item.description ?? '',
             isActive: item.isActive ?? true,
             shifts: item.shifts ?? [],
             assignedEmployees: item.assignedEmployees ?? [],
@@ -405,8 +621,8 @@ export function ShiftRotationScreen() {
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
             <FAB onPress={handleAdd} />
-            <ScheduleFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending} />
-            <AssignModal visible={assignVisible} onClose={() => setAssignVisible(false)} onAssign={handleAssign} isAssigning={assignMutation.isPending} />
+            <ScheduleFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending} availableShifts={availableShifts} />
+            <AssignModal visible={assignVisible} onClose={() => setAssignVisible(false)} onAssign={handleAssign} isAssigning={assignMutation.isPending} allEmployees={allEmployees} />
 
             {/* Detail Modal */}
             {detailItem && (
@@ -426,7 +642,7 @@ export function ShiftRotationScreen() {
                                 ) : (
                                     (detailItem.assignedEmployees ?? []).map(emp => (
                                         <View key={emp.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                            <Text className="font-inter text-sm font-medium text-primary-950">{emp.name ?? emp.id}</Text>
+                                            <Text className="font-inter text-sm font-medium text-primary-950">{emp.name ?? employeeMap.get(emp.id) ?? emp.id}</Text>
                                             <Pressable onPress={() => handleRemoveEmployee(emp.id)} hitSlop={8}>
                                                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" strokeLinecap="round" /></Svg>
                                             </Pressable>
@@ -496,4 +712,7 @@ const styles = StyleSheet.create({
     toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 4 },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    pickerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.neutral[300], justifyContent: 'center', alignItems: 'center' },
+    checkboxActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
 });

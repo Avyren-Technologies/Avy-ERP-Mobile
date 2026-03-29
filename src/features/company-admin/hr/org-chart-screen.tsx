@@ -33,6 +33,7 @@ interface OrgNode {
     designation?: string;
     department?: string;
     employeeId?: string;
+    imageUrl?: string;
     children?: OrgNode[];
     reportees?: OrgNode[];
 }
@@ -171,10 +172,22 @@ export function OrgChartScreen() {
 
     const orgData: OrgNode[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
-        if (Array.isArray(raw)) return raw;
-        if (raw?.tree) return [raw.tree];
-        if (raw?.root) return [raw.root];
-        return [];
+        const arr = Array.isArray(raw) ? raw : raw?.tree ? [raw.tree] : raw?.root ? [raw.root] : [];
+
+        // Transform backend format to frontend OrgNode format
+        function transformNode(node: any): OrgNode {
+            return {
+                id: node.id,
+                name: [node.firstName, node.lastName].filter(Boolean).join(' ') || node.name || 'Unknown',
+                designation: node.designation?.name ?? node.designation ?? undefined,
+                department: node.department?.name ?? node.department ?? undefined,
+                employeeId: node.employeeId,
+                imageUrl: node.profilePhotoUrl ?? node.imageUrl ?? undefined,
+                reportees: (node.reportees ?? node.children ?? []).map(transformNode),
+            };
+        }
+
+        return arr.map(transformNode);
     }, [response]);
 
     const allNodes = React.useMemo(() => flattenNodes(orgData), [orgData]);

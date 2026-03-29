@@ -26,6 +26,7 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
+import { storage } from '@/lib/storage';
 
 import {
     useCreateEmployee,
@@ -173,6 +174,8 @@ const INITIAL_DOCUMENTS: DocumentsForm = {
     pan: '', aadhaar: '', uan: '', esiIpNumber: '',
     passport: '', dl: '', voterId: '',
 };
+
+const DRAFT_KEY = 'employee_form_draft';
 
 // ============ HELPERS ============
 
@@ -1029,6 +1032,86 @@ export function EmployeeDetailScreen() {
     const updateMutation = useUpdateEmployee();
     const statusMutation = useUpdateEmployeeStatus();
     const confirmModal = useConfirmModal();
+    const resetConfirmModal = useConfirmModal();
+    const [draftRestored, setDraftRestored] = React.useState(false);
+
+    // Load draft on mount (create mode only)
+    React.useEffect(() => {
+        if (!isCreateMode) return;
+        try {
+            const raw = storage.getString(DRAFT_KEY);
+            if (raw) {
+                const draft = JSON.parse(raw);
+                if (draft.personal) setPersonal((p) => ({ ...p, ...draft.personal }));
+                if (draft.professional) setProfessional((p) => ({ ...p, ...draft.professional }));
+                if (draft.salary) setSalary((p) => ({ ...p, ...draft.salary }));
+                if (draft.bank) setBank((p) => ({ ...p, ...draft.bank }));
+                if (draft.documents) setDocuments((p) => ({ ...p, ...draft.documents }));
+                if (draft.profilePhotoUrl) setProfilePhotoUrl(draft.profilePhotoUrl);
+                if (draft.createUserAccount !== undefined) setCreateUserAccount(draft.createUserAccount);
+                if (draft.userPassword) setUserPassword(draft.userPassword);
+                if (draft.confirmPassword) setConfirmPassword(draft.confirmPassword);
+                if (draft.userRole) setUserRole(draft.userRole);
+                if (draft.activeTab) setActiveTab(draft.activeTab);
+                setDraftRestored(true);
+            }
+        } catch {
+            // Ignore corrupt draft
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Save draft with debounce (create mode only)
+    React.useEffect(() => {
+        if (!isCreateMode) return;
+        const timer = setTimeout(() => {
+            try {
+                const draft = JSON.stringify({
+                    personal,
+                    professional,
+                    salary,
+                    bank,
+                    documents,
+                    profilePhotoUrl,
+                    createUserAccount,
+                    userPassword,
+                    confirmPassword,
+                    userRole,
+                    activeTab,
+                });
+                storage.set(DRAFT_KEY, draft);
+            } catch {
+                // Ignore write errors
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [isCreateMode, personal, professional, salary, bank, documents, profilePhotoUrl, createUserAccount, userPassword, confirmPassword, userRole, activeTab]);
+
+    // Reset form handler
+    const handleReset = () => {
+        resetConfirmModal.show({
+            title: 'Reset Form',
+            message: 'This will clear all entered data. Are you sure?',
+            variant: 'warning',
+            confirmText: 'Reset',
+            onConfirm: () => {
+                storage.remove(DRAFT_KEY);
+                setPersonal(INITIAL_PERSONAL);
+                setProfessional(INITIAL_PROFESSIONAL);
+                setSalary(INITIAL_SALARY);
+                setBank(INITIAL_BANK);
+                setDocuments(INITIAL_DOCUMENTS);
+                setProfilePhotoUrl(null);
+                setCreateUserAccount(false);
+                setUserPassword('');
+                setConfirmPassword('');
+                setUserRole('');
+                setActiveTab('personal');
+                setDraftRestored(false);
+                resetConfirmModal.hide();
+            },
+        });
+    };
 
     // Map dropdown data
     const deptOptions = React.useMemo(() => {
@@ -1291,6 +1374,7 @@ export function EmployeeDetailScreen() {
         if (isCreateMode) {
             createMutation.mutate(data, {
                 onSuccess: () => {
+                    storage.remove(DRAFT_KEY);
                     showSuccess('Employee Created', 'Employee has been added successfully.');
                     router.back();
                 },
@@ -1420,10 +1504,37 @@ export function EmployeeDetailScreen() {
                                 </View>
                             )}
                         </View>
-                        <View style={{ width: 36 }} />
+                        {isCreateMode ? (
+                            <Pressable
+                                onPress={handleReset}
+                                style={({ pressed }) => [st.backBtn, pressed && { opacity: 0.7 }]}
+                            >
+                                <Svg width={18} height={18} viewBox="0 0 24 24">
+                                    <Path d="M1 4v6h6M23 20v-6h-6" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                    <Path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                </Svg>
+                            </Pressable>
+                        ) : (
+                            <View style={{ width: 36 }} />
+                        )}
                     </View>
                 </LinearGradient>
             </Animated.View>
+
+            {/* Draft Restored Banner */}
+            {draftRestored && (
+                <View style={st.draftBanner}>
+                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                        <Path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill={colors.info[600]} />
+                    </Svg>
+                    <Text className="font-inter text-xs text-info-700" style={{ flex: 1 }}>
+                        Draft restored from previous session
+                    </Text>
+                    <Pressable onPress={() => setDraftRestored(false)} hitSlop={8}>
+                        <Text className="font-inter text-xs font-bold text-info-700">Dismiss</Text>
+                    </Pressable>
+                </View>
+            )}
 
             {/* Profile Photo */}
             <Animated.View entering={FadeIn.duration(400).delay(50)}>
@@ -1598,6 +1709,7 @@ export function EmployeeDetailScreen() {
             })()}
 
             <ConfirmModal {...confirmModal.modalProps} />
+            <ConfirmModal {...resetConfirmModal.modalProps} />
         </View>
     );
 }
@@ -1608,6 +1720,16 @@ const st = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.gradient.surface,
+    },
+    draftBanner: {
+        backgroundColor: colors.info[50],
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.info[200],
     },
     headerGradient: {
         paddingHorizontal: 24,

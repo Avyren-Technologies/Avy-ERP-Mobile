@@ -59,7 +59,6 @@ interface AuthState {
     user: AuthUser | null;
     userRole: UserRole | null;
     permissions: string[];
-    featureToggles: string[];
     signIn: (token: TokenType, user: AuthUser, role?: UserRole) => void;
     signOut: () => void;
     updateTokens: (tokens: TokenType) => void;
@@ -72,15 +71,13 @@ const _useAuthStore = create<AuthState>((set) => ({
     user: null,
     userRole: null,
     permissions: [],
-    featureToggles: [],
     signIn: (token, user, role?) => {
         const resolvedRole = role ?? mapBackendRole(user.role);
         const permissions = user.permissions ?? [];
-        const featureToggles = user.featureToggles ?? [];
         setToken(token);
         setItem(USER_DATA_KEY, user);
-        logger.info('User signed in', { email: user.email, role: resolvedRole, permissionCount: permissions.length, featureToggleCount: featureToggles.length });
-        set({ status: 'signIn', token, user, userRole: resolvedRole, permissions, featureToggles });
+        logger.info('User signed in', { email: user.email, role: resolvedRole, permissionCount: permissions.length });
+        set({ status: 'signIn', token, user, userRole: resolvedRole, permissions });
     },
     signOut: () => {
         removeToken();
@@ -88,7 +85,7 @@ const _useAuthStore = create<AuthState>((set) => ({
         // Clear all React Query caches so new user doesn't see stale data
         queryClient.clear();
         logger.info('User signed out');
-        set({ status: 'signOut', token: null, user: null, userRole: null, permissions: [], featureToggles: [] });
+        set({ status: 'signOut', token: null, user: null, userRole: null, permissions: [] });
     },
     updateTokens: (tokens) => {
         setToken(tokens);
@@ -101,9 +98,8 @@ const _useAuthStore = create<AuthState>((set) => ({
             if (userToken !== null) {
                 const role = userData ? mapBackendRole(userData.role) : null;
                 const permissions = userData?.permissions ?? [];
-                const featureToggles = userData?.featureToggles ?? [];
                 logger.info('Auth hydrated from storage', { email: userData?.email, role });
-                set({ status: 'signIn', token: userToken, user: userData, userRole: role, permissions, featureToggles });
+                set({ status: 'signIn', token: userToken, user: userData, userRole: role, permissions });
             } else {
                 logger.info('No stored session — showing login');
                 set({ status: 'signOut' });
@@ -130,8 +126,3 @@ export function useHasPermission(permission: string): boolean {
     return checkPermission(permissions, permission);
 }
 
-/** Hook: returns true if the current user has the given feature toggle enabled. */
-export function useHasFeature(key: string): boolean {
-    const featureToggles = useAuthStore.use.featureToggles();
-    return featureToggles.includes(key);
-}

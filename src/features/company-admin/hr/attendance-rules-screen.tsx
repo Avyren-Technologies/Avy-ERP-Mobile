@@ -17,6 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
@@ -76,22 +77,25 @@ const DEFAULTS: AttendanceRule = {
 
 // ============ REUSABLE ============
 
-function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function SectionCard({ title, sectionDescription, children }: { title: string; sectionDescription?: string; children: React.ReactNode }) {
     return (
         <View style={styles.sectionCard}>
             <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
-            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">{subtitle}</Text>}
-            {!subtitle && <View style={{ height: 8 }} />}
+            {sectionDescription && <SectionDescription>{sectionDescription}</SectionDescription>}
+            {!sectionDescription && <View style={{ height: 8 }} />}
             {children}
         </View>
     );
 }
 
-function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleRow({ label, subtitle, value, onToggle, tooltip }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void; tooltip?: string }) {
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
@@ -99,11 +103,14 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
     );
 }
 
-function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string }) {
+function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string; tooltip?: string }) {
     return (
         <View style={styles.numberRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -116,11 +123,14 @@ function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string
     );
 }
 
-function TimeRow({ label, subtitle, value, onChange }: { label: string; subtitle?: string; value: string; onChange: (v: string) => void }) {
+function TimeRow({ label, subtitle, value, onChange, tooltip }: { label: string; subtitle?: string; value: string; onChange: (v: string) => void; tooltip?: string }) {
     return (
         <View style={styles.numberRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <View style={styles.numberInputWrap}>
@@ -271,32 +281,32 @@ export function AttendanceRulesScreen() {
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {/* 1. Time & Boundary */}
-                    <SectionCard title="Time & Boundary">
-                        <TimeRow label="Day Boundary Time" subtitle="When the calendar day flips for night shifts" value={rules.dayBoundaryTime} onChange={(v) => updateRule('dayBoundaryTime', v)} />
+                    <SectionCard title="Time & Boundary" sectionDescription="Set when the attendance day starts and ends. Critical for night shifts that span midnight.">
+                        <TimeRow label="Day Boundary Time" subtitle="When the calendar day flips for night shifts" value={rules.dayBoundaryTime} onChange={(v) => updateRule('dayBoundaryTime', v)} tooltip="The time when one attendance day ends and the next begins. Important for night shifts that span midnight." />
                     </SectionCard>
 
                     {/* 2. Grace & Tolerance */}
-                    <SectionCard title="Grace & Tolerance">
-                        <NumberRow label="Grace Period" subtitle="Minutes allowed after shift start" value={rules.gracePeriodMinutes} onChange={(v) => updateRule('gracePeriodMinutes', v)} suffix="min" />
+                    <SectionCard title="Grace & Tolerance" sectionDescription="Define buffer periods before marking employees as late or leaving early. These are company-wide defaults that individual shifts can override.">
+                        <NumberRow label="Grace Period" subtitle="Minutes allowed after shift start" value={rules.gracePeriodMinutes} onChange={(v) => updateRule('gracePeriodMinutes', v)} suffix="min" tooltip="Minutes after shift start before an employee is marked as late. This is a company default — shifts can override this." />
                         <NumberRow label="Early Exit Tolerance" subtitle="Minutes before shift end allowed" value={rules.earlyExitToleranceMinutes} onChange={(v) => updateRule('earlyExitToleranceMinutes', v)} suffix="min" />
-                        <NumberRow label="Max Late Check-In" subtitle="Auto-absent if later than this" value={rules.maxLateCheckInMinutes} onChange={(v) => updateRule('maxLateCheckInMinutes', v)} suffix="min" />
+                        <NumberRow label="Max Late Check-In" subtitle="Auto-absent if later than this" value={rules.maxLateCheckInMinutes} onChange={(v) => updateRule('maxLateCheckInMinutes', v)} suffix="min" tooltip="If an employee arrives this many minutes late, they are automatically marked absent instead of late." />
                     </SectionCard>
 
                     {/* 3. Day Thresholds */}
-                    <SectionCard title="Day Thresholds">
+                    <SectionCard title="Day Thresholds" sectionDescription="Set the minimum working hours required to qualify for half-day or full-day credit.">
                         <NumberRow label="Half Day Threshold" subtitle="Minimum hours for half-day credit" value={rules.halfDayThresholdHours} onChange={(v) => updateRule('halfDayThresholdHours', v)} suffix="hrs" />
                         <NumberRow label="Full Day Threshold" subtitle="Minimum hours for full-day credit" value={rules.fullDayThresholdHours} onChange={(v) => updateRule('fullDayThresholdHours', v)} suffix="hrs" />
                     </SectionCard>
 
                     {/* 4. Late Tracking */}
-                    <SectionCard title="Late Tracking">
+                    <SectionCard title="Late Tracking" sectionDescription="Configure how many late arrivals are tolerated per month before penalties apply.">
                         <NumberRow label="Late Arrivals Allowed / Month" subtitle="Max late arrivals before penalty" value={rules.lateArrivalsAllowedPerMonth} onChange={(v) => updateRule('lateArrivalsAllowedPerMonth', v)} suffix="days" />
                     </SectionCard>
 
                     {/* 5. Deduction Rules */}
-                    <SectionCard title="Deduction Rules">
+                    <SectionCard title="Deduction Rules" sectionDescription="Define salary deduction rules for late arrivals and early departures.">
                         <ToggleRow label="LOP Auto-Deduct" subtitle="Automatically deduct loss of pay" value={rules.lopAutoDeduct} onToggle={(v) => updateRule('lopAutoDeduct', v)} />
-                        {chipSelect<DeductionType>(DEDUCTION_TYPE_LABELS, DEDUCTION_TYPE_OPTIONS, rules.lateDeductionType, (v) => updateRule('lateDeductionType', v), 'Late Deduction Type')}
+                        {chipSelect<DeductionType>(DEDUCTION_TYPE_LABELS, DEDUCTION_TYPE_OPTIONS, rules.lateDeductionType, (v) => updateRule('lateDeductionType', v), 'Late Deduction Type', 'NONE: No deduction. HALF_DAY_AFTER_LIMIT: Convert to half-day after monthly late limit exceeded. PERCENTAGE: Deduct a percentage of daily salary.')}
                         {rules.lateDeductionType !== 'NONE' && (
                             <NullableNumberRow label="Late Deduction Value" subtitle={rules.lateDeductionType === 'PERCENTAGE' ? 'Percentage of daily pay' : 'Value'} value={rules.lateDeductionValue} onChange={(v) => updateRule('lateDeductionValue', v)} suffix={rules.lateDeductionType === 'PERCENTAGE' ? '%' : ''} />
                         )}
@@ -307,34 +317,34 @@ export function AttendanceRulesScreen() {
                     </SectionCard>
 
                     {/* 6. Punch Interpretation */}
-                    <SectionCard title="Punch Interpretation">
-                        {chipSelect<PunchMode>(PUNCH_MODE_LABELS, PUNCH_MODE_OPTIONS, rules.punchMode, (v) => updateRule('punchMode', v), 'Punch Mode', 'How punch records are interpreted')}
+                    <SectionCard title="Punch Interpretation" sectionDescription="Configure how raw punch records from biometric/mobile are interpreted into attendance.">
+                        {chipSelect<PunchMode>(PUNCH_MODE_LABELS, PUNCH_MODE_OPTIONS, rules.punchMode, (v) => updateRule('punchMode', v), 'Punch Mode', 'FIRST_LAST: Uses first punch as check-in and last as check-out. EVERY_PAIR: Sums alternating in/out pairs. SHIFT_BASED: Matches punches to the nearest shift window.')}
                     </SectionCard>
 
                     {/* 7. Auto-Processing */}
-                    <SectionCard title="Auto-Processing">
-                        <ToggleRow label="Auto Mark Absent" subtitle="Mark absent if no punch for the day" value={rules.autoMarkAbsentIfNoPunch} onToggle={(v) => updateRule('autoMarkAbsentIfNoPunch', v)} />
+                    <SectionCard title="Auto-Processing" sectionDescription="Automate attendance status assignments like absent marking, half-day classification, and regularization deadlines.">
+                        <ToggleRow label="Auto Mark Absent" subtitle="Mark absent if no punch for the day" value={rules.autoMarkAbsentIfNoPunch} onToggle={(v) => updateRule('autoMarkAbsentIfNoPunch', v)} tooltip="Automatically mark employees as absent if no punch is recorded for the day." />
                         <ToggleRow label="Auto Half-Day" subtitle="Auto classify based on threshold hours" value={rules.autoHalfDayEnabled} onToggle={(v) => updateRule('autoHalfDayEnabled', v)} />
                         <NumberRow label="Auto Absent After Days" subtitle="Mark absent after N days no punch (0 = disabled)" value={rules.autoAbsentAfterDays} onChange={(v) => updateRule('autoAbsentAfterDays', v)} suffix="days" />
-                        <NumberRow label="Regularization Window" subtitle="Days after which regularization is locked" value={rules.regularizationWindowDays} onChange={(v) => updateRule('regularizationWindowDays', v)} suffix="days" />
+                        <NumberRow label="Regularization Window" subtitle="Days after which regularization is locked" value={rules.regularizationWindowDays} onChange={(v) => updateRule('regularizationWindowDays', v)} suffix="days" tooltip="Number of days after which employees can no longer submit attendance regularization requests." />
                     </SectionCard>
 
                     {/* 8. Rounding */}
-                    <SectionCard title="Rounding">
-                        {chipSelect<RoundingStrategy>(ROUNDING_STRATEGY_LABELS, ROUNDING_STRATEGY_OPTIONS, rules.workingHoursRounding, (v) => updateRule('workingHoursRounding', v), 'Working Hours Rounding')}
+                    <SectionCard title="Rounding" sectionDescription="Configure how working hours and punch times are rounded. Affects payroll calculations.">
+                        {chipSelect<RoundingStrategy>(ROUNDING_STRATEGY_LABELS, ROUNDING_STRATEGY_OPTIONS, rules.workingHoursRounding, (v) => updateRule('workingHoursRounding', v), 'Working Hours Rounding', 'Round calculated working hours to the nearest interval. Affects payroll calculations.')}
                         {chipSelect<PunchRounding>(PUNCH_ROUNDING_LABELS, PUNCH_ROUNDING_OPTIONS, rules.punchTimeRounding, (v) => updateRule('punchTimeRounding', v), 'Punch Time Rounding')}
                         {chipSelect<RoundingDirection>(ROUNDING_DIRECTION_LABELS, ROUNDING_DIRECTION_OPTIONS, rules.punchTimeRoundingDirection, (v) => updateRule('punchTimeRoundingDirection', v), 'Rounding Direction')}
                     </SectionCard>
 
                     {/* 9. Exception Handling */}
-                    <SectionCard title="Exception Handling">
+                    <SectionCard title="Exception Handling" sectionDescription="Define when late/early penalties should be waived, such as on holidays or week-offs.">
                         <ToggleRow label="Ignore Late on Leave Day" subtitle="Don't flag late if employee has partial leave" value={rules.ignoreLateOnLeaveDay} onToggle={(v) => updateRule('ignoreLateOnLeaveDay', v)} />
-                        <ToggleRow label="Ignore Late on Holiday" subtitle="Working on holiday = no late flag" value={rules.ignoreLateOnHoliday} onToggle={(v) => updateRule('ignoreLateOnHoliday', v)} />
+                        <ToggleRow label="Ignore Late on Holiday" subtitle="Working on holiday = no late flag" value={rules.ignoreLateOnHoliday} onToggle={(v) => updateRule('ignoreLateOnHoliday', v)} tooltip="Don't flag late arrival when an employee voluntarily works on a holiday." />
                         <ToggleRow label="Ignore Late on Week Off" subtitle="Working on week-off = no late flag" value={rules.ignoreLateOnWeekOff} onToggle={(v) => updateRule('ignoreLateOnWeekOff', v)} />
                     </SectionCard>
 
                     {/* 10. Capture */}
-                    <SectionCard title="Capture">
+                    <SectionCard title="Capture" sectionDescription="Configure what evidence is required when employees punch in or out.">
                         <ToggleRow label="Selfie Required" subtitle="Require selfie for attendance punch" value={rules.selfieRequired} onToggle={(v) => updateRule('selfieRequired', v)} />
                         <ToggleRow label="GPS Required" subtitle="Require GPS location for attendance punch" value={rules.gpsRequired} onToggle={(v) => updateRule('gpsRequired', v)} />
                         <ToggleRow label="Missing Punch Alert" subtitle="Alert when employee has incomplete punches" value={rules.missingPunchAlert} onToggle={(v) => updateRule('missingPunchAlert', v)} />

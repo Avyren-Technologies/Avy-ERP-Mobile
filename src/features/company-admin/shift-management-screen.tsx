@@ -19,6 +19,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -98,7 +99,7 @@ function FormField({ label, value, onChange, placeholder, keyboardType }: { labe
     );
 }
 
-function NullableNumberRow({ label, value, onChange, suffix }: { label: string; value: number | null; onChange: (v: number | null) => void; suffix?: string }) {
+function NullableNumberRow({ label, value, onChange, suffix, tooltip }: { label: string; value: number | null; onChange: (v: number | null) => void; suffix?: string; tooltip?: string }) {
     const isNull = value === null;
     return (
         <View style={s.overrideRow}>
@@ -106,7 +107,10 @@ function NullableNumberRow({ label, value, onChange, suffix }: { label: string; 
                 <View style={[s.checkBox, !isNull && s.checkBoxActive]}>
                     {!isNull && <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
                 </View>
-                <Text className="ml-2 font-inter text-xs text-neutral-600">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="ml-2 font-inter text-xs text-neutral-600">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
             </Pressable>
             {!isNull ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -358,7 +362,10 @@ export function ShiftManagementScreen() {
 
                         {/* Toggles */}
                         <View style={s.toggleRowModal}>
-                            <Text className="flex-1 font-inter text-sm text-primary-950">Cross-Day Shift</Text>
+                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                <Text className="font-inter text-sm text-primary-950">Cross-Day Shift</Text>
+                                <InfoTooltip content="Enable for night shifts that span midnight (e.g., 22:00 to 06:00). Attendance date will be the shift start date." />
+                            </View>
                             <Switch value={form.isCrossDay} onValueChange={(v) => setForm((p) => ({ ...p, isCrossDay: v }))} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={form.isCrossDay ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                         <View style={s.toggleRowModal}>
@@ -367,15 +374,15 @@ export function ShiftManagementScreen() {
                         </View>
 
                         {/* Policy Overrides */}
-                        <Text className="mt-6 mb-2 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">Policy Overrides</Text>
-                        <Text className="mb-3 font-inter text-[10px] text-neutral-400">Check to override the company-wide attendance rule for this shift. Unchecked = inherit default.</Text>
+                        <Text className="mt-6 mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">Policy Overrides</Text>
+                        <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">Leave fields empty to inherit from company-wide Attendance Rules. Set a value to override for this specific shift.</Text>
                         <NullableNumberRow label="Grace Period" value={form.gracePeriodMinutes} onChange={(v) => setForm((p) => ({ ...p, gracePeriodMinutes: v }))} suffix="min" />
                         <NullableNumberRow label="Early Exit Tolerance" value={form.earlyExitToleranceMinutes} onChange={(v) => setForm((p) => ({ ...p, earlyExitToleranceMinutes: v }))} suffix="min" />
                         <NullableNumberRow label="Half Day Threshold" value={form.halfDayThresholdHours} onChange={(v) => setForm((p) => ({ ...p, halfDayThresholdHours: v }))} suffix="hrs" />
                         <NullableNumberRow label="Full Day Threshold" value={form.fullDayThresholdHours} onChange={(v) => setForm((p) => ({ ...p, fullDayThresholdHours: v }))} suffix="hrs" />
                         <NullableNumberRow label="Max Late Check-In" value={form.maxLateCheckInMinutes} onChange={(v) => setForm((p) => ({ ...p, maxLateCheckInMinutes: v }))} suffix="min" />
-                        <NullableNumberRow label="Min Hours for OT" value={form.minWorkingHoursForOT} onChange={(v) => setForm((p) => ({ ...p, minWorkingHoursForOT: v }))} suffix="hrs" />
-                        <NullableNumberRow label="Auto Clock-Out" value={form.autoClockOutMinutes} onChange={(v) => setForm((p) => ({ ...p, autoClockOutMinutes: v }))} suffix="min" />
+                        <NullableNumberRow label="Min Hours for OT" value={form.minWorkingHoursForOT} onChange={(v) => setForm((p) => ({ ...p, minWorkingHoursForOT: v }))} suffix="hrs" tooltip="Minimum hours an employee must work in this shift before overtime starts accumulating." />
+                        <NullableNumberRow label="Auto Clock-Out" value={form.autoClockOutMinutes} onChange={(v) => setForm((p) => ({ ...p, autoClockOutMinutes: v }))} suffix="min" tooltip="Automatically clock out employees this many minutes after shift end if they haven't punched out." />
                         <NullableBoolRow label="Require Selfie" value={form.requireSelfie} onChange={(v) => setForm((p) => ({ ...p, requireSelfie: v }))} />
                         <NullableBoolRow label="Require GPS" value={form.requireGPS} onChange={(v) => setForm((p) => ({ ...p, requireGPS: v }))} />
 

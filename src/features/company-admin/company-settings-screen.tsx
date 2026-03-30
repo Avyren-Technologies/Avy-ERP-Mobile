@@ -7,6 +7,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    Switch,
     View,
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -15,6 +16,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
 
 import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 import { useUpdateSettings } from '@/features/company-admin/api/use-company-admin-mutations';
@@ -23,7 +25,6 @@ import type { CompanySettings, CurrencyCode, LanguageCode, TimeFormat } from '@/
 import {
     ChipSelector,
     SectionCard,
-    ToggleRow,
 } from '@/features/super-admin/tenant-onboarding/atoms';
 
 // ============ OPTIONS (matching web exactly) ============
@@ -66,6 +67,30 @@ const DEFAULTS: CompanySettings = {
     biometricIntegration: false,
     eSignIntegration: false,
 };
+
+// ============ REUSABLE (with tooltip support) ============
+
+function ToggleRow({ label, subtitle, value, onToggle, tooltip }: {
+    label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void; tooltip?: string;
+}) {
+    return (
+        <View style={localStyles.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+            </View>
+            <Switch
+                value={value}
+                onValueChange={onToggle}
+                trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
+                thumbColor={value ? colors.primary[600] : colors.neutral[300]}
+            />
+        </View>
+    );
+}
 
 // ============ MAIN COMPONENT ============
 
@@ -181,6 +206,7 @@ export function CompanySettingsScreen() {
                 {/* Section 1: Locale (6 fields) */}
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     <SectionCard title="Locale">
+                        <SectionDescription>Regional settings that affect date formatting, currency display, and language across the platform.</SectionDescription>
                         <ChipSelector
                             label="Currency"
                             options={CURRENCY_OPTIONS}
@@ -201,6 +227,7 @@ export function CompanySettingsScreen() {
                             options={TIMEZONE_OPTIONS}
                             selected={settings.timezone}
                             onSelect={(v) => updateField('timezone', v)}
+                            hint="All attendance calculations use this timezone. Changing this affects how dates and times are interpreted."
                         />
                         <ChipSelector
                             label="Date Format"
@@ -232,6 +259,7 @@ export function CompanySettingsScreen() {
                 {/* Section 2: Compliance (3 fields) */}
                 <Animated.View entering={FadeInUp.duration(350).delay(200)}>
                     <SectionCard title="Compliance">
+                        <SectionDescription>Enable region-specific compliance frameworks and data protection features.</SectionDescription>
                         <ToggleRow
                             label="India Compliance"
                             subtitle="Enable India-specific statutory compliance"
@@ -249,6 +277,7 @@ export function CompanySettingsScreen() {
                             subtitle="Maintain detailed audit trail for all changes"
                             value={settings.auditTrail}
                             onToggle={(v) => updateField('auditTrail', v)}
+                            tooltip="When enabled, all configuration changes are logged with who made the change and when."
                         />
                     </SectionCard>
                 </Animated.View>
@@ -256,6 +285,7 @@ export function CompanySettingsScreen() {
                 {/* Section 3: Integrations (6 fields) */}
                 <Animated.View entering={FadeInUp.duration(350).delay(300)}>
                     <SectionCard title="Integrations">
+                        <SectionDescription>Connect external services for payments, notifications, biometric devices, and e-signatures.</SectionDescription>
                         <ToggleRow
                             label="Bank Integration"
                             subtitle="Enable bank account integration"
@@ -380,4 +410,8 @@ const styles = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
+});
+
+const localStyles = StyleSheet.create({
+    toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
 });

@@ -17,6 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -78,6 +79,7 @@ interface EssFieldDef {
     key: keyof ESSConfig;
     label: string;
     description?: string;
+    tooltip?: string;
     type: 'toggle' | 'number' | 'select';
     suffix?: string;
     min?: number;
@@ -86,12 +88,14 @@ interface EssFieldDef {
 
 interface EssSectionDef {
     title: string;
+    sectionDescription?: string;
     fields: EssFieldDef[];
 }
 
 const SECTIONS: EssSectionDef[] = [
     {
         title: 'Payroll & Tax',
+        sectionDescription: 'Control what payroll and tax information employees can view and download through the self-service portal.',
         fields: [
             { key: 'viewPayslips', label: 'View Payslips', description: 'Access monthly salary slips', type: 'toggle' },
             { key: 'downloadPayslips', label: 'Download Payslips', description: 'Allow PDF download of payslips', type: 'toggle' },
@@ -102,6 +106,7 @@ const SECTIONS: EssSectionDef[] = [
     },
     {
         title: 'Leave',
+        sectionDescription: 'Configure which leave-related actions employees can perform on their own.',
         fields: [
             { key: 'leaveApplication', label: 'Leave Application', description: 'Allow leave application through ESS', type: 'toggle' },
             { key: 'leaveBalanceView', label: 'Leave Balance View', description: 'Show available leave balances', type: 'toggle' },
@@ -110,16 +115,18 @@ const SECTIONS: EssSectionDef[] = [
     },
     {
         title: 'Attendance',
+        sectionDescription: 'Define which attendance features are available to employees in the self-service portal.',
         fields: [
             { key: 'attendanceView', label: 'Attendance View', description: 'Show daily attendance records', type: 'toggle' },
             { key: 'attendanceRegularization', label: 'Attendance Regularization', description: 'Request attendance corrections', type: 'toggle' },
             { key: 'viewShiftSchedule', label: 'View Shift Schedule', description: 'Display assigned shift roster', type: 'toggle' },
-            { key: 'shiftSwapRequest', label: 'Shift Swap Request', description: 'Allow requesting shift swaps', type: 'toggle' },
-            { key: 'wfhRequest', label: 'WFH Request', description: 'Allow work from home requests', type: 'toggle' },
+            { key: 'shiftSwapRequest', label: 'Shift Swap Request', description: 'Allow requesting shift swaps', type: 'toggle', tooltip: 'Allow employees to request swapping shifts with colleagues.' },
+            { key: 'wfhRequest', label: 'WFH Request', description: 'Allow work from home requests', type: 'toggle', tooltip: 'Allow employees to request work-from-home days.' },
         ],
     },
     {
         title: 'Profile & Documents',
+        sectionDescription: 'Manage employee access to profile editing, document uploads, and organizational information.',
         fields: [
             { key: 'profileUpdate', label: 'Profile Update', description: 'Allow employees to request profile changes', type: 'toggle' },
             { key: 'documentUpload', label: 'Document Upload', description: 'Allow employees to upload documents', type: 'toggle' },
@@ -129,6 +136,7 @@ const SECTIONS: EssSectionDef[] = [
     },
     {
         title: 'Financial',
+        sectionDescription: 'Control access to financial self-service features like reimbursements, loans, and asset tracking.',
         fields: [
             { key: 'reimbursementClaims', label: 'Reimbursement Claims', description: 'Submit expense reimbursements', type: 'toggle' },
             { key: 'loanApplication', label: 'Loan Application', description: 'Apply for company loans', type: 'toggle' },
@@ -137,6 +145,7 @@ const SECTIONS: EssSectionDef[] = [
     },
     {
         title: 'Performance',
+        sectionDescription: 'Enable performance management features employees can access through self-service.',
         fields: [
             { key: 'performanceGoals', label: 'Performance Goals', description: 'View and manage performance goals', type: 'toggle' },
             { key: 'appraisalAccess', label: 'Appraisal Access', description: 'Access appraisal forms and history', type: 'toggle' },
@@ -146,6 +155,7 @@ const SECTIONS: EssSectionDef[] = [
     },
     {
         title: 'Support & Communication',
+        sectionDescription: 'Configure employee access to help desk, grievance submission, and company communications.',
         fields: [
             { key: 'helpDesk', label: 'Help Desk', description: 'Access IT / HR help desk', type: 'toggle' },
             { key: 'grievanceSubmission', label: 'Grievance Submission', description: 'Submit workplace grievances', type: 'toggle' },
@@ -156,18 +166,20 @@ const SECTIONS: EssSectionDef[] = [
     },
     {
         title: 'Manager Self-Service',
+        sectionDescription: 'Control what managers can do for their direct reports through the portal.',
         fields: [
             { key: 'mssViewTeam', label: 'View Team Members', description: 'Show direct reportees list', type: 'toggle' },
             { key: 'mssApproveLeave', label: 'Approve/Reject Leave', description: 'Allow leave approvals for team', type: 'toggle' },
-            { key: 'mssApproveAttendance', label: 'Approve Attendance', description: 'Allow attendance regularization approvals', type: 'toggle' },
+            { key: 'mssApproveAttendance', label: 'Approve Attendance', description: 'Allow attendance regularization approvals', type: 'toggle', tooltip: 'Allow managers to approve or reject attendance regularization requests from their team.' },
             { key: 'mssViewTeamAttendance', label: 'View Team Attendance', description: 'Show team attendance summary', type: 'toggle' },
         ],
     },
     {
         title: 'Mobile Behavior',
+        sectionDescription: 'Configure mobile app behavior for attendance capture, offline support, and location tracking.',
         fields: [
-            { key: 'mobileOfflinePunch', label: 'Offline Punch', description: 'Allow offline attendance capture on mobile', type: 'toggle' },
-            { key: 'mobileSyncRetryMinutes', label: 'Sync Retry Interval', description: 'Minutes between offline sync retries', type: 'number', suffix: 'min', min: 1, max: 60 },
+            { key: 'mobileOfflinePunch', label: 'Offline Punch', description: 'Allow offline attendance capture on mobile', type: 'toggle', tooltip: 'Allow attendance punches to be recorded offline on mobile and synced later.' },
+            { key: 'mobileSyncRetryMinutes', label: 'Sync Retry Interval', description: 'Minutes between offline sync retries', type: 'number', suffix: 'min', min: 1, max: 60, tooltip: 'How often the mobile app retries syncing failed offline punches.' },
             { key: 'mobileLocationAccuracy', label: 'Location Accuracy', description: 'GPS accuracy level for mobile attendance', type: 'select' },
         ],
     },
@@ -175,20 +187,25 @@ const SECTIONS: EssSectionDef[] = [
 
 // ============ REUSABLE ============
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, children, sectionDescription }: { title: string; children: React.ReactNode; sectionDescription?: string }) {
     return (
         <View style={styles.sectionCard}>
-            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            {sectionDescription && <SectionDescription>{sectionDescription}</SectionDescription>}
+            {!sectionDescription && <View style={{ height: 8 }} />}
             {children}
         </View>
     );
 }
 
-function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleRow({ label, subtitle, value, onToggle, tooltip }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void; tooltip?: string }) {
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
@@ -196,11 +213,14 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
     );
 }
 
-function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string }) {
+function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string; tooltip?: string }) {
     return (
         <View style={styles.numberRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -310,7 +330,7 @@ export function EssConfigScreen() {
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {SECTIONS.map((section) => (
-                        <SectionCard key={section.title} title={section.title}>
+                        <SectionCard key={section.title} title={section.title} sectionDescription={section.sectionDescription}>
                             {section.fields.map((field) => {
                                 if (field.type === 'toggle') {
                                     return (
@@ -320,6 +340,7 @@ export function EssConfigScreen() {
                                             subtitle={field.description}
                                             value={config[field.key] as boolean}
                                             onToggle={(v) => updateField(field.key, v as never)}
+                                            tooltip={field.tooltip}
                                         />
                                     );
                                 }
@@ -332,6 +353,7 @@ export function EssConfigScreen() {
                                             value={config[field.key] as number}
                                             onChange={(v) => updateField(field.key, v as never)}
                                             suffix={field.suffix}
+                                            tooltip={field.tooltip}
                                         />
                                     );
                                 }

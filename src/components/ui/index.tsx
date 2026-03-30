@@ -9,6 +9,7 @@ export * from './confirm-modal';
 export * from './empty-state';
 export * from './focus-aware-status-bar';
 export * from './image';
+export * from './info-tooltip';
 export * from './input';
 export * from './list';
 export * from './modal';

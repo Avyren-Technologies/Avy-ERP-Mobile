@@ -17,6 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -63,20 +64,25 @@ const AUDIT_RETENTION_LABELS: Record<string, string> = {
 
 // ============ REUSABLE ============
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, children, sectionDescription }: { title: string; children: React.ReactNode; sectionDescription?: string }) {
     return (
         <View style={styles.sectionCard}>
-            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            {sectionDescription && <SectionDescription>{sectionDescription}</SectionDescription>}
+            {!sectionDescription && <View style={{ height: 8 }} />}
             {children}
         </View>
     );
 }
 
-function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleRow({ label, subtitle, value, onToggle, tooltip }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void; tooltip?: string }) {
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
@@ -84,11 +90,14 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
     );
 }
 
-function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string }) {
+function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string; tooltip?: string }) {
     return (
         <View style={styles.numberRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <View style={styles.numberInputGroup}>
@@ -205,7 +214,7 @@ export function SystemControlsScreen() {
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {/* Section 1: Module Enablement (9 toggles) */}
-                    <SectionCard title="Module Enablement">
+                    <SectionCard title="Module Enablement" sectionDescription="Enable or disable entire modules for your organization. Disabled modules won't appear in navigation or be accessible via API.">
                         <ToggleRow label="Attendance" subtitle="Enable attendance tracking module" value={controls.attendanceEnabled} onToggle={(v) => updateField('attendanceEnabled', v)} />
                         <ToggleRow label="Leave Management" subtitle="Enable leave management module" value={controls.leaveEnabled} onToggle={(v) => updateField('leaveEnabled', v)} />
                         <ToggleRow label="Payroll" subtitle="Enable payroll processing module" value={controls.payrollEnabled} onToggle={(v) => updateField('payrollEnabled', v)} />
@@ -218,38 +227,38 @@ export function SystemControlsScreen() {
                     </SectionCard>
 
                     {/* Section 2: Production (3 toggles) */}
-                    <SectionCard title="Production">
+                    <SectionCard title="Production" sectionDescription="Control production-related features like non-conformance editing, machine tracking, and cycle time recording.">
                         <ToggleRow label="NC Edit Mode" subtitle="Allow editing non-conformance records" value={controls.ncEditMode} onToggle={(v) => updateField('ncEditMode', v)} />
                         <ToggleRow label="Load / Unload Tracking" subtitle="Track machine loading and unloading events" value={controls.loadUnload} onToggle={(v) => updateField('loadUnload', v)} />
                         <ToggleRow label="Cycle Time Capture" subtitle="Record cycle times for production runs" value={controls.cycleTime} onToggle={(v) => updateField('cycleTime', v)} />
                     </SectionCard>
 
                     {/* Section 3: Payroll (2 toggles) */}
-                    <SectionCard title="Payroll">
-                        <ToggleRow label="Payroll Lock" subtitle="Lock payroll after processing" value={controls.payrollLock} onToggle={(v) => updateField('payrollLock', v)} />
-                        <ToggleRow label="Backdated Entry Control" subtitle="Control backdated payroll entries" value={controls.backdatedEntryControl} onToggle={(v) => updateField('backdatedEntryControl', v)} />
+                    <SectionCard title="Payroll" sectionDescription="Safeguard payroll data integrity with processing locks and backdated entry controls.">
+                        <ToggleRow label="Payroll Lock" subtitle="Lock payroll after processing" value={controls.payrollLock} onToggle={(v) => updateField('payrollLock', v)} tooltip="Prevents modifications to attendance and payroll data for processed payroll periods." />
+                        <ToggleRow label="Backdated Entry Control" subtitle="Control backdated payroll entries" value={controls.backdatedEntryControl} onToggle={(v) => updateField('backdatedEntryControl', v)} tooltip="Block or flag attendance and leave entries submitted for past dates." />
                     </SectionCard>
 
                     {/* Section 4: Leave (3 toggles) */}
-                    <SectionCard title="Leave">
+                    <SectionCard title="Leave" sectionDescription="Configure leave policies including carry-forward, compensatory off, and half-day leave options.">
                         <ToggleRow label="Leave Carry Forward" subtitle="Allow carrying forward unused leave" value={controls.leaveCarryForward} onToggle={(v) => updateField('leaveCarryForward', v)} />
                         <ToggleRow label="Compensatory Off" subtitle="Enable comp-off for working on holidays" value={controls.compOffEnabled} onToggle={(v) => updateField('compOffEnabled', v)} />
                         <ToggleRow label="Half-Day Leave" subtitle="Allow half-day leave applications" value={controls.halfDayLeaveEnabled} onToggle={(v) => updateField('halfDayLeaveEnabled', v)} />
                     </SectionCard>
 
                     {/* Section 5: Security & Access (7 fields) */}
-                    <SectionCard title="Security & Access">
+                    <SectionCard title="Security & Access" sectionDescription="Manage authentication, session limits, password policies, and account lockout rules.">
                         <ToggleRow label="MFA Required" subtitle="Enforce multi-factor authentication for all users" value={controls.mfaRequired} onToggle={(v) => updateField('mfaRequired', v)} />
                         <NumberRow label="Session Timeout" subtitle="Auto-logout after inactivity" value={controls.sessionTimeoutMinutes} onChange={(v) => updateField('sessionTimeoutMinutes', v)} suffix="min" />
                         <NumberRow label="Max Concurrent Sessions" subtitle="Maximum active sessions per user" value={controls.maxConcurrentSessions} onChange={(v) => updateField('maxConcurrentSessions', v)} suffix="sessions" />
                         <NumberRow label="Password Min Length" subtitle="Minimum password character count" value={controls.passwordMinLength} onChange={(v) => updateField('passwordMinLength', v)} suffix="chars" />
                         <ToggleRow label="Password Complexity" subtitle="Require uppercase, lowercase, number, and special character" value={controls.passwordComplexity} onToggle={(v) => updateField('passwordComplexity', v)} />
-                        <NumberRow label="Account Lock Threshold" subtitle="Failed attempts before account lock" value={controls.accountLockThreshold} onChange={(v) => updateField('accountLockThreshold', v)} suffix="attempts" />
+                        <NumberRow label="Account Lock Threshold" subtitle="Failed attempts before account lock" value={controls.accountLockThreshold} onChange={(v) => updateField('accountLockThreshold', v)} suffix="attempts" tooltip="Number of consecutive failed login attempts before the account is temporarily locked." />
                         <NumberRow label="Account Lock Duration" subtitle="Auto-unlock after" value={controls.accountLockDurationMinutes} onChange={(v) => updateField('accountLockDurationMinutes', v)} suffix="min" />
                     </SectionCard>
 
                     {/* Section 6: Audit (1 field) */}
-                    <SectionCard title="Audit">
+                    <SectionCard title="Audit" sectionDescription="Configure how long audit trail records are retained for compliance and review.">
                         <ChipSelector
                             label="Audit Log Retention"
                             options={AUDIT_RETENTION_OPTIONS.map((v) => AUDIT_RETENTION_LABELS[v] ?? v)}
@@ -258,7 +267,7 @@ export function SystemControlsScreen() {
                                 const key = Object.entries(AUDIT_RETENTION_LABELS).find(([, label]) => label === v)?.[0];
                                 updateField('auditLogRetentionDays', Number(key) || 365);
                             }}
-                            hint="How long to retain audit logs"
+                            hint="How long to keep audit trail records. Longer retention uses more storage."
                         />
                     </SectionCard>
                 </Animated.View>

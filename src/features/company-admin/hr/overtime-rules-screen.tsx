@@ -17,6 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
@@ -60,20 +61,25 @@ const DEFAULTS: OvertimeRule = {
 
 // ============ REUSABLE ============
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, children, sectionDescription }: { title: string; children: React.ReactNode; sectionDescription?: string }) {
     return (
         <View style={styles.sectionCard}>
-            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            {sectionDescription && <SectionDescription>{sectionDescription}</SectionDescription>}
+            {!sectionDescription && <View style={{ height: 8 }} />}
             {children}
         </View>
     );
 }
 
-function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleRow({ label, subtitle, value, onToggle, tooltip }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void; tooltip?: string }) {
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
@@ -81,11 +87,14 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
     );
 }
 
-function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string }) {
+function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string; tooltip?: string }) {
     return (
         <View style={styles.numberRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    {tooltip && <InfoTooltip content={tooltip} />}
+                </View>
                 {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -98,7 +107,7 @@ function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string
     );
 }
 
-function NullableNumberRow({ label, subtitle, value, onChange, suffix, nullLabel }: { label: string; subtitle?: string; value: number | null; onChange: (v: number | null) => void; suffix?: string; nullLabel?: string }) {
+function NullableNumberRow({ label, subtitle, value, onChange, suffix, nullLabel, tooltip }: { label: string; subtitle?: string; value: number | null; onChange: (v: number | null) => void; suffix?: string; nullLabel?: string; tooltip?: string }) {
     const isNull = value === null;
     return (
         <View style={styles.numberRow}>
@@ -108,7 +117,10 @@ function NullableNumberRow({ label, subtitle, value, onChange, suffix, nullLabel
                         {!isNull && <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
                     </View>
                     <View style={{ marginLeft: 8 }}>
-                        <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                            {tooltip && <InfoTooltip content={tooltip} />}
+                        </View>
                         {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
                     </View>
                 </Pressable>
@@ -218,7 +230,7 @@ export function OvertimeRulesScreen() {
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {/* 1. Eligibility */}
-                    <SectionCard title="Eligibility">
+                    <SectionCard title="Eligibility" sectionDescription="Define which employee types are eligible for overtime. Leave unset to include all types.">
                         <View style={styles.infoRow}>
                             <Text className="font-inter text-sm font-semibold text-neutral-700">Eligible Employee Types</Text>
                             <Text className="mt-0.5 font-inter text-xs text-neutral-400">
@@ -228,7 +240,7 @@ export function OvertimeRulesScreen() {
                     </SectionCard>
 
                     {/* 2. Calculation */}
-                    <SectionCard title="Calculation">
+                    <SectionCard title="Calculation" sectionDescription="Configure how overtime hours are calculated, including thresholds and minimum durations.">
                         <ChipSelector
                             label="Calculation Basis"
                             options={CALCULATION_BASIS_OPTIONS.map((o) => CALCULATION_BASIS_LABELS[o])}
@@ -237,15 +249,15 @@ export function OvertimeRulesScreen() {
                                 const key = Object.entries(CALCULATION_BASIS_LABELS).find(([, l]) => l === v)?.[0] ?? 'AFTER_SHIFT';
                                 updateRule('calculationBasis', key as OTCalculationBasis);
                             }}
-                            hint="How overtime is calculated"
+                            hint="AFTER_SHIFT: OT counted from when shift ends. TOTAL_HOURS: OT = total worked hours minus the full-day threshold."
                         />
-                        <NumberRow label="Threshold Minutes" subtitle="Extra minutes before OT counts" value={rules.thresholdMinutes} onChange={(v) => updateRule('thresholdMinutes', v)} suffix="min" />
-                        <NumberRow label="Minimum OT Minutes" subtitle="Min OT minutes to be recorded" value={rules.minimumOtMinutes} onChange={(v) => updateRule('minimumOtMinutes', v)} suffix="min" />
+                        <NumberRow label="Threshold Minutes" subtitle="Extra minutes before OT counts" value={rules.thresholdMinutes} onChange={(v) => updateRule('thresholdMinutes', v)} suffix="min" tooltip="Minimum extra minutes worked beyond shift before overtime starts counting." />
+                        <NumberRow label="Minimum OT Minutes" subtitle="Min OT minutes to be recorded" value={rules.minimumOtMinutes} onChange={(v) => updateRule('minimumOtMinutes', v)} suffix="min" tooltip="Minimum overtime duration to be recorded. Shorter periods are ignored." />
                         <ToggleRow label="Include Breaks in OT" subtitle="Count break time within OT hours" value={rules.includeBreaksInOT} onToggle={(v) => updateRule('includeBreaksInOT', v)} />
                     </SectionCard>
 
                     {/* 3. Rate Multipliers */}
-                    <SectionCard title="Rate Multipliers">
+                    <SectionCard title="Rate Multipliers" sectionDescription="Define pay multipliers for different overtime scenarios. Null values fall back to the weekday rate.">
                         <NumberRow label="Weekday Multiplier" value={rules.weekdayMultiplier} onChange={(v) => updateRule('weekdayMultiplier', v)} suffix="x" />
                         <NullableNumberRow label="Weekend Multiplier" value={rules.weekendMultiplier} onChange={(v) => updateRule('weekendMultiplier', v)} suffix="x" nullLabel="Use Weekday Rate" />
                         <NullableNumberRow label="Holiday Multiplier" value={rules.holidayMultiplier} onChange={(v) => updateRule('holidayMultiplier', v)} suffix="x" nullLabel="Use Weekday Rate" />
@@ -253,28 +265,28 @@ export function OvertimeRulesScreen() {
                     </SectionCard>
 
                     {/* 4. Caps */}
-                    <SectionCard title="Caps">
+                    <SectionCard title="Caps" sectionDescription="Set maximum overtime limits per day, week, or month. Caps can be advisory or hard-enforced.">
                         <NullableNumberRow label="Daily Cap" value={rules.dailyCapHours} onChange={(v) => updateRule('dailyCapHours', v)} suffix="hrs" nullLabel="No Limit" />
                         <NullableNumberRow label="Weekly Cap" value={rules.weeklyCapHours} onChange={(v) => updateRule('weeklyCapHours', v)} suffix="hrs" nullLabel="No Limit" />
                         <NullableNumberRow label="Monthly Cap" value={rules.monthlyCapHours} onChange={(v) => updateRule('monthlyCapHours', v)} suffix="hrs" nullLabel="No Limit" />
-                        <ToggleRow label="Enforce Caps" subtitle="Hard block OT entries exceeding limits" value={rules.enforceCaps} onToggle={(v) => updateRule('enforceCaps', v)} />
-                        <NullableNumberRow label="Max Continuous OT" subtitle="Safety/compliance limit" value={rules.maxContinuousOtHours} onChange={(v) => updateRule('maxContinuousOtHours', v)} suffix="hrs" nullLabel="No Limit" />
+                        <ToggleRow label="Enforce Caps" subtitle="Hard block OT entries exceeding limits" value={rules.enforceCaps} onToggle={(v) => updateRule('enforceCaps', v)} tooltip="When enabled, overtime is hard-capped — employees cannot log more than the limit. When disabled, caps are advisory only." />
+                        <NullableNumberRow label="Max Continuous OT" subtitle="Safety/compliance limit" value={rules.maxContinuousOtHours} onChange={(v) => updateRule('maxContinuousOtHours', v)} suffix="hrs" nullLabel="No Limit" tooltip="Maximum consecutive overtime hours allowed per session. A safety/compliance limit." />
                     </SectionCard>
 
                     {/* 5. Approval & Payroll */}
-                    <SectionCard title="Approval & Payroll">
+                    <SectionCard title="Approval & Payroll" sectionDescription="Configure the approval workflow and payroll integration for overtime entries.">
                         <ToggleRow label="Approval Required" subtitle="Manager must approve overtime before payroll" value={rules.approvalRequired} onToggle={(v) => updateRule('approvalRequired', v)} />
                         <ToggleRow label="Auto Include in Payroll" subtitle="Automatically add approved OT to payroll" value={rules.autoIncludePayroll} onToggle={(v) => updateRule('autoIncludePayroll', v)} />
                     </SectionCard>
 
                     {/* 6. Comp-Off */}
-                    <SectionCard title="Comp-Off">
+                    <SectionCard title="Comp-Off" sectionDescription="Allow employees to choose compensatory time off instead of overtime pay.">
                         <ToggleRow label="Comp-Off Enabled" subtitle="Allow employees to choose comp-off instead of pay" value={rules.compOffEnabled} onToggle={(v) => updateRule('compOffEnabled', v)} />
-                        <NullableNumberRow label="Comp-Off Expiry" subtitle="Days before comp-off lapses" value={rules.compOffExpiryDays} onChange={(v) => updateRule('compOffExpiryDays', v)} suffix="days" nullLabel="No Expiry" />
+                        <NullableNumberRow label="Comp-Off Expiry" subtitle="Days before comp-off lapses" value={rules.compOffExpiryDays} onChange={(v) => updateRule('compOffExpiryDays', v)} suffix="days" nullLabel="No Expiry" tooltip="Number of days before unused compensatory off expires. Leave empty for no expiry." />
                     </SectionCard>
 
                     {/* 7. Rounding */}
-                    <SectionCard title="Rounding">
+                    <SectionCard title="Rounding" sectionDescription="Configure how calculated overtime hours are rounded for payroll purposes.">
                         <ChipSelector
                             label="Rounding Strategy"
                             options={ROUNDING_STRATEGY_OPTIONS.map((o) => ROUNDING_STRATEGY_LABELS[o])}

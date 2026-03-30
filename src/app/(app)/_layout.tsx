@@ -10,7 +10,6 @@ import colors from '@/components/ui/colors';
 import {
     Sidebar,
     SidebarProvider,
-    useSidebar,
 } from '@/components/ui/sidebar';
 import type { SidebarSection, SidebarIconType } from '@/components/ui/sidebar';
 import {
@@ -156,69 +155,16 @@ function AppSidebar() {
     const signOut = useAuth.use.signOut();
     const user = useAuth.use.user();
     const userRole = useAuth.use.userRole();
-    const permissions = useAuth.use.permissions();
 
     const { data: manifestData } = useNavigationManifest();
     usePermissionRefresh();
 
-    const isSuperAdmin = userRole === 'super-admin';
-
-    const hasPerm = React.useCallback(
-        (perm: string) => checkPermission(permissions, perm),
-        [permissions]
-    );
-
     /**
-     * Build sidebar sections dynamically based on user permissions.
-     * Super admins (with '*' permission) see everything via wildcard matching.
-     * Each section is included only if the user has the required permission.
-     * Sections with no visible items are filtered out.
+     * Build sidebar sections entirely from the navigation manifest API.
+     * All roles (including super admin) are served by the manifest.
+     * Returns empty array while the manifest is loading (<200ms).
      */
     const sections: SidebarSection[] = React.useMemo(() => {
-        if (isSuperAdmin) {
-            // Super admin gets a dedicated layout
-            return [
-                {
-                    items: [
-                        { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' as const, isActive: pathname === '/', onPress: () => router.push('/') },
-                    ],
-                },
-                {
-                    moduleSeparator: 'Platform Management',
-                    title: 'Management',
-                    items: [
-                        { id: 'companies', label: 'Companies', icon: 'companies' as const, isActive: pathname === '/companies', onPress: () => router.push('/companies') },
-                    ],
-                },
-                {
-                    title: 'Billing',
-                    items: [
-                        { id: 'billing-overview', label: 'Overview', icon: 'billing' as const, isActive: pathname === '/billing', onPress: () => router.push('/billing') },
-                        { id: 'billing-invoices', label: 'Invoices', icon: 'billing' as const, isActive: pathname.startsWith('/billing/invoices'), onPress: () => router.push('/(app)/billing/invoices' as any) },
-                        { id: 'billing-payments', label: 'Payments', icon: 'billing' as const, isActive: pathname.startsWith('/billing/payments'), onPress: () => router.push('/(app)/billing/payments' as any) },
-                    ],
-                },
-                {
-                    title: 'Administration',
-                    items: [
-                        { id: 'audit', label: 'Audit Logs', icon: 'audit' as const, isActive: pathname === '/reports/audit', onPress: () => router.push('/(app)/reports/audit' as any) },
-                    ],
-                },
-                {
-                    moduleSeparator: 'System',
-                    title: 'System',
-                    items: [
-                        { id: 'module-catalogue', label: 'Module Catalogue', icon: 'settings' as const, isActive: false, onPress: () => {} },
-                        { id: 'platform-monitor', label: 'Platform Monitor', icon: 'dashboard' as const, isActive: false, onPress: () => {} },
-                        { id: 'users', label: 'User Management', icon: 'users' as const, isActive: false, onPress: () => {} },
-                        { id: 'settings', label: 'Settings', icon: 'settings' as const, isActive: pathname === '/settings', onPress: () => router.push('/settings') },
-                        { id: 'support', label: 'Support', icon: 'support' as const, isActive: pathname === '/admin-support', onPress: () => router.push('/admin-support' as any) },
-                    ],
-                },
-            ];
-        }
-
-        // Map manifest to SidebarSection format
         const rawManifest = (manifestData as any)?.data ?? manifestData;
         if (Array.isArray(rawManifest) && rawManifest.length > 0) {
             return rawManifest.map((section: any) => ({
@@ -237,9 +183,9 @@ function AppSidebar() {
             })).filter((s: any) => s.items.length > 0);
         }
 
-        // Fallback while manifest loads
-        return [{ items: [{ id: 'dashboard', label: 'Dashboard', icon: 'dashboard' as const, isActive: pathname === '/', onPress: () => router.push('/') }] }];
-    }, [pathname, permissions, isSuperAdmin, hasPerm, router, manifestData]);
+        // Loading state — show empty sidebar while manifest fetches
+        return [];
+    }, [pathname, router, manifestData]);
 
     return (
         <Sidebar
@@ -369,40 +315,27 @@ function TabLayoutInner() {
     }
 
     const hasPerm = (perm: string) => checkPermission(permissions, perm);
-    const canViewCompany = hasPerm('company:read');
-    const canViewHr = hasPerm('hr:read');
+    const showCompanyTab = hasPerm('company:read') || hasPerm('platform:admin');
+    const showBillingTab = hasPerm('company:read') || hasPerm('platform:admin') || hasPerm('hr:read');
+    const showSettingsTab = hasPerm('company:read') || hasPerm('platform:admin');
     const canViewOps = hasPerm('inventory:read') || hasPerm('production:read') || hasPerm('maintenance:read');
     const canViewReports = hasPerm('audit:read');
-    const canViewSettings = hasPerm('company:configure') || hasPerm('role:read') || hasPerm('user:read');
 
     const visibleTabs = new Set<string>(['index']);
 
-    if (isSuperAdmin) {
-        visibleTabs.add('companies');
-        visibleTabs.add('billing');
-        visibleTabs.add('admin-support');
-        visibleTabs.add('settings');
-    } else if (isEmployee) {
+    if (isEmployee) {
         // Employee gets: Dashboard, Leave, Attendance, More
         visibleTabs.add('my-leave');
         visibleTabs.add('my-attendance');
         visibleTabs.add('more');
-    } else if (isCompanyAdmin) {
-        visibleTabs.add('companies');
-        visibleTabs.add('billing');
-        visibleTabs.add('support');
-        visibleTabs.add('settings');
     } else {
-        const dynamicCandidates = [
-            canViewCompany ? 'companies' : null,
-            canViewHr ? 'billing' : null,
-            canViewOps ? 'more' : null,
-            canViewReports ? 'reports' : null,
-            'support',
-            canViewSettings ? 'settings' : null,
-        ].filter((tab): tab is string => Boolean(tab));
-
-        dynamicCandidates.slice(0, 4).forEach((tab) => visibleTabs.add(tab));
+        if (showCompanyTab) visibleTabs.add('companies');
+        if (showBillingTab) visibleTabs.add('billing');
+        if (showSettingsTab) visibleTabs.add('settings');
+        if (canViewOps) visibleTabs.add('more');
+        if (canViewReports) visibleTabs.add('reports');
+        if (isSuperAdmin) visibleTabs.add('admin-support');
+        else visibleTabs.add('support');
     }
 
     return (
@@ -456,7 +389,7 @@ function TabLayoutInner() {
                         tabBarButtonTestID: 'companies-tab',
                         href: visibleTabs.has('companies') ? undefined : null,
                     }}
-                    listeners={(isCompanyAdmin || (userRole === 'user' && canViewCompany)) ? {
+                    listeners={(isCompanyAdmin || (userRole === 'user' && showCompanyTab)) ? {
                         tabPress: (e) => {
                             e.preventDefault();
                             // Use navigate (not push) to avoid corrupting the back stack
@@ -467,7 +400,7 @@ function TabLayoutInner() {
                 <Tabs.Screen
                     name="billing"
                     options={{
-                        title: isCompanyAdmin || (userRole === 'user' && canViewHr) ? 'HR' : 'Billing',
+                        title: isCompanyAdmin || (userRole === 'user' && showBillingTab) ? 'HR' : 'Billing',
                         tabBarIcon: ({ color, focused }) => (
                             isCompanyAdmin
                                 ? <HRIcon color={color} focused={focused} />
@@ -476,7 +409,7 @@ function TabLayoutInner() {
                         tabBarButtonTestID: 'billing-tab',
                         href: visibleTabs.has('billing') ? undefined : null,
                     }}
-                    listeners={(isCompanyAdmin || (userRole === 'user' && canViewHr)) ? {
+                    listeners={(isCompanyAdmin || (userRole === 'user' && showBillingTab)) ? {
                         tabPress: (e) => {
                             e.preventDefault();
                             router.navigate('/company/hr/employees');
@@ -536,7 +469,7 @@ function TabLayoutInner() {
                         tabBarButtonTestID: 'settings-tab',
                         href: visibleTabs.has('settings') ? undefined : null,
                     }}
-                    listeners={(isCompanyAdmin || (userRole === 'user' && canViewSettings)) ? {
+                    listeners={(isCompanyAdmin || (userRole === 'user' && showSettingsTab)) ? {
                         tabPress: (e) => {
                             e.preventDefault();
                             router.navigate('/company/settings');

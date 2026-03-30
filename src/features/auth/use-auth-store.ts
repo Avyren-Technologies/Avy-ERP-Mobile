@@ -7,6 +7,7 @@ import { getToken, removeToken, setToken } from '@/lib/auth/utils';
 import type { TokenType } from '@/lib/auth/utils';
 import { getItem, removeItem, setItem } from '@/lib/storage';
 import { createLogger } from '@/lib/logger';
+import { queryClient } from '@/lib/api/provider';
 
 const logger = createLogger('AuthStore');
 
@@ -84,6 +85,8 @@ const _useAuthStore = create<AuthState>((set) => ({
     signOut: () => {
         removeToken();
         removeItem(USER_DATA_KEY);
+        // Clear all React Query caches so new user doesn't see stale data
+        queryClient.clear();
         logger.info('User signed out');
         set({ status: 'signOut', token: null, user: null, userRole: null, permissions: [], featureToggles: [] });
     },

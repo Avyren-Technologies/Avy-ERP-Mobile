@@ -319,7 +319,6 @@ function TabLayoutInner() {
     const showBillingTab = hasPerm('company:read') || hasPerm('platform:admin') || hasPerm('hr:read');
     const showSettingsTab = hasPerm('company:read') || hasPerm('platform:admin');
     const canViewOps = hasPerm('inventory:read') || hasPerm('production:read') || hasPerm('maintenance:read');
-    const canViewReports = hasPerm('audit:read');
 
     const visibleTabs = new Set<string>(['index']);
 
@@ -331,9 +330,7 @@ function TabLayoutInner() {
     } else {
         if (showCompanyTab) visibleTabs.add('companies');
         if (showBillingTab) visibleTabs.add('billing');
-        if (showSettingsTab) visibleTabs.add('settings');
-        if (canViewOps) visibleTabs.add('more');
-        if (canViewReports) visibleTabs.add('reports');
+        if (showSettingsTab || canViewOps) visibleTabs.add('more');
         if (isSuperAdmin) visibleTabs.add('admin-support');
         else visibleTabs.add('support');
     }
@@ -419,62 +416,29 @@ function TabLayoutInner() {
                 <Tabs.Screen
                     name="more"
                     options={{
-                        title: isEmployee ? 'More' : 'Ops',
+                        title: isEmployee ? 'More' : 'Settings',
                         tabBarIcon: ({ color, focused }) => (
-                            <MoreIcon color={color} focused={focused} />
+                            isEmployee
+                                ? <MoreIcon color={color} focused={focused} />
+                                : <SettingsIcon color={color} focused={focused} />
                         ),
                         tabBarButtonTestID: 'more-tab',
                         href: visibleTabs.has('more') ? undefined : null,
                     }}
-                    listeners={(!isEmployee && userRole === 'user' && canViewOps) ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            if (hasPerm('inventory:read')) {
-                                router.navigate('/company/inventory');
-                                return;
-                            }
-                            if (hasPerm('production:read')) {
-                                router.navigate('/company/production');
-                                return;
-                            }
-                            if (hasPerm('maintenance:read')) {
-                                router.navigate('/company/maintenance');
-                            }
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen
-                    name="reports"
-                    options={{
-                        title: 'Reports',
-                        tabBarIcon: ({ color, focused }) => (
-                            <MoreIcon color={color} focused={focused} />
-                        ),
-                        href: visibleTabs.has('reports') ? undefined : null,
-                    }}
-                    listeners={(userRole === 'user' && canViewReports) ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            router.navigate('/reports/audit');
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen
-                    name="settings"
-                    options={{
-                        title: 'Settings',
-                        tabBarIcon: ({ color, focused }) => (
-                            <SettingsIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'settings-tab',
-                        href: visibleTabs.has('settings') ? undefined : null,
-                    }}
-                    listeners={(isCompanyAdmin || (userRole === 'user' && showSettingsTab)) ? {
+                    listeners={(!isEmployee && (isCompanyAdmin || (userRole === 'user' && showSettingsTab))) ? {
                         tabPress: (e) => {
                             e.preventDefault();
                             router.navigate('/company/settings');
                         },
                     } : undefined}
+                />
+                <Tabs.Screen
+                    name="reports"
+                    options={{ href: null }}
+                />
+                <Tabs.Screen
+                    name="settings"
+                    options={{ href: null }}
                 />
                 <Tabs.Screen
                     name="support"

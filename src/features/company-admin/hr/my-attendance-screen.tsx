@@ -131,21 +131,62 @@ function MonthCalendar({ year, month, records, selectedDay, onSelectDay }: {
 
 // ============ REGULARIZE MODAL ============
 
-function RegularizeModal({ visible, onClose, onSubmit, isSaving, date }: {
+const ISSUE_TYPES = [
+    { value: 'MISSING_PUNCH_IN', label: 'Missing Punch In' },
+    { value: 'MISSING_PUNCH_OUT', label: 'Missing Punch Out' },
+    { value: 'ABSENT_OVERRIDE', label: 'Absent Override' },
+    { value: 'LATE_OVERRIDE', label: 'Late Override' },
+    { value: 'NO_PUNCH', label: 'No Punch Record' },
+];
+
+function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }: {
     visible: boolean; onClose: () => void;
     onSubmit: (data: Record<string, unknown>) => void; isSaving: boolean;
-    date: string;
+    date: string; record?: any;
 }) {
     const insets = useSafeAreaInsets();
+    const [issueType, setIssueType] = React.useState('ABSENT_OVERRIDE');
     const [punchIn, setPunchIn] = React.useState('');
     const [punchOut, setPunchOut] = React.useState('');
     const [reason, setReason] = React.useState('');
 
     React.useEffect(() => {
-        if (visible) { setPunchIn(''); setPunchOut(''); setReason(''); }
-    }, [visible]);
+        if (visible) {
+            setPunchIn(''); setPunchOut(''); setReason('');
+            // Auto-detect issue type from record
+            if (record) {
+                if (!record.punchIn && !record.punchOut) setIssueType('NO_PUNCH');
+                else if (!record.punchIn) setIssueType('MISSING_PUNCH_IN');
+                else if (!record.punchOut) setIssueType('MISSING_PUNCH_OUT');
+                else if (record.isLate) setIssueType('LATE_OVERRIDE');
+                else if (record.status === 'ABSENT') setIssueType('ABSENT_OVERRIDE');
+                else setIssueType('NO_PUNCH');
+            } else {
+                setIssueType('ABSENT_OVERRIDE');
+            }
+        }
+    }, [visible, record]);
 
-    const isValid = punchIn && punchOut && reason.trim();
+    const showPunchIn = ['MISSING_PUNCH_IN', 'NO_PUNCH', 'ABSENT_OVERRIDE'].includes(issueType);
+    const showPunchOut = ['MISSING_PUNCH_OUT', 'NO_PUNCH', 'ABSENT_OVERRIDE'].includes(issueType);
+    const isValid = reason.trim() && (issueType === 'LATE_OVERRIDE' || (showPunchIn ? punchIn : true) && (showPunchOut ? punchOut : true));
+
+    const handleSubmit = () => {
+        if (!isValid) return;
+        const payload: Record<string, unknown> = {
+            issueType,
+            reason: reason.trim(),
+        };
+        // Send record ID if exists, otherwise send date for absent days
+        if (record?.id) {
+            payload.attendanceRecordId = record.id;
+        } else {
+            payload.date = date;
+        }
+        if (punchIn && showPunchIn) payload.correctedPunchIn = `${date}T${punchIn}:00`;
+        if (punchOut && showPunchOut) payload.correctedPunchOut = `${date}T${punchOut}:00`;
+        onSubmit(payload);
+    };
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -155,14 +196,44 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date }: {
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-1">Request Regularization</Text>
                     <Text className="font-inter text-xs text-neutral-500 mb-4">Date: {date}</Text>
+
+                    {/* Issue Type */}
                     <View style={styles.fieldWrap}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Punch In Time <Text className="text-danger-500">*</Text></Text>
-                        <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="09:00 AM" placeholderTextColor={colors.neutral[400]} value={punchIn} onChangeText={setPunchIn} /></View>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Issue Type <Text className="text-danger-500">*</Text></Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
+                            <View style={{ flexDirection: 'row', gap: 6, paddingVertical: 4 }}>
+                                {ISSUE_TYPES.map((t) => (
+                                    <Pressable
+                                        key={t.value}
+                                        onPress={() => setIssueType(t.value)}
+                                        style={[styles.chip, issueType === t.value && styles.chipActive]}
+                                    >
+                                        <Text className={`font-inter text-[11px] font-bold ${issueType === t.value ? 'text-white' : 'text-neutral-600'}`}>{t.label}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        </ScrollView>
                     </View>
-                    <View style={styles.fieldWrap}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Punch Out Time <Text className="text-danger-500">*</Text></Text>
-                        <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="06:00 PM" placeholderTextColor={colors.neutral[400]} value={punchOut} onChangeText={setPunchOut} /></View>
-                    </View>
+
+                    {/* Conditional time fields */}
+                    {showPunchIn && (
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Corrected Punch In</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="09:00" placeholderTextColor={colors.neutral[400]} value={punchIn} onChangeText={setPunchIn} /></View>
+                        </View>
+                    )}
+                    {showPunchOut && (
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Corrected Punch Out</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="18:00" placeholderTextColor={colors.neutral[400]} value={punchOut} onChangeText={setPunchOut} /></View>
+                        </View>
+                    )}
+                    {issueType === 'LATE_OVERRIDE' && (
+                        <View style={[styles.fieldWrap, { backgroundColor: colors.info[50], padding: 10, borderRadius: 8 }]}>
+                            <Text className="font-inter text-xs text-info-700">Late override will clear the late flag without changing punch times.</Text>
+                        </View>
+                    )}
+
                     <View style={styles.fieldWrap}>
                         <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reason <Text className="text-danger-500">*</Text></Text>
                         <View style={[styles.inputWrap, { height: 80 }]}>
@@ -171,7 +242,7 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date }: {
                     </View>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
-                        <Pressable onPress={() => { if (isValid) onSubmit({ date, punchIn, punchOut, reason: reason.trim() }); }} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                        <Pressable onPress={handleSubmit} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Submitting...' : 'Submit'}</Text>
                         </Pressable>
                     </View>
@@ -304,7 +375,7 @@ export function MyAttendanceScreen() {
                     </>
                 )}
             </ScrollView>
-            <RegularizeModal visible={regVisible} onClose={() => setRegVisible(false)} onSubmit={handleRegularize} isSaving={regularizeMutation.isPending} date={selectedDateStr} />
+            <RegularizeModal visible={regVisible} onClose={() => setRegVisible(false)} onSubmit={handleRegularize} isSaving={regularizeMutation.isPending} date={selectedDateStr} record={selectedRecord} />
         </View>
     );
 }
@@ -358,4 +429,6 @@ const styles = StyleSheet.create({
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.neutral[100], borderWidth: 1, borderColor: colors.neutral[200] },
+    chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
 });

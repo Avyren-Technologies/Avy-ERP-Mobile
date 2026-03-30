@@ -2,8 +2,55 @@ import { client } from '@/lib/api/client';
 
 // --- Types ---
 
-export interface EssConfigParams {
-  // No params needed for GET
+export type LocationAccuracy = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface ESSConfig {
+  id?: string;
+  // Payroll & Tax
+  viewPayslips: boolean;
+  downloadPayslips: boolean;
+  downloadForm16: boolean;
+  viewSalaryStructure: boolean;
+  itDeclaration: boolean;
+  // Leave
+  leaveApplication: boolean;
+  leaveBalanceView: boolean;
+  leaveCancellation: boolean;
+  // Attendance
+  attendanceView: boolean;
+  attendanceRegularization: boolean;
+  viewShiftSchedule: boolean;
+  shiftSwapRequest: boolean;
+  wfhRequest: boolean;
+  // Profile & Documents
+  profileUpdate: boolean;
+  documentUpload: boolean;
+  employeeDirectory: boolean;
+  viewOrgChart: boolean;
+  // Financial
+  reimbursementClaims: boolean;
+  loanApplication: boolean;
+  assetView: boolean;
+  // Performance & Development
+  performanceGoals: boolean;
+  appraisalAccess: boolean;
+  feedback360: boolean;
+  trainingEnrollment: boolean;
+  // Support & Communication
+  helpDesk: boolean;
+  grievanceSubmission: boolean;
+  holidayCalendar: boolean;
+  policyDocuments: boolean;
+  announcementBoard: boolean;
+  // Manager Self-Service (MSS)
+  mssViewTeam: boolean;
+  mssApproveLeave: boolean;
+  mssApproveAttendance: boolean;
+  mssViewTeamAttendance: boolean;
+  // Mobile Behavior
+  mobileOfflinePunch: boolean;
+  mobileSyncRetryMinutes: number;
+  mobileLocationAccuracy: LocationAccuracy;
 }
 
 export interface ApprovalWorkflowListParams {
@@ -51,7 +98,7 @@ export interface MssTeamMembersParams {
 // --- API Service ---
 
 /**
- * ESS & Workflow API service — ESS config, approval workflows, approval requests,
+ * ESS & Workflow API service -- ESS config, approval workflows, approval requests,
  * notification templates/rules, IT declarations, and self-service endpoints.
  *
  * NOTE: The response interceptor on `client` unwraps `response.data`,
@@ -62,7 +109,7 @@ export const essApi = {
   getEssConfig: () =>
     client.get('/hr/ess-config'),
 
-  updateEssConfig: (data: Record<string, unknown>) =>
+  updateEssConfig: (data: Partial<ESSConfig>) =>
     client.patch('/hr/ess-config', data),
 
   // ── Approval Workflows ────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { showError } from '@/components/ui/utils';
-import { companyAdminApi } from '@/lib/api/company-admin';
+import { companyAdminApi, type CompanySettings, type SystemControls, type CreateShiftPayload, type CreateShiftBreakPayload } from '@/lib/api/company-admin';
 import { companyAdminKeys } from '@/features/company-admin/api/use-company-admin-queries';
 import { platformSupportKeys } from '@/features/super-admin/api/use-support-queries';
 
@@ -61,7 +61,7 @@ export function useDeleteLocation() {
 export function useCreateShift() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: CreateShiftPayload) =>
       companyAdminApi.createShift(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
@@ -74,7 +74,7 @@ export function useCreateShift() {
 export function useUpdateShift() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateShiftPayload> }) =>
       companyAdminApi.updateShift(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
@@ -90,6 +90,50 @@ export function useDeleteShift() {
     mutationFn: (id: string) => companyAdminApi.deleteShift(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
+    },
+    onError: showError,
+  });
+}
+
+// ── Shift Breaks ──────────────────────────────────────────────────────
+
+/** Create a break for a shift */
+export function useCreateShiftBreak() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shiftId, data }: { shiftId: string; data: CreateShiftBreakPayload }) =>
+      companyAdminApi.createShiftBreak(shiftId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.shiftBreaks(variables.shiftId) });
+    },
+    onError: showError,
+  });
+}
+
+/** Update a break for a shift */
+export function useUpdateShiftBreak() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shiftId, breakId, data }: { shiftId: string; breakId: string; data: Partial<CreateShiftBreakPayload> }) =>
+      companyAdminApi.updateShiftBreak(shiftId, breakId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.shiftBreaks(variables.shiftId) });
+    },
+    onError: showError,
+  });
+}
+
+/** Delete a break from a shift */
+export function useDeleteShiftBreak() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shiftId, breakId }: { shiftId: string; breakId: string }) =>
+      companyAdminApi.deleteShiftBreak(shiftId, breakId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.shifts() });
+      queryClient.invalidateQueries({ queryKey: companyAdminKeys.shiftBreaks(variables.shiftId) });
     },
     onError: showError,
   });
@@ -227,7 +271,7 @@ export function useDeleteIOTReason() {
 export function useUpdateControls() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: Partial<SystemControls>) =>
       companyAdminApi.updateControls(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -244,7 +288,7 @@ export function useUpdateControls() {
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: Partial<CompanySettings>) =>
       companyAdminApi.updateSettings(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -337,22 +381,6 @@ export function useDeleteRole() {
     mutationFn: (id: string) => companyAdminApi.deleteRole(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
-    },
-    onError: showError,
-  });
-}
-
-// ── Feature Toggles ─────────────────────────────────────────────────
-
-/** Update feature toggles for a specific user */
-export function useUpdateFeatureToggles() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ userId, toggles }: { userId: string; toggles: Record<string, boolean> }) =>
-      companyAdminApi.updateFeatureToggles(userId, toggles),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: companyAdminKeys.featureToggles(variables.userId) });
-      queryClient.invalidateQueries({ queryKey: companyAdminKeys.featureToggles(undefined) });
     },
     onError: showError,
   });

@@ -22,137 +22,86 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useCompanyControls } from '@/features/company-admin/api/use-company-admin-queries';
 import { useUpdateControls } from '@/features/company-admin/api/use-company-admin-mutations';
+import type { SystemControls } from '@/lib/api/company-admin';
 
-// ============ TYPES ============
+import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
 
-interface ControlsForm {
-    // Production Controls
-    ncEditMode: boolean;
-    loadUnload: boolean;
-    cycleTime: boolean;
-    // Payroll Controls
-    payrollLock: boolean;
-    backdatedEntry: boolean;
-    // Security Controls
-    mfa: boolean;
-    sessionTimeout: string;
-    ipWhitelist: boolean;
-    // Leave Controls
-    leaveCarryForward: boolean;
-    overtimeApproval: boolean;
-    // Notification Controls
-    emailNotifications: boolean;
-    auditLogRetention: string;
-}
+// ============ DEFAULTS (25 fields, 6 sections -- same as web) ============
 
-const RETENTION_OPTIONS = ['30 days', '60 days', '90 days', '180 days', '1 year', '2 years'];
-
-const DEFAULT_FORM: ControlsForm = {
+const DEFAULTS: SystemControls = {
+    attendanceEnabled: true,
+    leaveEnabled: true,
+    payrollEnabled: true,
+    essEnabled: true,
+    performanceEnabled: false,
+    recruitmentEnabled: false,
+    trainingEnabled: false,
+    mobileAppEnabled: true,
+    aiChatbotEnabled: false,
     ncEditMode: false,
     loadUnload: false,
     cycleTime: false,
-    payrollLock: false,
-    backdatedEntry: false,
-    mfa: false,
-    sessionTimeout: '30',
-    ipWhitelist: false,
-    leaveCarryForward: false,
-    overtimeApproval: false,
-    emailNotifications: true,
-    auditLogRetention: '90 days',
+    payrollLock: true,
+    backdatedEntryControl: false,
+    leaveCarryForward: true,
+    compOffEnabled: false,
+    halfDayLeaveEnabled: true,
+    mfaRequired: false,
+    sessionTimeoutMinutes: 30,
+    maxConcurrentSessions: 3,
+    passwordMinLength: 8,
+    passwordComplexity: true,
+    accountLockThreshold: 5,
+    accountLockDurationMinutes: 30,
+    auditLogRetentionDays: 365,
 };
 
-// ============ REUSABLE COMPONENTS ============
+const AUDIT_RETENTION_OPTIONS = ['30', '90', '180', '365', '730'];
+const AUDIT_RETENTION_LABELS: Record<string, string> = {
+    '30': '30 days', '90': '90 days', '180': '180 days', '365': '1 year', '730': '2 years',
+};
 
-function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+// ============ REUSABLE ============
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <View style={styles.sectionCard}>
-            <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
-                {title}
-            </Text>
-            {subtitle && (
-                <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">{subtitle}</Text>
-            )}
-            {!subtitle && <View style={{ height: 8 }} />}
+            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
             {children}
         </View>
     );
 }
 
-function ToggleRow({
-    label,
-    subtitle,
-    value,
-    onToggle,
-}: {
-    label: string;
-    subtitle?: string;
-    value: boolean;
-    onToggle: (v: boolean) => void;
-}) {
+function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void }) {
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
                 <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
-                {subtitle && (
-                    <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>
-                        {subtitle}
-                    </Text>
-                )}
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
-            <Switch
-                value={value}
-                onValueChange={onToggle}
-                trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
-                thumbColor={value ? colors.primary[600] : colors.neutral[300]}
-            />
+            <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
         </View>
     );
 }
 
-function RetentionDropdown({
-    value,
-    onSelect,
-}: {
-    value: string;
-    onSelect: (v: string) => void;
-}) {
-    const [open, setOpen] = React.useState(false);
-
+function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string }) {
     return (
-        <View style={[styles.fieldWrap, { zIndex: open ? 1200 : 1, position: 'relative' }]}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Audit Log Retention</Text>
-            <Pressable
-                onPress={() => setOpen(v => !v)}
-                style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, open && { borderColor: colors.primary[400] }]}
-            >
-                <Text className={`flex-1 font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`}>
-                    {value || 'Select...'}
-                </Text>
-                <Svg width={16} height={16} viewBox="0 0 24 24">
-                    <Path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
-            </Pressable>
-            {open && (
-                <>
-                    <Pressable onPress={() => setOpen(false)} style={{ position: 'absolute', top: -3000, left: -3000, right: -3000, bottom: -3000, zIndex: 1199 }} />
-                    <View style={styles.dropdownList}>
-                        <ScrollView showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-                            {RETENTION_OPTIONS.map((item, idx) => (
-                                <Pressable
-                                    key={item}
-                                    onPress={() => { onSelect(item); setOpen(false); }}
-                                    style={{ paddingHorizontal: 14, paddingVertical: 11, backgroundColor: item === value ? colors.primary[50] : '#fff', borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.neutral[100] }}
-                                >
-                                    <Text className={`font-inter text-sm ${item === value ? 'font-semibold text-primary-700' : 'text-primary-950'}`}>
-                                        {item}
-                                    </Text>
-                                </Pressable>
-                            ))}
-                        </ScrollView>
-                    </View>
-                </>
-            )}
+        <View style={styles.numberRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+            </View>
+            <View style={styles.numberInputGroup}>
+                <View style={styles.numberInputWrap}>
+                    <TextInput
+                        style={styles.numberInput}
+                        value={String(value)}
+                        onChangeText={(v) => onChange(Number(v) || 0)}
+                        keyboardType="number-pad"
+                    />
+                </View>
+                {suffix && <Text className="ml-1 font-inter text-xs text-neutral-400">{suffix}</Text>}
+            </View>
         </View>
     );
 }
@@ -166,69 +115,54 @@ export function SystemControlsScreen() {
     const { data: response, isLoading, error, refetch } = useCompanyControls();
     const updateMutation = useUpdateControls();
 
-    const [form, setForm] = React.useState<ControlsForm>(DEFAULT_FORM);
+    const [controls, setControls] = React.useState<SystemControls>({ ...DEFAULTS });
     const [hasChanges, setHasChanges] = React.useState(false);
+    const [showToast, setShowToast] = React.useState(false);
 
-    // Map API data to form on load
+    const serverControls: SystemControls = React.useMemo(() => {
+        const raw = (response as any)?.data ?? response ?? {};
+        return { ...DEFAULTS, ...raw };
+    }, [response]);
+
     React.useEffect(() => {
         if (response) {
-            const data = (response as any)?.data ?? response;
-            if (data && typeof data === 'object') {
-                setForm({
-                    ncEditMode: data.ncEditMode ?? DEFAULT_FORM.ncEditMode,
-                    loadUnload: data.loadUnload ?? DEFAULT_FORM.loadUnload,
-                    cycleTime: data.cycleTime ?? DEFAULT_FORM.cycleTime,
-                    payrollLock: data.payrollLock ?? DEFAULT_FORM.payrollLock,
-                    backdatedEntry: data.backdatedEntry ?? DEFAULT_FORM.backdatedEntry,
-                    mfa: data.mfa ?? DEFAULT_FORM.mfa,
-                    sessionTimeout: String(data.sessionTimeout ?? DEFAULT_FORM.sessionTimeout),
-                    ipWhitelist: data.ipWhitelist ?? DEFAULT_FORM.ipWhitelist,
-                    leaveCarryForward: data.leaveCarryForward ?? DEFAULT_FORM.leaveCarryForward,
-                    overtimeApproval: data.overtimeApproval ?? DEFAULT_FORM.overtimeApproval,
-                    emailNotifications: data.emailNotifications ?? DEFAULT_FORM.emailNotifications,
-                    auditLogRetention: data.auditLogRetention ?? DEFAULT_FORM.auditLogRetention,
-                });
-                setHasChanges(false);
-            }
+            setControls({ ...serverControls });
+            setHasChanges(false);
         }
     }, [response]);
 
-    const updateForm = (updates: Partial<ControlsForm>) => {
-        setForm(prev => ({ ...prev, ...updates }));
+    const updateField = <K extends keyof SystemControls>(key: K, value: SystemControls[K]) => {
+        setControls((p) => ({ ...p, [key]: value }));
         setHasChanges(true);
     };
 
     const handleSave = () => {
-        updateMutation.mutate(form as unknown as Record<string, unknown>, {
-            onSuccess: () => setHasChanges(false),
+        updateMutation.mutate(controls, {
+            onSuccess: () => {
+                setHasChanges(false);
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 2500);
+            },
         });
+    };
+
+    const handleReset = () => {
+        setControls({ ...serverControls });
+        setHasChanges(false);
     };
 
     if (isLoading) {
         return (
             <View style={[styles.container, { paddingTop: insets.top }]}>
-                <LinearGradient
-                    colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
-                    style={StyleSheet.absoluteFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                />
+                <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 <View style={styles.headerBar}>
                     <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24">
-                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </Svg>
+                        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
-                        System Controls
-                    </Text>
+                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">System Controls</Text>
                     <View style={{ width: 36 }} />
                 </View>
-                <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                </View>
+                <View style={{ paddingHorizontal: 24, paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
     }
@@ -236,30 +170,16 @@ export function SystemControlsScreen() {
     if (error) {
         return (
             <View style={[styles.container, { paddingTop: insets.top }]}>
-                <LinearGradient
-                    colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
-                    style={StyleSheet.absoluteFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                />
+                <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 <View style={styles.headerBar}>
                     <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24">
-                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </Svg>
+                        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
-                        System Controls
-                    </Text>
+                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">System Controls</Text>
                     <View style={{ width: 36 }} />
                 </View>
                 <View style={{ paddingTop: 60, alignItems: 'center' }}>
-                    <EmptyState
-                        icon="error"
-                        title="Failed to load controls"
-                        message="Check your connection and try again."
-                        action={{ label: 'Retry', onPress: () => refetch() }}
-                    />
+                    <EmptyState icon="error" title="Failed to load controls" message="Check your connection and try again." action={{ label: 'Retry', onPress: () => refetch() }} />
                 </View>
             </View>
         );
@@ -267,161 +187,103 @@ export function SystemControlsScreen() {
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            <LinearGradient
-                colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            />
+            <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-            {/* Header */}
             <View style={styles.headerBar}>
                 <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
+                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                 </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
-                    System Controls
-                </Text>
+                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">System Controls</Text>
                 <View style={{ width: 36 }} />
             </View>
 
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
-                keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + (hasChanges ? 120 : 40) }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">
-                        System Controls
-                    </Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        Company-level settings that apply to all plants and locations
-                    </Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950">System Controls</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500">Module enablement, security, and audit settings</Text>
                 </Animated.View>
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
-                    {/* Production Controls */}
-                    <SectionCard title="Production Controls">
-                        <ToggleRow
-                            label="NC Edit Mode"
-                            subtitle="Allows operators to edit or delete existing Non-Conformance entries"
-                            value={form.ncEditMode}
-                            onToggle={v => updateForm({ ncEditMode: v })}
-                        />
-                        <ToggleRow
-                            label="Load / Unload Assignment"
-                            subtitle="When enabled, Load & Unload time is tracked and assigned to a category"
-                            value={form.loadUnload}
-                            onToggle={v => updateForm({ loadUnload: v })}
-                        />
-                        <ToggleRow
-                            label="Cycle Time Capture"
-                            subtitle="Capture cycle time data and include in production analytics"
-                            value={form.cycleTime}
-                            onToggle={v => updateForm({ cycleTime: v })}
-                        />
+                    {/* Section 1: Module Enablement (9 toggles) */}
+                    <SectionCard title="Module Enablement">
+                        <ToggleRow label="Attendance" subtitle="Enable attendance tracking module" value={controls.attendanceEnabled} onToggle={(v) => updateField('attendanceEnabled', v)} />
+                        <ToggleRow label="Leave Management" subtitle="Enable leave management module" value={controls.leaveEnabled} onToggle={(v) => updateField('leaveEnabled', v)} />
+                        <ToggleRow label="Payroll" subtitle="Enable payroll processing module" value={controls.payrollEnabled} onToggle={(v) => updateField('payrollEnabled', v)} />
+                        <ToggleRow label="Employee Self-Service" subtitle="Enable ESS portal for employees" value={controls.essEnabled} onToggle={(v) => updateField('essEnabled', v)} />
+                        <ToggleRow label="Performance" subtitle="Enable performance management module" value={controls.performanceEnabled} onToggle={(v) => updateField('performanceEnabled', v)} />
+                        <ToggleRow label="Recruitment" subtitle="Enable recruitment and hiring module" value={controls.recruitmentEnabled} onToggle={(v) => updateField('recruitmentEnabled', v)} />
+                        <ToggleRow label="Training" subtitle="Enable training and development module" value={controls.trainingEnabled} onToggle={(v) => updateField('trainingEnabled', v)} />
+                        <ToggleRow label="Mobile App" subtitle="Enable mobile app access for employees" value={controls.mobileAppEnabled} onToggle={(v) => updateField('mobileAppEnabled', v)} />
+                        <ToggleRow label="AI Chatbot" subtitle="Enable AI-powered chatbot assistant" value={controls.aiChatbotEnabled} onToggle={(v) => updateField('aiChatbotEnabled', v)} />
                     </SectionCard>
 
-                    {/* Payroll Controls */}
-                    <SectionCard title="Payroll Controls">
-                        <ToggleRow
-                            label="Payroll Lock"
-                            subtitle="Prevent payroll modifications after lock date"
-                            value={form.payrollLock}
-                            onToggle={v => updateForm({ payrollLock: v })}
-                        />
-                        <ToggleRow
-                            label="Backdated Entry Control"
-                            subtitle="Block or flag backdated attendance and leave entries"
-                            value={form.backdatedEntry}
-                            onToggle={v => updateForm({ backdatedEntry: v })}
-                        />
+                    {/* Section 2: Production (3 toggles) */}
+                    <SectionCard title="Production">
+                        <ToggleRow label="NC Edit Mode" subtitle="Allow editing non-conformance records" value={controls.ncEditMode} onToggle={(v) => updateField('ncEditMode', v)} />
+                        <ToggleRow label="Load / Unload Tracking" subtitle="Track machine loading and unloading events" value={controls.loadUnload} onToggle={(v) => updateField('loadUnload', v)} />
+                        <ToggleRow label="Cycle Time Capture" subtitle="Record cycle times for production runs" value={controls.cycleTime} onToggle={(v) => updateField('cycleTime', v)} />
                     </SectionCard>
 
-                    {/* Security Controls */}
-                    <SectionCard title="Security Controls">
-                        <ToggleRow
-                            label="Multi-Factor Authentication (MFA)"
-                            subtitle="Require OTP / Authenticator app for login"
-                            value={form.mfa}
-                            onToggle={v => updateForm({ mfa: v })}
-                        />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Session Timeout (minutes)
-                            </Text>
-                            <View style={styles.inputWrap}>
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="30"
-                                    placeholderTextColor={colors.neutral[400]}
-                                    value={form.sessionTimeout}
-                                    onChangeText={v => updateForm({ sessionTimeout: v })}
-                                    keyboardType="number-pad"
-                                />
-                            </View>
-                            <Text className="mt-1 font-inter text-[10px] text-neutral-400">
-                                Users will be logged out after this period of inactivity
-                            </Text>
-                        </View>
-                        <ToggleRow
-                            label="IP Whitelist"
-                            subtitle="Restrict access to approved IP addresses only"
-                            value={form.ipWhitelist}
-                            onToggle={v => updateForm({ ipWhitelist: v })}
-                        />
+                    {/* Section 3: Payroll (2 toggles) */}
+                    <SectionCard title="Payroll">
+                        <ToggleRow label="Payroll Lock" subtitle="Lock payroll after processing" value={controls.payrollLock} onToggle={(v) => updateField('payrollLock', v)} />
+                        <ToggleRow label="Backdated Entry Control" subtitle="Control backdated payroll entries" value={controls.backdatedEntryControl} onToggle={(v) => updateField('backdatedEntryControl', v)} />
                     </SectionCard>
 
-                    {/* Leave Controls */}
-                    <SectionCard title="Leave Controls">
-                        <ToggleRow
-                            label="Leave Carry Forward"
-                            subtitle="Enable automatic carry forward of unused leave at year end"
-                            value={form.leaveCarryForward}
-                            onToggle={v => updateForm({ leaveCarryForward: v })}
-                        />
-                        <ToggleRow
-                            label="Overtime Approval"
-                            subtitle="Require manager approval before overtime is paid"
-                            value={form.overtimeApproval}
-                            onToggle={v => updateForm({ overtimeApproval: v })}
-                        />
+                    {/* Section 4: Leave (3 toggles) */}
+                    <SectionCard title="Leave">
+                        <ToggleRow label="Leave Carry Forward" subtitle="Allow carrying forward unused leave" value={controls.leaveCarryForward} onToggle={(v) => updateField('leaveCarryForward', v)} />
+                        <ToggleRow label="Compensatory Off" subtitle="Enable comp-off for working on holidays" value={controls.compOffEnabled} onToggle={(v) => updateField('compOffEnabled', v)} />
+                        <ToggleRow label="Half-Day Leave" subtitle="Allow half-day leave applications" value={controls.halfDayLeaveEnabled} onToggle={(v) => updateField('halfDayLeaveEnabled', v)} />
                     </SectionCard>
 
-                    {/* Notification Controls */}
-                    <SectionCard title="Notification Controls">
-                        <ToggleRow
-                            label="Email Notifications"
-                            subtitle="Send automated email notifications for key events"
-                            value={form.emailNotifications}
-                            onToggle={v => updateForm({ emailNotifications: v })}
-                        />
-                        <RetentionDropdown
-                            value={form.auditLogRetention}
-                            onSelect={v => updateForm({ auditLogRetention: v })}
+                    {/* Section 5: Security & Access (7 fields) */}
+                    <SectionCard title="Security & Access">
+                        <ToggleRow label="MFA Required" subtitle="Enforce multi-factor authentication for all users" value={controls.mfaRequired} onToggle={(v) => updateField('mfaRequired', v)} />
+                        <NumberRow label="Session Timeout" subtitle="Auto-logout after inactivity" value={controls.sessionTimeoutMinutes} onChange={(v) => updateField('sessionTimeoutMinutes', v)} suffix="min" />
+                        <NumberRow label="Max Concurrent Sessions" subtitle="Maximum active sessions per user" value={controls.maxConcurrentSessions} onChange={(v) => updateField('maxConcurrentSessions', v)} suffix="sessions" />
+                        <NumberRow label="Password Min Length" subtitle="Minimum password character count" value={controls.passwordMinLength} onChange={(v) => updateField('passwordMinLength', v)} suffix="chars" />
+                        <ToggleRow label="Password Complexity" subtitle="Require uppercase, lowercase, number, and special character" value={controls.passwordComplexity} onToggle={(v) => updateField('passwordComplexity', v)} />
+                        <NumberRow label="Account Lock Threshold" subtitle="Failed attempts before account lock" value={controls.accountLockThreshold} onChange={(v) => updateField('accountLockThreshold', v)} suffix="attempts" />
+                        <NumberRow label="Account Lock Duration" subtitle="Auto-unlock after" value={controls.accountLockDurationMinutes} onChange={(v) => updateField('accountLockDurationMinutes', v)} suffix="min" />
+                    </SectionCard>
+
+                    {/* Section 6: Audit (1 field) */}
+                    <SectionCard title="Audit">
+                        <ChipSelector
+                            label="Audit Log Retention"
+                            options={AUDIT_RETENTION_OPTIONS.map((v) => AUDIT_RETENTION_LABELS[v] ?? v)}
+                            selected={AUDIT_RETENTION_LABELS[String(controls.auditLogRetentionDays)] ?? String(controls.auditLogRetentionDays)}
+                            onSelect={(v) => {
+                                const key = Object.entries(AUDIT_RETENTION_LABELS).find(([, label]) => label === v)?.[0];
+                                updateField('auditLogRetentionDays', Number(key) || 365);
+                            }}
+                            hint="How long to retain audit logs"
                         />
                     </SectionCard>
                 </Animated.View>
             </ScrollView>
 
-            {/* Save Button */}
-            <View style={[styles.saveBar, { paddingBottom: insets.bottom + 16 }]}>
-                <Pressable
-                    onPress={handleSave}
-                    disabled={!hasChanges || updateMutation.isPending}
-                    style={[styles.saveBtn, (!hasChanges || updateMutation.isPending) && { opacity: 0.5 }]}
-                >
-                    {updateMutation.isPending ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                        <Text className="font-inter text-base font-bold text-white">
-                            {hasChanges ? 'Save Changes' : 'No Changes'}
-                        </Text>
-                    )}
-                </Pressable>
-            </View>
+            {/* Save Bar */}
+            {hasChanges && (
+                <Animated.View entering={FadeInDown.duration(300)} style={[styles.saveBar, { paddingBottom: insets.bottom + 16 }]}>
+                    <View style={styles.saveRow}>
+                        <Pressable onPress={handleReset} style={styles.resetBtn}>
+                            <Text className="font-inter text-sm font-bold text-neutral-600">Reset</Text>
+                        </Pressable>
+                        <Pressable onPress={handleSave} disabled={updateMutation.isPending} style={[styles.saveBtnFull, updateMutation.isPending && { opacity: 0.5 }]}>
+                            {updateMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Save Changes</Text>}
+                        </Pressable>
+                    </View>
+                </Animated.View>
+            )}
+
+            {showToast && (
+                <Animated.View entering={FadeInDown.duration(250)} style={[styles.toast, { top: insets.top + 60 }]}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    <Text className="font-inter text-sm font-semibold text-success-700">Controls saved successfully</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -429,109 +291,42 @@ export function SystemControlsScreen() {
 // ============ STYLES ============
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.gradient.surface,
-    },
-    headerBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-    },
-    backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: colors.primary[50],
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerContent: {
-        paddingHorizontal: 24,
-        paddingTop: 8,
-        paddingBottom: 16,
-    },
-    scrollContent: {
-        paddingHorizontal: 24,
-    },
+    container: { flex: 1, backgroundColor: colors.gradient.surface },
+    headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
+    scrollContent: { paddingHorizontal: 24 },
     sectionCard: {
-        backgroundColor: colors.white,
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: colors.primary[900],
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: colors.primary[50],
+        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
+        borderWidth: 1, borderColor: colors.primary[50],
     },
-    toggleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.neutral[100],
+    toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    numberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    numberInputGroup: { flexDirection: 'row', alignItems: 'center' },
+    numberInputWrap: {
+        backgroundColor: colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[200],
+        paddingHorizontal: 10, height: 38, minWidth: 60, justifyContent: 'center',
     },
-    fieldWrap: {
-        marginTop: 12,
-        marginBottom: 4,
-    },
-    inputWrap: {
-        backgroundColor: colors.neutral[50],
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.neutral[200],
-        paddingHorizontal: 14,
-        height: 46,
-        justifyContent: 'center',
-    },
-    textInput: {
-        fontFamily: 'Inter',
-        fontSize: 14,
-        color: colors.primary[950],
-    },
-    dropdownList: {
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        zIndex: 1200,
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: colors.primary[200],
-        maxHeight: 200,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-        elevation: 20,
-        overflow: 'hidden',
-    },
+    numberInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950], textAlign: 'right' },
     saveBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: 24,
-        paddingTop: 12,
-        backgroundColor: 'rgba(248, 247, 255, 0.95)',
-        borderTopWidth: 1,
-        borderTopColor: colors.neutral[100],
+        position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 24, paddingTop: 12,
+        backgroundColor: 'rgba(248, 247, 255, 0.95)', borderTopWidth: 1, borderTopColor: colors.neutral[100],
     },
-    saveBtn: {
-        height: 56,
-        borderRadius: 16,
-        backgroundColor: colors.primary[600],
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: colors.primary[500],
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 4,
+    saveRow: { flexDirection: 'row', gap: 12 },
+    resetBtn: {
+        height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200],
+        justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20,
+    },
+    saveBtnFull: {
+        flex: 1, height: 52, borderRadius: 16, backgroundColor: colors.primary[600],
+        justifyContent: 'center', alignItems: 'center',
+        shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    toast: {
+        position: 'absolute', left: 20, right: 20, backgroundColor: colors.success[50],
+        borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
+        borderWidth: 1, borderColor: colors.success[200],
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
 });

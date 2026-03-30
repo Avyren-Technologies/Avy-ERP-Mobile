@@ -13,6 +13,7 @@ export const companyAdminKeys = {
   locations: () => [...companyAdminKeys.all, 'locations'] as const,
   location: (id: string) => [...companyAdminKeys.all, 'location', id] as const,
   shifts: () => [...companyAdminKeys.all, 'shifts'] as const,
+  shiftBreaks: (shiftId: string) => [...companyAdminKeys.all, 'shift-breaks', shiftId] as const,
   contacts: () => [...companyAdminKeys.all, 'contacts'] as const,
   noSeries: () => [...companyAdminKeys.all, 'no-series'] as const,
   iotReasons: () => [...companyAdminKeys.all, 'iot-reasons'] as const,
@@ -28,8 +29,6 @@ export const companyAdminKeys = {
   rbacRoles: () => [...companyAdminKeys.all, 'rbac-roles'] as const,
   rbacReferenceRoles: () => [...companyAdminKeys.all, 'rbac-reference-roles'] as const,
   permissionCatalogue: () => [...companyAdminKeys.all, 'permission-catalogue'] as const,
-  featureToggleCatalogue: () => [...companyAdminKeys.all, 'feature-toggle-catalogue'] as const,
-  featureToggles: (userId?: string) => userId ? [...companyAdminKeys.all, 'feature-toggles', userId] as const : [...companyAdminKeys.all, 'feature-toggles'] as const,
   moduleCatalogue: () => [...companyAdminKeys.all, 'module-catalogue'] as const,
   subscription: () => [...companyAdminKeys.all, 'subscription'] as const,
   invoices: (params?: CompanyAdminListParams) =>
@@ -77,6 +76,15 @@ export function useCompanyShifts() {
   return useQuery({
     queryKey: companyAdminKeys.shifts(),
     queryFn: () => companyAdminApi.listShifts(),
+  });
+}
+
+/** Breaks for a specific shift */
+export function useShiftBreaks(shiftId: string) {
+  return useQuery({
+    queryKey: companyAdminKeys.shiftBreaks(shiftId),
+    queryFn: () => companyAdminApi.getShiftBreaks(shiftId),
+    enabled: !!shiftId,
   });
 }
 
@@ -178,24 +186,6 @@ export function usePermissionCatalogue() {
   return useQuery({
     queryKey: companyAdminKeys.permissionCatalogue(),
     queryFn: () => companyAdminApi.getPermissionCatalogue(),
-  });
-}
-
-// --- Feature Toggles ---
-
-/** Feature toggle catalogue (all available features) */
-export function useFeatureToggleCatalogue() {
-  return useQuery({
-    queryKey: companyAdminKeys.featureToggleCatalogue(),
-    queryFn: () => companyAdminApi.getFeatureToggleCatalogue(),
-  });
-}
-
-/** Feature toggles for a specific user or all */
-export function useFeatureToggles(userId?: string) {
-  return useQuery({
-    queryKey: companyAdminKeys.featureToggles(userId),
-    queryFn: () => companyAdminApi.getFeatureToggles(userId),
   });
 }
 

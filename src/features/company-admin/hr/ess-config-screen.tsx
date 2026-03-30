@@ -22,136 +22,194 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useEssConfig } from '@/features/company-admin/api/use-ess-queries';
 import { useUpdateEssConfig } from '@/features/company-admin/api/use-ess-mutations';
+import type { ESSConfig, LocationAccuracy } from '@/lib/api/ess';
 
-// ============ TYPES ============
+import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
 
-interface PortalAccessForm {
-    loginMethod: string;
-    passwordMinLength: string;
-    passwordComplexity: boolean;
-    sessionTimeout: string;
-    mfaEnabled: boolean;
+// ============ OPTIONS (same as web) ============
+
+const LOCATION_ACCURACY_OPTIONS = ['HIGH', 'MEDIUM', 'LOW'];
+const LOCATION_ACCURACY_LABELS: Record<string, string> = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' };
+
+// ============ DEFAULTS (36 fields -- same as web) ============
+
+const DEFAULTS: ESSConfig = {
+    viewPayslips: true,
+    downloadPayslips: true,
+    downloadForm16: true,
+    viewSalaryStructure: false,
+    itDeclaration: true,
+    leaveApplication: true,
+    leaveBalanceView: true,
+    leaveCancellation: false,
+    attendanceView: true,
+    attendanceRegularization: false,
+    viewShiftSchedule: false,
+    shiftSwapRequest: false,
+    wfhRequest: false,
+    profileUpdate: false,
+    documentUpload: false,
+    employeeDirectory: false,
+    viewOrgChart: false,
+    reimbursementClaims: false,
+    loanApplication: false,
+    assetView: false,
+    performanceGoals: false,
+    appraisalAccess: false,
+    feedback360: false,
+    trainingEnrollment: false,
+    helpDesk: false,
+    grievanceSubmission: false,
+    holidayCalendar: true,
+    policyDocuments: false,
+    announcementBoard: false,
+    mssViewTeam: false,
+    mssApproveLeave: false,
+    mssApproveAttendance: false,
+    mssViewTeamAttendance: false,
+    mobileOfflinePunch: false,
+    mobileSyncRetryMinutes: 5,
+    mobileLocationAccuracy: 'HIGH',
+};
+
+// ============ SECTION CONFIG (same 9 sections as web) ============
+
+interface EssFieldDef {
+    key: keyof ESSConfig;
+    label: string;
+    description?: string;
+    type: 'toggle' | 'number' | 'select';
+    suffix?: string;
+    min?: number;
+    max?: number;
 }
 
-interface FeatureToggles {
-    viewPayslips: boolean;
-    downloadForm16: boolean;
-    leaveApplication: boolean;
-    leaveBalance: boolean;
-    itDeclaration: boolean;
-    attendanceView: boolean;
-    regularization: boolean;
-    reimbursements: boolean;
-    profileUpdate: boolean;
-    documentUpload: boolean;
-    loanApplication: boolean;
-    assetView: boolean;
-    performanceGoals: boolean;
-    appraisalAccess: boolean;
-    feedback360: boolean;
-    training: boolean;
-    helpDesk: boolean;
-    directory: boolean;
-    holidayCalendar: boolean;
-    policyDocs: boolean;
-    grievance: boolean;
+interface EssSectionDef {
+    title: string;
+    fields: EssFieldDef[];
 }
 
-const FEATURE_LABELS: Record<keyof FeatureToggles, string> = {
-    viewPayslips: 'View Payslips',
-    downloadForm16: 'Download Form 16',
-    leaveApplication: 'Leave Application',
-    leaveBalance: 'Leave Balance',
-    itDeclaration: 'IT Declaration',
-    attendanceView: 'Attendance View',
-    regularization: 'Regularization',
-    reimbursements: 'Reimbursements',
-    profileUpdate: 'Profile Update',
-    documentUpload: 'Document Upload',
-    loanApplication: 'Loan Application',
-    assetView: 'Asset View',
-    performanceGoals: 'Performance Goals',
-    appraisalAccess: 'Appraisal Access',
-    feedback360: '360 Feedback',
-    training: 'Training',
-    helpDesk: 'Help Desk',
-    directory: 'Directory',
-    holidayCalendar: 'Holiday Calendar',
-    policyDocs: 'Policy Documents',
-    grievance: 'Grievance',
-};
+const SECTIONS: EssSectionDef[] = [
+    {
+        title: 'Payroll & Tax',
+        fields: [
+            { key: 'viewPayslips', label: 'View Payslips', description: 'Access monthly salary slips', type: 'toggle' },
+            { key: 'downloadPayslips', label: 'Download Payslips', description: 'Allow PDF download of payslips', type: 'toggle' },
+            { key: 'downloadForm16', label: 'Download Form 16', description: 'Access Form 16 / TDS certificate', type: 'toggle' },
+            { key: 'viewSalaryStructure', label: 'View Salary Structure', description: 'Show salary component breakdown', type: 'toggle' },
+            { key: 'itDeclaration', label: 'IT Declaration', description: 'Submit investment declarations for tax saving', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Leave',
+        fields: [
+            { key: 'leaveApplication', label: 'Leave Application', description: 'Allow leave application through ESS', type: 'toggle' },
+            { key: 'leaveBalanceView', label: 'Leave Balance View', description: 'Show available leave balances', type: 'toggle' },
+            { key: 'leaveCancellation', label: 'Leave Cancellation', description: 'Allow cancelling pending/approved leave', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Attendance',
+        fields: [
+            { key: 'attendanceView', label: 'Attendance View', description: 'Show daily attendance records', type: 'toggle' },
+            { key: 'attendanceRegularization', label: 'Attendance Regularization', description: 'Request attendance corrections', type: 'toggle' },
+            { key: 'viewShiftSchedule', label: 'View Shift Schedule', description: 'Display assigned shift roster', type: 'toggle' },
+            { key: 'shiftSwapRequest', label: 'Shift Swap Request', description: 'Allow requesting shift swaps', type: 'toggle' },
+            { key: 'wfhRequest', label: 'WFH Request', description: 'Allow work from home requests', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Profile & Documents',
+        fields: [
+            { key: 'profileUpdate', label: 'Profile Update', description: 'Allow employees to request profile changes', type: 'toggle' },
+            { key: 'documentUpload', label: 'Document Upload', description: 'Allow employees to upload documents', type: 'toggle' },
+            { key: 'employeeDirectory', label: 'Employee Directory', description: 'Access company employee directory', type: 'toggle' },
+            { key: 'viewOrgChart', label: 'View Org Chart', description: 'Display organisation hierarchy', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Financial',
+        fields: [
+            { key: 'reimbursementClaims', label: 'Reimbursement Claims', description: 'Submit expense reimbursements', type: 'toggle' },
+            { key: 'loanApplication', label: 'Loan Application', description: 'Apply for company loans', type: 'toggle' },
+            { key: 'assetView', label: 'Asset View', description: 'View assigned company assets', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Performance',
+        fields: [
+            { key: 'performanceGoals', label: 'Performance Goals', description: 'View and manage performance goals', type: 'toggle' },
+            { key: 'appraisalAccess', label: 'Appraisal Access', description: 'Access appraisal forms and history', type: 'toggle' },
+            { key: 'feedback360', label: '360 Feedback', description: 'Participate in 360-degree feedback', type: 'toggle' },
+            { key: 'trainingEnrollment', label: 'Training Enrollment', description: 'Enroll in training programs', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Support & Communication',
+        fields: [
+            { key: 'helpDesk', label: 'Help Desk', description: 'Access IT / HR help desk', type: 'toggle' },
+            { key: 'grievanceSubmission', label: 'Grievance Submission', description: 'Submit workplace grievances', type: 'toggle' },
+            { key: 'holidayCalendar', label: 'Holiday Calendar', description: 'View company holiday calendar', type: 'toggle' },
+            { key: 'policyDocuments', label: 'Policy Documents', description: 'Access company policy documents', type: 'toggle' },
+            { key: 'announcementBoard', label: 'Announcement Board', description: 'View company announcements', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Manager Self-Service',
+        fields: [
+            { key: 'mssViewTeam', label: 'View Team Members', description: 'Show direct reportees list', type: 'toggle' },
+            { key: 'mssApproveLeave', label: 'Approve/Reject Leave', description: 'Allow leave approvals for team', type: 'toggle' },
+            { key: 'mssApproveAttendance', label: 'Approve Attendance', description: 'Allow attendance regularization approvals', type: 'toggle' },
+            { key: 'mssViewTeamAttendance', label: 'View Team Attendance', description: 'Show team attendance summary', type: 'toggle' },
+        ],
+    },
+    {
+        title: 'Mobile Behavior',
+        fields: [
+            { key: 'mobileOfflinePunch', label: 'Offline Punch', description: 'Allow offline attendance capture on mobile', type: 'toggle' },
+            { key: 'mobileSyncRetryMinutes', label: 'Sync Retry Interval', description: 'Minutes between offline sync retries', type: 'number', suffix: 'min', min: 1, max: 60 },
+            { key: 'mobileLocationAccuracy', label: 'Location Accuracy', description: 'GPS accuracy level for mobile attendance', type: 'select' },
+        ],
+    },
+];
 
-const LOGIN_METHODS = ['Password', 'SSO', 'OTP'];
+// ============ REUSABLE ============
 
-const DEFAULT_PORTAL: PortalAccessForm = {
-    loginMethod: 'Password',
-    passwordMinLength: '8',
-    passwordComplexity: true,
-    sessionTimeout: '30',
-    mfaEnabled: false,
-};
-
-const DEFAULT_FEATURES: FeatureToggles = {
-    viewPayslips: true, downloadForm16: true, leaveApplication: true, leaveBalance: true,
-    itDeclaration: true, attendanceView: true, regularization: true, reimbursements: false,
-    profileUpdate: true, documentUpload: true, loanApplication: false, assetView: false,
-    performanceGoals: false, appraisalAccess: false, feedback360: false, training: false,
-    helpDesk: false, directory: true, holidayCalendar: true, policyDocs: true, grievance: false,
-};
-
-// ============ SHARED ATOMS ============
-
-function SectionCard({ title, subtitle, collapsed, onToggle, children }: { title: string; subtitle?: string; collapsed: boolean; onToggle: () => void; children: React.ReactNode }) {
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <View style={styles.sectionCard}>
-            <Pressable onPress={onToggle} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
-                    {subtitle && <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">{subtitle}</Text>}
-                </View>
-                <Svg width={16} height={16} viewBox="0 0 24 24">
-                    <Path d={collapsed ? 'M6 9l6 6 6-6' : 'M18 15l-6-6-6 6'} stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
-            </Pressable>
-            {!collapsed && <View style={{ marginTop: 12 }}>{children}</View>}
+            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
+            {children}
         </View>
     );
 }
 
-function ToggleRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtitle?: string; value: boolean; onToggle: (v: boolean) => void }) {
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
                 <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
         </View>
     );
 }
 
-function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
+function NumberRow({ label, subtitle, value, onChange, suffix }: { label: string; subtitle?: string; value: number; onChange: (v: number) => void; suffix?: string }) {
     return (
-        <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {options.map(opt => {
-                    const selected = opt === value;
-                    return (
-                        <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
-                        </Pressable>
-                    );
-                })}
+        <View style={styles.numberRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={styles.numberInputWrap}>
+                    <TextInput style={styles.numberInput} value={String(value)} onChangeText={(v) => onChange(Number(v) || 0)} keyboardType="number-pad" />
+                </View>
+                {suffix && <Text className="ml-1 font-inter text-xs text-neutral-400">{suffix}</Text>}
             </View>
         </View>
-    );
-}
-
-function SaveSectionBtn({ onPress, isPending, hasChanges }: { onPress: () => void; isPending: boolean; hasChanges: boolean }) {
-    return (
-        <Pressable onPress={onPress} disabled={!hasChanges || isPending} style={[styles.sectionSaveBtn, (!hasChanges || isPending) && { opacity: 0.5 }]}>
-            {isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-xs font-bold text-white">{hasChanges ? 'Save' : 'Saved'}</Text>}
-        </Pressable>
     );
 }
 
@@ -161,54 +219,48 @@ export function EssConfigScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    const { data: configResponse, isLoading, error, refetch } = useEssConfig();
-    const updateConfig = useUpdateEssConfig();
+    const { data: response, isLoading, error, refetch } = useEssConfig();
+    const updateMutation = useUpdateEssConfig();
 
-    const [collapsed, setCollapsed] = React.useState({ portal: false, features: true });
-    const toggle = (key: keyof typeof collapsed) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
+    const [config, setConfig] = React.useState<ESSConfig>({ ...DEFAULTS });
+    const [hasChanges, setHasChanges] = React.useState(false);
+    const [showToast, setShowToast] = React.useState(false);
 
-    // Portal Access form
-    const [portal, setPortal] = React.useState<PortalAccessForm>(DEFAULT_PORTAL);
-    const [portalDirty, setPortalDirty] = React.useState(false);
-
-    // Feature toggles
-    const [features, setFeatures] = React.useState<FeatureToggles>(DEFAULT_FEATURES);
-    const [featuresDirty, setFeaturesDirty] = React.useState(false);
+    const serverConfig: ESSConfig = React.useMemo(() => {
+        const raw = (response as any)?.data ?? response ?? {};
+        return { ...DEFAULTS, ...raw };
+    }, [response]);
 
     React.useEffect(() => {
-        if (configResponse) {
-            const d: any = (configResponse as any)?.data ?? configResponse ?? {};
-            setPortal({
-                loginMethod: d.loginMethod ?? DEFAULT_PORTAL.loginMethod,
-                passwordMinLength: String(d.passwordMinLength ?? DEFAULT_PORTAL.passwordMinLength),
-                passwordComplexity: d.passwordComplexity ?? DEFAULT_PORTAL.passwordComplexity,
-                sessionTimeout: String(d.sessionTimeout ?? DEFAULT_PORTAL.sessionTimeout),
-                mfaEnabled: d.mfaEnabled ?? DEFAULT_PORTAL.mfaEnabled,
-            });
-            const ft = d.features ?? {};
-            const loaded: FeatureToggles = { ...DEFAULT_FEATURES };
-            for (const key of Object.keys(DEFAULT_FEATURES) as (keyof FeatureToggles)[]) {
-                if (ft[key] !== undefined) loaded[key] = ft[key];
-            }
-            setFeatures(loaded);
-            setPortalDirty(false);
-            setFeaturesDirty(false);
+        if (response) {
+            setConfig({ ...serverConfig });
+            setHasChanges(false);
         }
-    }, [configResponse]);
+    }, [response]);
 
-    const handleSavePortal = () => {
-        updateConfig.mutate({
-            loginMethod: portal.loginMethod,
-            passwordMinLength: Number(portal.passwordMinLength),
-            passwordComplexity: portal.passwordComplexity,
-            sessionTimeout: Number(portal.sessionTimeout),
-            mfaEnabled: portal.mfaEnabled,
-        }, { onSuccess: () => setPortalDirty(false) });
+    const updateField = <K extends keyof ESSConfig>(key: K, value: ESSConfig[K]) => {
+        setConfig((p) => ({ ...p, [key]: value }));
+        setHasChanges(true);
     };
 
-    const handleSaveFeatures = () => {
-        updateConfig.mutate({ features } as unknown as Record<string, unknown>, { onSuccess: () => setFeaturesDirty(false) });
+    const handleSave = () => {
+        updateMutation.mutate(config, {
+            onSuccess: () => {
+                setHasChanges(false);
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 2500);
+            },
+        });
     };
+
+    const handleReset = () => {
+        setConfig({ ...serverConfig });
+        setHasChanges(false);
+    };
+
+    // Count toggles
+    const toggleCount = SECTIONS.reduce((sum, sec) => sum + sec.fields.filter((f) => f.type === 'toggle').length, 0);
+    const enabledCount = SECTIONS.reduce((sum, sec) => sum + sec.fields.filter((f) => f.type === 'toggle' && config[f.key] === true).length, 0);
 
     if (isLoading) {
         return (
@@ -233,7 +285,7 @@ export function EssConfigScreen() {
                     <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">ESS Configuration</Text>
                     <View style={{ width: 36 }} />
                 </View>
-                <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>
+                <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load ESS config" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>
             </View>
         );
     }
@@ -241,52 +293,88 @@ export function EssConfigScreen() {
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+
             <View style={styles.headerBar}>
                 <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
                 <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">ESS Configuration</Text>
                 <View style={{ width: 36 }} />
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + (hasChanges ? 120 : 40) }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">ESS Portal Configuration</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Portal access, features, and employee self-service settings</Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950">ESS Configuration</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500">
+                        {enabledCount} of {toggleCount} features enabled
+                    </Text>
                 </Animated.View>
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
-                    {/* Portal Access */}
-                    <SectionCard title="Portal Access" subtitle="Login, security, and session settings" collapsed={collapsed.portal} onToggle={() => toggle('portal')}>
-                        <ChipSelector label="Login Method" options={LOGIN_METHODS} value={portal.loginMethod} onSelect={v => { setPortal(p => ({ ...p, loginMethod: v })); setPortalDirty(true); }} />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Password Min Length</Text>
-                            <View style={styles.inputWrap}>
-                                <TextInput style={styles.textInput} placeholder="8" placeholderTextColor={colors.neutral[400]} value={portal.passwordMinLength} onChangeText={v => { setPortal(p => ({ ...p, passwordMinLength: v })); setPortalDirty(true); }} keyboardType="number-pad" />
-                            </View>
-                        </View>
-                        <ToggleRow label="Password Complexity" value={portal.passwordComplexity} onToggle={v => { setPortal(p => ({ ...p, passwordComplexity: v })); setPortalDirty(true); }} />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Session Timeout (minutes)</Text>
-                            <View style={styles.inputWrap}>
-                                <TextInput style={styles.textInput} placeholder="30" placeholderTextColor={colors.neutral[400]} value={portal.sessionTimeout} onChangeText={v => { setPortal(p => ({ ...p, sessionTimeout: v })); setPortalDirty(true); }} keyboardType="number-pad" />
-                            </View>
-                        </View>
-                        <ToggleRow label="Multi-Factor Authentication" value={portal.mfaEnabled} onToggle={v => { setPortal(p => ({ ...p, mfaEnabled: v })); setPortalDirty(true); }} />
-                        <SaveSectionBtn onPress={handleSavePortal} isPending={updateConfig.isPending} hasChanges={portalDirty} />
-                    </SectionCard>
-
-                    {/* Employee Features */}
-                    <SectionCard title="Employee Features" subtitle="Toggle ESS features available to employees" collapsed={collapsed.features} onToggle={() => toggle('features')}>
-                        {(Object.keys(FEATURE_LABELS) as (keyof FeatureToggles)[]).map(key => (
-                            <ToggleRow
-                                key={key}
-                                label={FEATURE_LABELS[key]}
-                                value={features[key]}
-                                onToggle={v => { setFeatures(p => ({ ...p, [key]: v })); setFeaturesDirty(true); }}
-                            />
-                        ))}
-                        <SaveSectionBtn onPress={handleSaveFeatures} isPending={updateConfig.isPending} hasChanges={featuresDirty} />
-                    </SectionCard>
+                    {SECTIONS.map((section) => (
+                        <SectionCard key={section.title} title={section.title}>
+                            {section.fields.map((field) => {
+                                if (field.type === 'toggle') {
+                                    return (
+                                        <ToggleRow
+                                            key={field.key}
+                                            label={field.label}
+                                            subtitle={field.description}
+                                            value={config[field.key] as boolean}
+                                            onToggle={(v) => updateField(field.key, v as never)}
+                                        />
+                                    );
+                                }
+                                if (field.type === 'number') {
+                                    return (
+                                        <NumberRow
+                                            key={field.key}
+                                            label={field.label}
+                                            subtitle={field.description}
+                                            value={config[field.key] as number}
+                                            onChange={(v) => updateField(field.key, v as never)}
+                                            suffix={field.suffix}
+                                        />
+                                    );
+                                }
+                                if (field.type === 'select') {
+                                    return (
+                                        <ChipSelector
+                                            key={field.key}
+                                            label={field.label}
+                                            options={LOCATION_ACCURACY_OPTIONS.map((o) => LOCATION_ACCURACY_LABELS[o])}
+                                            selected={LOCATION_ACCURACY_LABELS[config[field.key] as string] ?? (config[field.key] as string)}
+                                            onSelect={(v) => {
+                                                const key = Object.entries(LOCATION_ACCURACY_LABELS).find(([, l]) => l === v)?.[0] ?? 'HIGH';
+                                                updateField(field.key, key as never);
+                                            }}
+                                            hint={field.description}
+                                        />
+                                    );
+                                }
+                                return null;
+                            })}
+                        </SectionCard>
+                    ))}
                 </Animated.View>
             </ScrollView>
+
+            {/* Single Save Button (NOT per-section) */}
+            {hasChanges && (
+                <Animated.View entering={FadeInDown.duration(300)} style={[styles.saveBar, { paddingBottom: insets.bottom + 16 }]}>
+                    <View style={styles.saveRow}>
+                        <Pressable onPress={handleReset} style={styles.resetBtn}><Text className="font-inter text-sm font-bold text-neutral-600">Reset</Text></Pressable>
+                        <Pressable onPress={handleSave} disabled={updateMutation.isPending} style={[styles.saveBtnFull, updateMutation.isPending && { opacity: 0.5 }]}>
+                            {updateMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Save Changes</Text>}
+                        </Pressable>
+                    </View>
+                </Animated.View>
+            )}
+
+            {showToast && (
+                <Animated.View entering={FadeInDown.duration(250)} style={[styles.toast, { top: insets.top + 60 }]}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    <Text className="font-inter text-sm font-semibold text-success-700">ESS config saved</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -304,14 +392,27 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
         borderWidth: 1, borderColor: colors.primary[50],
     },
-    fieldWrap: { marginTop: 12, marginBottom: 4 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
-    textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
-    chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    sectionSaveBtn: {
-        marginTop: 12, height: 40, borderRadius: 12, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center',
-        shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3,
+    numberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    numberInputWrap: {
+        backgroundColor: colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[200],
+        paddingHorizontal: 10, height: 38, minWidth: 60, justifyContent: 'center',
+    },
+    numberInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950], textAlign: 'right' },
+    saveBar: {
+        position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 24, paddingTop: 12,
+        backgroundColor: 'rgba(248, 247, 255, 0.95)', borderTopWidth: 1, borderTopColor: colors.neutral[100],
+    },
+    saveRow: { flexDirection: 'row', gap: 12 },
+    resetBtn: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+    saveBtnFull: {
+        flex: 1, height: 52, borderRadius: 16, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center',
+        shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    toast: {
+        position: 'absolute', left: 20, right: 20, backgroundColor: colors.success[50], borderRadius: 12,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
+        borderWidth: 1, borderColor: colors.success[200],
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
 });

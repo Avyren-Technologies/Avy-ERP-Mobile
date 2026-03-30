@@ -6,6 +6,7 @@ import {
   type AttendanceOverrideListParams,
   type HolidayListParams,
   type RosterListParams,
+  type OvertimeRequestListParams,
 } from '@/lib/api/attendance';
 
 // --- Query keys ---
@@ -38,6 +39,10 @@ export const attendanceKeys = {
 
   // Overtime Rules
   overtimeRules: () => [...attendanceKeys.all, 'overtime-rules'] as const,
+
+  // Overtime Requests
+  overtimeRequests: (params?: OvertimeRequestListParams) =>
+    params ? [...attendanceKeys.all, 'overtime-requests', params] as const : [...attendanceKeys.all, 'overtime-requests'] as const,
 };
 
 // --- Attendance Record Queries ---
@@ -116,5 +121,15 @@ export function useOvertimeRules() {
   return useQuery({
     queryKey: attendanceKeys.overtimeRules(),
     queryFn: () => attendanceApi.getOvertimeRules(),
+  });
+}
+
+// --- Overtime Requests ---
+
+/** List overtime requests with optional filters */
+export function useOvertimeRequests(params?: OvertimeRequestListParams) {
+  return useQuery({
+    queryKey: attendanceKeys.overtimeRequests(params),
+    queryFn: () => attendanceApi.getOvertimeRequests(params),
   });
 }

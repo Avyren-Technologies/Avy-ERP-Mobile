@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { attendanceApi } from '@/lib/api/attendance';
+import { attendanceApi, type AttendanceRule, type OvertimeRule } from '@/lib/api/attendance';
 import { attendanceKeys } from '@/features/company-admin/api/use-attendance-queries';
 
 // ── Attendance Records ───────────────────────────────────────────────
@@ -40,7 +40,7 @@ export function useUpdateAttendanceRecord() {
 export function useUpdateAttendanceRules() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: Partial<AttendanceRule>) =>
       attendanceApi.updateRules(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: attendanceKeys.rules() });
@@ -167,12 +167,38 @@ export function useDeleteRoster() {
 export function useUpdateOvertimeRules() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: Partial<OvertimeRule>) =>
       attendanceApi.updateOvertimeRules(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: attendanceKeys.overtimeRules(),
       });
+    },
+  });
+}
+
+// ── Overtime Requests ────────────────────────────────────────────────
+
+/** Approve an overtime request */
+export function useApproveOvertimeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: { approvalNotes?: string } }) =>
+      attendanceApi.approveOvertimeRequest(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.overtimeRequests() });
+    },
+  });
+}
+
+/** Reject an overtime request */
+export function useRejectOvertimeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: { approvalNotes?: string } }) =>
+      attendanceApi.rejectOvertimeRequest(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.overtimeRequests() });
     },
   });
 }

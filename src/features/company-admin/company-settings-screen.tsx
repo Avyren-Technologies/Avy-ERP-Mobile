@@ -18,6 +18,7 @@ import colors from '@/components/ui/colors';
 
 import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 import { useUpdateSettings } from '@/features/company-admin/api/use-company-admin-mutations';
+import type { CompanySettings, CurrencyCode, LanguageCode, TimeFormat } from '@/lib/api/company-admin';
 
 import {
     ChipSelector,
@@ -25,58 +26,45 @@ import {
     ToggleRow,
 } from '@/features/super-admin/tenant-onboarding/atoms';
 
-// ============ CONSTANTS ============
+// ============ OPTIONS (matching web exactly) ============
 
-const CURRENCIES = ['INR', 'USD', 'GBP', 'EUR', 'AED'];
-const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Kannada', 'Telugu'];
-const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
-const NUMBER_FORMATS = ['Indian 2,00,000', 'International 200,000'];
-const TIME_FORMATS = ['12-hour', '24-hour'];
+const CURRENCY_OPTIONS = ['INR', 'USD', 'EUR', 'GBP', 'AED'];
+const LANGUAGE_OPTIONS = ['en', 'hi', 'ta', 'te', 'mr', 'kn'];
+const LANGUAGE_LABELS: Record<string, string> = {
+    en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu', mr: 'Marathi', kn: 'Kannada',
+};
+const TIMEZONE_OPTIONS = [
+    'Asia/Kolkata', 'America/New_York', 'America/Los_Angeles',
+    'Europe/London', 'Asia/Dubai', 'Asia/Singapore',
+];
+const DATE_FORMAT_OPTIONS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
+const TIME_FORMAT_OPTIONS = ['TWELVE_HOUR', 'TWENTY_FOUR_HOUR'];
+const TIME_FORMAT_LABELS: Record<string, string> = {
+    TWELVE_HOUR: '12 Hour', TWENTY_FOUR_HOUR: '24 Hour',
+};
+const NUMBER_FORMAT_OPTIONS = ['en-IN', 'en-US'];
+const NUMBER_FORMAT_LABELS: Record<string, string> = {
+    'en-IN': 'Indian (1,00,000)', 'en-US': 'International (100,000)',
+};
 
-// ============ SETTINGS STATE ============
+// ============ DEFAULTS (same 16 fields as web) ============
 
-interface SettingsFormState {
-    // Locale & Format
-    currency: string;
-    language: string;
-    dateFormat: string;
-    numberFormat: string;
-    timeFormat: string;
-    // Compliance
-    indiaCompliance: boolean;
-    multiCurrencyPayroll: boolean;
-    internationalTaxCompliance: boolean;
-    // Portal & App
-    essPortal: boolean;
-    mobileAppAccess: boolean;
-    aiChatbot: boolean;
-    eSignIntegration: boolean;
-    // Integrations
-    biometricSync: boolean;
-    payrollBankIntegration: boolean;
-    emailNotifications: boolean;
-    whatsappNotifications: boolean;
-    thirdPartyHRMSSync: boolean;
-}
-
-const DEFAULT_SETTINGS: SettingsFormState = {
+const DEFAULTS: CompanySettings = {
     currency: 'INR',
-    language: 'English',
+    language: 'en',
+    timezone: 'Asia/Kolkata',
     dateFormat: 'DD/MM/YYYY',
-    numberFormat: 'Indian 2,00,000',
-    timeFormat: '12-hour',
+    timeFormat: 'TWELVE_HOUR',
+    numberFormat: 'en-IN',
     indiaCompliance: true,
-    multiCurrencyPayroll: false,
-    internationalTaxCompliance: false,
-    essPortal: true,
-    mobileAppAccess: true,
-    aiChatbot: false,
-    eSignIntegration: false,
-    biometricSync: false,
-    payrollBankIntegration: false,
+    gdprMode: false,
+    auditTrail: true,
+    bankIntegration: false,
+    razorpayEnabled: false,
     emailNotifications: true,
     whatsappNotifications: false,
-    thirdPartyHRMSSync: false,
+    biometricIntegration: false,
+    eSignIntegration: false,
 };
 
 // ============ MAIN COMPONENT ============
@@ -85,72 +73,48 @@ export function CompanySettingsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
-    // --- Data fetching ---
     const { data: settingsResponse, isLoading } = useCompanySettings();
     const updateSettings = useUpdateSettings();
 
-    // --- Form state ---
-    const [form, setForm] = React.useState<SettingsFormState>(DEFAULT_SETTINGS);
-    const [initialForm, setInitialForm] = React.useState<SettingsFormState>(DEFAULT_SETTINGS);
-    const [initialized, setInitialized] = React.useState(false);
+    const [settings, setSettings] = React.useState<CompanySettings>({ ...DEFAULTS });
+    const [hasChanges, setHasChanges] = React.useState(false);
     const [showToast, setShowToast] = React.useState(false);
 
-    // Initialize form from server data
+    const serverSettings: CompanySettings = React.useMemo(() => {
+        const raw = (settingsResponse as any)?.data ?? settingsResponse ?? {};
+        return { ...DEFAULTS, ...raw };
+    }, [settingsResponse]);
+
     React.useEffect(() => {
-        if (settingsResponse && !initialized) {
-            const raw: any = settingsResponse?.data ?? settingsResponse ?? {};
-            const loaded: SettingsFormState = {
-                currency: raw.currency ?? DEFAULT_SETTINGS.currency,
-                language: raw.language ?? DEFAULT_SETTINGS.language,
-                dateFormat: raw.dateFormat ?? DEFAULT_SETTINGS.dateFormat,
-                numberFormat: raw.numberFormat ?? DEFAULT_SETTINGS.numberFormat,
-                timeFormat: raw.timeFormat ?? DEFAULT_SETTINGS.timeFormat,
-                indiaCompliance: raw.indiaCompliance ?? DEFAULT_SETTINGS.indiaCompliance,
-                multiCurrencyPayroll: raw.multiCurrencyPayroll ?? DEFAULT_SETTINGS.multiCurrencyPayroll,
-                internationalTaxCompliance: raw.internationalTaxCompliance ?? DEFAULT_SETTINGS.internationalTaxCompliance,
-                essPortal: raw.essPortal ?? DEFAULT_SETTINGS.essPortal,
-                mobileAppAccess: raw.mobileAppAccess ?? DEFAULT_SETTINGS.mobileAppAccess,
-                aiChatbot: raw.aiChatbot ?? DEFAULT_SETTINGS.aiChatbot,
-                eSignIntegration: raw.eSignIntegration ?? DEFAULT_SETTINGS.eSignIntegration,
-                biometricSync: raw.biometricSync ?? DEFAULT_SETTINGS.biometricSync,
-                payrollBankIntegration: raw.payrollBankIntegration ?? DEFAULT_SETTINGS.payrollBankIntegration,
-                emailNotifications: raw.emailNotifications ?? DEFAULT_SETTINGS.emailNotifications,
-                whatsappNotifications: raw.whatsappNotifications ?? DEFAULT_SETTINGS.whatsappNotifications,
-                thirdPartyHRMSSync: raw.thirdPartyHRMSSync ?? DEFAULT_SETTINGS.thirdPartyHRMSSync,
-            };
-            setForm(loaded);
-            setInitialForm(loaded);
-            setInitialized(true);
+        if (settingsResponse) {
+            setSettings({ ...serverSettings });
+            setHasChanges(false);
         }
-    }, [settingsResponse, initialized]);
+    }, [settingsResponse]);
 
-    // --- Dirty state ---
-    const isDirty = React.useMemo(
-        () => JSON.stringify(form) !== JSON.stringify(initialForm),
-        [form, initialForm],
-    );
+    const updateField = <K extends keyof CompanySettings>(key: K, value: CompanySettings[K]) => {
+        setSettings((p) => ({ ...p, [key]: value }));
+        setHasChanges(true);
+    };
 
-    // --- Form update helper ---
-    const update = React.useCallback(
-        (patch: Partial<SettingsFormState>) => setForm((prev) => ({ ...prev, ...patch })),
-        [],
-    );
-
-    // --- Save handler ---
     const handleSave = () => {
-        updateSettings.mutate(form as unknown as Record<string, unknown>, {
+        updateSettings.mutate(settings, {
             onSuccess: () => {
-                setInitialForm(form);
+                setHasChanges(false);
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 2500);
             },
         });
     };
 
-    // --- Loading state ---
+    const handleReset = () => {
+        setSettings({ ...serverSettings });
+        setHasChanges(false);
+    };
+
     if (isLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient
                     colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
                     style={styles.headerGradient}
@@ -161,13 +125,7 @@ export function CompanySettingsScreen() {
                     <View style={styles.headerRow}>
                         <Pressable onPress={() => router.back()} style={styles.backBtn}>
                             <Svg width={20} height={20} viewBox="0 0 24 24">
-                                <Path
-                                    d="M19 12H5M12 19l-7-7 7-7"
-                                    stroke={colors.white}
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
+                                <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
                         </Pressable>
                         <Text className="flex-1 text-center font-inter text-lg font-bold text-white">
@@ -178,9 +136,7 @@ export function CompanySettingsScreen() {
                 </LinearGradient>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary[500]} />
-                    <Text className="mt-3 font-inter text-sm text-neutral-500">
-                        Loading settings...
-                    </Text>
+                    <Text className="mt-3 font-inter text-sm text-neutral-500">Loading settings...</Text>
                 </View>
             </View>
         );
@@ -188,7 +144,6 @@ export function CompanySettingsScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Background gradient */}
             <LinearGradient
                 colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
                 style={StyleSheet.absoluteFill}
@@ -207,13 +162,7 @@ export function CompanySettingsScreen() {
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerRow}>
                     <Pressable onPress={() => router.back()} style={styles.backBtn}>
                         <Svg width={20} height={20} viewBox="0 0 24 24">
-                            <Path
-                                d="M19 12H5M12 19l-7-7 7-7"
-                                stroke={colors.white}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
+                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </Svg>
                     </Pressable>
                     <Text className="flex-1 text-center font-inter text-lg font-bold text-white">
@@ -225,225 +174,167 @@ export function CompanySettingsScreen() {
 
             {/* Scrollable content */}
             <ScrollView
-                contentContainerStyle={[
-                    styles.scrollContent,
-                    { paddingBottom: insets.bottom + (isDirty ? 100 : 40) },
-                ]}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + (hasChanges ? 100 : 40) }]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Locale & Format */}
+                {/* Section 1: Locale (6 fields) */}
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
-                    <SectionCard title="Locale & Format">
+                    <SectionCard title="Locale">
                         <ChipSelector
                             label="Currency"
-                            options={CURRENCIES}
-                            selected={form.currency}
-                            onSelect={(v) => update({ currency: v })}
+                            options={CURRENCY_OPTIONS}
+                            selected={settings.currency}
+                            onSelect={(v) => updateField('currency', v as CurrencyCode)}
                         />
                         <ChipSelector
                             label="Language"
-                            options={LANGUAGES}
-                            selected={form.language}
-                            onSelect={(v) => update({ language: v })}
+                            options={LANGUAGE_OPTIONS.map((l) => LANGUAGE_LABELS[l] ?? l)}
+                            selected={LANGUAGE_LABELS[settings.language] ?? settings.language}
+                            onSelect={(v) => {
+                                const key = Object.entries(LANGUAGE_LABELS).find(([, label]) => label === v)?.[0] ?? v;
+                                updateField('language', key as LanguageCode);
+                            }}
+                        />
+                        <ChipSelector
+                            label="Timezone"
+                            options={TIMEZONE_OPTIONS}
+                            selected={settings.timezone}
+                            onSelect={(v) => updateField('timezone', v)}
                         />
                         <ChipSelector
                             label="Date Format"
-                            options={DATE_FORMATS}
-                            selected={form.dateFormat}
-                            onSelect={(v) => update({ dateFormat: v })}
-                        />
-                        <ChipSelector
-                            label="Number Format"
-                            options={NUMBER_FORMATS}
-                            selected={form.numberFormat}
-                            onSelect={(v) => update({ numberFormat: v })}
+                            options={DATE_FORMAT_OPTIONS}
+                            selected={settings.dateFormat}
+                            onSelect={(v) => updateField('dateFormat', v)}
                         />
                         <ChipSelector
                             label="Time Format"
-                            options={TIME_FORMATS}
-                            selected={form.timeFormat}
-                            onSelect={(v) => update({ timeFormat: v })}
+                            options={TIME_FORMAT_OPTIONS.map((t) => TIME_FORMAT_LABELS[t] ?? t)}
+                            selected={TIME_FORMAT_LABELS[settings.timeFormat] ?? settings.timeFormat}
+                            onSelect={(v) => {
+                                const key = Object.entries(TIME_FORMAT_LABELS).find(([, label]) => label === v)?.[0] ?? v;
+                                updateField('timeFormat', key as TimeFormat);
+                            }}
+                        />
+                        <ChipSelector
+                            label="Number Format"
+                            options={NUMBER_FORMAT_OPTIONS.map((n) => NUMBER_FORMAT_LABELS[n] ?? n)}
+                            selected={NUMBER_FORMAT_LABELS[settings.numberFormat] ?? settings.numberFormat}
+                            onSelect={(v) => {
+                                const key = Object.entries(NUMBER_FORMAT_LABELS).find(([, label]) => label === v)?.[0] ?? v;
+                                updateField('numberFormat', key);
+                            }}
                         />
                     </SectionCard>
                 </Animated.View>
 
-                {/* Compliance */}
+                {/* Section 2: Compliance (3 fields) */}
                 <Animated.View entering={FadeInUp.duration(350).delay(200)}>
                     <SectionCard title="Compliance">
                         <ToggleRow
-                            label="India Statutory Compliance Mode"
-                            subtitle="PF, ESI, PT, TDS, Form 16, Gratuity, Bonus Act"
-                            value={form.indiaCompliance}
-                            onToggle={(v) => update({ indiaCompliance: v })}
+                            label="India Compliance"
+                            subtitle="Enable India-specific statutory compliance"
+                            value={settings.indiaCompliance}
+                            onToggle={(v) => updateField('indiaCompliance', v)}
                         />
                         <ToggleRow
-                            label="Multi-Currency Payroll"
-                            subtitle="Process payroll in multiple currencies for global teams"
-                            value={form.multiCurrencyPayroll}
-                            onToggle={(v) => update({ multiCurrencyPayroll: v })}
+                            label="GDPR Mode"
+                            subtitle="Enable GDPR data protection features"
+                            value={settings.gdprMode}
+                            onToggle={(v) => updateField('gdprMode', v)}
                         />
                         <ToggleRow
-                            label="International Tax Compliance"
-                            subtitle="Tax compliance for international operations"
-                            value={form.internationalTaxCompliance}
-                            onToggle={(v) => update({ internationalTaxCompliance: v })}
+                            label="Audit Trail"
+                            subtitle="Maintain detailed audit trail for all changes"
+                            value={settings.auditTrail}
+                            onToggle={(v) => updateField('auditTrail', v)}
                         />
                     </SectionCard>
                 </Animated.View>
 
-                {/* Portal & App */}
+                {/* Section 3: Integrations (6 fields) */}
                 <Animated.View entering={FadeInUp.duration(350).delay(300)}>
-                    <SectionCard title="Portal & App">
-                        <ToggleRow
-                            label="Employee Self-Service (ESS) Portal"
-                            subtitle="Allow employees to view payslips, request leave, update details"
-                            value={form.essPortal}
-                            onToggle={(v) => update({ essPortal: v })}
-                        />
-                        <ToggleRow
-                            label="Mobile App Access"
-                            subtitle="Avy ERP mobile app access for all employees"
-                            value={form.mobileAppAccess}
-                            onToggle={(v) => update({ mobileAppAccess: v })}
-                        />
-                        <ToggleRow
-                            label="AI HR Assistant Chatbot"
-                            subtitle="AI-powered chatbot for HR queries and policy lookups"
-                            value={form.aiChatbot}
-                            onToggle={(v) => update({ aiChatbot: v })}
-                        />
-                        <ToggleRow
-                            label="e-Sign Integration"
-                            subtitle="Digital signature integration for offer letters and contracts"
-                            value={form.eSignIntegration}
-                            onToggle={(v) => update({ eSignIntegration: v })}
-                        />
-                    </SectionCard>
-                </Animated.View>
-
-                {/* Integrations */}
-                <Animated.View entering={FadeInUp.duration(350).delay(400)}>
                     <SectionCard title="Integrations">
-                        {/* Biometric — Coming Soon */}
-                        <View style={{ opacity: 0.55 }} pointerEvents="none">
-                            <ToggleRow
-                                label="Biometric / Device Sync"
-                                subtitle="Auto-sync attendance from ZKTeco, ESSL devices"
-                                value={form.biometricSync}
-                                onToggle={() => {}}
-                            />
-                        </View>
-                        <View style={styles.comingSoonRow}>
-                            <View style={styles.comingSoonBadge}>
-                                <Text className="font-inter text-[9px] font-bold text-warning-700">
-                                    COMING SOON
-                                </Text>
-                            </View>
-                        </View>
-
                         <ToggleRow
-                            label="Payroll Bank Integration"
-                            subtitle="NEFT/RTGS bank file generation for salary disbursement"
-                            value={form.payrollBankIntegration}
-                            onToggle={(v) => update({ payrollBankIntegration: v })}
+                            label="Bank Integration"
+                            subtitle="Enable bank account integration"
+                            value={settings.bankIntegration}
+                            onToggle={(v) => updateField('bankIntegration', v)}
+                        />
+                        <ToggleRow
+                            label="RazorpayX Payout"
+                            subtitle="Enable RazorpayX for payroll disbursement"
+                            value={settings.razorpayEnabled}
+                            onToggle={(v) => updateField('razorpayEnabled', v)}
                         />
                         <ToggleRow
                             label="Email Notifications"
-                            subtitle="Automated emails for payslips, leave approvals, alerts"
-                            value={form.emailNotifications}
-                            onToggle={(v) => update({ emailNotifications: v })}
+                            subtitle="Send email alerts for key events"
+                            value={settings.emailNotifications}
+                            onToggle={(v) => updateField('emailNotifications', v)}
                         />
-
-                        {/* WhatsApp — Coming Soon */}
-                        <View style={{ opacity: 0.55 }} pointerEvents="none">
-                            <ToggleRow
-                                label="WhatsApp Notifications"
-                                subtitle="Salary alerts, leave status via WhatsApp Business API"
-                                value={form.whatsappNotifications}
-                                onToggle={() => {}}
-                            />
-                        </View>
-                        <View style={styles.comingSoonRow}>
-                            <View style={styles.comingSoonBadge}>
-                                <Text className="font-inter text-[9px] font-bold text-warning-700">
-                                    COMING SOON
-                                </Text>
-                            </View>
-                        </View>
-
                         <ToggleRow
-                            label="Third-Party HRMS Sync"
-                            subtitle="Sync data with external HRMS platforms"
-                            value={form.thirdPartyHRMSSync}
-                            onToggle={(v) => update({ thirdPartyHRMSSync: v })}
+                            label="WhatsApp Notifications"
+                            subtitle="Send WhatsApp alerts"
+                            value={settings.whatsappNotifications}
+                            onToggle={(v) => updateField('whatsappNotifications', v)}
+                        />
+                        <ToggleRow
+                            label="Biometric Integration"
+                            subtitle="Enable biometric device integration"
+                            value={settings.biometricIntegration}
+                            onToggle={(v) => updateField('biometricIntegration', v)}
+                        />
+                        <ToggleRow
+                            label="E-Sign Integration"
+                            subtitle="Enable electronic signature workflows"
+                            value={settings.eSignIntegration}
+                            onToggle={(v) => updateField('eSignIntegration', v)}
                         />
                     </SectionCard>
                 </Animated.View>
             </ScrollView>
 
-            {/* Save Button — visible only when dirty */}
-            {isDirty && (
+            {/* Save Button */}
+            {hasChanges && (
                 <Animated.View
                     entering={FadeInDown.duration(300)}
                     style={[styles.saveContainer, { paddingBottom: insets.bottom + 16 }]}
                 >
-                    <Pressable
-                        onPress={handleSave}
-                        disabled={updateSettings.isPending}
-                        style={({ pressed }) => [
-                            styles.saveBtn,
-                            pressed && { opacity: 0.85 },
-                            updateSettings.isPending && { opacity: 0.6 },
-                        ]}
-                    >
-                        <LinearGradient
-                            colors={[colors.gradient.start, colors.gradient.end]}
-                            style={styles.saveBtnGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
+                    <View style={styles.saveRow}>
+                        <Pressable onPress={handleReset} style={styles.resetBtn}>
+                            <Text className="font-inter text-sm font-bold text-neutral-600">Reset</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={handleSave}
+                            disabled={updateSettings.isPending}
+                            style={[styles.saveBtn, updateSettings.isPending && { opacity: 0.6 }]}
                         >
-                            {updateSettings.isPending ? (
-                                <ActivityIndicator size="small" color={colors.white} />
-                            ) : (
-                                <>
-                                    <Svg width={18} height={18} viewBox="0 0 24 24">
-                                        <Path
-                                            d="M5 12l5 5L20 7"
-                                            stroke={colors.white}
-                                            strokeWidth="2.5"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </Svg>
-                                    <Text className="font-inter text-base font-bold text-white">
-                                        Save Settings
-                                    </Text>
-                                </>
-                            )}
-                        </LinearGradient>
-                    </Pressable>
+                            <LinearGradient
+                                colors={[colors.gradient.start, colors.gradient.end]}
+                                style={styles.saveBtnGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                {updateSettings.isPending ? (
+                                    <ActivityIndicator size="small" color={colors.white} />
+                                ) : (
+                                    <Text className="font-inter text-base font-bold text-white">Save Changes</Text>
+                                )}
+                            </LinearGradient>
+                        </Pressable>
+                    </View>
                 </Animated.View>
             )}
 
             {/* Success toast */}
             {showToast && (
-                <Animated.View
-                    entering={FadeInDown.duration(250)}
-                    style={[styles.toast, { top: insets.top + 70 }]}
-                >
+                <Animated.View entering={FadeInDown.duration(250)} style={[styles.toast, { top: insets.top + 70 }]}>
                     <Svg width={18} height={18} viewBox="0 0 24 24">
-                        <Path
-                            d="M5 12l5 5L20 7"
-                            stroke={colors.success[600]}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
+                        <Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
-                    <Text className="font-inter text-sm font-semibold text-success-700">
-                        Settings saved successfully
-                    </Text>
+                    <Text className="font-inter text-sm font-semibold text-success-700">Settings saved successfully</Text>
                 </Animated.View>
             )}
         </View>
@@ -453,96 +344,40 @@ export function CompanySettingsScreen() {
 // ============ STYLES ============
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.gradient.surface,
-    },
-    headerGradient: {
-        paddingBottom: 16,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 12,
-    },
+    container: { flex: 1, backgroundColor: colors.gradient.surface },
+    headerGradient: { paddingBottom: 16 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12 },
     backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 11,
+        width: 36, height: 36, borderRadius: 11,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: 'center', alignItems: 'center',
     },
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    comingSoonRow: {
-        marginTop: -8,
-        marginBottom: 4,
-        alignSelf: 'flex-end',
-    },
-    comingSoonBadge: {
-        backgroundColor: '#FEF3C7',
-        borderRadius: 999,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-    },
+    scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     saveContainer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: 20,
-        paddingTop: 12,
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        paddingHorizontal: 20, paddingTop: 12,
         backgroundColor: colors.white,
-        borderTopWidth: 1,
-        borderTopColor: colors.neutral[100],
-        shadowColor: colors.primary[900],
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 8,
+        borderTopWidth: 1, borderTopColor: colors.neutral[100],
+        shadowColor: colors.primary[900], shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08, shadowRadius: 12, elevation: 8,
     },
-    saveBtn: {
-        borderRadius: 16,
-        overflow: 'hidden',
-        shadowColor: colors.primary[500],
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 6,
+    saveRow: { flexDirection: 'row', gap: 12 },
+    resetBtn: {
+        height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200],
+        justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20,
     },
+    saveBtn: { flex: 1, borderRadius: 14, overflow: 'hidden' },
     saveBtnGradient: {
-        height: 56,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-        gap: 8,
+        height: 52, borderRadius: 14,
+        justifyContent: 'center', alignItems: 'center',
     },
     toast: {
-        position: 'absolute',
-        left: 20,
-        right: 20,
-        backgroundColor: colors.success[50],
-        borderRadius: 12,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        borderWidth: 1,
-        borderColor: colors.success[200],
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        position: 'absolute', left: 20, right: 20,
+        backgroundColor: colors.success[50], borderRadius: 12,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
+        borderWidth: 1, borderColor: colors.success[200],
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
 });

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { essApi } from '@/lib/api/ess';
+import { essApi, type ESSConfig } from '@/lib/api/ess';
 import { essKeys } from '@/features/company-admin/api/use-ess-queries';
 
 // ── ESS Config ────────────────────────────────────────────────────
@@ -9,7 +9,7 @@ import { essKeys } from '@/features/company-admin/api/use-ess-queries';
 export function useUpdateEssConfig() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
+    mutationFn: (data: Partial<ESSConfig>) =>
       essApi.updateEssConfig(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: essKeys.essConfig() });

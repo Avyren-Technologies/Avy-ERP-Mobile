@@ -10,6 +10,130 @@ export interface CompanyAdminListParams {
   role?: string;
 }
 
+export type CurrencyCode = 'INR' | 'USD' | 'EUR' | 'GBP' | 'AED';
+export type LanguageCode = 'en' | 'hi' | 'ta' | 'te' | 'mr' | 'kn';
+export type TimeFormat = 'TWELVE_HOUR' | 'TWENTY_FOUR_HOUR';
+export type ShiftType = 'DAY' | 'NIGHT' | 'FLEXIBLE';
+export type BreakType = 'FIXED' | 'FLEXIBLE';
+export type DeviceType = 'BIOMETRIC' | 'MOBILE_GPS' | 'WEB_PORTAL' | 'SMART_CARD' | 'FACE_RECOGNITION';
+
+export interface CompanySettings {
+  id?: string;
+  // Locale
+  currency: CurrencyCode;
+  language: LanguageCode;
+  timezone: string;
+  dateFormat: string;
+  timeFormat: TimeFormat;
+  numberFormat: string;
+  // Compliance
+  indiaCompliance: boolean;
+  gdprMode: boolean;
+  auditTrail: boolean;
+  // Integrations
+  bankIntegration: boolean;
+  razorpayEnabled: boolean;
+  emailNotifications: boolean;
+  whatsappNotifications: boolean;
+  biometricIntegration: boolean;
+  eSignIntegration: boolean;
+}
+
+export interface SystemControls {
+  id?: string;
+  // Module Enablement
+  attendanceEnabled: boolean;
+  leaveEnabled: boolean;
+  payrollEnabled: boolean;
+  essEnabled: boolean;
+  performanceEnabled: boolean;
+  recruitmentEnabled: boolean;
+  trainingEnabled: boolean;
+  mobileAppEnabled: boolean;
+  aiChatbotEnabled: boolean;
+  // Production
+  ncEditMode: boolean;
+  loadUnload: boolean;
+  cycleTime: boolean;
+  // Payroll
+  payrollLock: boolean;
+  backdatedEntryControl: boolean;
+  // Leave
+  leaveCarryForward: boolean;
+  compOffEnabled: boolean;
+  halfDayLeaveEnabled: boolean;
+  // Security
+  mfaRequired: boolean;
+  sessionTimeoutMinutes: number;
+  maxConcurrentSessions: number;
+  passwordMinLength: number;
+  passwordComplexity: boolean;
+  accountLockThreshold: number;
+  accountLockDurationMinutes: number;
+  // Audit
+  auditLogRetentionDays: number;
+}
+
+export interface ShiftBreak {
+  id: string;
+  shiftId: string;
+  name: string;
+  startTime?: string | null;
+  duration: number;
+  type: BreakType;
+  isPaid: boolean;
+}
+
+export interface CreateShiftBreakPayload {
+  name: string;
+  type: BreakType;
+  startTime?: string | null;
+  duration: number;
+  isPaid?: boolean;
+}
+
+export interface CompanyShift {
+  id: string;
+  name: string;
+  shiftType: ShiftType;
+  startTime: string;
+  endTime: string;
+  isCrossDay: boolean;
+  breaks?: ShiftBreak[];
+  gracePeriodMinutes?: number | null;
+  earlyExitToleranceMinutes?: number | null;
+  halfDayThresholdHours?: number | null;
+  fullDayThresholdHours?: number | null;
+  maxLateCheckInMinutes?: number | null;
+  minWorkingHoursForOT?: number | null;
+  requireSelfie?: boolean | null;
+  requireGPS?: boolean | null;
+  allowedSources?: DeviceType[];
+  noShuffle: boolean;
+  autoClockOutMinutes?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateShiftPayload {
+  name: string;
+  shiftType?: ShiftType;
+  startTime: string;
+  endTime: string;
+  isCrossDay?: boolean;
+  gracePeriodMinutes?: number | null;
+  earlyExitToleranceMinutes?: number | null;
+  halfDayThresholdHours?: number | null;
+  fullDayThresholdHours?: number | null;
+  maxLateCheckInMinutes?: number | null;
+  minWorkingHoursForOT?: number | null;
+  requireSelfie?: boolean | null;
+  requireGPS?: boolean | null;
+  allowedSources?: DeviceType[];
+  noShuffle?: boolean;
+  autoClockOutMinutes?: number | null;
+}
+
 // --- API Service ---
 
 /**
@@ -38,13 +162,26 @@ export const companyAdminApi = {
   // ── Shifts (full CRUD) ──────────────────────────────────────────────
   listShifts: () => client.get('/company/shifts'),
 
-  createShift: (data: Record<string, unknown>) =>
+  createShift: (data: CreateShiftPayload) =>
     client.post('/company/shifts', data),
 
-  updateShift: (id: string, data: Record<string, unknown>) =>
+  updateShift: (id: string, data: Partial<CreateShiftPayload>) =>
     client.patch(`/company/shifts/${id}`, data),
 
   deleteShift: (id: string) => client.delete(`/company/shifts/${id}`),
+
+  // ── Shift Breaks ────────────────────────────────────────────────────
+  getShiftBreaks: (shiftId: string) =>
+    client.get(`/company/shifts/${shiftId}/breaks`),
+
+  createShiftBreak: (shiftId: string, data: CreateShiftBreakPayload) =>
+    client.post(`/company/shifts/${shiftId}/breaks`, data),
+
+  updateShiftBreak: (shiftId: string, breakId: string, data: Partial<CreateShiftBreakPayload>) =>
+    client.patch(`/company/shifts/${shiftId}/breaks/${breakId}`, data),
+
+  deleteShiftBreak: (shiftId: string, breakId: string) =>
+    client.delete(`/company/shifts/${shiftId}/breaks/${breakId}`),
 
   // ── Contacts (full CRUD) ────────────────────────────────────────────
   listContacts: () => client.get('/company/contacts'),
@@ -82,13 +219,13 @@ export const companyAdminApi = {
   // ── Controls ───────────────────────────────────────────────────────
   getControls: () => client.get('/company/controls'),
 
-  updateControls: (data: Record<string, unknown>) =>
+  updateControls: (data: Partial<SystemControls>) =>
     client.patch('/company/controls', data),
 
   // ── Settings ───────────────────────────────────────────────────────
   getSettings: () => client.get('/company/settings'),
 
-  updateSettings: (data: Record<string, unknown>) =>
+  updateSettings: (data: Partial<CompanySettings>) =>
     client.patch('/company/settings', data),
 
   // ── Users ──────────────────────────────────────────────────────────
@@ -146,18 +283,6 @@ export const companyAdminApi = {
 
   /** Fetch permission catalogue (modules + actions) */
   getPermissionCatalogue: () => client.get('/rbac/permissions'),
-
-  // ── Feature Toggles ─────────────────────────────────────────────
-  /** Fetch feature toggle catalogue */
-  getFeatureToggleCatalogue: () => client.get('/feature-toggles/catalogue'),
-
-  /** Fetch feature toggles, optionally filtered by userId */
-  getFeatureToggles: (userId?: string) =>
-    client.get('/feature-toggles', { params: userId ? { userId } : undefined }),
-
-  /** Update feature toggles for a specific user */
-  updateFeatureToggles: (userId: string, toggles: Record<string, boolean>) =>
-    client.put(`/feature-toggles/user/${userId}`, { toggles }),
 
   // ── Support Tickets ─────────────────────────────────────────────────
   createSupportTicket: (data: { subject: string; category?: string; priority?: string; message: string; metadata?: Record<string, unknown> }) =>

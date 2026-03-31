@@ -296,3 +296,64 @@ export function useDownloadPayslipPdf() {
     mutationFn: (payslipId: string) => essApi.downloadPayslipPdf(payslipId),
   });
 }
+
+// ── Shift Swap ───────────────────────────────────────────────────
+
+/** Create a shift swap request */
+export function useCreateShiftSwap() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => essApi.createShiftSwap(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myShiftSwaps() });
+    },
+  });
+}
+
+/** Cancel a shift swap request */
+export function useCancelShiftSwap() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.cancelShiftSwap(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myShiftSwaps() });
+    },
+  });
+}
+
+// ── WFH Requests ─────────────────────────────────────────────────
+
+/** Create a WFH request */
+export function useCreateWfhRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => essApi.createWfhRequest(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myWfhRequests() });
+    },
+  });
+}
+
+/** Cancel a WFH request */
+export function useCancelWfhRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.cancelWfhRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myWfhRequests() });
+    },
+  });
+}
+
+// ── My Documents ─────────────────────────────────────────────────
+
+/** Upload a personal document */
+export function useUploadMyDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => essApi.uploadMyDocument(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myDocuments() });
+    },
+  });
+}

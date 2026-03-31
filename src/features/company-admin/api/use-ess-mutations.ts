@@ -261,3 +261,38 @@ export function useRegularizeAttendance() {
     },
   });
 }
+
+// ── ESS Profile Update ───────────────────────────────────────────
+
+/** Update employee's own profile */
+export function useUpdateMyProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => essApi.updateMyProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myProfile() });
+    },
+  });
+}
+
+// ── Leave Cancel ─────────────────────────────────────────────────
+
+/** Cancel a leave request */
+export function useCancelLeave() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.cancelLeave(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myLeaveBalance() });
+    },
+  });
+}
+
+// ── Payslip PDF Download ─────────────────────────────────────────
+
+/** Download a payslip as PDF */
+export function useDownloadPayslipPdf() {
+  return useMutation({
+    mutationFn: (payslipId: string) => essApi.downloadPayslipPdf(payslipId),
+  });
+}

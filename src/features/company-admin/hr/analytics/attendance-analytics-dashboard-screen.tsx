@@ -1,7 +1,8 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 
+import type { DrilldownColumn } from '@/components/analytics';
 import {
   AlertsBanner,
   DashboardShell,
@@ -11,7 +12,6 @@ import {
   KPIGrid,
   TrendChart,
   ZeroDataState,
-  type DrilldownColumn,
 } from '@/components/analytics';
 import { useAnalyticsDashboard } from '@/features/company-admin/api/use-analytics-queries';
 

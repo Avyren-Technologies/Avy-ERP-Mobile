@@ -19,11 +19,12 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useMyLeaveBalance } from '@/features/company-admin/api/use-ess-queries';
-import { useApplyLeave } from '@/features/company-admin/api/use-ess-mutations';
+import { useApplyLeave, useCancelLeave } from '@/features/company-admin/api/use-ess-mutations';
 
 // ============ TYPES ============
 
@@ -201,6 +202,8 @@ export function MyLeaveScreen() {
 
     const { data: response, isLoading, error, refetch, isFetching } = useMyLeaveBalance();
     const applyMutation = useApplyLeave();
+    const cancelLeave = useCancelLeave();
+    const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const [formVisible, setFormVisible] = React.useState(false);
 
@@ -228,6 +231,16 @@ export function MyLeaveScreen() {
 
     const handleApply = (formData: Record<string, unknown>) => {
         applyMutation.mutate(formData, { onSuccess: () => setFormVisible(false) });
+    };
+
+    const handleCancelLeave = (id: string) => {
+        showConfirm({
+            title: 'Cancel Leave',
+            message: 'Are you sure you want to cancel this leave request?',
+            confirmText: 'Cancel Leave',
+            variant: 'danger',
+            onConfirm: () => cancelLeave.mutate(id),
+        });
     };
 
     type ListItem = { type: 'header'; key: string } | { type: 'request'; item: MyLeaveRequest; key: string };
@@ -266,6 +279,7 @@ export function MyLeaveScreen() {
         }
 
         const req = item.item;
+        const canCancel = req.status === 'Pending' || req.status === 'Approved';
         return (
             <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 40)}>
                 <View style={styles.card}>
@@ -277,6 +291,12 @@ export function MyLeaveScreen() {
                         <StatusBadge status={req.status} />
                     </View>
                     {req.reason ? <Text className="mt-2 font-inter text-xs text-neutral-500" numberOfLines={2}>{req.reason}</Text> : null}
+                    {canCancel && (
+                        <Pressable onPress={() => handleCancelLeave(req.id)} style={styles.cancelLeaveBtn}>
+                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                            <Text className="font-inter text-xs font-bold text-danger-600">Cancel Leave</Text>
+                        </Pressable>
+                    )}
                 </View>
             </Animated.View>
         );
@@ -307,6 +327,7 @@ export function MyLeaveScreen() {
                 />
             )}
             <ApplyLeaveModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleApply} isSaving={applyMutation.isPending} />
+            <ConfirmModal {...confirmModalProps} />
         </View>
     );
 }
@@ -351,6 +372,11 @@ const styles = StyleSheet.create({
     },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 4 },
     daysBadge: { backgroundColor: colors.primary[50], borderRadius: 12, padding: 10, alignItems: 'center', marginBottom: 14 },
+    cancelLeaveBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+        marginTop: 10, paddingVertical: 8, borderRadius: 10,
+        borderWidth: 1, borderColor: colors.danger[200], backgroundColor: colors.danger[50],
+    } as any,
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });

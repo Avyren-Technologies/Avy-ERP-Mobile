@@ -3,11 +3,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    FlatList,
+    Image as RNImage,
+    LayoutAnimation,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
+    TextInput,
+    UIManager,
     View,
 } from 'react-native';
 import Animated, {
@@ -15,15 +19,19 @@ import Animated, {
     FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useOrgChart } from '@/features/company-admin/api/use-hr-queries';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // ============ TYPES ============
 
@@ -34,19 +42,51 @@ interface OrgNode {
     department?: string;
     employeeId?: string;
     imageUrl?: string;
-    children?: OrgNode[];
-    reportees?: OrgNode[];
+    reportees: OrgNode[];
 }
 
+interface DeptGroup {
+    department: string;
+    colorIndex: number;
+    members: OrgNode[];
+}
+
+// ============ CONSTANTS ============
+
+const DEPT_COLORS = [
+    { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0', line: '#059669', dot: '#10B981' },
+    { bg: '#F0FDFA', text: '#0F766E', border: '#99F6E4', line: '#0D9488', dot: '#14B8A6' },
+    { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE', line: '#4338CA', dot: '#6366F1' },
+    { bg: '#F5F3FF', text: '#6D28D9', border: '#DDD6FE', line: '#7C3AED', dot: '#8B5CF6' },
+    { bg: '#FFF1F2', text: '#BE123C', border: '#FECDD3', line: '#DC2626', dot: '#EF4444' },
+    { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A', line: '#D97706', dot: '#F59E0B' },
+    { bg: '#F0F9FF', text: '#0369A1', border: '#BAE6FD', line: '#2563EB', dot: '#3B82F6' },
+] as const;
+
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.15;
+
 // ============ HELPERS ============
+
+function transformNode(node: any): OrgNode {
+    return {
+        id: node.id,
+        name: [node.firstName, node.lastName].filter(Boolean).join(' ') || node.name || 'Unknown',
+        designation: node.designation?.name ?? node.designation ?? undefined,
+        department: node.department?.name ?? node.department ?? undefined,
+        employeeId: node.employeeId,
+        imageUrl: node.profilePhotoUrl ?? node.imageUrl ?? undefined,
+        reportees: (node.reportees ?? node.children ?? []).map(transformNode),
+    };
+}
 
 function flattenNodes(nodes: OrgNode[]): OrgNode[] {
     const result: OrgNode[] = [];
     const walk = (list: OrgNode[]) => {
         for (const n of list) {
             result.push(n);
-            const children = n.children ?? n.reportees ?? [];
-            if (children.length) walk(children);
+            if (n.reportees.length) walk(n.reportees);
         }
     };
     walk(nodes);
@@ -57,9 +97,8 @@ function findAncestors(nodes: OrgNode[], targetId: string): string[] {
     const ancestors: string[] = [];
     const walk = (list: OrgNode[], path: string[]): boolean => {
         for (const n of list) {
-            const children = n.children ?? n.reportees ?? [];
             if (n.id === targetId) { ancestors.push(...path); return true; }
-            if (children.length && walk(children, [...path, n.id])) return true;
+            if (n.reportees.length && walk(n.reportees, [...path, n.id])) return true;
         }
         return false;
     };
@@ -67,93 +106,419 @@ function findAncestors(nodes: OrgNode[], targetId: string): string[] {
     return ancestors;
 }
 
-// ============ PROFILE CIRCLE ============
+function groupByDepartment(reportees: OrgNode[]): DeptGroup[] {
+    const map = new Map<string, OrgNode[]>();
+    for (const emp of reportees) {
+        const dept = emp.department || 'Unassigned';
+        if (!map.has(dept)) map.set(dept, []);
+        map.get(dept)!.push(emp);
+    }
+    const groups: DeptGroup[] = [];
+    let idx = 0;
+    for (const [department, members] of map) {
+        groups.push({ department, colorIndex: idx % DEPT_COLORS.length, members });
+        idx++;
+    }
+    return groups;
+}
 
-function ProfileCircle({ name, size = 36 }: { name: string; size?: number }) {
-    const initial = (name ?? '?')[0]?.toUpperCase();
+function getInitials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (name[0] ?? '?').toUpperCase();
+}
+
+// ============ AVATAR ============
+
+function Avatar({ name, imageUrl, size = 'md' }: {
+    name: string;
+    imageUrl?: string;
+    size?: 'sm' | 'md' | 'lg';
+}) {
+    const sizeMap = { sm: 32, md: 44, lg: 56 };
+    const fontMap = { sm: 'text-xs', md: 'text-sm', lg: 'text-lg' };
+    const dim = sizeMap[size];
+    const initials = getInitials(name);
+
+    if (imageUrl) {
+        return (
+            <RNImage
+                source={{ uri: imageUrl }}
+                style={[
+                    styles.avatarImage,
+                    { width: dim, height: dim, borderRadius: dim / 2 },
+                ]}
+            />
+        );
+    }
+
     return (
-        <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-            <Text className="font-inter text-sm font-bold text-white">{initial}</Text>
+        <LinearGradient
+            colors={[colors.primary[400], colors.accent[500]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+                styles.avatarGradient,
+                { width: dim, height: dim, borderRadius: dim / 2 },
+            ]}
+        >
+            <Text className={`font-inter font-bold text-white ${fontMap[size]}`}>{initials}</Text>
+        </LinearGradient>
+    );
+}
+
+// ============ ROOT CARD (CEO/Founder) ============
+
+function RootCard({ node, isHighlighted }: {
+    node: OrgNode;
+    isHighlighted: boolean;
+}) {
+    return (
+        <Animated.View entering={FadeInDown.duration(400)} style={[
+            styles.rootCard,
+            isHighlighted && styles.cardHighlighted,
+        ]}>
+            <Avatar name={node.name} imageUrl={node.imageUrl} size="lg" />
+            <View style={styles.rootCardInfo}>
+                <Text className="font-inter text-base font-bold text-primary-950" numberOfLines={1}>
+                    {node.name}
+                </Text>
+                {node.designation ? (
+                    <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>
+                        {node.designation}
+                    </Text>
+                ) : null}
+                {node.department ? (
+                    <View style={styles.rootDeptBadge}>
+                        <Text className="font-inter text-[10px] font-semibold text-primary-700">
+                            {node.department}
+                        </Text>
+                    </View>
+                ) : null}
+            </View>
+        </Animated.View>
+    );
+}
+
+// ============ DEPARTMENT PILL ============
+
+function DepartmentPill({ group, isSelected, onPress }: {
+    group: DeptGroup;
+    isSelected: boolean;
+    onPress: () => void;
+}) {
+    const color = DEPT_COLORS[group.colorIndex];
+
+    return (
+        <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [
+                styles.deptPill,
+                {
+                    backgroundColor: isSelected ? color.dot : color.bg,
+                    borderColor: isSelected ? color.dot : color.border,
+                },
+                pressed && { opacity: 0.8 },
+            ]}
+        >
+            <Text
+                className="font-inter text-xs font-bold"
+                style={{ color: isSelected ? colors.white : color.text }}
+            >
+                {group.department}
+            </Text>
+            <View style={[
+                styles.deptPillCount,
+                { backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : color.border },
+            ]}>
+                <Text
+                    className="font-inter text-[10px] font-bold"
+                    style={{ color: isSelected ? colors.white : color.text }}
+                >
+                    {group.members.length}
+                </Text>
+            </View>
+        </Pressable>
+    );
+}
+
+// ============ EMPLOYEE CARD ============
+
+function EmployeeCard({ node, isHighlighted, level, hasChildren, isExpanded, childCount, onToggle, onPress }: {
+    node: OrgNode;
+    isHighlighted: boolean;
+    level: number;
+    hasChildren: boolean;
+    isExpanded: boolean;
+    childCount: number;
+    onToggle: () => void;
+    onPress: () => void;
+}) {
+    return (
+        <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [
+                styles.employeeCard,
+                isHighlighted && styles.cardHighlighted,
+                pressed && { opacity: 0.9 },
+            ]}
+        >
+            <Avatar name={node.name} imageUrl={node.imageUrl} size="sm" />
+            <View style={styles.employeeCardInfo}>
+                <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>
+                    {node.name}
+                </Text>
+                {node.designation ? (
+                    <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
+                        {node.designation}
+                    </Text>
+                ) : null}
+            </View>
+            {hasChildren && (
+                <Pressable onPress={onToggle} hitSlop={8} style={styles.expandButton}>
+                    <Svg width={12} height={12} viewBox="0 0 24 24">
+                        <Path
+                            d={isExpanded ? 'M6 9l6 6 6-6' : 'M9 18l6-6-6-6'}
+                            stroke={colors.primary[500]}
+                            strokeWidth="2.5"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </Svg>
+                    <Text className="font-inter text-[9px] font-bold text-primary-500">{childCount}</Text>
+                </Pressable>
+            )}
+        </Pressable>
+    );
+}
+
+// ============ TREE CONNECTOR LINE ============
+
+function TreeConnector({ isLast, colorHex }: { isLast: boolean; colorHex: string }) {
+    return (
+        <View style={styles.connectorRow}>
+            {/* Vertical line */}
+            <View style={[
+                styles.connectorVertical,
+                { backgroundColor: colorHex, height: isLast ? 20 : '100%' as any },
+            ]} />
+            {/* Horizontal branch */}
+            <View style={[styles.connectorHorizontal, { backgroundColor: colorHex }]} />
+            {/* Dot at junction */}
+            <View style={[styles.connectorDot, { backgroundColor: colorHex }]} />
         </View>
     );
 }
 
-// ============ ORG NODE (Nested list for mobile) ============
+// ============ EMPLOYEE SUBTREE (recursive) ============
 
-function OrgNodeRow({
-    node,
-    level,
-    expanded,
-    onToggle,
-    highlightId,
-    index,
-}: {
+function EmployeeSubTree({ node, level, highlightId, expanded, onToggle, onSelectEmployee, colorHex, isLast, index }: {
     node: OrgNode;
     level: number;
+    highlightId: string | null;
     expanded: Set<string>;
     onToggle: (id: string) => void;
-    highlightId: string | null;
+    onSelectEmployee: (node: OrgNode) => void;
+    colorHex: string;
+    isLast: boolean;
     index: number;
 }) {
-    const children = node.children ?? node.reportees ?? [];
-    const hasChildren = children.length > 0;
+    const hasChildren = node.reportees.length > 0;
     const isExpanded = expanded.has(node.id);
     const isHighlighted = highlightId === node.id;
 
     return (
-        <Animated.View entering={FadeInUp.duration(300).delay(50 + index * 30)}>
-            <Pressable
-                onPress={() => hasChildren && onToggle(node.id)}
-                style={({ pressed }) => [
-                    styles.nodeRow,
-                    { marginLeft: level * 20 },
-                    isHighlighted && styles.nodeHighlighted,
-                    pressed && hasChildren && { opacity: 0.8 },
-                ]}
-            >
-                {/* Indent line */}
-                {level > 0 && (
-                    <View style={[styles.indentLine, { left: -10 }]} />
-                )}
-                <ProfileCircle name={node.name} size={32} />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{node.name}</Text>
-                    {node.designation ? (
-                        <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>{node.designation}</Text>
-                    ) : null}
-                    {node.department ? (
-                        <View style={[styles.deptBadge, { marginTop: 3 }]}>
-                            <Text className="font-inter text-[9px] font-bold text-accent-700">{node.department}</Text>
-                        </View>
-                    ) : null}
+        <Animated.View
+            entering={FadeInUp.duration(250).delay(50 + index * 30)}
+            style={styles.subTreeContainer}
+        >
+            <View style={styles.subTreeRow}>
+                {/* Tree connector */}
+                <TreeConnector isLast={isLast && (!hasChildren || !isExpanded)} colorHex={colorHex} />
+
+                {/* Card */}
+                <View style={styles.subTreeCardWrap}>
+                    <EmployeeCard
+                        node={node}
+                        isHighlighted={isHighlighted}
+                        level={level}
+                        hasChildren={hasChildren}
+                        isExpanded={isExpanded}
+                        childCount={node.reportees.length}
+                        onToggle={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            onToggle(node.id);
+                        }}
+                        onPress={() => onSelectEmployee(node)}
+                    />
                 </View>
-                {hasChildren && (
-                    <View style={styles.expandIcon}>
+            </View>
+
+            {/* Children */}
+            {hasChildren && isExpanded && (
+                <View style={[styles.childrenContainer, { borderLeftColor: colorHex }]}>
+                    {node.reportees.map((child, i) => (
+                        <EmployeeSubTree
+                            key={child.id}
+                            node={child}
+                            level={level + 1}
+                            highlightId={highlightId}
+                            expanded={expanded}
+                            onToggle={onToggle}
+                            onSelectEmployee={onSelectEmployee}
+                            colorHex={colorHex}
+                            isLast={i === node.reportees.length - 1}
+                            index={i}
+                        />
+                    ))}
+                </View>
+            )}
+        </Animated.View>
+    );
+}
+
+// ============ DEPARTMENT SECTION ============
+
+function DepartmentSection({ group, highlightId, expanded, onToggle, onSelectEmployee }: {
+    group: DeptGroup;
+    highlightId: string | null;
+    expanded: Set<string>;
+    onToggle: (id: string) => void;
+    onSelectEmployee: (node: OrgNode) => void;
+}) {
+    const color = DEPT_COLORS[group.colorIndex];
+
+    return (
+        <Animated.View entering={FadeInUp.duration(350)} style={styles.deptSection}>
+            {/* Department header */}
+            <View style={[styles.deptSectionHeader, { borderLeftColor: color.dot }]}>
+                <View style={[styles.deptSectionDot, { backgroundColor: color.dot }]} />
+                <Text className="font-inter text-sm font-bold" style={{ color: color.text }}>
+                    {group.department}
+                </Text>
+                <Text className="font-inter text-[10px] text-neutral-400 ml-1">
+                    ({group.members.length})
+                </Text>
+            </View>
+
+            {/* Employee tree */}
+            <View style={[styles.deptTreeContainer, { borderLeftColor: color.line + '40' }]}>
+                {group.members.map((member, i) => (
+                    <EmployeeSubTree
+                        key={member.id}
+                        node={member}
+                        level={1}
+                        highlightId={highlightId}
+                        expanded={expanded}
+                        onToggle={onToggle}
+                        onSelectEmployee={onSelectEmployee}
+                        colorHex={color.line}
+                        isLast={i === group.members.length - 1}
+                        index={i}
+                    />
+                ))}
+            </View>
+        </Animated.View>
+    );
+}
+
+// ============ EMPLOYEE DETAIL TOOLTIP ============
+
+function EmployeeTooltip({ node, onClose }: {
+    node: OrgNode;
+    onClose: () => void;
+}) {
+    return (
+        <Pressable style={styles.tooltipOverlay} onPress={onClose}>
+            <Animated.View entering={FadeInUp.duration(200)} style={styles.tooltipCard}>
+                <View style={styles.tooltipContent}>
+                    <Avatar name={node.name} imageUrl={node.imageUrl} size="lg" />
+                    <View style={styles.tooltipInfo}>
+                        <Text className="font-inter text-base font-bold text-primary-950">{node.name}</Text>
+                        {node.designation ? (
+                            <Text className="font-inter text-xs text-neutral-500">{node.designation}</Text>
+                        ) : null}
+                        {node.department ? (
+                            <View style={styles.tooltipDeptBadge}>
+                                <Text className="font-inter text-[10px] font-semibold text-accent-700">{node.department}</Text>
+                            </View>
+                        ) : null}
+                        {node.employeeId ? (
+                            <View style={styles.tooltipIdRow}>
+                                <Svg width={12} height={12} viewBox="0 0 24 24">
+                                    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                                    <Circle cx="12" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                                </Svg>
+                                <Text className="font-inter text-[11px] text-neutral-400 ml-1">{node.employeeId}</Text>
+                            </View>
+                        ) : null}
+                    </View>
+                </View>
+                {node.reportees.length > 0 && (
+                    <View style={styles.tooltipFooter}>
                         <Svg width={14} height={14} viewBox="0 0 24 24">
-                            <Path
-                                d={isExpanded ? 'M6 9l6 6 6-6' : 'M9 18l6-6-6-6'}
-                                stroke={colors.primary[500]}
-                                strokeWidth="2"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
+                            <Path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke={colors.primary[500]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                            <Circle cx="9" cy="7" r="4" stroke={colors.primary[500]} strokeWidth="1.5" fill="none" />
+                            <Path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke={colors.primary[500]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
                         </Svg>
-                        <Text className="font-inter text-[9px] text-neutral-400 ml-0.5">{children.length}</Text>
+                        <Text className="font-inter text-xs font-semibold text-primary-600 ml-1.5">
+                            {node.reportees.length} direct report{node.reportees.length !== 1 ? 's' : ''}
+                        </Text>
                     </View>
                 )}
-            </Pressable>
-            {hasChildren && isExpanded && children.map((child, i) => (
-                <OrgNodeRow
-                    key={child.id}
-                    node={child}
-                    level={level + 1}
-                    expanded={expanded}
-                    onToggle={onToggle}
-                    highlightId={highlightId}
-                    index={i}
-                />
-            ))}
+            </Animated.View>
+        </Pressable>
+    );
+}
+
+// ============ ZOOM CONTROLS ============
+
+function ZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: {
+    zoom: number;
+    onZoomIn: () => void;
+    onZoomOut: () => void;
+    onReset: () => void;
+}) {
+    return (
+        <Animated.View entering={FadeInUp.duration(300).delay(200)} style={styles.zoomContainer}>
+            <View style={styles.zoomCard}>
+                <Pressable
+                    onPress={onZoomIn}
+                    disabled={zoom >= ZOOM_MAX}
+                    style={({ pressed }) => [
+                        styles.zoomButton,
+                        pressed && { backgroundColor: colors.neutral[50] },
+                        zoom >= ZOOM_MAX && { opacity: 0.3 },
+                    ]}
+                >
+                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                        <Circle cx="11" cy="11" r="8" stroke={colors.neutral[600]} strokeWidth="1.5" fill="none" />
+                        <Path d="M21 21l-4.35-4.35M8 11h6M11 8v6" stroke={colors.neutral[600]} strokeWidth="1.5" strokeLinecap="round" />
+                    </Svg>
+                </Pressable>
+                <View style={styles.zoomDivider} />
+                <Pressable onPress={onReset} style={styles.zoomPercentButton}>
+                    <Text className="font-inter text-[10px] font-bold text-neutral-500">
+                        {Math.round(zoom * 100)}%
+                    </Text>
+                </Pressable>
+                <View style={styles.zoomDivider} />
+                <Pressable
+                    onPress={onZoomOut}
+                    disabled={zoom <= ZOOM_MIN}
+                    style={({ pressed }) => [
+                        styles.zoomButton,
+                        pressed && { backgroundColor: colors.neutral[50] },
+                        zoom <= ZOOM_MIN && { opacity: 0.3 },
+                    ]}
+                >
+                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                        <Circle cx="11" cy="11" r="8" stroke={colors.neutral[600]} strokeWidth="1.5" fill="none" />
+                        <Path d="M21 21l-4.35-4.35M8 11h6" stroke={colors.neutral[600]} strokeWidth="1.5" strokeLinecap="round" />
+                    </Svg>
+                </Pressable>
+            </View>
         </Animated.View>
     );
 }
@@ -164,41 +529,53 @@ export function OrgChartScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
+    // State
     const [search, setSearch] = React.useState('');
+    const [showSearch, setShowSearch] = React.useState(false);
     const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
     const [highlightId, setHighlightId] = React.useState<string | null>(null);
+    const [selectedDept, setSelectedDept] = React.useState<string | null>(null);
+    const [selectedEmployee, setSelectedEmployee] = React.useState<OrgNode | null>(null);
+    const [zoom, setZoom] = React.useState(1.0);
 
+    // Data
     const { data: response, isLoading, error, refetch, isFetching } = useOrgChart();
 
     const orgData: OrgNode[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         const arr = Array.isArray(raw) ? raw : raw?.tree ? [raw.tree] : raw?.root ? [raw.root] : [];
-
-        // Transform backend format to frontend OrgNode format
-        function transformNode(node: any): OrgNode {
-            return {
-                id: node.id,
-                name: [node.firstName, node.lastName].filter(Boolean).join(' ') || node.name || 'Unknown',
-                designation: node.designation?.name ?? node.designation ?? undefined,
-                department: node.department?.name ?? node.department ?? undefined,
-                employeeId: node.employeeId,
-                imageUrl: node.profilePhotoUrl ?? node.imageUrl ?? undefined,
-                reportees: (node.reportees ?? node.children ?? []).map(transformNode),
-            };
-        }
-
         return arr.map(transformNode);
     }, [response]);
 
     const allNodes = React.useMemo(() => flattenNodes(orgData), [orgData]);
 
-    // Auto-expand first level
+    const rootNode = orgData[0] ?? null;
+
+    const deptGroups = React.useMemo(() => {
+        if (!rootNode) return [];
+        return groupByDepartment(rootNode.reportees);
+    }, [rootNode]);
+
+    const visibleGroups = React.useMemo(() => {
+        if (!selectedDept) return deptGroups;
+        return deptGroups.filter(g => g.department === selectedDept);
+    }, [deptGroups, selectedDept]);
+
+    // Auto-expand first two levels on data load
     React.useEffect(() => {
         if (orgData.length > 0 && expanded.size === 0) {
-            setExpanded(new Set(orgData.map(n => n.id)));
+            const toExpand = new Set<string>();
+            for (const root of orgData) {
+                toExpand.add(root.id);
+                for (const child of root.reportees) {
+                    toExpand.add(child.id);
+                }
+            }
+            setExpanded(toExpand);
         }
-    }, [orgData]);
+    }, [orgData]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Toggle expand/collapse
     const handleToggle = React.useCallback((id: string) => {
         setExpanded(prev => {
             const next = new Set(prev);
@@ -208,11 +585,17 @@ export function OrgChartScreen() {
         });
     }, []);
 
-    const handleSearch = (value: string) => {
+    // Search
+    const handleSearch = React.useCallback((value: string) => {
         setSearch(value);
         if (!value.trim()) { setHighlightId(null); return; }
         const s = value.toLowerCase();
-        const match = allNodes.find(n => n.name?.toLowerCase().includes(s) || n.employeeId?.toLowerCase().includes(s));
+        const match = allNodes.find(n =>
+            n.name?.toLowerCase().includes(s) ||
+            n.employeeId?.toLowerCase().includes(s) ||
+            n.designation?.toLowerCase().includes(s) ||
+            n.department?.toLowerCase().includes(s)
+        );
         if (match) {
             setHighlightId(match.id);
             const ancestors = findAncestors(orgData, match.id);
@@ -221,64 +604,309 @@ export function OrgChartScreen() {
                 ancestors.forEach(a => next.add(a));
                 return next;
             });
+            // Auto-select the matching department
+            if (match.department) {
+                setSelectedDept(match.department);
+            }
         } else {
             setHighlightId(null);
         }
-    };
+    }, [allNodes, orgData]);
+
+    const matchCount = React.useMemo(() => {
+        if (!search.trim()) return 0;
+        const s = search.toLowerCase();
+        return allNodes.filter(n =>
+            n.name?.toLowerCase().includes(s) ||
+            n.employeeId?.toLowerCase().includes(s) ||
+            n.designation?.toLowerCase().includes(s) ||
+            n.department?.toLowerCase().includes(s)
+        ).length;
+    }, [search, allNodes]);
+
+    // Zoom
+    const handleZoomIn = React.useCallback(() => {
+        setZoom(z => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
+    }, []);
+
+    const handleZoomOut = React.useCallback(() => {
+        setZoom(z => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
+    }, []);
+
+    const handleZoomReset = React.useCallback(() => {
+        setZoom(1.0);
+    }, []);
+
+    // Department selection
+    const handleDeptSelect = React.useCallback((dept: string) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setSelectedDept(prev => prev === dept ? null : dept);
+    }, []);
+
+    // ============ RENDER HEADER ============
 
     const renderHeader = () => (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <View>
-                <Text className="font-inter text-2xl font-bold text-primary-950">Org Chart</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500">{allNodes.length} member{allNodes.length !== 1 ? 's' : ''}</Text>
+        <LinearGradient
+            colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.gradientHeader, { paddingTop: insets.top + 8 }]}
+        >
+            <View style={styles.headerTopRow}>
+                <Pressable onPress={() => router.back()} style={styles.headerIconBtn}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24">
+                        <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                </Pressable>
+
+                <View style={styles.headerTitleArea}>
+                    <Text className="font-inter text-lg font-bold text-white">Organization Chart</Text>
+                    <Text className="font-inter text-xs text-white" style={{ opacity: 0.7 }}>
+                        {allNodes.length} member{allNodes.length !== 1 ? 's' : ''}
+                    </Text>
+                </View>
+
+                <Pressable
+                    onPress={() => {
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        setShowSearch(prev => !prev);
+                        if (showSearch) { setSearch(''); setHighlightId(null); }
+                    }}
+                    style={styles.headerIconBtn}
+                >
+                    <Svg width={20} height={20} viewBox="0 0 24 24">
+                        {showSearch ? (
+                            <Path d="M18 6L6 18M6 6l12 12" stroke={colors.white} strokeWidth="2" strokeLinecap="round" />
+                        ) : (
+                            <>
+                                <Circle cx="11" cy="11" r="8" stroke={colors.white} strokeWidth="1.8" fill="none" />
+                                <Path d="M21 21l-4.35-4.35" stroke={colors.white} strokeWidth="1.8" strokeLinecap="round" />
+                            </>
+                        )}
+                    </Svg>
+                </Pressable>
             </View>
-            <View style={{ marginTop: 16 }}>
-                <SearchBar value={search} onChangeText={handleSearch} placeholder="Search employee..." />
-            </View>
-        </Animated.View>
+
+            {/* Expandable search bar */}
+            {showSearch && (
+                <Animated.View entering={FadeInDown.duration(200)} style={styles.searchBarWrapper}>
+                    <View style={styles.searchBar}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                            <Circle cx="11" cy="11" r="8" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                            <Path d="M21 21l-4.35-4.35" stroke={colors.neutral[400]} strokeWidth="1.5" strokeLinecap="round" />
+                        </Svg>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search name, ID, designation, dept..."
+                            placeholderTextColor={colors.neutral[400]}
+                            value={search}
+                            onChangeText={handleSearch}
+                            autoFocus
+                            autoCorrect={false}
+                            returnKeyType="search"
+                        />
+                        {search.length > 0 && (
+                            <View style={styles.searchCountBadge}>
+                                <Text className="font-inter text-[10px] font-bold text-primary-600">
+                                    {matchCount}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </Animated.View>
+            )}
+        </LinearGradient>
     );
 
-    const renderContent = () => {
-        if (isLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
-        if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection and try again." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;
-        if (orgData.length === 0) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No org data" message="Organization chart data is not available yet." /></View>;
+    // ============ RENDER LOADING ============
 
+    if (isLoading) {
         return (
-            <View style={{ marginTop: 8 }}>
-                {orgData.map((root, i) => (
-                    <OrgNodeRow
-                        key={root.id}
-                        node={root}
-                        level={0}
-                        expanded={expanded}
-                        onToggle={handleToggle}
-                        highlightId={highlightId}
-                        index={i}
-                    />
-                ))}
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                {renderHeader()}
+                <View style={styles.loadingContainer}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </View>
             </View>
         );
-    };
+    }
+
+    // ============ RENDER ERROR ============
+
+    if (error) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                {renderHeader()}
+                <View style={styles.errorContainer}>
+                    <EmptyState
+                        icon="error"
+                        title="Failed to load"
+                        message="Check your connection and try again."
+                        action={{ label: 'Retry', onPress: () => refetch() }}
+                    />
+                </View>
+            </View>
+        );
+    }
+
+    // ============ RENDER EMPTY ============
+
+    if (orgData.length === 0) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                {renderHeader()}
+                <View style={styles.errorContainer}>
+                    <EmptyState
+                        icon="inbox"
+                        title="No org data"
+                        message="Organization chart data is not available yet. Add employees with reporting relationships to see the chart."
+                    />
+                </View>
+            </View>
+        );
+    }
+
+    // ============ RENDER MAIN ============
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Org Chart</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            {renderHeader()}
+
             <ScrollView
-                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isFetching && !isLoading}
+                        onRefresh={() => refetch()}
+                        tintColor={colors.primary[500]}
+                        colors={[colors.primary[500]]}
+                    />
+                }
+                minimumZoomScale={ZOOM_MIN}
+                maximumZoomScale={ZOOM_MAX}
+                bouncesZoom
             >
-                {renderHeader()}
-                {renderContent()}
+                {/* Dotted background canvas */}
+                <View style={styles.canvasArea}>
+                    <View style={{ transform: [{ scale: zoom }], transformOrigin: 'top center' }}>
+                        {/* Root Card */}
+                        {rootNode && (
+                            <View style={styles.rootSection}>
+                                <RootCard node={rootNode} isHighlighted={highlightId === rootNode.id} />
+
+                                {/* Vertical connector from root */}
+                                {deptGroups.length > 0 && (
+                                    <View style={styles.rootConnector}>
+                                        <View style={styles.rootConnectorLine} />
+                                        <View style={styles.rootConnectorDot} />
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Department Pills (horizontal scroll) */}
+                        {deptGroups.length > 0 && (
+                            <Animated.View entering={FadeInUp.duration(300).delay(100)}>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.deptPillsContent}
+                                    style={styles.deptPillsScroll}
+                                >
+                                    {/* All departments button */}
+                                    <Pressable
+                                        onPress={() => {
+                                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                                            setSelectedDept(null);
+                                        }}
+                                        style={[
+                                            styles.deptPill,
+                                            {
+                                                backgroundColor: selectedDept === null ? colors.primary[600] : colors.white,
+                                                borderColor: selectedDept === null ? colors.primary[600] : colors.neutral[200],
+                                            },
+                                        ]}
+                                    >
+                                        <Text
+                                            className="font-inter text-xs font-bold"
+                                            style={{ color: selectedDept === null ? colors.white : colors.neutral[600] }}
+                                        >
+                                            All
+                                        </Text>
+                                        <View style={[
+                                            styles.deptPillCount,
+                                            { backgroundColor: selectedDept === null ? 'rgba(255,255,255,0.3)' : colors.neutral[100] },
+                                        ]}>
+                                            <Text
+                                                className="font-inter text-[10px] font-bold"
+                                                style={{ color: selectedDept === null ? colors.white : colors.neutral[600] }}
+                                            >
+                                                {rootNode?.reportees.length ?? 0}
+                                            </Text>
+                                        </View>
+                                    </Pressable>
+
+                                    {deptGroups.map(group => (
+                                        <DepartmentPill
+                                            key={group.department}
+                                            group={group}
+                                            isSelected={selectedDept === group.department}
+                                            onPress={() => handleDeptSelect(group.department)}
+                                        />
+                                    ))}
+                                </ScrollView>
+                            </Animated.View>
+                        )}
+
+                        {/* Department Sections with Employee Trees */}
+                        <View style={styles.treeSections}>
+                            {visibleGroups.map(group => (
+                                <DepartmentSection
+                                    key={group.department}
+                                    group={group}
+                                    highlightId={highlightId}
+                                    expanded={expanded}
+                                    onToggle={handleToggle}
+                                    onSelectEmployee={setSelectedEmployee}
+                                />
+                            ))}
+                        </View>
+
+                        {/* Legend */}
+                        <Animated.View entering={FadeInUp.duration(300).delay(300)} style={styles.legend}>
+                            <View style={styles.legendItem}>
+                                <View style={styles.legendLine} />
+                                <Text className="font-inter text-[10px] text-neutral-400">Reports to</Text>
+                            </View>
+                            <View style={styles.legendItem}>
+                                <View style={styles.legendDot} />
+                                <Text className="font-inter text-[10px] text-neutral-400">Junction</Text>
+                            </View>
+                        </Animated.View>
+                    </View>
+                </View>
             </ScrollView>
+
+            {/* Zoom Controls (floating) */}
+            <ZoomControls
+                zoom={zoom}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onReset={handleZoomReset}
+            />
+
+            {/* Employee Tooltip */}
+            {selectedEmployee && (
+                <EmployeeTooltip
+                    node={selectedEmployee}
+                    onClose={() => setSelectedEmployee(null)}
+                />
+            )}
         </View>
     );
 }
@@ -286,63 +914,421 @@ export function OrgChartScreen() {
 // ============ STYLES ============
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
-    headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
-    headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
-    listContent: { paddingHorizontal: 24 },
-    avatar: {
-        backgroundColor: colors.primary[500],
+    container: {
+        flex: 1,
+        backgroundColor: colors.gradient.surface,
+    },
+
+    // ── Header ──
+    gradientHeader: {
+        paddingBottom: 16,
+        paddingHorizontal: 20,
+    },
+    headerTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    headerIconBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: colors.primary[500],
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
     },
-    nodeRow: {
+    headerTitleArea: {
+        flex: 1,
+    },
+
+    // ── Search ──
+    searchBarWrapper: {
+        marginTop: 12,
+    },
+    searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.white,
-        borderRadius: 16,
-        padding: 12,
-        marginBottom: 8,
-        shadowColor: colors.primary[900],
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 1,
-        borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        height: 44,
     },
-    nodeHighlighted: {
+    searchInput: {
+        flex: 1,
+        fontSize: 13,
+        color: colors.primary[950],
+        fontFamily: 'Inter',
+    },
+    searchCountBadge: {
         backgroundColor: colors.primary[50],
-        borderColor: colors.primary[300],
-        shadowColor: colors.primary[500],
-        shadowOpacity: 0.15,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
     },
-    indentLine: {
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        width: 2,
-        backgroundColor: colors.primary[100],
-        borderRadius: 1,
+
+    // ── Scroll / Canvas ──
+    scrollContent: {
+        paddingHorizontal: 16,
     },
-    deptBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: colors.accent[50],
-        borderRadius: 4,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
+    canvasArea: {
+        backgroundColor: colors.white,
+        borderRadius: 20,
+        marginTop: 16,
+        padding: 20,
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: colors.neutral[100],
+        overflow: 'hidden',
     },
-    expandIcon: {
+    loadingContainer: {
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        gap: 12,
+    },
+    errorContainer: {
+        paddingTop: 60,
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+
+    // ── Root Card ──
+    rootSection: {
+        alignItems: 'center',
+    },
+    rootCard: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: colors.white,
+        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        gap: 14,
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 4,
+        borderWidth: 1.5,
+        borderColor: colors.primary[100],
+        alignSelf: 'center',
+        maxWidth: 320,
+    },
+    rootCardInfo: {
+        flex: 1,
+        gap: 2,
+    },
+    rootDeptBadge: {
+        alignSelf: 'flex-start',
+        backgroundColor: colors.primary[50],
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: colors.primary[100],
+    },
+    rootConnector: {
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    rootConnectorLine: {
+        width: 2,
+        height: 24,
+        backgroundColor: colors.neutral[300],
+        borderRadius: 1,
+    },
+    rootConnectorDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: colors.neutral[400],
+    },
+
+    // ── Department Pills ──
+    deptPillsScroll: {
+        marginTop: 12,
+        flexGrow: 0,
+    },
+    deptPillsContent: {
+        gap: 8,
+        paddingHorizontal: 4,
+    },
+    deptPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        gap: 6,
+    },
+    deptPillCount: {
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        minWidth: 20,
+        alignItems: 'center',
+    },
+
+    // ── Department Sections ──
+    treeSections: {
+        marginTop: 20,
+        gap: 24,
+    },
+    deptSection: {
+        gap: 8,
+    },
+    deptSectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderLeftWidth: 3,
+        paddingLeft: 10,
+        paddingVertical: 4,
+    },
+    deptSectionDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 8,
+    },
+    deptTreeContainer: {
+        marginLeft: 4,
+        paddingLeft: 16,
+        borderLeftWidth: 2,
+    },
+
+    // ── Employee Card ──
+    employeeCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.white,
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: colors.neutral[100],
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.03,
+        shadowRadius: 6,
+        elevation: 1,
+    },
+    employeeCardInfo: {
+        flex: 1,
+        gap: 1,
+    },
+    expandButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
         backgroundColor: colors.primary[50],
+    },
+    cardHighlighted: {
+        backgroundColor: colors.primary[50],
+        borderColor: colors.primary[300],
+        borderWidth: 2,
+        shadowColor: colors.primary[500],
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+
+    // ── Tree Connectors ──
+    subTreeContainer: {
+        marginBottom: 6,
+    },
+    subTreeRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    subTreeCardWrap: {
+        flex: 1,
+    },
+    connectorRow: {
+        width: 24,
+        alignItems: 'flex-end',
+        paddingTop: 18,
+        marginRight: 4,
+    },
+    connectorVertical: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: 2,
+        borderRadius: 1,
+    },
+    connectorHorizontal: {
+        height: 2,
+        width: 14,
+        borderRadius: 1,
+        position: 'absolute',
+        left: 0,
+        top: 18,
+    },
+    connectorDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        position: 'absolute',
+        left: -2,
+        top: 15,
+    },
+    childrenContainer: {
+        marginLeft: 12,
+        paddingLeft: 12,
+        borderLeftWidth: 2,
+        marginTop: 2,
+    },
+
+    // ── Avatar ──
+    avatarImage: {
+        borderWidth: 2,
+        borderColor: colors.white,
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    avatarGradient: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.white,
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+
+    // ── Tooltip ──
+    tooltipOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+    },
+    tooltipCard: {
+        backgroundColor: colors.white,
+        borderRadius: 20,
+        padding: 20,
+        marginHorizontal: 32,
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 10,
+        borderWidth: 1,
+        borderColor: colors.neutral[100],
+        maxWidth: 320,
+        width: '100%',
+    },
+    tooltipContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+    },
+    tooltipInfo: {
+        flex: 1,
+        gap: 3,
+    },
+    tooltipDeptBadge: {
+        alignSelf: 'flex-start',
+        backgroundColor: colors.accent[50],
+        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        marginTop: 2,
+        borderWidth: 1,
+        borderColor: colors.accent[100],
+    },
+    tooltipIdRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    tooltipFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 14,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
+    },
+
+    // ── Zoom Controls ──
+    zoomContainer: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        zIndex: 50,
+    },
+    zoomCard: {
+        backgroundColor: colors.white,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+        overflow: 'hidden',
+    },
+    zoomButton: {
+        padding: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    zoomPercentButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        alignItems: 'center',
+    },
+    zoomDivider: {
+        height: 1,
+        backgroundColor: colors.neutral[200],
+    },
+
+    // ── Legend ──
+    legend: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginTop: 24,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    legendLine: {
+        width: 16,
+        height: 2,
+        borderRadius: 1,
+        backgroundColor: colors.neutral[300],
+    },
+    legendDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.neutral[400],
     },
 });

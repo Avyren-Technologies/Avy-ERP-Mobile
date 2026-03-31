@@ -1,8 +1,12 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import { Buffer } from 'node:buffer';
+import { File, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     Modal,
     Pressable,
@@ -20,6 +24,7 @@ import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
+import { useDownloadPayslipPdf } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyPayslips } from '@/features/company-admin/api/use-ess-queries';
 
 // ============ TYPES ============
@@ -46,7 +51,10 @@ const YEARS = ['2026', '2025', '2024'];
 
 // ============ PAYSLIP DETAIL MODAL ============
 
-function PayslipDetailModal({ visible, onClose, item }: { visible: boolean; onClose: () => void; item: PayslipItem | null }) {
+function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading }: {
+    visible: boolean; onClose: () => void; item: PayslipItem | null;
+    onDownload: (payslipId: string, month: string, year: string) => void; isDownloading: boolean;
+}) {
     const insets = useSafeAreaInsets();
     if (!item) return null;
 
@@ -96,9 +104,13 @@ function PayslipDetailModal({ visible, onClose, item }: { visible: boolean; onCl
                         </View>
 
                         {/* Download */}
-                        <Pressable style={styles.downloadBtn}>
-                            <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                            <Text className="font-inter text-sm font-bold text-primary-600">Download PDF</Text>
+                        <Pressable onPress={() => onDownload(item.id, item.month, item.year)} disabled={isDownloading} style={[styles.downloadBtn, isDownloading && { opacity: 0.6 }]}>
+                            {isDownloading ? (
+                                <ActivityIndicator size="small" color={colors.primary[600]} />
+                            ) : (
+                                <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                            )}
+                            <Text className="font-inter text-sm font-bold text-primary-600">{isDownloading ? 'Downloading...' : 'Download PDF'}</Text>
                         </Pressable>
                     </ScrollView>
                     <Pressable onPress={onClose} style={styles.closeBtn}>
@@ -148,10 +160,26 @@ export function MyPayslipsScreen() {
     const router = useRouter();
 
     const { data: response, isLoading, error, refetch, isFetching } = useMyPayslips();
+    const downloadPdf = useDownloadPayslipPdf();
 
     const [selectedYear, setSelectedYear] = React.useState(YEARS[0]);
     const [detailItem, setDetailItem] = React.useState<PayslipItem | null>(null);
     const [detailVisible, setDetailVisible] = React.useState(false);
+    const [downloadError, setDownloadError] = React.useState(false);
+
+    const handleDownload = async (payslipId: string, month: string, year: string) => {
+        try {
+            setDownloadError(false);
+            const data = await downloadPdf.mutateAsync(payslipId);
+            const base64 = Buffer.from(data).toString('base64');
+            const file = new File(Paths.document, `payslip-${month}-${year}.pdf`);
+            file.create();
+            file.write(base64, { encoding: 'base64' });
+            await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: `Payslip ${month}/${year}` });
+        } catch {
+            setDownloadError(true);
+        }
+    };
 
     const payslips: PayslipItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -218,7 +246,7 @@ export function MyPayslipsScreen() {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
-            <PayslipDetailModal visible={detailVisible} onClose={() => setDetailVisible(false)} item={detailItem} />
+            <PayslipDetailModal visible={detailVisible} onClose={() => setDetailVisible(false)} item={detailItem} onDownload={handleDownload} isDownloading={downloadPdf.isPending} />
         </View>
     );
 }

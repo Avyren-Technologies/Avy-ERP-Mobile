@@ -380,4 +380,69 @@ export const essApi = {
 
   getTeamLeaveCalendar: () =>
     client.get('/hr/mss/team-leave-calendar'),
+
+  // ── ESS Additional Self-Service ────────────────────────────────
+  updateMyProfile: async (data: any) => {
+    const r = await client.patch('/hr/ess/my-profile', data);
+    return r.data;
+  },
+
+  downloadPayslipPdf: async (payslipId: string) => {
+    const r = await client.get(`/hr/ess/my-payslips/${payslipId}/pdf`, { responseType: 'arraybuffer' });
+    return r.data;
+  },
+
+  cancelLeave: async (id: string) => {
+    const r = await client.patch(`/hr/leave-requests/${id}/cancel`);
+    return r.data;
+  },
+
+  // ── Shift Swap ──────────────────────────────────────────────────
+  getMyShiftSwaps: async () => {
+    const r = await client.get('/hr/ess/my-shift-swaps');
+    return r.data;
+  },
+
+  createShiftSwap: async (data: any) => {
+    const r = await client.post('/hr/ess/shift-swap', data);
+    return r.data;
+  },
+
+  cancelShiftSwap: async (id: string) => {
+    const r = await client.patch(`/hr/ess/shift-swap/${id}/cancel`);
+    return r.data;
+  },
+
+  // ── WFH Requests ───────────────────────────────────────────────
+  getMyWfhRequests: async () => {
+    const r = await client.get('/hr/ess/my-wfh-requests');
+    return r.data;
+  },
+
+  createWfhRequest: async (data: any) => {
+    const r = await client.post('/hr/ess/wfh-request', data);
+    return r.data;
+  },
+
+  cancelWfhRequest: async (id: string) => {
+    const r = await client.patch(`/hr/ess/wfh-request/${id}/cancel`);
+    return r.data;
+  },
+
+  // ── My Documents ───────────────────────────────────────────────
+  getMyDocuments: async () => {
+    const r = await client.get('/hr/ess/my-documents');
+    return r.data;
+  },
+
+  uploadMyDocument: async (data: any) => {
+    const r = await client.post('/hr/ess/my-documents', data);
+    return r.data;
+  },
+
+  // ── Policy Documents ──────────────────────────────────────────
+  getPolicyDocuments: async () => {
+    const r = await client.get('/hr/ess/policy-documents');
+    return r.data;
+  },
 };

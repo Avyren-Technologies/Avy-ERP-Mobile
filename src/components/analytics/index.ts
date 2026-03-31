@@ -4,7 +4,10 @@ export { type Distribution, DistributionChart, type DistributionItem } from './D
 export { type DrilldownColumn, DrilldownList } from './DrilldownList';
 export { ExportButton, type ExportFormat } from './ExportButton';
 export { FilterBottomSheet } from './FilterBottomSheet';
+export { type FunnelChartProps, FunnelChart, type FunnelStage } from './FunnelChart';
+export { type HeatmapCell, HeatmapChart, type HeatmapChartProps } from './HeatmapChart';
 export { type Insight, InsightsPanel } from './InsightsPanel';
 export { type KPICard, KPIGrid } from './KPIGrid';
+export { type ScatterChartProps, ScatterChart, type ScatterPoint } from './ScatterChart';
 export { TrendChart, type TrendDataPoint, type TrendSeries } from './TrendChart';
 export { ZeroDataState } from './ZeroDataState';

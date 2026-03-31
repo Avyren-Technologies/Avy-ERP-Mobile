@@ -1,14 +1,13 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
-import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const PLANNED_FEATURES = [
     { title: 'Production Planning', desc: 'Demand-driven production scheduling with capacity planning' },
@@ -19,22 +18,11 @@ const PLANNED_FEATURES = [
 ];
 
 export function ProductionScreen() {
-    const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.header, { paddingTop: insets.top + 8 }]}
-            >
-                <View style={styles.headerRow}>
-                    <HamburgerButton onPress={toggle} />
-                    <Text className="font-inter text-white text-lg font-bold ml-3">Production</Text>
-                </View>
-            </LinearGradient>
+            <AppTopHeader title="Production" onMenuPress={toggle} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -100,8 +88,6 @@ export function ProductionScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
-    header: { paddingBottom: 16, paddingHorizontal: 20 },
-    headerRow: { flexDirection: 'row', alignItems: 'center' },
     scrollView: { flex: 1 },
     scrollContent: { padding: 20, paddingBottom: 40 },
     card: {

@@ -1,6 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 // Location Management Screen — Edit & Delete only (NO Add)
 
+import type { PlantBranch } from '@/features/super-admin/tenant-onboarding/types';
 import BottomSheet, {
     BottomSheetBackdrop,
     BottomSheetScrollView,
@@ -18,19 +19,20 @@ import {
 } from 'react-native';
 import Animated, {
     FadeIn,
-    FadeInDown,
     FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
 
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchBar } from '@/components/ui/search-bar';
-import { SkeletonCard } from '@/components/ui/skeleton';
+import { useSidebar } from '@/components/ui/sidebar';
 
+import { SkeletonCard } from '@/components/ui/skeleton';
 import {
     useDeleteLocation,
     useUpdateLocation,
@@ -47,7 +49,6 @@ import {
     GEO_RADIUS_OPTIONS,
     INDIAN_STATES,
 } from '@/features/super-admin/tenant-onboarding/constants';
-import type { PlantBranch } from '@/features/super-admin/tenant-onboarding/types';
 
 // ============ HELPERS ============
 
@@ -550,6 +551,7 @@ function EditLocationSheet({
 export function LocationManagementScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
     const [editingLocation, setEditingLocation] = React.useState<PlantBranch | null>(null);
     const editSheetRef = React.useRef<BottomSheet>(null);
@@ -624,41 +626,11 @@ export function LocationManagementScreen() {
 
     const renderHeader = () => (
         <>
-            {/* Gradient Header */}
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end] as const}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.headerGradient, { paddingTop: insets.top + 8 }]}
-            >
-                <View style={styles.headerRow}>
-                    <Pressable
-                        onPress={() => router.back()}
-                        style={({ pressed }) => [
-                            styles.backBtn,
-                            pressed && { opacity: 0.7 },
-                        ]}
-                    >
-                        <Svg width={20} height={20} viewBox="0 0 24 24">
-                            <Path
-                                d="M19 12H5M12 19l-7-7 7-7"
-                                stroke={colors.white}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                fill="none"
-                            />
-                        </Svg>
-                    </Pressable>
-                    <Text className="font-inter text-lg font-bold text-white">
-                        Locations
-                    </Text>
-                    <View style={{ width: 36 }} />
-                </View>
-                <Text className="mt-1 font-inter text-xs text-white" style={{ opacity: 0.8 }}>
-                    {locations.length} {locations.length === 1 ? 'location' : 'locations'}
-                </Text>
-            </LinearGradient>
+            <AppTopHeader
+                title="Locations"
+                subtitle={`${locations.length} ${locations.length === 1 ? 'location' : 'locations'}`}
+                onMenuPress={toggle}
+            />
 
             {/* Search */}
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>
@@ -770,23 +742,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.gradient.surface,
-    },
-    headerGradient: {
-        paddingHorizontal: 24,
-        paddingBottom: 20,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     searchSection: {
         paddingHorizontal: 24,

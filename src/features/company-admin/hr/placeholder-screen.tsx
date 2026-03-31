@@ -1,13 +1,13 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { useSidebar } from '@/components/ui/sidebar';
 
 // ============ REUSABLE HR PLACEHOLDER ============
 
@@ -17,27 +17,11 @@ interface HRPlaceholderScreenProps {
 }
 
 export function HRPlaceholderScreen({ title, subtitle }: HRPlaceholderScreenProps) {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const { toggle } = useSidebar();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M15 18l-6-6 6-6"
-              stroke={colors.primary[700]}
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </Pressable>
-        <Text className="font-inter" style={styles.headerTitle}>{title}</Text>
-        <View style={styles.backButton} />
-      </View>
+    <View style={styles.container}>
+      <AppTopHeader title={title} onMenuPress={toggle} />
 
       {/* Content */}
       <View style={styles.content}>
@@ -65,27 +49,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.primary[950],
   },
   content: {
     flex: 1,

@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { DashboardAnnouncement } from '@/lib/api/ess';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -12,12 +13,13 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
+import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useDashboard } from '@/features/company-admin/api/use-ess-queries';
-import type { DashboardAnnouncement, DashboardData } from '@/lib/api/ess';
 
 // ================================================================
 // Icons
@@ -116,6 +118,7 @@ function AnnouncementCard({ item, index }: { item: DashboardAnnouncement; index:
 export function AnnouncementsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
     const [selectedPriority, setSelectedPriority] = React.useState<Priority | null>(null);
     const [pullRefreshing, setPullRefreshing] = React.useState(false);
@@ -148,36 +151,18 @@ export function AnnouncementsScreen() {
     }, [refetch]);
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* Header */}
+        <View style={styles.container}>
             <Animated.View entering={FadeInUp.duration(500)}>
-                <LinearGradient
-                    colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.header}
-                >
-                    <View style={styles.headerRow}>
-                        <Pressable
-                            onPress={() => router.back()}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-                        >
-                            <ChevronLeftIcon s={22} c="#fff" />
-                        </Pressable>
-                        <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-lg font-bold" style={{ color: '#FFFFFF' }}>
-                                Announcements
-                            </Text>
-                            <Text className="font-inter" style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
-                                {announcements.length} announcement{announcements.length !== 1 ? 's' : ''}
-                            </Text>
-                        </View>
+                <AppTopHeader
+                    title="Announcements"
+                    subtitle={`${announcements.length} announcement${announcements.length !== 1 ? 's' : ''}`}
+                    onMenuPress={toggle}
+                    rightSlot={(
                         <View style={styles.headerIconWrap}>
                             <MegaphoneIcon s={18} c="#fff" />
                         </View>
-                    </View>
-                </LinearGradient>
+                    )}
+                />
             </Animated.View>
 
             {/* Search bar */}
@@ -280,24 +265,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.gradient.surface,
-    },
-    header: {
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        paddingTop: 16,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    backBtn: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     headerIconWrap: {
         width: 38,

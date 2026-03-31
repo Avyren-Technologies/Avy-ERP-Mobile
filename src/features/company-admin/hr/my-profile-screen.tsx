@@ -16,8 +16,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess } from '@/components/ui/utils';
 
@@ -212,7 +214,7 @@ function EditProfileModal({
 
 export function MyProfileScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch, isFetching } = useMyProfile();
     const updateProfile = useUpdateMyProfile();
     const [editVisible, setEditVisible] = React.useState(false);
@@ -268,13 +270,9 @@ export function MyProfileScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">My Profile</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="My Profile" onMenuPress={toggle} />
                 <View style={{ paddingHorizontal: 24, paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -282,23 +280,19 @@ export function MyProfileScreen() {
 
     if (error || !profile) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">My Profile</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="My Profile" onMenuPress={toggle} />
                 <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load profile" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
+                <HamburgerButton onPress={toggle} />
                 <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">My Profile</Text>
                 <Pressable onPress={() => setEditVisible(true)} style={styles.editHeaderBtn}>
                     <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke={colors.primary[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>

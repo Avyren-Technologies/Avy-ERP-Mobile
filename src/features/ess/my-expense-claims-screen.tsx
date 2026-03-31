@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     FlatList,
@@ -16,13 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { FAB } from '@/components/ui/fab';
-import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
-import { useMyExpenseClaims } from '@/features/company-admin/api/use-ess-queries';
 import { useCreateMyExpenseClaim, useSubmitMyExpenseClaim } from '@/features/company-admin/api/use-ess-mutations';
+import { useMyExpenseClaims } from '@/features/company-admin/api/use-ess-queries';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
     DRAFT: { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] },
@@ -66,8 +66,8 @@ function CategoryBadge({ category }: { category: string }) {
 }
 
 function formatCurrency(amount: number | string): string {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (isNaN(num)) return '\u20B90';
+    const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
+    if (Number.isNaN(num)) return '\u20B90';
     return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -103,7 +103,7 @@ function CreateExpenseClaimModal({
         }
     }, [visible]);
 
-    const isValid = title.trim() && parseFloat(amount) > 0 && category;
+    const isValid = title.trim() && Number.parseFloat(amount) > 0 && category;
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -225,7 +225,7 @@ function CreateExpenseClaimModal({
                         <Pressable
                             onPress={() => onSave({
                                 title: title.trim(),
-                                amount: parseFloat(amount),
+                                amount: Number.parseFloat(amount),
                                 category,
                                 description: description.trim(),
                                 tripDate: tripDate.trim(),
@@ -308,17 +308,7 @@ export function MyExpenseClaimsScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.header, { paddingTop: insets.top + 8 }]}
-            >
-                <View style={styles.headerRow}>
-                    <HamburgerButton onPress={open} />
-                    <Text className="font-inter text-lg font-bold text-white ml-3">Expense Claims</Text>
-                </View>
-            </LinearGradient>
+            <AppTopHeader title="Expense Claims" onMenuPress={open} />
             <FlatList
                 data={claims}
                 keyExtractor={(item) => item.id}
@@ -346,8 +336,6 @@ export function MyExpenseClaimsScreen() {
 }
 
 const styles = StyleSheet.create({
-    header: { paddingHorizontal: 16, paddingBottom: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center' },
     card: {
         backgroundColor: colors.white,
         borderRadius: 16,

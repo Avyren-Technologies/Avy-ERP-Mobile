@@ -15,12 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useTaxConfig } from '@/features/company-admin/api/use-payroll-queries';
 import { useUpdateTaxConfig } from '@/features/company-admin/api/use-payroll-mutations';
+import { useTaxConfig } from '@/features/company-admin/api/use-payroll-queries';
 
 // ============ TYPES ============
 
@@ -140,8 +142,7 @@ function SlabTable({ slabs, onUpdate, onAdd, onRemove }: {
 
 export function TaxConfigScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
-
+    const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useTaxConfig();
     const updateMutation = useUpdateTaxConfig();
 
@@ -202,13 +203,9 @@ export function TaxConfigScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Tax & TDS</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="Tax & TDS" onMenuPress={toggle} />
                 <View style={{ paddingHorizontal: 24, paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -216,26 +213,18 @@ export function TaxConfigScreen() {
 
     if (error) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Tax & TDS</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="Tax & TDS" onMenuPress={toggle} />
                 <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Tax & TDS</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="Tax & TDS" onMenuPress={toggle} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
                     <Text className="font-inter text-2xl font-bold text-primary-950">Tax Configuration</Text>

@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     FlatList,
@@ -26,15 +26,16 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useLeaveTypes } from '@/features/company-admin/api/use-leave-queries';
+import { useEmployeeTypes } from '@/features/company-admin/api/use-hr-queries';
 import {
     useCreateLeaveType,
     useDeleteLeaveType,
     useUpdateLeaveType,
 } from '@/features/company-admin/api/use-leave-mutations';
-import { useEmployeeTypes } from '@/features/company-admin/api/use-hr-queries';
+import { useLeaveTypes } from '@/features/company-admin/api/use-leave-queries';
 
 // ============ TYPES ============
 
@@ -362,7 +363,7 @@ function LeaveTypeCard({ item, index, onEdit, onDelete }: { item: LeaveTypeItem;
 
 export function LeaveTypeScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data: response, isLoading, error, refetch, isFetching } = useLeaveTypes();
@@ -446,11 +447,39 @@ export function LeaveTypeScreen() {
     );
 
     const renderHeader = () => (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Leave Types</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{leaveTypes.length} leave type{leaveTypes.length !== 1 ? 's' : ''}</Text>
-            <View style={{ marginTop: 16 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or code..." /></View>
-        </Animated.View>
+        <>
+            <Animated.View entering={FadeInDown.duration(400)}>
+                <LinearGradient
+                    colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end] as const}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.headerGradient, { paddingTop: insets.top + 8 }]}
+                >
+                    <View style={styles.headerDecor1} />
+                    <View style={styles.headerDecor2} />
+                    <View style={styles.headerRow}>
+                        <View style={{ width: 36, alignItems: 'flex-start' }}>
+                            <Pressable onPress={toggle} hitSlop={8}>
+                                <Svg width={28} height={28} viewBox="0 0 24 24">
+                                    <Path d="M4 7h16M4 12h16M4 17h16" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
+                                </Svg>
+                            </Pressable>
+                        </View>
+                        <Text className="font-inter text-lg font-bold text-white">Leave Type Management</Text>
+                        <View style={styles.countBadge}>
+                            <Text className="font-inter text-xs font-bold text-white">
+                                {leaveTypes.length}
+                            </Text>
+                        </View>
+                    </View>
+                </LinearGradient>
+            </Animated.View>
+            <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
+                <Text className="font-inter text-2xl font-bold text-primary-950">Leave Types</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500">{leaveTypes.length} leave type{leaveTypes.length !== 1 ? 's' : ''}</Text>
+                <View style={{ marginTop: 16 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or code..." /></View>
+            </Animated.View>
+        </>
     );
 
     const renderEmpty = () => {
@@ -461,15 +490,8 @@ export function LeaveTypeScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Leave Type Management</Text>
-                <View style={{ width: 36 }} />
-            </View>
             <FlatList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
@@ -485,6 +507,44 @@ export function LeaveTypeScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
+    headerGradient: {
+        paddingHorizontal: 24,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        overflow: 'hidden',
+    },
+    headerDecor1: {
+        position: 'absolute',
+        top: -30,
+        right: -30,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    headerDecor2: {
+        position: 'absolute',
+        bottom: -20,
+        left: -20,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    countBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        minWidth: 36,
+        alignItems: 'center',
+    },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
     backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },

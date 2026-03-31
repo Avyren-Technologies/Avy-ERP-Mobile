@@ -849,12 +849,12 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                             </Text>
 
                             <View style={S.noShiftClockWrap}>
-                                <Text className="font-inter" style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.5)', letterSpacing: 1, textTransform: 'uppercase' }}>
+                                <Text className="font-inter" style={S.noShiftClockLabel}>
                                     Current Time
                                 </Text>
                                 <Text
                                     className="font-inter"
-                                    style={{ fontSize: 28, fontWeight: '700', color: 'rgba(255,255,255,0.7)', fontVariant: ['tabular-nums'], marginTop: 2 }}
+                                    style={S.noShiftClockValue}
                                 >
                                     {clockStr}
                                 </Text>
@@ -2351,11 +2351,29 @@ const S = StyleSheet.create({
         marginTop: 16,
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 14,
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 20,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+    },
+    noShiftClockLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.5)',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        includeFontPadding: false,
+        lineHeight: 16,
+    },
+    noShiftClockValue: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: 'rgba(255,255,255,0.7)',
+        fontVariant: ['tabular-nums'],
+        marginTop: 4,
+        includeFontPadding: false,
+        lineHeight: 34,
     },
     heroBadge: {
         flexDirection: 'row',

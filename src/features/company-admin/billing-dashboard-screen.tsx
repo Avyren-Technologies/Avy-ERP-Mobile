@@ -14,9 +14,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
 
@@ -342,26 +343,12 @@ export function BillingDashboardScreen() {
     }, [invoicesQuery.data]);
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* ── Header ── */}
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.header}
-            >
-                <View style={styles.headerRow}>
-                    <HamburgerButton onPress={toggle} />
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text className="font-inter text-xl font-bold text-white">
-                            Billing
-                        </Text>
-                        <Text className="mt-0.5 font-inter text-xs text-white/70">
-                            Subscription & payment overview
-                        </Text>
-                    </View>
-                </View>
-            </LinearGradient>
+        <View style={styles.container}>
+            <AppTopHeader
+                title="Billing"
+                subtitle="Subscription & payment overview"
+                onMenuPress={toggle}
+            />
 
             {/* ── Content ── */}
             <ScrollView
@@ -496,17 +483,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.gradient.surface,
-    },
-    header: {
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 24,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
     },
     scrollContent: {
         padding: 20,

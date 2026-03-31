@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     FlatList,
@@ -19,10 +19,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
+import { useSidebar } from '@/components/ui/sidebar';
 
+import { useEscalateConversation, useSendChatbotMessage, useStartConversation } from '@/features/company-admin/api/use-chatbot-mutations';
 import { useChatbotMessages } from '@/features/company-admin/api/use-chatbot-queries';
-import { useStartConversation, useSendChatbotMessage, useEscalateConversation } from '@/features/company-admin/api/use-chatbot-mutations';
 
 // ============ TYPES ============
 
@@ -103,7 +105,7 @@ function QuickActions({ onSelect, disabled }: { onSelect: (label: string) => voi
 
 export function ChatbotScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const flatListRef = React.useRef<FlatList>(null);
 
     const [input, setInput] = React.useState('');
@@ -185,22 +187,23 @@ export function ChatbotScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-            {/* Header Bar */}
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                    <Text className="font-inter text-base font-bold text-primary-950">HR Assistant</Text>
-                    <Text className="font-inter text-[10px] text-neutral-500">{escalateChat.isSuccess ? 'Escalated' : 'Online'}</Text>
-                </View>
-                <Pressable onPress={handleEscalate} disabled={!conversationId || escalateChat.isPending || escalateChat.isSuccess} style={[styles.escalateBtn, (escalateChat.isSuccess) && { opacity: 0.5 }]}>
-                    <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={colors.warning[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Path d="M12 9v4M12 17h.01" stroke={colors.warning[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-            </View>
+            <AppTopHeader
+                title="HR Assistant"
+                subtitle={escalateChat.isSuccess ? 'Escalated' : 'Online'}
+                onMenuPress={toggle}
+                rightSlot={(
+                    <Pressable
+                        onPress={handleEscalate}
+                        disabled={!conversationId || escalateChat.isPending || escalateChat.isSuccess}
+                        style={[styles.escalateBtn, escalateChat.isSuccess && { opacity: 0.5 }]}
+                    >
+                        <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={colors.warning[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Path d="M12 9v4M12 17h.01" stroke={colors.warning[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    </Pressable>
+                )}
+            />
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
                 {/* Messages */}
@@ -246,8 +249,6 @@ export function ChatbotScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
-    headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     escalateBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.warning[50], justifyContent: 'center', alignItems: 'center' },
     listContent: { paddingHorizontal: 16, paddingTop: 16 },
     messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 12, maxWidth: '85%' },

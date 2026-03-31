@@ -22,6 +22,7 @@ import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
@@ -255,6 +256,7 @@ const PAGE_SIZE = 20;
 export function EmployeeDirectoryScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { toggle } = useSidebar();
 
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState('all');
@@ -349,24 +351,7 @@ export function EmployeeDirectoryScreen() {
                     <View style={styles.headerDecor2} />
 
                     <View style={styles.headerRow}>
-                        <Pressable
-                            onPress={() => router.back()}
-                            style={({ pressed }) => [
-                                styles.backBtn,
-                                pressed && { opacity: 0.7 },
-                            ]}
-                        >
-                            <Svg width={20} height={20} viewBox="0 0 24 24">
-                                <Path
-                                    d="M19 12H5M12 19l-7-7 7-7"
-                                    stroke={colors.white}
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    fill="none"
-                                />
-                            </Svg>
-                        </Pressable>
+                        <HamburgerButton onPress={toggle} />
                         <Text className="font-inter text-lg font-bold text-white">
                             Employee Directory
                         </Text>

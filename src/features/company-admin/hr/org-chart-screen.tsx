@@ -1,6 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     Image as RNImage,
@@ -22,8 +21,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useOrgChart } from '@/features/company-admin/api/use-hr-queries';
@@ -607,7 +608,7 @@ function ZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: {
 
 export function OrgChartScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
 
     // State
     const [search, setSearch] = React.useState('');
@@ -726,48 +727,34 @@ export function OrgChartScreen() {
     // ============ RENDER HEADER ============
 
     const renderHeader = () => (
-        <LinearGradient
-            colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.gradientHeader, { paddingTop: insets.top + 8 }]}
-        >
-            <View style={styles.headerTopRow}>
-                <Pressable onPress={() => router.back()} style={styles.headerIconBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                </Pressable>
+        <>
+            <AppTopHeader
+                title="Organization Chart"
+                subtitle={`${allNodes.length} member${allNodes.length !== 1 ? 's' : ''}`}
+                onMenuPress={toggle}
+                rightSlot={(
+                    <Pressable
+                        onPress={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            setShowSearch(prev => !prev);
+                            if (showSearch) { setSearch(''); setHighlightId(null); }
+                        }}
+                        style={styles.headerIconBtn}
+                    >
+                        <Svg width={20} height={20} viewBox="0 0 24 24">
+                            {showSearch ? (
+                                <Path d="M18 6L6 18M6 6l12 12" stroke={colors.white} strokeWidth="2" strokeLinecap="round" />
+                            ) : (
+                                <>
+                                    <Circle cx="11" cy="11" r="8" stroke={colors.white} strokeWidth="1.8" fill="none" />
+                                    <Path d="M21 21l-4.35-4.35" stroke={colors.white} strokeWidth="1.8" strokeLinecap="round" />
+                                </>
+                            )}
+                        </Svg>
+                    </Pressable>
+                )}
+            />
 
-                <View style={styles.headerTitleArea}>
-                    <Text className="font-inter text-lg font-bold text-white">Organization Chart</Text>
-                    <Text className="font-inter text-xs text-white" style={{ opacity: 0.7 }}>
-                        {allNodes.length} member{allNodes.length !== 1 ? 's' : ''}
-                    </Text>
-                </View>
-
-                <Pressable
-                    onPress={() => {
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        setShowSearch(prev => !prev);
-                        if (showSearch) { setSearch(''); setHighlightId(null); }
-                    }}
-                    style={styles.headerIconBtn}
-                >
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        {showSearch ? (
-                            <Path d="M18 6L6 18M6 6l12 12" stroke={colors.white} strokeWidth="2" strokeLinecap="round" />
-                        ) : (
-                            <>
-                                <Circle cx="11" cy="11" r="8" stroke={colors.white} strokeWidth="1.8" fill="none" />
-                                <Path d="M21 21l-4.35-4.35" stroke={colors.white} strokeWidth="1.8" strokeLinecap="round" />
-                            </>
-                        )}
-                    </Svg>
-                </Pressable>
-            </View>
-
-            {/* Expandable search bar */}
             {showSearch && (
                 <Animated.View entering={FadeInDown.duration(200)} style={styles.searchBarWrapper}>
                     <View style={styles.searchBar}>
@@ -795,14 +782,14 @@ export function OrgChartScreen() {
                     </View>
                 </Animated.View>
             )}
-        </LinearGradient>
+        </>
     );
 
     // ============ RENDER LOADING ============
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 {renderHeader()}
                 <View style={styles.loadingContainer}>
                     <SkeletonCard />
@@ -818,7 +805,7 @@ export function OrgChartScreen() {
 
     if (error) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 {renderHeader()}
                 <View style={styles.errorContainer}>
                     <EmptyState
@@ -836,7 +823,7 @@ export function OrgChartScreen() {
 
     if (orgData.length === 0) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 {renderHeader()}
                 <View style={styles.errorContainer}>
                     <EmptyState
@@ -852,7 +839,7 @@ export function OrgChartScreen() {
     // ============ RENDER MAIN ============
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             {renderHeader()}
 
             <ScrollView
@@ -1004,15 +991,6 @@ const styles = StyleSheet.create({
     },
 
     // ── Header ──
-    gradientHeader: {
-        paddingBottom: 16,
-        paddingHorizontal: 20,
-    },
-    headerTopRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
     headerIconBtn: {
         width: 36,
         height: 36,
@@ -1021,13 +999,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    headerTitleArea: {
-        flex: 1,
-    },
-
-    // ── Search ──
     searchBarWrapper: {
         marginTop: 12,
+        marginHorizontal: 16,
     },
     searchBar: {
         flexDirection: 'row',

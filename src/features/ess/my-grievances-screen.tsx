@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     FlatList,
@@ -17,12 +16,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { FAB } from '@/components/ui/fab';
-import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
-import { useMyGrievances } from '@/features/company-admin/api/use-ess-queries';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useFileGrievance } from '@/features/company-admin/api/use-ess-mutations';
+import { useMyGrievances } from '@/features/company-admin/api/use-ess-queries';
 import { useGrievanceCategories } from '@/features/company-admin/api/use-recruitment-queries';
 
 type GrievanceStatus = 'Open' | 'Investigating' | 'Resolved' | 'Closed' | 'Escalated';
@@ -220,12 +220,7 @@ export function MyGrievancesScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
-            <LinearGradient colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + 8 }]}>
-                <View style={styles.headerRow}>
-                    <HamburgerButton onPress={open} />
-                    <Text className="font-inter text-lg font-bold text-white ml-3">My Grievances</Text>
-                </View>
-            </LinearGradient>
+            <AppTopHeader title="My Grievances" onMenuPress={open} />
             <FlatList
                 data={grievances}
                 keyExtractor={(item) => item.id}
@@ -248,8 +243,6 @@ export function MyGrievancesScreen() {
 }
 
 const styles = StyleSheet.create({
-    header: { paddingHorizontal: 16, paddingBottom: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center' },
     card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     catBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },

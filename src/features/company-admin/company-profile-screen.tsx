@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft } from 'lucide-react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showErrorMessage } from '@/components/ui/utils';
 
@@ -314,14 +314,6 @@ function SectionIcon({ type }: { type: string }) {
 
 // ============ SUB-COMPONENTS ============
 
-function BackButton({ onPress }: { onPress: () => void }) {
-    return (
-        <Pressable onPress={onPress} style={s.backButton}>
-            <ChevronLeft size={22} color={colors.white} strokeWidth={2} />
-        </Pressable>
-    );
-}
-
 function SectionHeader({
     title,
     iconType,
@@ -584,6 +576,7 @@ function EditBottomSheet({
 export function CompanyProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
 
     const { data: profileResponse, isLoading, error, refetch } = useCompanyProfile();
     const rawData = profileResponse?.data ?? profileResponse;
@@ -819,7 +812,7 @@ export function CompanyProfileScreen() {
                         <View style={s.headerDecor2} />
 
                         <View style={s.headerTop}>
-                            <BackButton onPress={() => router.back()} />
+                            <HamburgerButton onPress={toggle} />
                             <Text className="font-inter text-base font-semibold text-white">
                                 Company Profile
                             </Text>

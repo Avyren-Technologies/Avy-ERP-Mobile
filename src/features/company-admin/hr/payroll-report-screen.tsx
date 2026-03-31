@@ -1,11 +1,9 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
-    RefreshControl,
     ScrollView,
     StyleSheet,
     View,
@@ -15,16 +13,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import {
-    useSalaryRegister,
     useBankFile,
-    usePFECR,
     useESIChallan,
+    usePFECR,
     usePTChallan,
+    useSalaryRegister,
     useVarianceReport,
 } from '@/features/company-admin/api/use-payroll-run-queries';
 
@@ -117,7 +117,7 @@ function ReportTableView({ type, month, year, onBack }: {
         pf_ecr: pfECR,
         esi_challan: esiChallan,
         pt_challan: ptChallan,
-        variance: variance,
+        variance,
     };
 
     const query = queryMap[type];
@@ -186,7 +186,7 @@ function ReportTableView({ type, month, year, onBack }: {
     }, [type]);
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <View style={styles.headerBar}>
                 <Pressable onPress={onBack} style={styles.backBtn}>
@@ -268,8 +268,7 @@ function ReportCardItem({ item, index, onPress }: { item: ReportCardData; index:
 
 export function PayrollReportScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
-
+    const { toggle } = useSidebar();
     const now = new Date();
     const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth() + 1);
     const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
@@ -289,15 +288,9 @@ export function PayrollReportScreen() {
 
     // Report hub view
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Payroll Reports</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="Payroll Reports" onMenuPress={toggle} />
             <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={FadeInDown.duration(400)}>
                     <Text className="font-inter text-2xl font-bold text-primary-950">Reports</Text>

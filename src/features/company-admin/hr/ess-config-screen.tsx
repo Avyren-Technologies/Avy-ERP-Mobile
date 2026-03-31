@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { ESSConfig } from '@/lib/api/ess';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -13,17 +14,18 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import Svg, { Path } from 'react-native-svg';
-
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
-import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
-import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
+import { useSidebar } from '@/components/ui/sidebar';
 
-import { useEssConfig } from '@/features/company-admin/api/use-ess-queries';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { useUpdateEssConfig } from '@/features/company-admin/api/use-ess-mutations';
-import type { ESSConfig, LocationAccuracy } from '@/lib/api/ess';
+import { useEssConfig } from '@/features/company-admin/api/use-ess-queries';
 
 import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
 
@@ -237,8 +239,7 @@ function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { labe
 
 export function EssConfigScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
-
+    const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useEssConfig();
     const updateMutation = useUpdateEssConfig();
 
@@ -284,13 +285,9 @@ export function EssConfigScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">ESS Configuration</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="ESS Configuration" onMenuPress={toggle} />
                 <View style={{ paddingHorizontal: 24, paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -298,36 +295,21 @@ export function EssConfigScreen() {
 
     if (error) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">ESS Configuration</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="ESS Configuration" onMenuPress={toggle} />
                 <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load ESS config" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">ESS Configuration</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="ESS Configuration" onMenuPress={toggle} />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + (hasChanges ? 120 : 40) }]} keyboardShouldPersistTaps="handled">
-                <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">ESS Configuration</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        {enabledCount} of {toggleCount} features enabled
-                    </Text>
-                </Animated.View>
-
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {SECTIONS.map((section) => (
                         <SectionCard key={section.title} title={section.title} sectionDescription={section.sectionDescription}>

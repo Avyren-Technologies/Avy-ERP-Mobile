@@ -10,7 +10,6 @@ import {
     RefreshControl,
     ScrollView,
     StyleSheet,
-    TextInput,
     View,
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -18,23 +17,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
-import { SearchBar } from '@/components/ui/search-bar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { usePayrollRuns, usePayrollRun } from '@/features/company-admin/api/use-payroll-run-queries';
 import {
-    useCreatePayrollRun,
-    useLockAttendance,
-    useReviewExceptions,
+    useApproveRun,
     useComputeSalaries,
     useComputeStatutory,
-    useApproveRun,
+    useCreatePayrollRun,
     useDisburseRun,
+    useLockAttendance,
+    useReviewExceptions,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
+import { usePayrollRun, usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
 
 // ============ TYPES ============
 
@@ -509,7 +509,7 @@ function Step6Disburse({ run, onDisburse, isDisbursing, disbursed }: { run: Payr
 
 export function PayrollRunScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const now = new Date();
@@ -636,7 +636,7 @@ export function PayrollRunScreen() {
     // ---- Wizard view ----
     if (selectedRun) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
                 <View style={styles.headerBar}>
                     <Pressable onPress={() => { setSelectedRunId(null); setDisbursed(false); }} style={styles.backBtn}>
@@ -683,15 +683,9 @@ export function PayrollRunScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Payroll Runs</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="Payroll Runs" onMenuPress={toggle} />
             <FlatList data={runs} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}

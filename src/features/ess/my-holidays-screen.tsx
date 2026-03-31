@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     FlatList,
@@ -12,8 +11,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
-import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useMyHolidays } from '@/features/company-admin/api/use-ess-queries';
 
 type HolidayType = 'NATIONAL' | 'REGIONAL' | 'COMPANY' | 'OPTIONAL';
@@ -71,17 +71,7 @@ export function MyHolidaysScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.header, { paddingTop: insets.top + 8 }]}
-            >
-                <View style={styles.headerRow}>
-                    <HamburgerButton onPress={open} />
-                    <Text className="font-inter text-lg font-bold text-white ml-3">Holiday Calendar</Text>
-                </View>
-            </LinearGradient>
+            <AppTopHeader title="Holiday Calendar" onMenuPress={open} />
 
             {/* Year selector chips */}
             <View style={styles.yearRow}>
@@ -122,8 +112,6 @@ export function MyHolidaysScreen() {
 }
 
 const styles = StyleSheet.create({
-    header: { paddingHorizontal: 16, paddingBottom: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center' },
     yearRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
     yearChip: {
         paddingHorizontal: 20,

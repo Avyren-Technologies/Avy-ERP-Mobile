@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -21,10 +21,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import {
     useCreateRole,
@@ -684,7 +686,7 @@ function RoleFormScreen({
 
 export function RoleManagementScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const [showForm, setShowForm] = React.useState(false);
     const [editingRole, setEditingRole] = React.useState<RoleData | null>(null);
 
@@ -766,26 +768,12 @@ export function RoleManagementScreen() {
 
     const renderHeader = () => (
         <>
-            <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path
-                            d="M19 12H5M12 19l-7-7 7-7"
-                            stroke={colors.primary[600]}
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </Svg>
-                </Pressable>
-                <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">
-                        Roles
-                    </Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        {roles.length} role{roles.length !== 1 ? 's' : ''}
-                    </Text>
-                </View>
+            <Animated.View entering={FadeInDown.duration(400)}>
+                <AppTopHeader
+                    title="Roles"
+                    subtitle={`${roles.length} role${roles.length !== 1 ? 's' : ''}`}
+                    onMenuPress={toggle}
+                />
             </Animated.View>
         </>
     );
@@ -834,7 +822,7 @@ export function RoleManagementScreen() {
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient
                 colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
                 style={StyleSheet.absoluteFill}
@@ -877,22 +865,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.gradient.surface,
-    },
-    header: {
-        paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: colors.primary[50],
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     listContent: {
         paddingHorizontal: 24,

@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     FlatList,
@@ -20,13 +20,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchBar } from '@/components/ui/search-bar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useProbationDue } from '@/features/company-admin/api/use-hr-queries';
 import { useSubmitProbationReview } from '@/features/company-admin/api/use-hr-mutations';
+import { useProbationDue } from '@/features/company-admin/api/use-hr-queries';
 
 // ============ TYPES ============
 
@@ -251,8 +253,7 @@ function SummaryCard({ label, count, color }: { label: string; count: number; co
 
 export function ProbationReviewScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
-
+    const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
     const [reviewVisible, setReviewVisible] = React.useState(false);
     const [selectedEmployee, setSelectedEmployee] = React.useState<ProbationEmployee | null>(null);
@@ -314,15 +315,9 @@ export function ProbationReviewScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Probation Reviews</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="Probation Reviews" onMenuPress={toggle} />
             <FlatList
                 data={filtered}
                 renderItem={renderItem}

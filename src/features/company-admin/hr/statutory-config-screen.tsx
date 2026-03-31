@@ -17,19 +17,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import {
-    useBonusConfig,
-    useESIConfig,
-    useGratuityConfig,
-    useLWFConfigs,
-    usePFConfig,
-    usePTConfigs,
-} from '@/features/company-admin/api/use-payroll-queries';
 import {
     useCreateLWFConfig,
     useCreatePTConfig,
@@ -40,6 +34,14 @@ import {
     useUpdateGratuityConfig,
     useUpdatePFConfig,
 } from '@/features/company-admin/api/use-payroll-mutations';
+import {
+    useBonusConfig,
+    useESIConfig,
+    useGratuityConfig,
+    useLWFConfigs,
+    usePFConfig,
+    usePTConfigs,
+} from '@/features/company-admin/api/use-payroll-queries';
 
 // ============ TYPES ============
 
@@ -299,7 +301,7 @@ function LWFFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean
 
 export function StatutoryConfigScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     // Queries
@@ -322,7 +324,7 @@ export function StatutoryConfigScreen() {
 
     // Section collapse state
     const [collapsed, setCollapsed] = React.useState({ pf: false, esi: true, pt: true, gratuity: true, bonus: true, lwf: true });
-    const toggle = (key: keyof typeof collapsed) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
+    const toggleSection = (key: keyof typeof collapsed) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
     // PF form
     const [pfForm, setPFForm] = React.useState<PFForm>({ employeeRate: '12', employerEPFRate: '3.67', epsRate: '8.33', edliRate: '0.5', adminChargeRate: '0.5', wageCeiling: '15000', vpfEnabled: false, excludedComponents: '' });
@@ -454,13 +456,9 @@ export function StatutoryConfigScreen() {
 
     if (pfLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Statutory Config</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="Statutory Config" onMenuPress={toggle} />
                 <View style={{ paddingHorizontal: 24, paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -468,26 +466,18 @@ export function StatutoryConfigScreen() {
 
     if (pfError) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Statutory Config</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="Statutory Config" onMenuPress={toggle} />
                 <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => pfRefetch() }} /></View>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}><Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Statutory Config</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="Statutory Config" onMenuPress={toggle} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
                     <Text className="font-inter text-2xl font-bold text-primary-950">Statutory Configuration</Text>
@@ -496,7 +486,7 @@ export function StatutoryConfigScreen() {
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {/* PF */}
-                    <SectionCard title="PF Configuration" subtitle="Provident Fund rates and limits" collapsed={collapsed.pf} onToggle={() => toggle('pf')}>
+                    <SectionCard title="PF Configuration" subtitle="Provident Fund rates and limits" collapsed={collapsed.pf} onToggle={() => toggleSection('pf')}>
                         <NumberField label="Employee Rate" value={pfForm.employeeRate} onChange={v => { setPFForm(p => ({ ...p, employeeRate: v })); setPFDirty(true); }} placeholder="12" suffix="%" />
                         <NumberField label="Employer EPF Rate" value={pfForm.employerEPFRate} onChange={v => { setPFForm(p => ({ ...p, employerEPFRate: v })); setPFDirty(true); }} placeholder="3.67" suffix="%" />
                         <NumberField label="EPS Rate" value={pfForm.epsRate} onChange={v => { setPFForm(p => ({ ...p, epsRate: v })); setPFDirty(true); }} placeholder="8.33" suffix="%" />
@@ -512,7 +502,7 @@ export function StatutoryConfigScreen() {
                     </SectionCard>
 
                     {/* ESI */}
-                    <SectionCard title="ESI Configuration" subtitle="Employee State Insurance rates" collapsed={collapsed.esi} onToggle={() => toggle('esi')}>
+                    <SectionCard title="ESI Configuration" subtitle="Employee State Insurance rates" collapsed={collapsed.esi} onToggle={() => toggleSection('esi')}>
                         <NumberField label="Employee Rate" value={esiForm.employeeRate} onChange={v => { setESIForm(p => ({ ...p, employeeRate: v })); setESIDirty(true); }} placeholder="0.75" suffix="%" />
                         <NumberField label="Employer Rate" value={esiForm.employerRate} onChange={v => { setESIForm(p => ({ ...p, employerRate: v })); setESIDirty(true); }} placeholder="3.25" suffix="%" />
                         <NumberField label="Wage Ceiling" value={esiForm.wageCeiling} onChange={v => { setESIForm(p => ({ ...p, wageCeiling: v })); setESIDirty(true); }} placeholder="21000" suffix="\u20B9" />
@@ -520,7 +510,7 @@ export function StatutoryConfigScreen() {
                     </SectionCard>
 
                     {/* PT */}
-                    <SectionCard title="Professional Tax" subtitle="State-wise PT configuration" collapsed={collapsed.pt} onToggle={() => toggle('pt')}>
+                    <SectionCard title="Professional Tax" subtitle="State-wise PT configuration" collapsed={collapsed.pt} onToggle={() => toggleSection('pt')}>
                         {ptConfigs.map(pt => (
                             <View key={pt.id} style={styles.listItem}>
                                 <View style={{ flex: 1 }}>
@@ -539,7 +529,7 @@ export function StatutoryConfigScreen() {
                     </SectionCard>
 
                     {/* Gratuity */}
-                    <SectionCard title="Gratuity" subtitle="Gratuity calculation settings" collapsed={collapsed.gratuity} onToggle={() => toggle('gratuity')}>
+                    <SectionCard title="Gratuity" subtitle="Gratuity calculation settings" collapsed={collapsed.gratuity} onToggle={() => toggleSection('gratuity')}>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Formula</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="(Basic * 15 * Years) / 26" placeholderTextColor={colors.neutral[400]} value={gratuityForm.formula} onChangeText={v => { setGratuityForm(p => ({ ...p, formula: v })); setGratuityDirty(true); }} /></View>
@@ -555,7 +545,7 @@ export function StatutoryConfigScreen() {
                     </SectionCard>
 
                     {/* Bonus */}
-                    <SectionCard title="Bonus" subtitle="Statutory bonus calculation" collapsed={collapsed.bonus} onToggle={() => toggle('bonus')}>
+                    <SectionCard title="Bonus" subtitle="Statutory bonus calculation" collapsed={collapsed.bonus} onToggle={() => toggleSection('bonus')}>
                         <NumberField label="Wage Ceiling" value={bonusForm.wageCeiling} onChange={v => { setBonusForm(p => ({ ...p, wageCeiling: v })); setBonusDirty(true); }} placeholder="21000" suffix="\u20B9" />
                         <NumberField label="Min Bonus %" value={bonusForm.minBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, minBonusPercent: v })); setBonusDirty(true); }} placeholder="8.33" suffix="%" />
                         <NumberField label="Max Bonus %" value={bonusForm.maxBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, maxBonusPercent: v })); setBonusDirty(true); }} placeholder="20" suffix="%" />
@@ -568,7 +558,7 @@ export function StatutoryConfigScreen() {
                     </SectionCard>
 
                     {/* LWF */}
-                    <SectionCard title="Labour Welfare Fund" subtitle="State-wise LWF contributions" collapsed={collapsed.lwf} onToggle={() => toggle('lwf')}>
+                    <SectionCard title="Labour Welfare Fund" subtitle="State-wise LWF contributions" collapsed={collapsed.lwf} onToggle={() => toggleSection('lwf')}>
                         {lwfConfigs.map(lwf => (
                             <View key={lwf.id} style={styles.listItem}>
                                 <View style={{ flex: 1 }}>

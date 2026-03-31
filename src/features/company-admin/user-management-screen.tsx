@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -23,11 +23,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import {
     useCreateUser,
@@ -304,7 +306,7 @@ function UserFormSheet({
         const newErrors: Record<string, string> = {};
         if (!fullName.trim()) newErrors.fullName = 'Full name is required';
         if (!email.trim()) newErrors.email = 'Email is required';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()))
+        else if (!/^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]{2,}$/.test(email.trim()))
             newErrors.email = 'Invalid email address';
         if (!isEdit && !password.trim()) newErrors.password = 'Password is required';
         if (password) {
@@ -314,7 +316,7 @@ function UserFormSheet({
                 newErrors.password = 'Must include an uppercase letter';
             else if (!/[a-z]/.test(password))
                 newErrors.password = 'Must include a lowercase letter';
-            else if (!/[0-9]/.test(password))
+            else if (!/\d/.test(password))
                 newErrors.password = 'Must include a number';
         }
         setErrors(newErrors);
@@ -632,7 +634,7 @@ function UserFormSheet({
 
 export function UserManagementScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
     const [activeFilter, setActiveFilter] = React.useState('all');
     const [sheetVisible, setSheetVisible] = React.useState(false);
@@ -751,27 +753,12 @@ export function UserManagementScreen() {
 
     const renderHeader = () => (
         <>
-            {/* Back + Title */}
-            <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path
-                            d="M19 12H5M12 19l-7-7 7-7"
-                            stroke={colors.primary[600]}
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </Svg>
-                </Pressable>
-                <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">
-                        Users
-                    </Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
-                        {totalCount} user{totalCount !== 1 ? 's' : ''}
-                    </Text>
-                </View>
+            <Animated.View entering={FadeInDown.duration(400)}>
+                <AppTopHeader
+                    title="Users"
+                    subtitle={`${totalCount} user${totalCount !== 1 ? 's' : ''}`}
+                    onMenuPress={toggle}
+                />
             </Animated.View>
 
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>
@@ -819,7 +806,7 @@ export function UserManagementScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient
                 colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
                 style={StyleSheet.absoluteFill}
@@ -872,22 +859,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.gradient.surface,
-    },
-    header: {
-        paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: colors.primary[50],
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     searchSection: {
         paddingHorizontal: 24,

@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -17,8 +17,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { useSidebar } from '@/components/ui/sidebar';
 
 import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useSupportTicket } from '@/features/company-admin/api/use-company-admin-queries';
@@ -81,20 +83,6 @@ const CATEGORY_STYLES: Record<TicketCategory, { bg: string; text: string }> = {
 };
 
 // ============ ICONS ============
-
-function BackIcon() {
-    return (
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path
-                d="M19 12H5M12 19l-7-7 7-7"
-                stroke="#fff"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </Svg>
-    );
-}
 
 function CloseTicketIcon() {
     return (
@@ -227,7 +215,7 @@ function ModuleChangeCard({ request }: { request: ModuleChangeRequest }) {
 export function TicketChatScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const user = useAuthStore.use.user();
 
     const { data, isLoading } = useSupportTicket(id ?? '');
@@ -278,9 +266,7 @@ export function TicketChatScreen() {
             confirmText: 'Close Ticket',
             onConfirm: () => {
                 if (!id) return;
-                closeMutation.mutate(id, {
-                    onSuccess: () => router.back(),
-                });
+                closeMutation.mutate(id);
             },
         });
     };
@@ -319,18 +305,8 @@ export function TicketChatScreen() {
 
     if (isLoading) {
         return (
-            <View style={[s.container, { paddingTop: insets.top }]}>
-                <LinearGradient
-                    colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={s.header}
-                >
-                    <Pressable onPress={() => router.back()} style={s.backButton}>
-                        <BackIcon />
-                    </Pressable>
-                    <Text className="font-inter text-base font-bold text-white">Loading...</Text>
-                </LinearGradient>
+            <View style={s.container}>
+                <AppTopHeader title="Loading..." onMenuPress={toggle} />
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator size="large" color={colors.primary[500]} />
                 </View>
@@ -339,47 +315,30 @@ export function TicketChatScreen() {
     }
 
     return (
-        <View style={[s.container, { paddingTop: insets.top }]}>
-            {/* Header */}
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={s.header}
-            >
-                <View style={s.headerRow}>
-                    <Pressable onPress={() => router.back()} style={s.backButton}>
-                        <BackIcon />
-                    </Pressable>
-                    <View style={{ flex: 1 }}>
-                        <Animated.View entering={FadeInUp.duration(300)}>
-                            <Text
-                                className="font-inter text-base font-bold text-white"
-                                numberOfLines={1}
-                            >
-                                {ticket?.subject ?? 'Ticket'}
-                            </Text>
-                        </Animated.View>
-                    </View>
-                    {!isClosed && (
+        <View style={s.container}>
+            <AppTopHeader
+                title={ticket?.subject ?? 'Ticket'}
+                onMenuPress={toggle}
+                rightSlot={
+                    !isClosed ? (
                         <Pressable onPress={handleCloseTicket} style={s.closeButton}>
                             <CloseTicketIcon />
                         </Pressable>
-                    )}
+                    ) : undefined
+                }
+            />
+            <View style={s.headerBadges}>
+                <View style={[s.headerBadge, { backgroundColor: statusStyle.bg }]}>
+                    <Text className="font-inter" style={[s.headerBadgeText, { color: statusStyle.text }]}>
+                        {STATUS_LABELS[status] ?? status}
+                    </Text>
                 </View>
-                <View style={s.headerBadges}>
-                    <View style={[s.headerBadge, { backgroundColor: statusStyle.bg }]}>
-                        <Text className="font-inter" style={[s.headerBadgeText, { color: statusStyle.text }]}>
-                            {STATUS_LABELS[status] ?? status}
-                        </Text>
-                    </View>
-                    <View style={[s.headerBadge, { backgroundColor: categoryStyle.bg }]}>
-                        <Text className="font-inter" style={[s.headerBadgeText, { color: categoryStyle.text }]}>
-                            {CATEGORY_LABELS[category] ?? category}
-                        </Text>
-                    </View>
+                <View style={[s.headerBadge, { backgroundColor: categoryStyle.bg }]}>
+                    <Text className="font-inter" style={[s.headerBadgeText, { color: categoryStyle.text }]}>
+                        {CATEGORY_LABELS[category] ?? category}
+                    </Text>
                 </View>
-            </LinearGradient>
+            </View>
 
             {/* Module Change Request Card */}
             {moduleChangeRequest && (
@@ -461,27 +420,10 @@ const s = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.gradient.surface,
     },
-    header: {
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    backButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     closeButton: {
         width: 36,
         height: 36,
-        borderRadius: 18,
+        borderRadius: 12,
         backgroundColor: 'rgba(255,255,255,0.15)',
         alignItems: 'center',
         justifyContent: 'center',
@@ -490,7 +432,8 @@ const s = StyleSheet.create({
         flexDirection: 'row',
         gap: 8,
         marginTop: 10,
-        marginLeft: 46,
+        marginLeft: 16,
+        marginRight: 16,
     },
     headerBadge: {
         paddingHorizontal: 8,

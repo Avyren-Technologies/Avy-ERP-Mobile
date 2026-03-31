@@ -22,8 +22,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { storage } from '@/lib/storage';
@@ -989,6 +991,7 @@ function TimelineTab({
 export function EmployeeDetailScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { toggle } = useSidebar();
     const params = useLocalSearchParams<{ id?: string; mode?: string }>();
 
     const isCreateMode = params.mode === 'create' || !params.id;
@@ -1471,55 +1474,24 @@ export function EmployeeDetailScreen() {
 
     return (
         <View style={st.container}>
-            {/* Header */}
-            <Animated.View entering={FadeInDown.duration(400)}>
-                <LinearGradient
-                    colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end] as const}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[st.headerGradient, { paddingTop: insets.top + 8 }]}
-                >
-                    <View style={st.headerDecor1} />
-                    <View style={st.headerDecor2} />
-
-                    <View style={st.headerRow}>
+            <AppTopHeader
+                title={displayName}
+                subtitle={!isCreateMode ? employeeStatus : undefined}
+                onMenuPress={toggle}
+                rightSlot={
+                    isCreateMode ? (
                         <Pressable
-                            onPress={() => router.back()}
+                            onPress={handleReset}
                             style={({ pressed }) => [st.backBtn, pressed && { opacity: 0.7 }]}
                         >
-                            <Svg width={20} height={20} viewBox="0 0 24 24">
-                                <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            <Svg width={18} height={18} viewBox="0 0 24 24">
+                                <Path d="M1 4v6h6M23 20v-6h-6" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                <Path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             </Svg>
                         </Pressable>
-                        <View style={{ flex: 1, alignItems: 'center' }}>
-                            <Text className="font-inter text-base font-bold text-white" numberOfLines={1}>
-                                {displayName}
-                            </Text>
-                            {!isCreateMode && (
-                                <View style={[st.headerStatusBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                                    <View style={[st.statusDot, { backgroundColor: badge.dot }]} />
-                                    <Text className="font-inter text-[10px] font-bold text-white">
-                                        {employeeStatus}
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                        {isCreateMode ? (
-                            <Pressable
-                                onPress={handleReset}
-                                style={({ pressed }) => [st.backBtn, pressed && { opacity: 0.7 }]}
-                            >
-                                <Svg width={18} height={18} viewBox="0 0 24 24">
-                                    <Path d="M1 4v6h6M23 20v-6h-6" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                                    <Path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                                </Svg>
-                            </Pressable>
-                        ) : (
-                            <View style={{ width: 36 }} />
-                        )}
-                    </View>
-                </LinearGradient>
-            </Animated.View>
+                    ) : undefined
+                }
+            />
 
             {/* Draft Restored Banner */}
             {draftRestored && (
@@ -1731,35 +1703,6 @@ const st = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.info[200],
     },
-    headerGradient: {
-        paddingHorizontal: 24,
-        paddingBottom: 20,
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
-        overflow: 'hidden',
-    },
-    headerDecor1: {
-        position: 'absolute',
-        top: -30,
-        right: -30,
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-    },
-    headerDecor2: {
-        position: 'absolute',
-        bottom: -20,
-        left: -20,
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     backBtn: {
         width: 36,
         height: 36,
@@ -1767,20 +1710,6 @@ const st = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    headerStatusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-        marginTop: 4,
-        gap: 4,
-    },
-    statusDot: {
-        width: 5,
-        height: 5,
-        borderRadius: 2.5,
     },
     // Profile photo section
     photoSection: {

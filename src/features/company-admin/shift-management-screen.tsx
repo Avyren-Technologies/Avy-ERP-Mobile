@@ -1,6 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -18,11 +17,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
@@ -149,7 +150,7 @@ function NullableBoolRow({ label, value, onChange }: { label: string; value: boo
 
 export function ShiftManagementScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const confirmModal = useConfirmModal();
 
     const { data, isLoading, isError, refetch } = useCompanyShifts();
@@ -303,17 +304,10 @@ export function ShiftManagementScreen() {
     );
 
     return (
-        <View style={[s.container, { paddingTop: insets.top }]}>
+        <View style={s.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-            {/* Header */}
-            <View style={s.headerBar}>
-                <Pressable onPress={() => router.back()} style={s.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Shifts</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="Shifts" onMenuPress={toggle} />
 
             {/* Search */}
             <View style={s.searchWrap}>
@@ -449,8 +443,6 @@ export function ShiftManagementScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
-    headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, marginBottom: 8, backgroundColor: colors.white, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 44 },
     searchInput: { flex: 1, fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     shiftCard: {

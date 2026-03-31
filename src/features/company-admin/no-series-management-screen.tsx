@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     FlatList,
@@ -13,7 +13,6 @@ import {
     View,
 } from 'react-native';
 import Animated, {
-    FadeIn,
     FadeInDown,
     FadeInUp,
 } from 'react-native-reanimated';
@@ -21,18 +20,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useCompanyNoSeries } from '@/features/company-admin/api/use-company-admin-queries';
 import {
     useCreateNoSeries,
     useDeleteNoSeries,
     useUpdateNoSeries,
 } from '@/features/company-admin/api/use-company-admin-mutations';
+import { useCompanyNoSeries } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ CONSTANTS ============
 
@@ -67,8 +68,8 @@ function toOptionalInt(value: string): number | undefined {
 // ============ PREVIEW HELPER ============
 
 function getPreview(item: NoSeriesItem): string {
-    const count = parseInt(item.numberCount || '5', 10);
-    const start = parseInt(item.startNumber || '1', 10);
+    const count = Number.parseInt(item.numberCount || '5', 10);
+    const start = Number.parseInt(item.startNumber || '1', 10);
     const num = String(start).padStart(count, '0');
     return `${item.prefix}${item.suffix}${num}`;
 }
@@ -215,7 +216,7 @@ function NoSeriesFormModal({
 
     const previewItem: NoSeriesItem = { id: '', code, description, linkedScreen, prefix, suffix, numberCount, startNumber };
     const preview = getPreview(previewItem);
-    const nextNum = String(parseInt(startNumber || '1') + 1).padStart(parseInt(numberCount || '5'), '0');
+    const nextNum = String(Number.parseInt(startNumber || '1') + 1).padStart(Number.parseInt(numberCount || '5'), '0');
     const nextPreview = `${prefix}${suffix}${nextNum}`;
 
     const handleSave = () => {
@@ -388,7 +389,7 @@ function NoSeriesCard({
 
 export function NoSeriesManagementScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data: response, isLoading, error, refetch, isFetching } = useCompanyNoSeries();
@@ -465,17 +466,6 @@ export function NoSeriesManagementScreen() {
         />
     );
 
-    const renderHeader = () => (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">
-                Number Series
-            </Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">
-                {noSeries.length} series configured
-            </Text>
-        </Animated.View>
-    );
-
     const renderEmpty = () => {
         if (isLoading) {
             return (
@@ -510,7 +500,7 @@ export function NoSeriesManagementScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient
                 colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
                 style={StyleSheet.absoluteFill}
@@ -519,23 +509,12 @@ export function NoSeriesManagementScreen() {
             />
 
             {/* Header */}
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
-                    No. Series Management
-                </Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="No. Series Management" onMenuPress={toggle} />
 
             <FlatList
                 data={noSeries}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
-                ListHeaderComponent={renderHeader}
                 ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}

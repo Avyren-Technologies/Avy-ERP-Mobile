@@ -1,6 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { CompanySettings, CurrencyCode, LanguageCode, TimeFormat } from '@/lib/api/company-admin';
+
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -12,15 +13,16 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
+import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
 
-import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useUpdateSettings } from '@/features/company-admin/api/use-company-admin-mutations';
-import type { CompanySettings, CurrencyCode, LanguageCode, TimeFormat } from '@/lib/api/company-admin';
+import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 
 import {
     ChipSelector,
@@ -96,8 +98,7 @@ function ToggleRow({ label, subtitle, value, onToggle, tooltip }: {
 
 export function CompanySettingsScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
-
+    const { toggle } = useSidebar();
     const { data: settingsResponse, isLoading } = useCompanySettings();
     const updateSettings = useUpdateSettings();
 
@@ -140,25 +141,7 @@ export function CompanySettingsScreen() {
     if (isLoading) {
         return (
             <View style={styles.container}>
-                <LinearGradient
-                    colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                    style={styles.headerGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                >
-                    <View style={{ height: insets.top }} />
-                    <View style={styles.headerRow}>
-                        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                            <Svg width={20} height={20} viewBox="0 0 24 24">
-                                <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </Svg>
-                        </Pressable>
-                        <Text className="flex-1 text-center font-inter text-lg font-bold text-white">
-                            Company Settings
-                        </Text>
-                        <View style={{ width: 36 }} />
-                    </View>
-                </LinearGradient>
+                <AppTopHeader title="Company Settings" onMenuPress={toggle} />
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary[500]} />
                     <Text className="mt-3 font-inter text-sm text-neutral-500">Loading settings...</Text>
@@ -176,26 +159,9 @@ export function CompanySettingsScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            {/* Header */}
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                style={styles.headerGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                <View style={{ height: insets.top }} />
-                <Animated.View entering={FadeInDown.duration(400)} style={styles.headerRow}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24">
-                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.white} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </Svg>
-                    </Pressable>
-                    <Text className="flex-1 text-center font-inter text-lg font-bold text-white">
-                        Company Settings
-                    </Text>
-                    <View style={{ width: 36 }} />
-                </Animated.View>
-            </LinearGradient>
+            <Animated.View entering={FadeInDown.duration(400)}>
+                <AppTopHeader title="Company Settings" onMenuPress={toggle} />
+            </Animated.View>
 
             {/* Scrollable content */}
             <ScrollView
@@ -375,13 +341,6 @@ export function CompanySettingsScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
-    headerGradient: { paddingBottom: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12 },
-    backBtn: {
-        width: 36, height: 36, borderRadius: 11,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        justifyContent: 'center', alignItems: 'center',
-    },
     scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     saveContainer: {

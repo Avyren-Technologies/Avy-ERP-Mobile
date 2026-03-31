@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     Modal,
@@ -16,13 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { FAB } from '@/components/ui/fab';
-import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
-import { useMyLoans, useEssLoanPolicies } from '@/features/company-admin/api/use-ess-queries';
 import { useApplyForLoan } from '@/features/company-admin/api/use-ess-mutations';
+import { useEssLoanPolicies, useMyLoans } from '@/features/company-admin/api/use-ess-queries';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
     PENDING: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
@@ -46,8 +46,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatCurrency(amount: number | string): string {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (isNaN(num)) return '\u20B90';
+    const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
+    if (Number.isNaN(num)) return '\u20B90';
     return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
@@ -55,8 +55,8 @@ function calculateEMI(principal: number, annualRate: number, tenureMonths: numbe
     if (!principal || !annualRate || !tenureMonths) return 0;
     const monthlyRate = annualRate / 12 / 100;
     if (monthlyRate === 0) return principal / tenureMonths;
-    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) /
-        (Math.pow(1 + monthlyRate, tenureMonths) - 1);
+    const emi = (principal * monthlyRate * (1 + monthlyRate)**tenureMonths) /
+        ((1 + monthlyRate)**tenureMonths - 1);
     return Math.round(emi * 100) / 100;
 }
 
@@ -84,8 +84,8 @@ function ApplyLoanModal({
     }, [visible]);
 
     const selectedPolicy = policies.find((p: any) => p.id === policyId);
-    const parsedAmount = parseFloat(amount) || 0;
-    const parsedTenure = parseInt(tenure, 10) || 0;
+    const parsedAmount = Number.parseFloat(amount) || 0;
+    const parsedTenure = Number.parseInt(tenure, 10) || 0;
     const rate = selectedPolicy?.interestRate ?? 0;
     const emi = calculateEMI(parsedAmount, rate, parsedTenure);
 
@@ -349,17 +349,7 @@ export function MyLoanScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
-            <LinearGradient
-                colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.header, { paddingTop: insets.top + 8 }]}
-            >
-                <View style={styles.headerRow}>
-                    <HamburgerButton onPress={open} />
-                    <Text className="font-inter text-lg font-bold text-white ml-3">Loans</Text>
-                </View>
-            </LinearGradient>
+            <AppTopHeader title="Loans" onMenuPress={open} />
             <SectionList
                 sections={sections}
                 keyExtractor={(item, index) => item.id ?? `item-${index}`}
@@ -383,8 +373,6 @@ export function MyLoanScreen() {
 }
 
 const styles = StyleSheet.create({
-    header: { paddingHorizontal: 16, paddingBottom: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center' },
     sectionHeader: { paddingVertical: 8, paddingHorizontal: 4, marginBottom: 4 },
     card: {
         backgroundColor: colors.white,

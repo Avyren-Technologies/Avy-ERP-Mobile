@@ -437,7 +437,7 @@ function TabLayoutInner() {
                     listeners={(!isEmployee && (isCompanyAdmin || (userRole === 'user' && showSettingsTab))) ? {
                         tabPress: (e) => {
                             e.preventDefault();
-                            router.navigate('/company/settings');
+                            router.navigate('/more');
                         },
                     } : undefined}
                 />

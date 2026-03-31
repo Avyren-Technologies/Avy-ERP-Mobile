@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import type { SystemControls } from '@/lib/api/company-admin';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -13,17 +14,18 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import Svg, { Path } from 'react-native-svg';
-
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
-import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
-import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InfoTooltip, SectionDescription } from '@/components/ui/info-tooltip';
+import { useSidebar } from '@/components/ui/sidebar';
 
-import { useCompanyControls } from '@/features/company-admin/api/use-company-admin-queries';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { useUpdateControls } from '@/features/company-admin/api/use-company-admin-mutations';
-import type { SystemControls } from '@/lib/api/company-admin';
+import { useCompanyControls } from '@/features/company-admin/api/use-company-admin-queries';
 
 import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
 
@@ -119,8 +121,7 @@ function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { labe
 
 export function SystemControlsScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
-
+    const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useCompanyControls();
     const updateMutation = useUpdateControls();
 
@@ -162,15 +163,9 @@ export function SystemControlsScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                    </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">System Controls</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="System Controls" onMenuPress={toggle} />
                 <View style={{ paddingHorizontal: 24, paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -178,15 +173,9 @@ export function SystemControlsScreen() {
 
     if (error) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.container}>
                 <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                    </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">System Controls</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <AppTopHeader title="System Controls" onMenuPress={toggle} />
                 <View style={{ paddingTop: 60, alignItems: 'center' }}>
                     <EmptyState icon="error" title="Failed to load controls" message="Check your connection and try again." action={{ label: 'Retry', onPress: () => refetch() }} />
                 </View>
@@ -195,23 +184,12 @@ export function SystemControlsScreen() {
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">System Controls</Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="System Controls" onMenuPress={toggle} />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + (hasChanges ? 120 : 40) }]} keyboardShouldPersistTaps="handled">
-                <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">System Controls</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Module enablement, security, and audit settings</Text>
-                </Animated.View>
-
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {/* Section 1: Module Enablement (9 toggles) */}
                     <SectionCard title="Module Enablement" sectionDescription="Enable or disable entire modules for your organization. Disabled modules won't appear in navigation or be accessible via API.">

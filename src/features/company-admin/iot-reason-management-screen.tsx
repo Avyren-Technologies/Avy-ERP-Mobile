@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+
 import * as React from 'react';
 import {
     FlatList,
@@ -22,18 +22,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useCompanyIOTReasons } from '@/features/company-admin/api/use-company-admin-queries';
 import {
     useCreateIOTReason,
     useDeleteIOTReason,
     useUpdateIOTReason,
 } from '@/features/company-admin/api/use-company-admin-mutations';
+import { useCompanyIOTReasons } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ CONSTANTS ============
 
@@ -354,7 +356,7 @@ function IOTReasonCard({
 
 export function IOTReasonManagementScreen() {
     const insets = useSafeAreaInsets();
-    const router = useRouter();
+    const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data: response, isLoading, error, refetch, isFetching } = useCompanyIOTReasons();
@@ -486,7 +488,7 @@ export function IOTReasonManagementScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             <LinearGradient
                 colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
                 style={StyleSheet.absoluteFill}
@@ -495,17 +497,7 @@ export function IOTReasonManagementScreen() {
             />
 
             {/* Header */}
-            <View style={styles.headerBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                    <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
-                    IOT Reason Management
-                </Text>
-                <View style={{ width: 36 }} />
-            </View>
+            <AppTopHeader title="IOT Reason Management" onMenuPress={toggle} />
 
             <FlatList
                 data={reasons}

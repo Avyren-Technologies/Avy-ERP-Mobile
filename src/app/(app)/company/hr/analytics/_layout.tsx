@@ -13,6 +13,7 @@ export default function AnalyticsLayout() {
       <Stack.Screen name="performance" />
       <Stack.Screen name="recruitment" />
       <Stack.Screen name="attrition" />
+      <Stack.Screen name="reports" />
     </Stack>
   );
 }

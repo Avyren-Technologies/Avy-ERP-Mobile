@@ -21,4 +21,13 @@ export const analyticsApi = {
 
   recompute: (data?: { date?: string }) =>
     client.post('/hr/analytics/recompute', data).then(r => r.data),
+
+  getReportCatalog: () =>
+    client.get('/hr/analytics/reports/catalog').then(r => r.data),
+
+  getReportHistory: (params?: Record<string, unknown>) =>
+    client.get('/hr/analytics/reports/history', { params }).then(r => r.data),
+
+  getRateLimit: () =>
+    client.get('/hr/analytics/reports/rate-limit').then(r => r.data),
 };

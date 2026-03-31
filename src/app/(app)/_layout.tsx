@@ -174,7 +174,16 @@ function AppSidebar() {
                     id: item.id,
                     label: item.label,
                     icon: mapManifestIcon(item.icon),
-                    isActive: isPathActive(pathname, item.path),
+                    isActive: isPathActive(pathname, item.path) || (item.children ?? []).some((child: any) => isPathActive(pathname, child.path)),
+                    children: (item.children ?? []).map((child: any) => ({
+                        label: child.label,
+                        path: child.path,
+                        isActive: isPathActive(pathname, child.path),
+                        onPress: () => {
+                            const childMobilePath = child.path.replace(/^\/app/, '');
+                            router.push(childMobilePath as any);
+                        },
+                    })),
                     onPress: () => {
                         const mobilePath = item.path.replace(/^\/app/, '');
                         router.push(mobilePath as any);

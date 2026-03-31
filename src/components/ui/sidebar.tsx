@@ -38,6 +38,7 @@ export interface SidebarNavItem {
     icon: SidebarIconType;
     badge?: number;
     isActive?: boolean;
+    children?: { label: string; path: string; isActive?: boolean; onPress?: () => void }[];
     onPress: () => void;
 }
 
@@ -266,6 +267,7 @@ export function Sidebar({
     const insets = useSafeAreaInsets();
     const { isOpen, close, progress } = useSidebar();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
 
     const sidebarWidth = useSharedValue(SIDEBAR_FULL_WIDTH);
 
@@ -278,6 +280,18 @@ export function Sidebar({
             );
         }
     }, [isCollapsed, collapsible, sidebarWidth]);
+
+    React.useEffect(() => {
+        const next: Record<string, boolean> = {};
+        sections.forEach((section) => {
+            section.items.forEach((item) => {
+                if (item.children?.some((child) => child.isActive)) {
+                    next[item.id] = true;
+                }
+            });
+        });
+        setOpenGroups((prev) => ({ ...prev, ...next }));
+    }, [sections]);
 
     // Animated styles — all run on UI thread
     const containerStyle = useAnimatedStyle(() => ({
@@ -420,7 +434,52 @@ export function Sidebar({
                                     </View>
                                 )}
                                 {section.items.map((item) => (
-                                    <SidebarNavItem key={item.id} item={item} onClose={close} />
+                                    <View key={item.id}>
+                                        <SidebarNavItem item={item} onClose={close} />
+                                        {item.children && item.children.length > 0 && openGroups[item.id] && (
+                                            <View style={styles.childContainer}>
+                                                <View style={styles.childDottedLine} />
+                                                {item.children.map((child) => (
+                                                    <Pressable
+                                                        key={child.path}
+                                                        onPress={() => {
+                                                            child.onPress?.();
+                                                            close();
+                                                        }}
+                                                        style={({ pressed }) => [
+                                                            styles.childItem,
+                                                            child.isActive && styles.childItemActive,
+                                                            pressed && !child.isActive && styles.childItemPressed,
+                                                        ]}
+                                                    >
+                                                        <View style={[styles.childBranch, child.isActive && styles.childBranchActive]} />
+                                                        <Text
+                                                            className={`font-inter text-xs font-semibold ${child.isActive ? 'text-primary-700' : 'text-neutral-500'}`}
+                                                            numberOfLines={1}
+                                                        >
+                                                            {child.label}
+                                                        </Text>
+                                                    </Pressable>
+                                                ))}
+                                            </View>
+                                        )}
+                                        {item.children && item.children.length > 0 && (
+                                            <Pressable
+                                                onPress={() => setOpenGroups((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                                                style={styles.groupToggleBtn}
+                                            >
+                                                <Svg width={14} height={14} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d={openGroups[item.id] ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                                                        stroke={colors.neutral[400]}
+                                                        strokeWidth="2.2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </Svg>
+                                            </Pressable>
+                                        )}
+                                    </View>
                                 ))}
                             </View>
                         </View>
@@ -647,6 +706,61 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         overflow: 'hidden',
+    },
+    groupToggleBtn: {
+        position: 'absolute',
+        right: 18,
+        top: 14,
+        width: 22,
+        height: 22,
+        borderRadius: 7,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    childContainer: {
+        position: 'relative',
+        marginLeft: 26,
+        marginTop: 2,
+        marginBottom: 6,
+        paddingLeft: 24,
+    },
+    childDottedLine: {
+        position: 'absolute',
+        left: 8,
+        top: 4,
+        bottom: 8,
+        width: 1,
+        borderLeftWidth: 1,
+        borderStyle: 'dotted',
+        borderColor: colors.neutral[300],
+    },
+    childItem: {
+        position: 'relative',
+        minHeight: 30,
+        justifyContent: 'center',
+        borderRadius: 8,
+        paddingLeft: 12,
+        paddingRight: 8,
+        marginVertical: 1,
+    },
+    childItemActive: {
+        backgroundColor: colors.primary[50],
+    },
+    childItemPressed: {
+        backgroundColor: colors.neutral[100],
+    },
+    childBranch: {
+        position: 'absolute',
+        left: -12,
+        top: '50%',
+        width: 10,
+        marginTop: -1,
+        borderTopWidth: 1,
+        borderStyle: 'dotted',
+        borderColor: colors.neutral[300],
+    },
+    childBranchActive: {
+        borderColor: colors.primary[400],
     },
     badge: {
         minWidth: 20,

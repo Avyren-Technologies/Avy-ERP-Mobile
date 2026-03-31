@@ -76,6 +76,46 @@ export interface DashboardStats {
   goals: DashboardGoalsSummary;
 }
 
+export interface DashboardShiftCalendarDay {
+  date: string;
+  dayName: string;
+  shiftName: string | null;
+  shiftType: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  isHoliday: boolean;
+  holidayName?: string;
+  isWeekOff: boolean;
+  isToday: boolean;
+}
+
+export interface DashboardWeeklyChartDay {
+  date: string;
+  dayName: string;
+  hoursWorked: number;
+  status: string;
+  isHoliday: boolean;
+  isWeekOff: boolean;
+}
+
+export interface DashboardLeaveDonutItem {
+  category: string;
+  totalEntitled: number;
+  used: number;
+  remaining: number;
+  color: string;
+}
+
+export interface DashboardMonthlyTrendItem {
+  month: string;
+  year: number;
+  workingDays: number;
+  presentDays: number;
+  absentDays: number;
+  lateDays: number;
+  attendancePercentage: number;
+}
+
 export interface DashboardData {
   announcements: DashboardAnnouncement[];
   shift: DashboardShiftInfo | null;
@@ -85,6 +125,10 @@ export interface DashboardData {
   teamSummary: DashboardTeamSummary | null;
   pendingApprovals: DashboardPendingApproval[];
   upcomingHolidays: DashboardHoliday[];
+  shiftCalendar: DashboardShiftCalendarDay[] | null;
+  weeklyChart: DashboardWeeklyChartDay[] | null;
+  leaveDonut: DashboardLeaveDonutItem[] | null;
+  monthlyTrend: DashboardMonthlyTrendItem[] | null;
 }
 
 // --- Types ---

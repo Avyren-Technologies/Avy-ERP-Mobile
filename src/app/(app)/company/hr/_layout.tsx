@@ -92,6 +92,8 @@ export default function HRLayout() {
       <Stack.Screen name="chatbot" />
       <Stack.Screen name="data-retention" />
       <Stack.Screen name="production-incentives" />
+      {/* Analytics Dashboards */}
+      <Stack.Screen name="analytics" />
     </Stack>
   );
 }

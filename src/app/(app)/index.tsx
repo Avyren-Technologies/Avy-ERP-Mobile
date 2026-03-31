@@ -1,28 +1,17 @@
 import { useAuthStore } from '@/features/auth/use-auth-store';
-import { CompanyAdminDashboard } from '@/features/company-admin/dashboard-screen';
 import { EmployeeDashboard } from '@/features/employee/dashboard-screen';
 import { SuperAdminDashboard } from '@/features/super-admin/dashboard-screen';
 
 export default function DashboardRoute() {
     const userRole = useAuthStore((s) => s.userRole);
-    const permissions = useAuthStore((s) => s.permissions);
 
-    // Employee: has ESS permissions but not company:read
-    const isEmployee =
-        userRole !== 'super-admin' &&
-        userRole !== 'company-admin' &&
-        permissions.some((p: string) => p.startsWith('ess:')) &&
-        !permissions.some(
-            (p: string) => p === 'company:read' || p === 'company:*'
-        );
-
-    if (isEmployee) {
-        return <EmployeeDashboard />;
+    // Super Admin gets their own platform dashboard
+    if (userRole === 'super-admin') {
+        return <SuperAdminDashboard />;
     }
 
-    if (userRole === 'company-admin') {
-        return <CompanyAdminDashboard />;
-    }
-
-    return <SuperAdminDashboard />;
+    // All other roles (company-admin, employee, dynamic roles) use the
+    // dynamic dashboard which adapts its widgets based on permissions
+    // and the data the backend returns (e.g. team summary for managers)
+    return <EmployeeDashboard />;
 }

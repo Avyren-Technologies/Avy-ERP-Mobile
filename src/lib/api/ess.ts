@@ -1,5 +1,92 @@
 import { client } from '@/lib/api/client';
 
+// --- Dashboard Types ---
+
+export interface DashboardAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  createdAt: string;
+}
+
+export interface DashboardShiftInfo {
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  status: 'NOT_CHECKED_IN' | 'CHECKED_IN' | 'CHECKED_OUT' | 'NOT_LINKED';
+  attendanceRecordId: string | null;
+  punchIn: string | null;
+  punchOut: string | null;
+  elapsedSeconds: number;
+  workedHours: number | string | null;
+  locationName: string | null;
+}
+
+export interface DashboardLeaveBalanceItem {
+  leaveTypeName: string;
+  allocated: number;
+  used: number;
+  remaining: number;
+  color?: string;
+}
+
+export interface DashboardAttendanceDay {
+  date: string;
+  status: string;
+  punchIn: string | null;
+  punchOut: string | null;
+  workedHours: number | string | null;
+}
+
+export interface DashboardTeamSummary {
+  present: number;
+  absent: number;
+  onLeave: number;
+  notCheckedIn: number;
+  total: number;
+}
+
+export interface DashboardPendingApproval {
+  id: string;
+  type: string;
+  employeeName: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface DashboardHoliday {
+  id: string;
+  name: string;
+  date: string;
+  type: string;
+}
+
+export interface DashboardGoalsSummary {
+  activeCount: number;
+  avgCompletion: number;
+}
+
+export interface DashboardStats {
+  leaveBalanceTotal: number;
+  attendancePercentage: number;
+  presentDays: number;
+  workingDays: number;
+  pendingApprovalsCount: number;
+  goals: DashboardGoalsSummary;
+}
+
+export interface DashboardData {
+  announcements: DashboardAnnouncement[];
+  shift: DashboardShiftInfo | null;
+  stats: DashboardStats;
+  leaveBalances: DashboardLeaveBalanceItem[];
+  recentAttendance: DashboardAttendanceDay[];
+  teamSummary: DashboardTeamSummary | null;
+  pendingApprovals: DashboardPendingApproval[];
+  upcomingHolidays: DashboardHoliday[];
+}
+
 // --- Types ---
 
 export type LocationAccuracy = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -105,6 +192,10 @@ export interface MssTeamMembersParams {
  * so all client calls resolve with the API payload directly at runtime.
  */
 export const essApi = {
+  // ── Dashboard ─────────────────────────────────────────────────
+  getDashboard: () =>
+    client.get('/hr/ess/dashboard'),
+
   // ── ESS Config ────────────────────────────────────────────────
   getEssConfig: () =>
     client.get('/hr/ess-config'),

@@ -16,6 +16,10 @@ import {
 export const essKeys = {
   all: ['ess'] as const,
 
+  // Dashboard
+  dashboard: () =>
+    [...essKeys.all, 'dashboard'] as const,
+
   // ESS Config
   essConfig: () =>
     [...essKeys.all, 'config'] as const,
@@ -82,6 +86,17 @@ export const essKeys = {
   teamLeaveCalendar: () =>
     [...essKeys.all, 'team-leave-calendar'] as const,
 };
+
+// --- Dashboard Query ---
+
+/** Employee/Manager dynamic dashboard with 30s auto-refetch */
+export function useDashboard() {
+  return useQuery({
+    queryKey: essKeys.dashboard(),
+    queryFn: () => essApi.getDashboard(),
+    refetchInterval: 30_000,
+  });
+}
 
 // --- ESS Config Queries ---
 

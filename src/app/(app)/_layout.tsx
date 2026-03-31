@@ -147,6 +147,13 @@ function isPathActive(currentPath: string, itemPath: string): boolean {
     return currentPath === mobilePath || currentPath.startsWith(mobilePath + '/');
 }
 
+function toMobileRoutePath(itemPath: string): string {
+    const mobilePath = itemPath.replace(/^\/app/, '');
+    // Dashboard is the root tab ("index"), not a "/dashboard" route file.
+    if (mobilePath === '/dashboard') return '/';
+    return mobilePath;
+}
+
 // ============ SIDEBAR ROOT (inside SidebarProvider) ============
 
 function AppSidebar() {
@@ -180,12 +187,12 @@ function AppSidebar() {
                         path: child.path,
                         isActive: isPathActive(pathname, child.path),
                         onPress: () => {
-                            const childMobilePath = child.path.replace(/^\/app/, '');
+                            const childMobilePath = toMobileRoutePath(child.path);
                             router.push(childMobilePath as any);
                         },
                     })),
                     onPress: () => {
-                        const mobilePath = item.path.replace(/^\/app/, '');
+                        const mobilePath = toMobileRoutePath(item.path);
                         router.push(mobilePath as any);
                     },
                 })),
@@ -447,6 +454,14 @@ function TabLayoutInner() {
                 />
                 <Tabs.Screen
                     name="settings"
+                    options={{ href: null }}
+                />
+                <Tabs.Screen
+                    name="help"
+                    options={{ href: null }}
+                />
+                <Tabs.Screen
+                    name="modules"
                     options={{ href: null }}
                 />
                 <Tabs.Screen

@@ -552,12 +552,21 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
                 <View style={S.welcomeHeaderRow}>
                     {/* FIX 1: Hamburger LEFT */}
                     <HamburgerButton onPress={toggle} />
+                    
                     <View style={S.welcomeTextWrap}>
-                        <Text className="font-inter" style={S.greeting}>
-                            {getGreeting()},
+                        <View style={S.greetingRow}>
+                            <Text className="font-inter" style={S.greeting}>
+                                {getGreeting()},
+                            </Text>
+                            <View style={{ flexShrink: 1 }}>
+                                <MarqueeText text={firstName} />
+                            </View>
+                        </View>
+                        <Text className="font-inter" style={S.dateText}>
+                            {formatDate()}
                         </Text>
-                        <MarqueeText text={firstName} />
                     </View>
+
                     {/* FIX 1: Notification bell RIGHT */}
                     <Pressable
                         onPress={() => {
@@ -575,9 +584,6 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
                         <View style={S.bellDot} />
                     </Pressable>
                 </View>
-                <Text className="font-inter" style={S.dateText}>
-                    {formatDate()}
-                </Text>
             </LinearGradient>
         </AnimatedRN.View>
     );
@@ -2209,27 +2215,32 @@ const S = StyleSheet.create({
     welcomeHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         gap: 12,
     },
     welcomeTextWrap: {
         flex: 1,
     },
+    greetingRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 6,
+        flexWrap: 'wrap',
+    },
     greeting: {
-        fontSize: 16,
+        fontSize: 18,
         color: 'rgba(255,255,255,0.8)',
         fontWeight: '500',
     },
     userName: {
-        fontSize: 28,
+        fontSize: 18,
         color: '#FFFFFF',
         fontWeight: '700',
-        marginTop: 2,
     },
     dateText: {
         fontSize: 13,
         color: 'rgba(255,255,255,0.7)',
-        marginTop: 8,
+        marginTop: 4,
         fontWeight: '500',
     },
     // FIX 1: Bell button
@@ -2242,8 +2253,8 @@ const S = StyleSheet.create({
     },
     bellDot: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: 6,
+        right: 6,
         width: 8,
         height: 8,
         borderRadius: 4,

@@ -83,14 +83,16 @@ function formatLastLogin(dateStr?: string): string {
 }
 
 function mapApiUser(item: any): UserData {
+    const fullName = item.fullName ?? item.name ??
+        [item.firstName, item.lastName].filter(Boolean).join(' ') ?? '';
     return {
         id: item.id ?? '',
-        fullName: item.fullName ?? item.name ?? '',
+        fullName,
         email: item.email ?? '',
         phone: item.phone ?? item.mobile ?? '',
-        role: item.role?.name ?? item.roleName ?? item.role ?? '',
-        roleName: item.role?.name ?? item.roleName ?? item.role ?? '',
-        roleId: item.role?.id ?? item.roleId ?? '',
+        role: item.roleName ?? item.role ?? '',
+        roleName: item.roleName ?? item.role ?? '',
+        roleId: item.roleId ?? '',
         isActive: item.isActive ?? (item.status === 'active'),
         lastLogin: item.lastLogin ?? item.lastLoginAt ?? undefined,
         createdAt: item.createdAt ?? undefined,
@@ -722,9 +724,26 @@ export function UserManagementScreen() {
     };
 
     const handleSubmit = (data: Record<string, unknown>) => {
+        // Split fullName into firstName + lastName for backend
+        const fullName = (data.fullName as string) ?? '';
+        const nameParts = fullName.trim().split(/\s+/);
+        const firstName = nameParts[0] ?? '';
+        const lastName = nameParts.slice(1).join(' ') || firstName;
+
+        const payload: Record<string, unknown> = {
+            ...data,
+            firstName,
+            lastName,
+            // Pass roleId as 'role' for the backend validator
+            role: data.roleId || undefined,
+        };
+        // Remove fields the backend doesn't expect
+        delete payload.fullName;
+        delete payload.roleId;
+
         if (editingUser) {
             updateUser.mutate(
-                { id: editingUser.id, data },
+                { id: editingUser.id, data: payload },
                 {
                     onSuccess: () => {
                         setSheetVisible(false);
@@ -733,7 +752,7 @@ export function UserManagementScreen() {
                 }
             );
         } else {
-            createUser.mutate(data, {
+            createUser.mutate(payload, {
                 onSuccess: () => {
                     setSheetVisible(false);
                     refetch();

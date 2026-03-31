@@ -546,7 +546,7 @@ export function ReportsHubScreen() {
               <CategorySection
                 key={cat.category}
                 category={cat.label}
-                reports={cat.reports.map((r) => ({
+                reports={cat.reports.map((r: { key: string; title: string; description: string; sheetNames: string[] }) => ({
                   reportType: r.key,
                   title: r.title,
                   description: r.description,

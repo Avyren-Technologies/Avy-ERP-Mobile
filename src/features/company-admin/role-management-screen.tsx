@@ -302,7 +302,7 @@ function RoleFormScreen({
         if (visible) {
             if (role) {
                 setName(role.name);
-                setDescription(role.description);
+                setDescription(role.description || '');
                 setPermissions([...role.permissions]);
             } else {
                 setName('');

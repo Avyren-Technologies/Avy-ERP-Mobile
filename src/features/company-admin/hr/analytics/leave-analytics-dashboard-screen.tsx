@@ -18,7 +18,7 @@ import { useAnalyticsDashboard } from '@/features/company-admin/api/use-analytic
 
 export function LeaveAnalyticsDashboardScreen() {
   const [filters, setFilters] = useState<Record<string, unknown>>({});
-  const { data: response, isLoading, refetch } = useAnalyticsDashboard('leave', filters);
+  const { data: response, isLoading, isFetched, refetch } = useAnalyticsDashboard('leave', filters);
   const router = useRouter();
 
   const dashboardData = response?.data;
@@ -34,7 +34,7 @@ export function LeaveAnalyticsDashboardScreen() {
     await refetch();
   }, [refetch]);
 
-  if (!isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
+  if (isFetched && !isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
     return (
       <DashboardShell title="Leave Analytics" loading={false}>
         <ZeroDataState

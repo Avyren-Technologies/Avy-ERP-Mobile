@@ -18,7 +18,7 @@ import { useAnalyticsDashboard } from '@/features/company-admin/api/use-analytic
 
 export function PerformanceAnalyticsDashboardScreen() {
   const [filters, setFilters] = useState<Record<string, unknown>>({});
-  const { data: response, isLoading, refetch } = useAnalyticsDashboard('performance', filters);
+  const { data: response, isLoading, isFetched, refetch } = useAnalyticsDashboard('performance', filters);
   const router = useRouter();
 
   const dashboardData = response?.data;
@@ -34,7 +34,7 @@ export function PerformanceAnalyticsDashboardScreen() {
     await refetch();
   }, [refetch]);
 
-  if (!isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
+  if (isFetched && !isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
     return (
       <DashboardShell title="Performance Analytics" loading={false}>
         <ZeroDataState

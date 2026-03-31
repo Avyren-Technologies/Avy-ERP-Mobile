@@ -378,7 +378,20 @@ export function ReportsHubScreen() {
   } = useReportHistory({ page: historyPage, limit: 20 });
   const { data: rateLimitRes, refetch: refetchRateLimit } = useRateLimit();
 
-  const catalog: CatalogCategory[] = catalogRes?.data ?? [];
+  const catalogCategories = useMemo(() => {
+    const rawData = catalogRes?.data;
+    if (!rawData || typeof rawData !== 'object') return [];
+    return Object.entries(rawData).map(([categoryKey, categoryValue]: [string, any]) => ({
+      category: categoryKey,
+      label: categoryValue?.meta?.label ?? categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1) + ' Reports',
+      icon: categoryValue?.meta?.icon ?? 'file-text',
+      color: categoryValue?.meta?.color ?? '#6366F1',
+      reports: Array.isArray(categoryValue?.reports) ? categoryValue.reports.map((r: any) => ({
+        key: r.key ?? '', title: r.title ?? '', description: r.description ?? '',
+        sheetNames: Array.isArray(r.sheetNames) ? r.sheetNames : [],
+      })) : [],
+    }));
+  }, [catalogRes]);
   const historyItems: HistoryItem[] = historyRes?.data ?? [];
   const historyMeta = historyRes?.meta;
   const remaining: number = rateLimitRes?.data?.remaining ?? 20;
@@ -529,11 +542,17 @@ export function ReportsHubScreen() {
               <ActivityIndicator size="large" color={colors.primary[500]} />
             </View>
           ) : (
-            catalog.map((cat) => (
+            catalogCategories.map((cat) => (
               <CategorySection
                 key={cat.category}
-                category={cat.category}
-                reports={cat.reports}
+                category={cat.label}
+                reports={cat.reports.map((r) => ({
+                  reportType: r.key,
+                  title: r.title,
+                  description: r.description,
+                  category: cat.category,
+                  sheetCount: r.sheetNames.length,
+                }))}
                 downloadingType={downloadingType}
                 rateLimitReached={rateLimitReached}
                 onDownload={handleDownload}

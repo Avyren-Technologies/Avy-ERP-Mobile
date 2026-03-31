@@ -29,7 +29,7 @@ const attendanceColumns: DrilldownColumn[] = [
 
 export function AttendanceAnalyticsDashboardScreen() {
   const [filters, setFilters] = useState<Record<string, unknown>>({});
-  const { data: response, isLoading, refetch } = useAnalyticsDashboard('attendance', filters);
+  const { data: response, isLoading, isFetched, refetch } = useAnalyticsDashboard('attendance', filters);
   const router = useRouter();
 
   const dashboardData = response?.data;
@@ -45,7 +45,7 @@ export function AttendanceAnalyticsDashboardScreen() {
     await refetch();
   }, [refetch]);
 
-  if (!isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
+  if (isFetched && !isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
     return (
       <DashboardShell title="Attendance Analytics" loading={false}>
         <ZeroDataState

@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { RefreshCw } from 'lucide-react-native';
 import * as React from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -80,13 +79,18 @@ export function DashboardShell({ title, children, loading, onRefresh }: Dashboar
         }
       >
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <View style={styles.loadingRing}>
-              <ActivityIndicator size="large" color={colors.primary[500]} />
+          <View style={styles.skeletonContainer}>
+            <View style={styles.skeletonRow}>
+              <View style={[styles.skeletonCard, { flex: 1, height: 90 }]} />
+              <View style={[styles.skeletonCard, { flex: 1, height: 90 }]} />
             </View>
-            <Text className="font-inter text-[13px] font-medium text-neutral-400">
-              Loading analytics...
-            </Text>
+            <View style={styles.skeletonRow}>
+              <View style={[styles.skeletonCard, { flex: 1, height: 90 }]} />
+              <View style={[styles.skeletonCard, { flex: 1, height: 90 }]} />
+            </View>
+            <View style={[styles.skeletonCard, { height: 200 }]} />
+            <View style={[styles.skeletonCard, { height: 100 }]} />
+            <View style={[styles.skeletonCard, { height: 100 }]} />
           </View>
         ) : (
           children
@@ -125,18 +129,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     gap: 20,
   },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    gap: 16,
-  },
-  loadingRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  skeletonContainer: { padding: 16, gap: 12 },
+  skeletonRow: { flexDirection: 'row' as const, gap: 12 },
+  skeletonCard: { backgroundColor: '#F3F4F6', borderRadius: 12, minHeight: 80 },
 });

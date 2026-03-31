@@ -548,12 +548,12 @@ function InterviewCard({ item, index }: { item: InterviewItem; index: number }) 
 
 // ============ MAIN COMPONENT ============
 
-export function RequisitionsScreen() {
+export function RequisitionsScreen({ initialSection = 'requisitions' as Section }: { initialSection?: Section } = {}) {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
-    const [activeSection, setActiveSection] = React.useState<Section>('requisitions');
+    const [activeSection, setActiveSection] = React.useState<Section>(initialSection);
     const [selectedReqId, setSelectedReqId] = React.useState<string>('');
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<'All' | ReqStatus>('All');

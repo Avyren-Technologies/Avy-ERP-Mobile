@@ -33,8 +33,10 @@ import {
 
 // ============ TYPES ============
 
-type GoalLevel = 'Company' | 'Department' | 'Individual';
-type GoalStatus = 'Draft' | 'Active' | 'Completed' | 'Cancelled';
+// Backend enum values: COMPANY, DEPARTMENT, INDIVIDUAL
+type GoalLevel = 'COMPANY' | 'DEPARTMENT' | 'INDIVIDUAL';
+// Backend enum values: DRAFT, ACTIVE, COMPLETED, CANCELLED
+type GoalStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
 interface GoalItem {
     id: string;
@@ -57,38 +59,51 @@ interface GoalItem {
 
 // ============ CONSTANTS ============
 
-const LEVELS: GoalLevel[] = ['Company', 'Department', 'Individual'];
+const GOAL_LEVEL_LABELS: Record<GoalLevel, string> = {
+    COMPANY: 'Company',
+    DEPARTMENT: 'Department',
+    INDIVIDUAL: 'Individual',
+};
+
+const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {
+    DRAFT: 'Draft',
+    ACTIVE: 'Active',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled',
+};
+
+const LEVELS: GoalLevel[] = ['COMPANY', 'DEPARTMENT', 'INDIVIDUAL'];
 
 const LEVEL_COLORS: Record<GoalLevel, { bg: string; text: string }> = {
-    Company: { bg: colors.primary[50], text: colors.primary[700] },
-    Department: { bg: colors.accent[50], text: colors.accent[700] },
-    Individual: { bg: colors.info[50], text: colors.info[700] },
+    COMPANY: { bg: colors.primary[50], text: colors.primary[700] },
+    DEPARTMENT: { bg: colors.accent[50], text: colors.accent[700] },
+    INDIVIDUAL: { bg: colors.info[50], text: colors.info[700] },
 };
 
 const STATUS_COLORS: Record<GoalStatus, { bg: string; text: string; dot: string }> = {
-    Draft: { bg: colors.neutral[100], text: colors.neutral[700], dot: colors.neutral[400] },
-    Active: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
-    Completed: { bg: colors.primary[50], text: colors.primary[700], dot: colors.primary[500] },
-    Cancelled: { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[500] },
+    DRAFT: { bg: colors.neutral[100], text: colors.neutral[700], dot: colors.neutral[400] },
+    ACTIVE: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
+    COMPLETED: { bg: colors.primary[50], text: colors.primary[700], dot: colors.primary[500] },
+    CANCELLED: { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[500] },
 };
 
 // ============ SHARED ATOMS ============
 
 function LevelBadge({ level }: { level: GoalLevel }) {
-    const c = LEVEL_COLORS[level];
+    const c = LEVEL_COLORS[level] ?? LEVEL_COLORS.INDIVIDUAL;
     return (
         <View style={[styles.badge, { backgroundColor: c.bg }]}>
-            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{level}</Text>
+            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{GOAL_LEVEL_LABELS[level] ?? level}</Text>
         </View>
     );
 }
 
 function GoalStatusBadge({ status }: { status: GoalStatus }) {
-    const s = STATUS_COLORS[status];
+    const s = STATUS_COLORS[status] ?? STATUS_COLORS.DRAFT;
     return (
         <View style={[styles.statusBadge, { backgroundColor: s.bg }]}>
             <View style={[styles.statusDot, { backgroundColor: s.dot }]} />
-            <Text style={{ color: s.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{status}</Text>
+            <Text style={{ color: s.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{GOAL_STATUS_LABELS[status] ?? status}</Text>
         </View>
     );
 }
@@ -103,7 +118,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
     );
 }
 
-function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
+function ChipSelector({ label, options, value, onSelect, labels }: { label: string; options: string[]; value: string; onSelect: (v: string) => void; labels?: Record<string, string> }) {
     return (
         <View style={styles.fieldWrap}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
@@ -112,7 +127,7 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{labels?.[opt] ?? opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -171,7 +186,7 @@ function FilterBar({
                     const sel = l === selectedLevel;
                     return (
                         <Pressable key={l} onPress={() => onLevelChange(l)} style={[styles.chip, sel && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l === 'All' ? 'All' : GOAL_LEVEL_LABELS[l as GoalLevel] ?? l}</Text>
                         </Pressable>
                     );
                 })}
@@ -198,7 +213,7 @@ interface GoalForm {
 }
 
 const EMPTY_FORM: GoalForm = {
-    cycleId: '', level: 'Individual', employeeName: '', departmentName: '',
+    cycleId: '', level: 'INDIVIDUAL', employeeName: '', departmentName: '',
     title: '', description: '', kpiMetric: '', targetValue: '', weightage: '', parentGoalId: '',
 };
 
@@ -286,15 +301,15 @@ function GoalFormModal({
                             </Modal>
                         </View>
 
-                        <ChipSelector label="Level" options={LEVELS} value={form.level} onSelect={v => update('level', v as GoalLevel)} />
+                        <ChipSelector label="Level" options={LEVELS} value={form.level} onSelect={v => update('level', v as GoalLevel)} labels={GOAL_LEVEL_LABELS} />
 
-                        {form.level === 'Individual' && (
+                        {form.level === 'INDIVIDUAL' && (
                             <View style={styles.fieldWrap}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employee</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Search employee..." placeholderTextColor={colors.neutral[400]} value={form.employeeName} onChangeText={v => update('employeeName', v)} /></View>
                             </View>
                         )}
-                        {form.level === 'Department' && (
+                        {form.level === 'DEPARTMENT' && (
                             <View style={styles.fieldWrap}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Department name..." placeholderTextColor={colors.neutral[400]} value={form.departmentName} onChangeText={v => update('departmentName', v)} /></View>
@@ -358,7 +373,7 @@ function GoalCard({ item, index, onEdit, onDelete }: { item: GoalItem; index: nu
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
                 </View>
-                {item.level === 'Individual' && item.employeeName ? (
+                {item.level === 'INDIVIDUAL' && item.employeeName ? (
                     <Text className="mt-1 font-inter text-xs text-neutral-500">{item.employeeName}</Text>
                 ) : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
@@ -413,7 +428,7 @@ export function GoalsScreen() {
             id: item.id ?? '',
             cycleId: item.cycleId ?? '',
             cycleName: item.cycleName ?? '',
-            level: item.level ?? 'Individual',
+            level: item.level ?? 'INDIVIDUAL',
             employeeName: item.employeeName ?? '',
             departmentName: item.departmentName ?? '',
             title: item.title ?? '',
@@ -425,7 +440,7 @@ export function GoalsScreen() {
             selfRating: item.selfRating ?? 0,
             managerRating: item.managerRating ?? 0,
             parentGoalId: item.parentGoalId ?? '',
-            status: item.status ?? 'Draft',
+            status: item.status ?? 'DRAFT',
         }));
     }, [response]);
 

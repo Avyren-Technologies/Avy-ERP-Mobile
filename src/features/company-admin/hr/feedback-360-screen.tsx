@@ -36,7 +36,8 @@ import {
 
 // ============ TYPES ============
 
-type FeedbackType = 'Peer' | 'Manager' | 'Subordinate' | 'Self' | 'External';
+// Backend enum: RaterType { SELF, MANAGER, PEER, SUBORDINATE, CROSS_FUNCTION, INTERNAL_CUSTOMER }
+type FeedbackType = 'SELF' | 'MANAGER' | 'PEER' | 'SUBORDINATE' | 'CROSS_FUNCTION' | 'INTERNAL_CUSTOMER';
 type FeedbackStatus = 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
 
 interface FeedbackItem {
@@ -55,7 +56,16 @@ interface FeedbackItem {
 
 // ============ CONSTANTS ============
 
-const FEEDBACK_TYPES: FeedbackType[] = ['Peer', 'Manager', 'Subordinate', 'Self', 'External'];
+const RATER_TYPE_LABELS: Record<FeedbackType, string> = {
+    SELF: 'Self',
+    MANAGER: 'Manager',
+    PEER: 'Peer',
+    SUBORDINATE: 'Direct Report',
+    CROSS_FUNCTION: 'Cross Function',
+    INTERNAL_CUSTOMER: 'Internal Customer',
+};
+
+const FEEDBACK_TYPES: FeedbackType[] = ['SELF', 'MANAGER', 'PEER', 'SUBORDINATE', 'CROSS_FUNCTION', 'INTERNAL_CUSTOMER'];
 
 const STATUS_COLORS: Record<FeedbackStatus, { bg: string; text: string; dot: string }> = {
     Pending: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
@@ -65,11 +75,12 @@ const STATUS_COLORS: Record<FeedbackStatus, { bg: string; text: string; dot: str
 };
 
 const TYPE_COLORS: Record<FeedbackType, { bg: string; text: string }> = {
-    Peer: { bg: colors.primary[50], text: colors.primary[700] },
-    Manager: { bg: colors.accent[50], text: colors.accent[700] },
-    Subordinate: { bg: colors.info[50], text: colors.info[700] },
-    Self: { bg: colors.success[50], text: colors.success[700] },
-    External: { bg: colors.warning[50], text: colors.warning[700] },
+    PEER: { bg: colors.primary[50], text: colors.primary[700] },
+    MANAGER: { bg: colors.accent[50], text: colors.accent[700] },
+    SUBORDINATE: { bg: colors.info[50], text: colors.info[700] },
+    SELF: { bg: colors.success[50], text: colors.success[700] },
+    CROSS_FUNCTION: { bg: colors.warning[50], text: colors.warning[700] },
+    INTERNAL_CUSTOMER: { bg: colors.neutral[100], text: colors.neutral[700] },
 };
 
 // ============ SHARED ATOMS ============
@@ -85,10 +96,10 @@ function StatusBadge({ status }: { status: FeedbackStatus }) {
 }
 
 function TypeBadge({ type }: { type: FeedbackType }) {
-    const c = TYPE_COLORS[type] ?? TYPE_COLORS.Peer;
+    const c = TYPE_COLORS[type] ?? TYPE_COLORS.PEER;
     return (
         <View style={[styles.badge, { backgroundColor: c.bg }]}>
-            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{type}</Text>
+            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{RATER_TYPE_LABELS[type] ?? type}</Text>
         </View>
     );
 }
@@ -170,7 +181,7 @@ function ReportModal({
                                         <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">By Rater Type</Text>
                                         {report.byType.map((item: any, idx: number) => (
                                             <View key={idx} style={styles.reportRow}>
-                                                <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{item.type ?? item.raterType}</Text>
+                                                <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{RATER_TYPE_LABELS[item.type as FeedbackType] ?? RATER_TYPE_LABELS[item.raterType as FeedbackType] ?? item.type ?? item.raterType}</Text>
                                                 <Text className="font-inter text-sm font-bold text-primary-600">{(item.average ?? item.avgRating ?? 0).toFixed(1)}</Text>
                                                 <Text className="font-inter text-xs text-neutral-400 ml-2">({item.count ?? 0})</Text>
                                             </View>
@@ -230,7 +241,7 @@ interface FeedbackForm {
 }
 
 const EMPTY_FORM: FeedbackForm = {
-    cycleId: '', employeeName: '', raterName: '', raterType: 'Peer', comments: '',
+    cycleId: '', employeeName: '', raterName: '', raterType: 'PEER', comments: '',
 };
 
 function FeedbackFormModal({
@@ -311,7 +322,7 @@ function FeedbackFormModal({
                                     const sel = t === form.raterType;
                                     return (
                                         <Pressable key={t} onPress={() => update('raterType', t)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{t}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{RATER_TYPE_LABELS[t]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -417,7 +428,7 @@ export function Feedback360Screen() {
             employeeId: item.employeeId ?? '',
             employeeName: item.employeeName ?? '',
             raterName: item.raterName ?? '',
-            raterType: item.raterType ?? 'Peer',
+            raterType: item.raterType ?? 'PEER',
             status: item.status ?? 'Pending',
             overallRating: item.overallRating ?? 0,
             submittedAt: item.submittedAt ?? '',

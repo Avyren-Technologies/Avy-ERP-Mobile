@@ -37,7 +37,8 @@ import {
 // ============ TYPES ============
 
 type PlanStatus = 'Active' | 'Draft' | 'Completed' | 'On Hold';
-type ReadinessLevel = 'Ready Now' | '1-2 Years' | '3-5 Years' | 'Development Needed';
+// Backend enum: SuccessorReadiness { READY_NOW, ONE_YEAR, TWO_YEARS, NOT_READY }
+type ReadinessLevel = 'READY_NOW' | 'ONE_YEAR' | 'TWO_YEARS' | 'NOT_READY';
 type RiskLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 
 interface SuccessionPlanItem {
@@ -69,6 +70,13 @@ interface BenchStrengthData {
 
 // ============ CONSTANTS ============
 
+const READINESS_LABELS: Record<ReadinessLevel, string> = {
+    READY_NOW: 'Ready Now',
+    ONE_YEAR: '1-2 Years',
+    TWO_YEARS: '3-5 Years',
+    NOT_READY: 'Not Ready',
+};
+
 const STATUS_COLORS: Record<PlanStatus, { bg: string; text: string; dot: string }> = {
     Active: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
     Draft: { bg: colors.neutral[100], text: colors.neutral[700], dot: colors.neutral[400] },
@@ -84,15 +92,15 @@ const RISK_COLORS: Record<RiskLevel, { bg: string; text: string }> = {
 };
 
 const READINESS_COLORS: Record<ReadinessLevel, string> = {
-    'Ready Now': colors.success[600],
-    '1-2 Years': colors.primary[600],
-    '3-5 Years': colors.warning[600],
-    'Development Needed': colors.danger[600],
+    READY_NOW: colors.success[600],
+    ONE_YEAR: colors.primary[600],
+    TWO_YEARS: colors.warning[600],
+    NOT_READY: colors.danger[600],
 };
 
 const STATUSES: PlanStatus[] = ['Active', 'Draft', 'Completed', 'On Hold'];
 const RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
-const READINESS_LEVELS: ReadinessLevel[] = ['Ready Now', '1-2 Years', '3-5 Years', 'Development Needed'];
+const READINESS_LEVELS: ReadinessLevel[] = ['READY_NOW', 'ONE_YEAR', 'TWO_YEARS', 'NOT_READY'];
 
 // ============ SHARED ATOMS ============
 
@@ -119,7 +127,7 @@ function ReadinessBadge({ readiness }: { readiness: ReadinessLevel }) {
     const color = READINESS_COLORS[readiness] ?? colors.neutral[600];
     return (
         <View style={[styles.badge, { backgroundColor: color + '15' }]}>
-            <Text style={{ color, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{readiness}</Text>
+            <Text style={{ color, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{READINESS_LABELS[readiness] ?? readiness}</Text>
         </View>
     );
 }
@@ -215,7 +223,7 @@ interface PlanForm {
 
 const EMPTY_FORM: PlanForm = {
     positionTitle: '', departmentName: '', incumbentName: '', riskLevel: 'Medium', notes: '',
-    successorName: '', successorReadiness: 'Ready Now',
+    successorName: '', successorReadiness: 'READY_NOW',
 };
 
 function PlanFormModal({
@@ -238,7 +246,7 @@ function PlanFormModal({
                     riskLevel: initialData.riskLevel,
                     notes: initialData.notes,
                     successorName: '',
-                    successorReadiness: 'Ready Now',
+                    successorReadiness: 'READY_NOW',
                 });
             } else {
                 setForm(EMPTY_FORM);
@@ -318,7 +326,7 @@ function PlanFormModal({
                                         const sel = l === form.successorReadiness;
                                         return (
                                             <Pressable key={l} onPress={() => update('successorReadiness', l)} style={[styles.chip, sel && styles.chipActive]}>
-                                                <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l}</Text>
+                                                <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{READINESS_LABELS[l]}</Text>
                                             </Pressable>
                                         );
                                     })}
@@ -351,7 +359,7 @@ function PlanCard({ item, index, onView, onEdit, onDelete }: {
     item: SuccessionPlanItem; index: number; onView: () => void; onEdit: () => void; onDelete: () => void;
 }) {
     const successorCount = item.successors.length;
-    const readyCount = item.successors.filter(s => s.readiness === 'Ready Now').length;
+    const readyCount = item.successors.filter(s => s.readiness === 'READY_NOW').length;
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onView} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
@@ -443,7 +451,7 @@ export function SuccessionScreen() {
             riskLevel: item.riskLevel ?? 'Medium',
             successors: Array.isArray(item.successors) ? item.successors.map((s: any) => ({
                 name: s.name ?? '',
-                readiness: s.readiness ?? 'Development Needed',
+                readiness: s.readiness ?? 'NOT_READY',
                 score: s.score ?? 0,
             })) : [],
             notes: item.notes ?? '',

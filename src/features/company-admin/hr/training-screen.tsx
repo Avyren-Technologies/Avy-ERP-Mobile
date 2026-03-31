@@ -412,12 +412,12 @@ function NominationCard({ item, index, onComplete, onCancel }: {
 
 // ============ MAIN COMPONENT ============
 
-export function TrainingScreen() {
+export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab?: Tab } = {}) {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
-    const [activeTab, setActiveTab] = React.useState<Tab>('catalogue');
+    const [activeTab, setActiveTab] = React.useState<Tab>(initialTab);
     const [search, setSearch] = React.useState('');
 
     // Queries

@@ -40,8 +40,10 @@ import {
 
 // ============ TYPES ============
 
-type SkillCategory = 'Technical' | 'Soft' | 'Leadership' | 'Domain' | 'Other';
-type ProficiencyLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+// Backend: category is a free-text String. Web uses: TECHNICAL, SOFT_SKILL, LEADERSHIP, DOMAIN, TOOL, LANGUAGE, OTHER
+type SkillCategory = 'TECHNICAL' | 'SOFT_SKILL' | 'LEADERSHIP' | 'DOMAIN' | 'TOOL' | 'LANGUAGE' | 'OTHER';
+// Backend: currentLevel/requiredLevel are Int (1-5)
+type ProficiencyLevel = 1 | 2 | 3 | 4 | 5;
 
 interface SkillItem {
     id: string;
@@ -66,35 +68,53 @@ interface SkillMappingItem {
 
 // ============ CONSTANTS ============
 
-const CATEGORIES: SkillCategory[] = ['Technical', 'Soft', 'Leadership', 'Domain', 'Other'];
-const PROFICIENCY_LEVELS: ProficiencyLevel[] = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
-
-const CATEGORY_COLORS: Record<SkillCategory, { bg: string; text: string }> = {
-    Technical: { bg: colors.primary[50], text: colors.primary[700] },
-    Soft: { bg: colors.accent[50], text: colors.accent[700] },
-    Leadership: { bg: colors.warning[50], text: colors.warning[700] },
-    Domain: { bg: colors.info[50], text: colors.info[700] },
-    Other: { bg: colors.neutral[100], text: colors.neutral[700] },
+const CATEGORY_LABELS: Record<SkillCategory, string> = {
+    TECHNICAL: 'Technical',
+    SOFT_SKILL: 'Soft Skill',
+    LEADERSHIP: 'Leadership',
+    DOMAIN: 'Domain',
+    TOOL: 'Tool / Software',
+    LANGUAGE: 'Language',
+    OTHER: 'Other',
 };
 
-const PROFICIENCY_VALUES: Record<ProficiencyLevel, number> = {
-    Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4,
+const CATEGORIES: SkillCategory[] = ['TECHNICAL', 'SOFT_SKILL', 'LEADERSHIP', 'DOMAIN', 'TOOL', 'LANGUAGE', 'OTHER'];
+
+const PROFICIENCY_LABELS: Record<ProficiencyLevel, string> = {
+    1: 'Beginner',
+    2: 'Elementary',
+    3: 'Intermediate',
+    4: 'Advanced',
+    5: 'Expert',
+};
+
+const PROFICIENCY_LEVELS: ProficiencyLevel[] = [1, 2, 3, 4, 5];
+
+const CATEGORY_COLORS: Record<SkillCategory, { bg: string; text: string }> = {
+    TECHNICAL: { bg: colors.primary[50], text: colors.primary[700] },
+    SOFT_SKILL: { bg: colors.accent[50], text: colors.accent[700] },
+    LEADERSHIP: { bg: colors.warning[50], text: colors.warning[700] },
+    DOMAIN: { bg: colors.info[50], text: colors.info[700] },
+    TOOL: { bg: colors.success[50], text: colors.success[700] },
+    LANGUAGE: { bg: colors.neutral[100], text: colors.neutral[700] },
+    OTHER: { bg: colors.neutral[100], text: colors.neutral[700] },
 };
 
 const PROFICIENCY_COLORS: Record<ProficiencyLevel, string> = {
-    Beginner: colors.danger[500],
-    Intermediate: colors.warning[500],
-    Advanced: colors.primary[500],
-    Expert: colors.success[500],
+    1: colors.danger[500],
+    2: colors.info[500],
+    3: colors.warning[500],
+    4: colors.primary[500],
+    5: colors.success[500],
 };
 
 // ============ SHARED ATOMS ============
 
 function CategoryBadge({ category }: { category: SkillCategory }) {
-    const c = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.Other;
+    const c = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.OTHER;
     return (
         <View style={[styles.badge, { backgroundColor: c.bg }]}>
-            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{category}</Text>
+            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{CATEGORY_LABELS[category] ?? category}</Text>
         </View>
     );
 }
@@ -103,16 +123,16 @@ function ProficiencyBadge({ level }: { level: ProficiencyLevel }) {
     const color = PROFICIENCY_COLORS[level] ?? colors.neutral[500];
     return (
         <View style={[styles.badge, { backgroundColor: color + '15' }]}>
-            <Text style={{ color, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{level}</Text>
+            <Text style={{ color, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{level} - {PROFICIENCY_LABELS[level] ?? 'Unknown'}</Text>
         </View>
     );
 }
 
 function ProficiencyBar({ current, required }: { current: ProficiencyLevel; required: ProficiencyLevel }) {
-    const curVal = PROFICIENCY_VALUES[current] ?? 1;
-    const reqVal = PROFICIENCY_VALUES[required] ?? 1;
-    const curPct = (curVal / 4) * 100;
-    const reqPct = (reqVal / 4) * 100;
+    const curVal = typeof current === 'number' ? current : 1;
+    const reqVal = typeof required === 'number' ? required : 1;
+    const curPct = (curVal / 5) * 100;
+    const reqPct = (reqVal / 5) * 100;
     const gap = reqVal - curVal;
     const barColor = gap <= 0 ? colors.success[500] : gap === 1 ? colors.warning[500] : colors.danger[500];
 
@@ -123,8 +143,8 @@ function ProficiencyBar({ current, required }: { current: ProficiencyLevel; requ
                 <View style={[styles.profTarget, { left: `${reqPct}%` }]} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-                <Text className="font-inter text-[10px] text-neutral-400">Current: {current}</Text>
-                <Text className="font-inter text-[10px] text-neutral-400">Required: {required}</Text>
+                <Text className="font-inter text-[10px] text-neutral-400">Current: {PROFICIENCY_LABELS[current] ?? current}</Text>
+                <Text className="font-inter text-[10px] text-neutral-400">Required: {PROFICIENCY_LABELS[required] ?? required}</Text>
             </View>
         </View>
     );
@@ -138,7 +158,7 @@ interface SkillForm {
     description: string;
 }
 
-const EMPTY_SKILL_FORM: SkillForm = { name: '', category: 'Technical', description: '' };
+const EMPTY_SKILL_FORM: SkillForm = { name: '', category: 'TECHNICAL', description: '' };
 
 function SkillFormModal({
     visible, onClose, onSave, initialData, isSaving,
@@ -186,7 +206,7 @@ function SkillFormModal({
                                     const sel = cat === form.category;
                                     return (
                                         <Pressable key={cat} onPress={() => update('category', cat)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{cat}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{CATEGORY_LABELS[cat]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -220,7 +240,7 @@ interface MappingForm {
     currentLevel: ProficiencyLevel;
 }
 
-const EMPTY_MAPPING_FORM: MappingForm = { skillId: '', employeeName: '', requiredLevel: 'Intermediate', currentLevel: 'Beginner' };
+const EMPTY_MAPPING_FORM: MappingForm = { skillId: '', employeeName: '', requiredLevel: 3, currentLevel: 1 };
 
 function MappingFormModal({
     visible, onClose, onSave, isSaving, skillOptions,
@@ -289,8 +309,8 @@ function MappingFormModal({
                                 {PROFICIENCY_LEVELS.map(l => {
                                     const sel = l === form.requiredLevel;
                                     return (
-                                        <Pressable key={l} onPress={() => update('requiredLevel', l)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l}</Text>
+                                        <Pressable key={String(l)} onPress={() => update('requiredLevel', l)} style={[styles.chip, sel && styles.chipActive]}>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l} - {PROFICIENCY_LABELS[l]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -303,8 +323,8 @@ function MappingFormModal({
                                 {PROFICIENCY_LEVELS.map(l => {
                                     const sel = l === form.currentLevel;
                                     return (
-                                        <Pressable key={l} onPress={() => update('currentLevel', l)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l}</Text>
+                                        <Pressable key={String(l)} onPress={() => update('currentLevel', l)} style={[styles.chip, sel && styles.chipActive]}>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l} - {PROFICIENCY_LABELS[l]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -412,7 +432,7 @@ export function SkillsScreen() {
         return raw.map((item: any) => ({
             id: item.id ?? '',
             name: item.name ?? '',
-            category: item.category ?? 'Other',
+            category: item.category ?? 'OTHER',
             description: item.description ?? '',
             isActive: item.isActive ?? true,
             mappingsCount: item.mappingsCount ?? item._count?.mappings ?? 0,
@@ -428,9 +448,9 @@ export function SkillsScreen() {
             skillName: item.skillName ?? item.skill?.name ?? '',
             employeeId: item.employeeId ?? '',
             employeeName: item.employeeName ?? item.employee?.name ?? '',
-            requiredLevel: item.requiredLevel ?? 'Intermediate',
-            currentLevel: item.currentLevel ?? 'Beginner',
-            gap: item.gap ?? (PROFICIENCY_VALUES[item.requiredLevel as ProficiencyLevel] ?? 2) - (PROFICIENCY_VALUES[item.currentLevel as ProficiencyLevel] ?? 1),
+            requiredLevel: item.requiredLevel ?? 3,
+            currentLevel: item.currentLevel ?? 1,
+            gap: item.gap ?? (item.requiredLevel ?? 3) - (item.currentLevel ?? 1),
             certifiedDate: item.certifiedDate ?? '',
         }));
     }, [mappingsResponse]);
@@ -440,7 +460,7 @@ export function SkillsScreen() {
     const filteredSkills = React.useMemo(() => {
         if (!search.trim()) return skills;
         const q = search.toLowerCase();
-        return skills.filter(s => s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
+        return skills.filter(s => s.name.toLowerCase().includes(q) || (CATEGORY_LABELS[s.category] ?? s.category).toLowerCase().includes(q));
     }, [skills, search]);
 
     const filteredMappings = React.useMemo(() => {

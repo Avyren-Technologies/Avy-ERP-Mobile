@@ -150,7 +150,7 @@ export function AlertsBanner({ alerts, onDismiss, onPress }: AlertsBannerProps) 
 
 const styles = StyleSheet.create({
   container: {
-    gap: 10,
+    gap: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -159,23 +159,32 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     backgroundColor: colors.danger[500],
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 12,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
+    shadowColor: colors.danger[500],
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   scrollContent: {
     gap: 10,
     paddingRight: 4,
   },
   alertCard: {
-    width: 260,
+    width: 270,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    gap: 8,
+    borderRadius: 18,
+    padding: 16,
+    gap: 10,
+    shadowColor: colors.black,
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 2,
   },
   alertHeader: {
     flexDirection: 'row',

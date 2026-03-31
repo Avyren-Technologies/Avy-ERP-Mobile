@@ -1,5 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { Buffer } from 'node:buffer';
+/* eslint-disable unicorn/prefer-node-protocol */
+import { Buffer } from 'buffer';
 import { File, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -47,13 +48,15 @@ function formatCurrency(n: number): string {
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const YEARS = ['2026', '2025', '2024'];
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 4 }, (_, i) => String(currentYear - i));
 
 // ============ PAYSLIP DETAIL MODAL ============
 
-function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading }: {
+function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading, downloadError }: {
     visible: boolean; onClose: () => void; item: PayslipItem | null;
     onDownload: (payslipId: string, month: string, year: string) => void; isDownloading: boolean;
+    downloadError?: boolean;
 }) {
     const insets = useSafeAreaInsets();
     if (!item) return null;
@@ -112,6 +115,11 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading 
                             )}
                             <Text className="font-inter text-sm font-bold text-primary-600">{isDownloading ? 'Downloading...' : 'Download PDF'}</Text>
                         </Pressable>
+                        {downloadError && (
+                            <Text className="font-inter text-xs text-red-500 mt-2 text-center">
+                                Failed to download payslip. Please try again.
+                            </Text>
+                        )}
                     </ScrollView>
                     <Pressable onPress={onClose} style={styles.closeBtn}>
                         <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
@@ -175,6 +183,11 @@ export function MyPayslipsScreen() {
             const file = new File(Paths.document, `payslip-${month}-${year}.pdf`);
             file.create();
             file.write(base64, { encoding: 'base64' });
+            const isAvailable = await Sharing.isAvailableAsync();
+            if (!isAvailable) {
+                setDownloadError(true);
+                return;
+            }
             await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: `Payslip ${month}/${year}` });
         } catch {
             setDownloadError(true);
@@ -246,7 +259,7 @@ export function MyPayslipsScreen() {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
-            <PayslipDetailModal visible={detailVisible} onClose={() => setDetailVisible(false)} item={detailItem} onDownload={handleDownload} isDownloading={downloadPdf.isPending} />
+            <PayslipDetailModal visible={detailVisible} onClose={() => setDetailVisible(false)} item={detailItem} onDownload={handleDownload} isDownloading={downloadPdf.isPending} downloadError={downloadError} />
         </View>
     );
 }

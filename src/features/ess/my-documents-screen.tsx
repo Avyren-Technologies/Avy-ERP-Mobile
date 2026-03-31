@@ -17,15 +17,23 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { FAB } from '@/components/ui/fab';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useMyDocuments } from '@/features/company-admin/api/use-ess-queries';
 import { useUploadMyDocument } from '@/features/company-admin/api/use-ess-mutations';
 
 const DOCUMENT_TYPES = [
-    'Aadhaar', 'PAN', 'Passport', 'Driving License', 'Voter ID',
-    'Education Certificate', 'Experience Letter', 'Other',
-];
+    'Aadhaar',
+    'PAN',
+    'Passport',
+    'Driving License',
+    'Voter ID',
+    'Education Certificate',
+    'Experience Letter',
+    'Other',
+] as const;
 
 // ── Upload Document Modal ────────────────────────────────────────
 
@@ -45,13 +53,7 @@ function UploadDocumentModal({
     const [typePickerVisible, setTypePickerVisible] = React.useState(false);
 
     React.useEffect(() => {
-        if (visible) {
-            setDocumentType('');
-            setDocumentNumber('');
-            setExpiryDate('');
-            setFileUrl('');
-            setFileName('');
-        }
+        if (visible) { setDocumentType(''); setDocumentNumber(''); setExpiryDate(''); setFileUrl(''); setFileName(''); }
     }, [visible]);
 
     const isValid = documentType && documentNumber.trim() && fileName.trim();
@@ -113,7 +115,9 @@ function UploadDocumentModal({
 
                         {/* Expiry Date */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Expiry Date</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                                Expiry Date
+                            </Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
@@ -128,7 +132,9 @@ function UploadDocumentModal({
 
                         {/* File URL */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">File URL</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                                File URL
+                            </Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
@@ -165,13 +171,7 @@ function UploadDocumentModal({
                             <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
                         </Pressable>
                         <Pressable
-                            onPress={() => onSave({
-                                documentType,
-                                documentNumber: documentNumber.trim(),
-                                expiryDate: expiryDate.trim(),
-                                fileUrl: fileUrl.trim(),
-                                fileName: fileName.trim(),
-                            })}
+                            onPress={() => onSave({ documentType, documentNumber: documentNumber.trim(), expiryDate: expiryDate.trim(), fileUrl: fileUrl.trim(), fileName: fileName.trim() })}
                             disabled={!isValid || isSaving}
                             style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}
                         >
@@ -189,17 +189,27 @@ function UploadDocumentModal({
 export function MyDocumentsScreen() {
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
+    const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data, isLoading, refetch } = useMyDocuments();
-    const uploadDocument = useUploadMyDocument();
+    const uploadDoc = useUploadMyDocument();
 
     const [formVisible, setFormVisible] = React.useState(false);
 
     const documents = (data as any)?.data ?? [];
 
     const handleUpload = (formData: { documentType: string; documentNumber: string; expiryDate: string; fileUrl: string; fileName: string }) => {
-        uploadDocument.mutate(formData, {
-            onSuccess: () => setFormVisible(false),
+        showConfirm({
+            title: 'Upload Document',
+            message: 'Are you sure you want to upload this document?',
+            confirmText: 'Upload',
+            variant: 'primary',
+            onConfirm: () => {
+                uploadDoc.mutate(formData, {
+                    onSuccess: () => setFormVisible(false),
+                    onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to upload document'),
+                });
+            },
         });
     };
 
@@ -207,33 +217,17 @@ export function MyDocumentsScreen() {
         <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <View style={[styles.catBadge, { backgroundColor: colors.accent[50] }]}>
-                            <Text style={{ color: colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>
-                                {item.documentType ?? 'Document'}
-                            </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={[styles.typeBadge, { backgroundColor: colors.accent[50] }]}>
+                            <Text style={{ color: colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.documentType ?? 'Document'}</Text>
                         </View>
                     </View>
-                    <Text className="font-inter text-sm font-semibold text-primary-950 mt-2">{item.documentNumber ?? 'N/A'}</Text>
+                    <Text className="font-inter text-sm font-bold text-primary-950 mt-2">{item.fileName ?? item.documentNumber ?? '--'}</Text>
+                    {item.documentNumber && <Text className="font-inter text-xs text-neutral-500 mt-0.5">No: {item.documentNumber}</Text>}
                 </View>
-                <Svg width={20} height={20} viewBox="0 0 24 24">
-                    <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={colors.primary[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={colors.primary[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                {item.fileName ? (
-                    <View style={[styles.catBadge, { backgroundColor: colors.info[50] }]}>
-                        <Text style={{ color: colors.info[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }} numberOfLines={1}>{item.fileName}</Text>
-                    </View>
-                ) : null}
-                {item.expiryDate ? (
-                    <View style={[styles.catBadge, { backgroundColor: colors.warning[50] }]}>
-                        <Text style={{ color: colors.warning[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Exp: {item.expiryDate}</Text>
-                    </View>
-                ) : null}
-            </View>
-            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-2">Uploaded: {item.createdAt}</Text>}
+            {item.expiryDate && <Text className="font-inter text-xs text-neutral-500 mt-1">Expires: {item.expiryDate}</Text>}
+            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Uploaded: {item.createdAt}</Text>}
         </Animated.View>
     );
 
@@ -258,8 +252,9 @@ export function MyDocumentsScreen() {
                 visible={formVisible}
                 onClose={() => setFormVisible(false)}
                 onSave={handleUpload}
-                isSaving={uploadDocument.isPending}
+                isSaving={uploadDoc.isPending}
             />
+            <ConfirmModal {...confirmModalProps} />
         </View>
     );
 }
@@ -269,7 +264,7 @@ const styles = StyleSheet.create({
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    catBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
     formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },

@@ -13,17 +13,15 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { FAB } from '@/components/ui/fab';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useMyShiftSwaps } from '@/features/company-admin/api/use-ess-queries';
 import { useCreateShiftSwap, useCancelShiftSwap } from '@/features/company-admin/api/use-ess-mutations';
-
-// ── Status badge colors (match web) ──────────────────────────────
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
     PENDING: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
@@ -58,12 +56,7 @@ function CreateShiftSwapModal({
     const [reason, setReason] = React.useState('');
 
     React.useEffect(() => {
-        if (visible) {
-            setCurrentShiftId('');
-            setRequestedShiftId('');
-            setSwapDate('');
-            setReason('');
-        }
+        if (visible) { setCurrentShiftId(''); setRequestedShiftId(''); setSwapDate(''); setReason(''); }
     }, [visible]);
 
     const isValid = currentShiftId.trim() && requestedShiftId.trim() && swapDate.trim() && reason.trim().length >= 5;
@@ -76,10 +69,10 @@ function CreateShiftSwapModal({
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Request Shift Swap</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
-                        {/* Current Shift */}
+                        {/* Current Shift ID */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Current Shift <Text className="text-danger-500">*</Text>
+                                Current Shift ID <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
@@ -93,10 +86,10 @@ function CreateShiftSwapModal({
                             </View>
                         </View>
 
-                        {/* Requested Shift */}
+                        {/* Requested Shift ID */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Requested Shift <Text className="text-danger-500">*</Text>
+                                Requested Shift ID <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
@@ -135,7 +128,7 @@ function CreateShiftSwapModal({
                             <View style={[styles.inputWrap, { height: 100 }]}>
                                 <TextInput
                                     style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]}
-                                    placeholder="Why do you need this shift swap?"
+                                    placeholder="Reason for shift swap (min 5 characters)..."
                                     placeholderTextColor={colors.neutral[400]}
                                     value={reason}
                                     onChangeText={setReason}
@@ -172,27 +165,38 @@ export function ShiftSwapScreen() {
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data, isLoading, refetch } = useMyShiftSwaps();
-    const createShiftSwap = useCreateShiftSwap();
-    const cancelShiftSwap = useCancelShiftSwap();
+    const createSwap = useCreateShiftSwap();
+    const cancelSwap = useCancelShiftSwap();
 
     const [formVisible, setFormVisible] = React.useState(false);
 
     const swaps = (data as any)?.data ?? [];
 
     const handleCreate = (formData: { currentShiftId: string; requestedShiftId: string; swapDate: string; reason: string }) => {
-        createShiftSwap.mutate(formData, {
-            onSuccess: () => setFormVisible(false),
+        showConfirm({
+            title: 'Submit Shift Swap',
+            message: 'Are you sure you want to submit this shift swap request?',
+            confirmText: 'Submit',
+            variant: 'primary',
+            onConfirm: () => {
+                createSwap.mutate(formData, {
+                    onSuccess: () => setFormVisible(false),
+                    onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to submit shift swap request'),
+                });
+            },
         });
     };
 
     const handleCancel = (id: string) => {
         showConfirm({
-            title: 'Cancel Shift Swap',
-            message: 'Are you sure you want to cancel this shift swap request?',
+            title: 'Cancel Request',
+            message: 'Are you sure you want to cancel this shift swap request? This cannot be undone.',
             confirmText: 'Cancel Request',
             variant: 'danger',
             onConfirm: () => {
-                cancelShiftSwap.mutate(id);
+                cancelSwap.mutate(id, {
+                    onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to cancel shift swap request'),
+                });
             },
         });
     };
@@ -201,29 +205,19 @@ export function ShiftSwapScreen() {
         <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Svg width={14} height={14} viewBox="0 0 24 24">
-                            <Path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" stroke={colors.primary[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                        </Svg>
-                        <Text className="font-inter text-xs font-bold text-primary-700">
-                            {item.currentShiftName ?? item.currentShiftId ?? 'Current'} → {item.requestedShiftName ?? item.requestedShiftId ?? 'Requested'}
-                        </Text>
-                    </View>
+                    <Text className="font-inter text-sm font-bold text-primary-950">Swap Date: {item.swapDate ?? '--'}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 mt-1">Current: {item.currentShiftName ?? item.currentShiftId ?? '--'}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 mt-0.5">Requested: {item.requestedShiftName ?? item.requestedShiftId ?? '--'}</Text>
                 </View>
                 <StatusBadge status={item.status ?? 'PENDING'} />
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                <View style={[styles.catBadge, { backgroundColor: colors.info[50] }]}>
-                    <Text style={{ color: colors.info[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.swapDate ?? 'N/A'}</Text>
-                </View>
-            </View>
-            {item.reason ? <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.reason}</Text> : null}
+            {item.reason && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.reason}</Text>}
+            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Requested: {item.createdAt}</Text>}
             {item.status === 'PENDING' && (
                 <Pressable onPress={() => handleCancel(item.id)} style={styles.cancelActionBtn}>
                     <Text className="font-inter text-xs font-semibold text-danger-600">Cancel Request</Text>
                 </Pressable>
             )}
-            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Requested: {item.createdAt}</Text>}
         </Animated.View>
     );
 
@@ -248,7 +242,7 @@ export function ShiftSwapScreen() {
                 visible={formVisible}
                 onClose={() => setFormVisible(false)}
                 onSave={handleCreate}
-                isSaving={createShiftSwap.isPending}
+                isSaving={createSwap.isPending}
             />
             <ConfirmModal {...confirmModalProps} />
         </View>
@@ -260,11 +254,9 @@ const styles = StyleSheet.create({
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    catBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
-    cancelActionBtn: { marginTop: 10, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, backgroundColor: colors.danger[50], borderWidth: 1, borderColor: colors.danger[200] },
     formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
@@ -272,4 +264,5 @@ const styles = StyleSheet.create({
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    cancelActionBtn: { marginTop: 10, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, borderColor: colors.danger[200], backgroundColor: colors.danger[50] },
 });

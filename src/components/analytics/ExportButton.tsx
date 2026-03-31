@@ -58,9 +58,9 @@ export function ExportButton({ onExport, loading, disabled }: ExportButtonProps)
         style={[styles.triggerButton, disabled && styles.triggerButtonDisabled]}
         disabled={disabled || loading}
       >
-        <Download size={18} color={disabled ? colors.neutral[300] : colors.primary[600]} />
+        <Download size={16} color={disabled ? colors.neutral[400] : colors.white} />
         <Text
-          className={`font-inter text-[13px] font-semibold ${disabled ? 'text-neutral-300' : 'text-primary-600'}`}
+          className={`font-inter text-[13px] font-bold ${disabled ? 'text-neutral-400' : 'text-white'}`}
         >
           Export
         </Text>
@@ -125,16 +125,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    shadowColor: colors.primary[600],
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
   },
   triggerButtonDisabled: {
-    backgroundColor: colors.neutral[50],
-    borderColor: colors.neutral[100],
+    backgroundColor: colors.neutral[200],
+    shadowOpacity: 0,
   },
   overlay: {
     flex: 1,
@@ -143,8 +146,8 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingTop: 8,
     paddingBottom: 34,
     paddingHorizontal: 20,
@@ -170,12 +173,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: colors.neutral[50],
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
   },
   optionText: {
     flex: 1,

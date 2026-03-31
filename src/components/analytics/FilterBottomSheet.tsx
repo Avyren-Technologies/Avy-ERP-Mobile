@@ -82,9 +82,9 @@ const sectionStyles = StyleSheet.create({
   title: { textTransform: 'uppercase', letterSpacing: 0.5 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 24,
     backgroundColor: colors.neutral[100],
     borderWidth: 1,
     borderColor: colors.neutral[200],
@@ -92,6 +92,10 @@ const sectionStyles = StyleSheet.create({
   chipSelected: {
     backgroundColor: colors.primary[600],
     borderColor: colors.primary[600],
+    shadowColor: colors.primary[600],
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
 });
 
@@ -235,8 +239,8 @@ const styles = StyleSheet.create({
   },
   background: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   header: {
     flexDirection: 'row',
@@ -259,11 +263,15 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: colors.primary[600],
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    borderRadius: 12,
+    width: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: colors.primary[600],
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   clearButton: {
     paddingVertical: 4,

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { BarChart3, PieChart } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -11,6 +12,8 @@ import {
   TrendChart,
   ZeroDataState,
 } from '@/components/analytics';
+import colors from '@/components/ui/colors';
+import { Text } from '@/components/ui/text';
 import { useAnalyticsDashboard } from '@/features/company-admin/api/use-analytics-queries';
 
 export function RecruitmentDashboardScreen() {
@@ -33,10 +36,10 @@ export function RecruitmentDashboardScreen() {
 
   if (!isLoading && !dashboardData?.kpis?.length && !dashboardData?.meta?.lastComputedAt) {
     return (
-      <DashboardShell title="Recruitment Dashboard" loading={false}>
+      <DashboardShell title="Recruitment Analytics" loading={false}>
         <ZeroDataState
           title="No recruitment data yet"
-          message="Recruitment analytics will appear once job requisitions and candidates are added."
+          message="Recruitment analytics will appear once requisitions and candidates are tracked."
           icon="users"
           action={{
             label: 'Go to Requisitions',
@@ -48,31 +51,51 @@ export function RecruitmentDashboardScreen() {
   }
 
   return (
-    <DashboardShell title="Recruitment Dashboard" loading={isLoading} onRefresh={handleRefresh}>
+    <DashboardShell title="Recruitment Analytics" loading={isLoading} onRefresh={handleRefresh}>
       {(dashboardData?.alerts?.length ?? 0) > 0 && (
         <AlertsBanner alerts={dashboardData!.alerts} />
       )}
 
       <KPIGrid kpis={dashboardData?.kpis ?? []} onDrilldown={handleDrilldown} />
 
-      {/* Hiring Pipeline Trend + Time-to-Hire Trend */}
-      <View style={styles.chartRow}>
-        {dashboardData?.trends?.[0] && (
-          <TrendChart series={[dashboardData.trends[0]]} height={220} />
-        )}
-        {dashboardData?.trends?.[1] && (
-          <TrendChart series={[dashboardData.trends[1]]} height={220} />
-        )}
+      {/* ── Hiring Trends ── */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionIcon, { backgroundColor: colors.primary[50] }]}>
+            <BarChart3 size={15} color={colors.primary[500]} />
+          </View>
+          <Text className="font-inter text-[13px] font-bold text-neutral-800">
+            Hiring Trends
+          </Text>
+        </View>
+        <View style={styles.chartRow}>
+          {dashboardData?.trends?.[0] && (
+            <TrendChart series={[dashboardData.trends[0]]} height={220} />
+          )}
+          {dashboardData?.trends?.[1] && (
+            <TrendChart series={[dashboardData.trends[1]]} height={220} />
+          )}
+        </View>
       </View>
 
-      {/* Source Effectiveness + Department Hiring */}
-      <View style={styles.chartRow}>
-        {dashboardData?.distributions?.[0] && (
-          <DistributionChart distribution={dashboardData.distributions[0]} />
-        )}
-        {dashboardData?.distributions?.[1] && (
-          <DistributionChart distribution={dashboardData.distributions[1]} />
-        )}
+      {/* ── Source Effectiveness ── */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionIcon, { backgroundColor: colors.accent[50] }]}>
+            <PieChart size={15} color={colors.accent[500]} />
+          </View>
+          <Text className="font-inter text-[13px] font-bold text-neutral-800">
+            Source Effectiveness
+          </Text>
+        </View>
+        <View style={styles.chartRow}>
+          {dashboardData?.distributions?.[0] && (
+            <DistributionChart distribution={dashboardData.distributions[0]} />
+          )}
+          {dashboardData?.distributions?.[1] && (
+            <DistributionChart distribution={dashboardData.distributions[1]} />
+          )}
+        </View>
       </View>
 
       <InsightsPanel insights={dashboardData?.insights ?? []} onDrilldown={handleDrilldown} />
@@ -81,7 +104,8 @@ export function RecruitmentDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  chartRow: {
-    gap: 16,
-  },
+  section: { gap: 12 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionIcon: { width: 28, height: 28, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  chartRow: { gap: 16 },
 });

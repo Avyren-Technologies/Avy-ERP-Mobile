@@ -217,6 +217,7 @@ export function DistributionChart({
 
   if (items.length === 0) return null;
 
+  const total = items.reduce((sum, item) => sum + item.value, 0);
   const isDonut = activeType === 'donut' || activeType === 'pie';
 
   return (
@@ -272,9 +273,14 @@ export function DistributionChart({
             <Text className="font-inter text-[12px] text-neutral-600" numberOfLines={1} style={styles.legendLabel}>
               {item.label}
             </Text>
-            <Text className="font-inter text-[12px] font-semibold text-neutral-800">
+            <Text className="font-inter text-[12px] font-bold text-neutral-800">
               {item.value}
             </Text>
+            {total > 0 && (
+              <Text className="font-inter text-[10px] font-semibold text-neutral-400">
+                {((item.value / total) * 100).toFixed(0)}%
+              </Text>
+            )}
           </View>
         ))}
       </View>
@@ -285,13 +291,15 @@ export function DistributionChart({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
-    shadowColor: colors.primary[900],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
     gap: 12,
   },
   header: {
@@ -301,23 +309,31 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+    letterSpacing: -0.2,
   },
   toggleRow: {
     flexDirection: 'row',
     backgroundColor: colors.neutral[100],
-    borderRadius: 8,
-    padding: 2,
+    borderRadius: 10,
+    padding: 3,
   },
   toggleButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   toggleButtonActive: {
     backgroundColor: colors.primary[600],
+    shadowColor: colors.primary[600],
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   legend: {
     gap: 8,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[100],
   },
   legendItem: {
     flexDirection: 'row',
@@ -328,6 +344,12 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.white,
+    shadowColor: colors.black,
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
   legendLabel: {
     flex: 1,

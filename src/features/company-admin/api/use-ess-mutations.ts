@@ -284,6 +284,7 @@ export function useCancelLeave() {
     mutationFn: (id: string) => essApi.cancelLeave(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: essKeys.myLeaveBalance() });
+      queryClient.invalidateQueries({ queryKey: ['leave'] });
     },
   });
 }
@@ -354,6 +355,43 @@ export function useUploadMyDocument() {
     mutationFn: (data: any) => essApi.uploadMyDocument(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: essKeys.myDocuments() });
+    },
+  });
+}
+
+// ── Expense Claims ────────────────────────────────────────────────
+
+/** Create an expense claim (draft) */
+export function useCreateMyExpenseClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => essApi.createMyExpenseClaim(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myExpenseClaims() });
+    },
+  });
+}
+
+/** Submit a draft expense claim for approval */
+export function useSubmitMyExpenseClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.submitMyExpenseClaim(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myExpenseClaims() });
+    },
+  });
+}
+
+// ── Loan Application ──────────────────────────────────────────────
+
+/** Apply for a loan */
+export function useApplyForLoan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => essApi.applyForLoan(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myLoans() });
     },
   });
 }

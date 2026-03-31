@@ -42,6 +42,10 @@ interface OrgNode {
     department?: string;
     employeeId?: string;
     imageUrl?: string;
+    joiningDate?: string;
+    officialEmail?: string;
+    status?: string;
+    location?: string;
     reportees: OrgNode[];
 }
 
@@ -77,6 +81,10 @@ function transformNode(node: any): OrgNode {
         department: node.department?.name ?? node.department ?? undefined,
         employeeId: node.employeeId,
         imageUrl: node.profilePhotoUrl ?? node.imageUrl ?? undefined,
+        joiningDate: node.joiningDate ?? undefined,
+        officialEmail: node.officialEmail ?? undefined,
+        status: node.status ?? undefined,
+        location: node.location?.name ?? node.location ?? undefined,
         reportees: (node.reportees ?? node.children ?? []).map(transformNode),
     };
 }
@@ -169,34 +177,37 @@ function Avatar({ name, imageUrl, size = 'md' }: {
 
 // ============ ROOT CARD (CEO/Founder) ============
 
-function RootCard({ node, isHighlighted }: {
+function RootCard({ node, isHighlighted, onPress }: {
     node: OrgNode;
     isHighlighted: boolean;
+    onPress?: () => void;
 }) {
     return (
-        <Animated.View entering={FadeInDown.duration(400)} style={[
-            styles.rootCard,
-            isHighlighted && styles.cardHighlighted,
-        ]}>
-            <Avatar name={node.name} imageUrl={node.imageUrl} size="lg" />
-            <View style={styles.rootCardInfo}>
-                <Text className="font-inter text-base font-bold text-primary-950" numberOfLines={1}>
-                    {node.name}
-                </Text>
-                {node.designation ? (
-                    <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>
-                        {node.designation}
+        <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}>
+            <Animated.View entering={FadeInDown.duration(400)} style={[
+                styles.rootCard,
+                isHighlighted && styles.cardHighlighted,
+            ]}>
+                <Avatar name={node.name} imageUrl={node.imageUrl} size="lg" />
+                <View style={styles.rootCardInfo}>
+                    <Text className="font-inter text-base font-bold text-primary-950" numberOfLines={1}>
+                        {node.name}
                     </Text>
-                ) : null}
-                {node.department ? (
-                    <View style={styles.rootDeptBadge}>
-                        <Text className="font-inter text-[10px] font-semibold text-primary-700">
-                            {node.department}
+                    {node.designation ? (
+                        <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>
+                            {node.designation}
                         </Text>
-                    </View>
-                ) : null}
-            </View>
-        </Animated.View>
+                    ) : null}
+                    {node.department ? (
+                        <View style={styles.rootDeptBadge}>
+                            <Text className="font-inter text-[10px] font-semibold text-primary-700">
+                                {node.department}
+                            </Text>
+                        </View>
+                    ) : null}
+                </View>
+            </Animated.View>
+        </Pressable>
     );
 }
 
@@ -429,32 +440,101 @@ function EmployeeTooltip({ node, onClose }: {
     node: OrgNode;
     onClose: () => void;
 }) {
+    const joinDate = node.joiningDate
+        ? new Date(node.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        : null;
+    const statusLabel = node.status ? node.status.replace(/_/g, ' ') : null;
+
     return (
         <Pressable style={styles.tooltipOverlay} onPress={onClose}>
-            <Animated.View entering={FadeInUp.duration(200)} style={styles.tooltipCard}>
-                <View style={styles.tooltipContent}>
+            <Animated.View
+                entering={FadeInUp.duration(200)}
+                style={styles.tooltipCard}
+            >
+                {/* Header with gradient */}
+                <View style={styles.tooltipHeader}>
                     <Avatar name={node.name} imageUrl={node.imageUrl} size="lg" />
                     <View style={styles.tooltipInfo}>
-                        <Text className="font-inter text-base font-bold text-primary-950">{node.name}</Text>
+                        <Text className="font-inter text-base font-bold text-white" numberOfLines={1}>{node.name}</Text>
                         {node.designation ? (
-                            <Text className="font-inter text-xs text-neutral-500">{node.designation}</Text>
-                        ) : null}
-                        {node.department ? (
-                            <View style={styles.tooltipDeptBadge}>
-                                <Text className="font-inter text-[10px] font-semibold text-accent-700">{node.department}</Text>
-                            </View>
-                        ) : null}
-                        {node.employeeId ? (
-                            <View style={styles.tooltipIdRow}>
-                                <Svg width={12} height={12} viewBox="0 0 24 24">
-                                    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                                    <Circle cx="12" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
-                                </Svg>
-                                <Text className="font-inter text-[11px] text-neutral-400 ml-1">{node.employeeId}</Text>
-                            </View>
+                            <Text className="font-inter text-xs text-white" style={{ opacity: 0.8 }} numberOfLines={1}>{node.designation}</Text>
                         ) : null}
                     </View>
                 </View>
+
+                {/* Status badge */}
+                {statusLabel ? (
+                    <View style={styles.tooltipStatusRow}>
+                        <View style={[
+                            styles.tooltipStatusBadge,
+                            node.status === 'ACTIVE'
+                                ? { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
+                                : node.status === 'PROBATION'
+                                    ? { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }
+                                    : { backgroundColor: colors.neutral[100], borderColor: colors.neutral[200] },
+                        ]}>
+                            <Text
+                                className="font-inter text-[10px] font-bold"
+                                style={{
+                                    color: node.status === 'ACTIVE' ? '#047857'
+                                        : node.status === 'PROBATION' ? '#B45309'
+                                            : colors.neutral[600],
+                                }}
+                            >
+                                {statusLabel}
+                            </Text>
+                        </View>
+                    </View>
+                ) : null}
+
+                {/* Details grid */}
+                <View style={styles.tooltipDetails}>
+                    {node.department ? (
+                        <View style={styles.tooltipDetailRow}>
+                            <Svg width={13} height={13} viewBox="0 0 24 24">
+                                <Path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke={colors.accent[500]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                <Path d="M9 22V12h6v10" stroke={colors.accent[500]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                            <Text className="font-inter text-xs text-neutral-700 ml-2 flex-1" numberOfLines={1}>{node.department}</Text>
+                        </View>
+                    ) : null}
+                    {node.location ? (
+                        <View style={styles.tooltipDetailRow}>
+                            <Svg width={13} height={13} viewBox="0 0 24 24">
+                                <Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                                <Circle cx="12" cy="9" r="2.5" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                            </Svg>
+                            <Text className="font-inter text-xs text-neutral-500 ml-2 flex-1" numberOfLines={1}>{node.location}</Text>
+                        </View>
+                    ) : null}
+                    {node.employeeId ? (
+                        <View style={styles.tooltipDetailRow}>
+                            <Svg width={13} height={13} viewBox="0 0 24 24">
+                                <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                                <Circle cx="12" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
+                            </Svg>
+                            <Text className="font-inter text-xs text-neutral-500 ml-2">{node.employeeId}</Text>
+                        </View>
+                    ) : null}
+                    {node.officialEmail ? (
+                        <View style={styles.tooltipDetailRow}>
+                            <Svg width={13} height={13} viewBox="0 0 24 24">
+                                <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                <Path d="M22 6l-10 7L2 6" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                            <Text className="font-inter text-xs text-neutral-500 ml-2 flex-1" numberOfLines={1}>{node.officialEmail}</Text>
+                        </View>
+                    ) : null}
+                    {joinDate ? (
+                        <View style={styles.tooltipDetailRow}>
+                            <Svg width={13} height={13} viewBox="0 0 24 24">
+                                <Path d="M8 2v3M16 2v3M3 8h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                            <Text className="font-inter text-xs text-neutral-500 ml-2">Joined {joinDate}</Text>
+                        </View>
+                    ) : null}
+                </View>
+
                 {node.reportees.length > 0 && (
                     <View style={styles.tooltipFooter}>
                         <Svg width={14} height={14} viewBox="0 0 24 24">
@@ -797,7 +877,11 @@ export function OrgChartScreen() {
                         {/* Root Card */}
                         {rootNode && (
                             <View style={styles.rootSection}>
-                                <RootCard node={rootNode} isHighlighted={highlightId === rootNode.id} />
+                                <RootCard
+                                    node={rootNode}
+                                    isHighlighted={highlightId === rootNode.id}
+                                    onPress={() => setSelectedEmployee(rootNode)}
+                                />
 
                                 {/* Vertical connector from root */}
                                 {deptGroups.length > 0 && (
@@ -1217,7 +1301,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: 'rgba(0,0,0,0.35)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 100,
@@ -1225,49 +1309,62 @@ const styles = StyleSheet.create({
     tooltipCard: {
         backgroundColor: colors.white,
         borderRadius: 20,
-        padding: 20,
-        marginHorizontal: 32,
+        overflow: 'hidden',
+        marginHorizontal: 24,
         shadowColor: colors.primary[900],
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.18,
         shadowRadius: 24,
-        elevation: 10,
-        borderWidth: 1,
-        borderColor: colors.neutral[100],
-        maxWidth: 320,
+        elevation: 12,
+        maxWidth: 340,
         width: '100%',
     },
-    tooltipContent: {
+    tooltipHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 14,
+        padding: 18,
+        paddingBottom: 16,
+        backgroundColor: colors.primary[600],
     },
     tooltipInfo: {
         flex: 1,
-        gap: 3,
+        gap: 2,
     },
-    tooltipDeptBadge: {
+    tooltipStatusRow: {
+        paddingHorizontal: 18,
+        paddingTop: 12,
+        paddingBottom: 4,
+    },
+    tooltipStatusBadge: {
         alignSelf: 'flex-start',
-        backgroundColor: colors.accent[50],
-        borderRadius: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        marginTop: 2,
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
         borderWidth: 1,
-        borderColor: colors.accent[100],
     },
-    tooltipIdRow: {
+    tooltipDetails: {
+        paddingHorizontal: 18,
+        paddingTop: 8,
+        paddingBottom: 14,
+        gap: 8,
+    },
+    tooltipDetailRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
     },
     tooltipFooter: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 14,
+        marginHorizontal: 18,
+        marginBottom: 18,
         paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: colors.neutral[100],
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: colors.primary[50],
+        borderWidth: 1,
+        borderColor: colors.primary[100],
     },
 
     // ── Zoom Controls ──

@@ -61,6 +61,7 @@ function InsightCard({
         }
         disabled={!insight.drilldownType}
       >
+
         <View style={styles.insightHeader}>
           <View
             style={[
@@ -146,7 +147,7 @@ export function InsightsPanel({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: 14,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -155,18 +156,25 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     backgroundColor: colors.primary[50],
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
   },
   insightsList: {
     gap: 10,
   },
   insightCard: {
     borderLeftWidth: 4,
-    borderRadius: 12,
-    padding: 14,
-    gap: 6,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    shadowColor: colors.black,
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
   },
   insightHeader: {
     flexDirection: 'row',

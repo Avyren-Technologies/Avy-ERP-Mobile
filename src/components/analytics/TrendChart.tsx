@@ -115,10 +115,24 @@ export function TrendChart({
 
   return (
     <View style={styles.container}>
+      {/* Chart header */}
       {title && (
-        <Text className="font-inter text-[15px] font-bold text-neutral-800" style={styles.title}>
-          {title}
-        </Text>
+        <View style={styles.headerSection}>
+          <View>
+            <Text className="font-inter text-[14px] font-bold text-neutral-800" style={styles.title}>
+              {title}
+            </Text>
+            <Text className="font-inter text-[11px] text-neutral-400" style={styles.subtitle}>
+              Showing trend over time
+            </Text>
+          </View>
+          <View style={styles.liveBadge}>
+            <View style={styles.liveDot} />
+            <Text className="font-inter text-[10px] font-bold text-neutral-400">
+              Live
+            </Text>
+          </View>
+        </View>
       )}
 
       <Svg
@@ -261,16 +275,42 @@ export function TrendChart({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
-    shadowColor: colors.primary[900],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  headerSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   title: {
-    marginBottom: 8,
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    marginTop: 2,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.success[400],
   },
   legend: {
     flexDirection: 'row',
@@ -288,5 +328,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.white,
+    shadowColor: colors.black,
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
 });

@@ -26,13 +26,13 @@ export const essKeys = {
 
   // Approval Workflows
   workflows: (params?: ApprovalWorkflowListParams) =>
-    [...essKeys.all, 'workflows', params] as const,
+    params ? [...essKeys.all, 'workflows', params] as const : [...essKeys.all, 'workflows'] as const,
   workflow: (id: string) =>
     [...essKeys.all, 'workflow', id] as const,
 
   // Approval Requests
   requests: (params?: ApprovalRequestListParams) =>
-    [...essKeys.all, 'requests', params] as const,
+    params ? [...essKeys.all, 'requests', params] as const : [...essKeys.all, 'requests'] as const,
   request: (id: string) =>
     [...essKeys.all, 'request', id] as const,
   pendingApprovals: () =>
@@ -40,15 +40,15 @@ export const essKeys = {
 
   // Notification Templates
   notificationTemplates: (params?: NotificationTemplateListParams) =>
-    [...essKeys.all, 'notification-templates', params] as const,
+    params ? [...essKeys.all, 'notification-templates', params] as const : [...essKeys.all, 'notification-templates'] as const,
 
   // Notification Rules
   notificationRules: (params?: NotificationRuleListParams) =>
-    [...essKeys.all, 'notification-rules', params] as const,
+    params ? [...essKeys.all, 'notification-rules', params] as const : [...essKeys.all, 'notification-rules'] as const,
 
   // IT Declarations
   itDeclarations: (params?: ITDeclarationListParams) =>
-    [...essKeys.all, 'it-declarations', params] as const,
+    params ? [...essKeys.all, 'it-declarations', params] as const : [...essKeys.all, 'it-declarations'] as const,
   itDeclaration: (id: string) =>
     [...essKeys.all, 'it-declaration', id] as const,
 
@@ -60,7 +60,7 @@ export const essKeys = {
   myLeaveBalance: () =>
     [...essKeys.all, 'my-leave-balance'] as const,
   myAttendance: (params?: EssMyAttendanceParams) =>
-    [...essKeys.all, 'my-attendance', params] as const,
+    params ? [...essKeys.all, 'my-attendance', params] as const : [...essKeys.all, 'my-attendance'] as const,
   myDeclarations: () =>
     [...essKeys.all, 'my-declarations'] as const,
 
@@ -86,9 +86,19 @@ export const essKeys = {
   policyDocuments: () =>
     [...essKeys.all, 'policy-documents'] as const,
 
+  // Holidays, Expense Claims, Loans
+  myHolidays: (year?: number) =>
+    year ? [...essKeys.all, 'my-holidays', year] as const : [...essKeys.all, 'my-holidays'] as const,
+  myExpenseClaims: () =>
+    [...essKeys.all, 'my-expense-claims'] as const,
+  myLoans: () =>
+    [...essKeys.all, 'my-loans'] as const,
+  loanPolicies: () =>
+    [...essKeys.all, 'loan-policies'] as const,
+
   // MSS Manager Self-Service
   teamMembers: (params?: MssTeamMembersParams) =>
-    [...essKeys.all, 'team-members', params] as const,
+    params ? [...essKeys.all, 'team-members', params] as const : [...essKeys.all, 'team-members'] as const,
   pendingMssApprovals: () =>
     [...essKeys.all, 'pending-mss-approvals'] as const,
   teamAttendance: () =>
@@ -352,5 +362,39 @@ export function usePolicyDocuments() {
   return useQuery({
     queryKey: essKeys.policyDocuments(),
     queryFn: () => essApi.getPolicyDocuments(),
+  });
+}
+
+// --- Holidays, Expense Claims, Loans ---
+
+/** Employee's holidays for a given year */
+export function useMyHolidays(year?: number) {
+  return useQuery({
+    queryKey: essKeys.myHolidays(year),
+    queryFn: () => essApi.getMyHolidays(year),
+  });
+}
+
+/** Employee's expense claims */
+export function useMyExpenseClaims() {
+  return useQuery({
+    queryKey: essKeys.myExpenseClaims(),
+    queryFn: () => essApi.getMyExpenseClaims(),
+  });
+}
+
+/** Employee's loan applications */
+export function useMyLoans() {
+  return useQuery({
+    queryKey: essKeys.myLoans(),
+    queryFn: () => essApi.getMyLoans(),
+  });
+}
+
+/** Available loan policies for ESS loan application */
+export function useEssLoanPolicies() {
+  return useQuery({
+    queryKey: essKeys.loanPolicies(),
+    queryFn: () => essApi.getAvailableLoanPolicies(),
   });
 }

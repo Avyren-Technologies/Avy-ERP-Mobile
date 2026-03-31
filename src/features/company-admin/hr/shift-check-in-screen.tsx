@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import NetInfo from '@react-native-community/netinfo';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as React from 'react';
@@ -22,6 +23,7 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { client } from '@/lib/api/client';
+import { enqueuePunch, getQueueLength, syncQueue } from '@/lib/offline-punch-queue';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -245,6 +247,23 @@ export function ShiftCheckInScreen() {
         })();
     }, []);
 
+    // Offline punch queue
+    const [offlineCount, setOfflineCount] = React.useState(getQueueLength);
+
+    React.useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener((state) => {
+            if (state.isConnected && getQueueLength() > 0) {
+                syncQueue((url, body) => client.post(url, body)).then(({ synced }) => {
+                    if (synced > 0) {
+                        setOfflineCount(getQueueLength());
+                        qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
+                    }
+                });
+            }
+        });
+        return () => unsubscribe();
+    }, [qc]);
+
     // Attendance status — background polling keeps previous data visible (no skeleton flash on refetch)
     const [pullRefreshing, setPullRefreshing] = React.useState(false);
     const { data: statusData, isPending, refetch } = useQuery({
@@ -284,6 +303,17 @@ export function ShiftCheckInScreen() {
     // Mutations
     const checkInMut = useMutation({
         mutationFn: async () => {
+            const netState = await NetInfo.fetch();
+            if (!netState.isConnected) {
+                enqueuePunch({
+                    type: 'check-in',
+                    timestamp: new Date().toISOString(),
+                    latitude: geo?.lat,
+                    longitude: geo?.lng,
+                });
+                setOfflineCount(getQueueLength());
+                return { offline: true };
+            }
             const body: any = {};
             if (geo) { body.latitude = geo.lat; body.longitude = geo.lng; }
             return (await client.post('/hr/attendance/check-in', body) as any).data;
@@ -292,6 +322,17 @@ export function ShiftCheckInScreen() {
     });
     const checkOutMut = useMutation({
         mutationFn: async () => {
+            const netState = await NetInfo.fetch();
+            if (!netState.isConnected) {
+                enqueuePunch({
+                    type: 'check-out',
+                    timestamp: new Date().toISOString(),
+                    latitude: geo?.lat,
+                    longitude: geo?.lng,
+                });
+                setOfflineCount(getQueueLength());
+                return { offline: true };
+            }
             const body: any = {};
             if (geo) { body.latitude = geo.lat; body.longitude = geo.lng; }
             return (await client.post('/hr/attendance/check-out', body) as any).data;
@@ -349,6 +390,14 @@ export function ShiftCheckInScreen() {
                             <View style={$.clockIconBg}><ClockIcon s={18} c={colors.primary[600]} /></View>
                             <Text className="font-inter text-center" style={$.clockText}>{clockStr}</Text>
                             <View style={{ marginTop: 10 }}><StatusBadge status={attStatus} /></View>
+                            {offlineCount > 0 && (
+                                <View style={$.offlineBadge}>
+                                    <WarnIcon s={12} c={colors.warning[800]} />
+                                    <Text className="font-inter text-xs" style={{ color: colors.warning[800] }}>
+                                        {offlineCount} offline punch{offlineCount > 1 ? 'es' : ''} pending sync
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                         {attStatus === 'CHECKED_IN' && (
                             <View style={$.elapsedBox}>
@@ -494,4 +543,10 @@ const $ = StyleSheet.create({
     sumGrid: { flexDirection: 'row', justifyContent: 'space-between' },
     sumItem: { alignItems: 'center', flex: 1 },
     sumCenter: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.neutral[100] },
+
+    offlineBadge: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: colors.warning[50], borderRadius: 8,
+        paddingHorizontal: 12, paddingVertical: 6, marginTop: 8,
+    },
 });

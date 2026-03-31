@@ -26,11 +26,11 @@ export function PolicyDocumentsScreen() {
 
     const { data, isLoading, refetch } = usePolicyDocuments();
 
-    const policies = (data as any)?.data ?? [];
+    const documents = (data as any)?.data ?? [];
 
-    const handleView = (url: string) => {
+    const handleOpenDocument = (url: string) => {
         if (url) {
-            Linking.openURL(url);
+            Linking.openURL(url).catch(() => { /* ignore */ });
         }
     };
 
@@ -38,37 +38,24 @@ export function PolicyDocumentsScreen() {
         <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-bold text-primary-950">{item.title ?? 'Untitled Policy'}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                        {item.category ? (
-                            <View style={[styles.catBadge, { backgroundColor: colors.accent[50] }]}>
-                                <Text style={{ color: colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.category}</Text>
-                            </View>
-                        ) : null}
-                        {item.version ? (
-                            <View style={[styles.catBadge, { backgroundColor: colors.info[50] }]}>
-                                <Text style={{ color: colors.info[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>v{item.version}</Text>
-                            </View>
-                        ) : null}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={[styles.typeBadge, { backgroundColor: colors.primary[50] }]}>
+                            <Text style={{ color: colors.primary[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.category ?? 'Policy'}</Text>
+                        </View>
                     </View>
+                    <Text className="font-inter text-sm font-bold text-primary-950 mt-2">{item.title ?? item.name ?? '--'}</Text>
+                    {item.description && <Text className="font-inter text-xs text-neutral-500 mt-1" numberOfLines={2}>{item.description}</Text>}
                 </View>
-                {(item.fileUrl || item.url) ? (
-                    <Pressable onPress={() => handleView(item.fileUrl ?? item.url)} style={styles.viewBtn}>
-                        <Svg width={14} height={14} viewBox="0 0 24 24">
+                {item.fileUrl && (
+                    <Pressable onPress={() => handleOpenDocument(item.fileUrl)} style={styles.viewBtn}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24">
                             <Path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                         </Svg>
-                        <Text className="font-inter text-xs font-semibold text-primary-600 ml-1">View</Text>
                     </Pressable>
-                ) : null}
+                )}
             </View>
-            {item.description ? (
-                <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={3}>{item.description}</Text>
-            ) : null}
-            {item.publishedAt ? (
-                <Text className="font-inter text-[10px] text-neutral-400 mt-2">Published: {item.publishedAt}</Text>
-            ) : item.createdAt ? (
-                <Text className="font-inter text-[10px] text-neutral-400 mt-2">Published: {item.createdAt}</Text>
-            ) : null}
+            {item.effectiveDate && <Text className="font-inter text-[10px] text-neutral-400 mt-2">Effective: {item.effectiveDate}</Text>}
+            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-0.5">Published: {item.createdAt}</Text>}
         </Animated.View>
     );
 
@@ -81,7 +68,7 @@ export function PolicyDocumentsScreen() {
                 </View>
             </LinearGradient>
             <FlatList
-                data={policies}
+                data={documents}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
                 contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
@@ -97,7 +84,7 @@ const styles = StyleSheet.create({
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    catBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    viewBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[200] },
+    typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
+    viewBtn: { padding: 8, borderRadius: 8, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[100] },
 });

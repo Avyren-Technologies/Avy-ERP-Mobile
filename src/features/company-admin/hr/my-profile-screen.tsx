@@ -19,6 +19,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showSuccess } from '@/components/ui/utils';
 
 import { useUpdateMyProfile } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyProfile } from '@/features/company-admin/api/use-ess-queries';
@@ -212,8 +213,6 @@ function EditProfileModal({
 export function MyProfileScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [showToast, setShowToast] = React.useState(false);
-
     const { data: response, isLoading, error, refetch, isFetching } = useMyProfile();
     const updateProfile = useUpdateMyProfile();
     const [editVisible, setEditVisible] = React.useState(false);
@@ -262,8 +261,7 @@ export function MyProfileScreen() {
         updateProfile.mutate(data, {
             onSuccess: () => {
                 setEditVisible(false);
-                setShowToast(true);
-                setTimeout(() => setShowToast(false), 2500);
+                showSuccess('Profile updated successfully');
             },
         });
     };
@@ -367,13 +365,6 @@ export function MyProfileScreen() {
                 </Animated.View>
             </ScrollView>
 
-            {/* Toast */}
-            {showToast && (
-                <Animated.View entering={FadeInDown.duration(250)} style={[styles.toast, { top: insets.top + 70 }]}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                    <Text className="font-inter text-sm font-semibold text-success-700">Profile updated successfully</Text>
-                </Animated.View>
-            )}
             <EditProfileModal
                 visible={editVisible}
                 onClose={() => setEditVisible(false)}
@@ -415,11 +406,5 @@ const styles = StyleSheet.create({
     requestBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
         height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary[200], backgroundColor: colors.primary[50], marginTop: 8,
-    },
-    toast: {
-        position: 'absolute', left: 20, right: 20, backgroundColor: colors.success[50], borderRadius: 12,
-        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
-        borderWidth: 1, borderColor: colors.success[200],
-        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
 });

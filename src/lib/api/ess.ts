@@ -445,4 +445,42 @@ export const essApi = {
     const r = await client.get('/hr/ess/policy-documents');
     return r.data;
   },
+
+  // ── Holiday Calendar ──────────────────────────────────────────
+  getMyHolidays: async (year?: number) => {
+    const r = await client.get('/hr/ess/my-holidays', { params: year ? { year } : {} });
+    return r.data;
+  },
+
+  // ── Expense Claims ────────────────────────────────────────────
+  getMyExpenseClaims: async () => {
+    const r = await client.get('/hr/ess/my-expense-claims');
+    return r.data;
+  },
+
+  createMyExpenseClaim: async (data: any) => {
+    const r = await client.post('/hr/ess/my-expense-claims', data);
+    return r.data;
+  },
+
+  submitMyExpenseClaim: async (id: string) => {
+    const r = await client.patch(`/hr/ess/my-expense-claims/${id}/submit`);
+    return r.data;
+  },
+
+  // ── Loans ─────────────────────────────────────────────────────
+  getMyLoans: async () => {
+    const r = await client.get('/hr/ess/my-loans');
+    return r.data;
+  },
+
+  getAvailableLoanPolicies: async () => {
+    const r = await client.get('/hr/ess/loan-policies');
+    return r.data;
+  },
+
+  applyForLoan: async (data: any) => {
+    const r = await client.post('/hr/ess/apply-loan', data);
+    return r.data;
+  },
 };

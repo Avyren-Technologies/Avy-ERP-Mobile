@@ -19,10 +19,9 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { FAB } from '@/components/ui/fab';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useMyWfhRequests } from '@/features/company-admin/api/use-ess-queries';
 import { useCreateWfhRequest, useCancelWfhRequest } from '@/features/company-admin/api/use-ess-mutations';
-
-// ── Status badge colors (match web) ──────────────────────────────
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
     PENDING: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
@@ -57,12 +56,7 @@ function CreateWfhModal({
     const [reason, setReason] = React.useState('');
 
     React.useEffect(() => {
-        if (visible) {
-            setFromDate('');
-            setToDate('');
-            setDays('');
-            setReason('');
-        }
+        if (visible) { setFromDate(''); setToDate(''); setDays(''); setReason(''); }
     }, [visible]);
 
     const isValid = fromDate.trim() && toDate.trim() && Number(days) > 0 && reason.trim().length >= 5;
@@ -134,7 +128,7 @@ function CreateWfhModal({
                             <View style={[styles.inputWrap, { height: 100 }]}>
                                 <TextInput
                                     style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]}
-                                    placeholder="Reason for working from home..."
+                                    placeholder="Reason for WFH request (min 5 characters)..."
                                     placeholderTextColor={colors.neutral[400]}
                                     value={reason}
                                     onChangeText={setReason}
@@ -179,19 +173,30 @@ export function WfhRequestScreen() {
     const requests = (data as any)?.data ?? [];
 
     const handleCreate = (formData: { fromDate: string; toDate: string; days: number; reason: string }) => {
-        createWfh.mutate(formData, {
-            onSuccess: () => setFormVisible(false),
+        showConfirm({
+            title: 'Submit WFH Request',
+            message: 'Are you sure you want to submit this work from home request?',
+            confirmText: 'Submit',
+            variant: 'primary',
+            onConfirm: () => {
+                createWfh.mutate(formData, {
+                    onSuccess: () => setFormVisible(false),
+                    onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to submit WFH request'),
+                });
+            },
         });
     };
 
     const handleCancel = (id: string) => {
         showConfirm({
-            title: 'Cancel WFH Request',
-            message: 'Are you sure you want to cancel this work from home request?',
+            title: 'Cancel Request',
+            message: 'Are you sure you want to cancel this WFH request? This cannot be undone.',
             confirmText: 'Cancel Request',
             variant: 'danger',
             onConfirm: () => {
-                cancelWfh.mutate(id);
+                cancelWfh.mutate(id, {
+                    onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? err?.message ?? 'Failed to cancel WFH request'),
+                });
             },
         });
     };
@@ -200,28 +205,18 @@ export function WfhRequestScreen() {
         <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <View style={[styles.catBadge, { backgroundColor: colors.accent[50] }]}>
-                            <Text style={{ color: colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>
-                                {item.fromDate ?? 'N/A'} to {item.toDate ?? 'N/A'}
-                            </Text>
-                        </View>
-                        <View style={[styles.catBadge, { backgroundColor: colors.info[50] }]}>
-                            <Text style={{ color: colors.info[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>
-                                {item.days ?? 0} day{(item.days ?? 0) !== 1 ? 's' : ''}
-                            </Text>
-                        </View>
-                    </View>
+                    <Text className="font-inter text-sm font-bold text-primary-950">{item.fromDate ?? '--'} to {item.toDate ?? '--'}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 mt-1">{item.days ?? '--'} day(s)</Text>
                 </View>
                 <StatusBadge status={item.status ?? 'PENDING'} />
             </View>
-            {item.reason ? <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.reason}</Text> : null}
+            {item.reason && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.reason}</Text>}
+            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Requested: {item.createdAt}</Text>}
             {item.status === 'PENDING' && (
                 <Pressable onPress={() => handleCancel(item.id)} style={styles.cancelActionBtn}>
                     <Text className="font-inter text-xs font-semibold text-danger-600">Cancel Request</Text>
                 </Pressable>
             )}
-            {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Requested: {item.createdAt}</Text>}
         </Animated.View>
     );
 
@@ -258,11 +253,9 @@ const styles = StyleSheet.create({
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    catBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
-    cancelActionBtn: { marginTop: 10, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, backgroundColor: colors.danger[50], borderWidth: 1, borderColor: colors.danger[200] },
     formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
@@ -270,4 +263,5 @@ const styles = StyleSheet.create({
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    cancelActionBtn: { marginTop: 10, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, borderColor: colors.danger[200], backgroundColor: colors.danger[50] },
 });

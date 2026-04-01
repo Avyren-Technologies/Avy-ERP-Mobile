@@ -1,7 +1,11 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     FlatList,
+    Image,
     Modal,
     Pressable,
     RefreshControl,
@@ -73,6 +77,7 @@ interface LineItem {
 interface Receipt {
     fileName: string;
     fileUrl: string;
+    fileSize?: number;
 }
 
 // ── Helper components ────────────────────────────────────────────
@@ -111,11 +116,54 @@ function formatDate(dateStr: string): string {
     }
 }
 
+function formatFileSize(bytes?: number): string {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function ChevronDownIcon() {
     return (
         <Svg width={14} height={14} viewBox="0 0 24 24">
             <Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
+    );
+}
+
+function UploadIcon() {
+    return (
+        <Svg width={18} height={18} viewBox="0 0 24 24">
+            <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+function CameraIcon() {
+    return (
+        <Svg width={18} height={18} viewBox="0 0 24 24">
+            <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+        </Svg>
+    );
+}
+
+function FileIcon() {
+    return (
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+            <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode }) {
+    return (
+        <Animated.View entering={FadeInDown.springify()} style={styles.sectionHeader}>
+            <View style={styles.sectionAccentBar} />
+            {icon}
+            <Text className="font-inter text-xs font-bold text-primary-800">{title}</Text>
+        </Animated.View>
     );
 }
 
@@ -231,9 +279,14 @@ function LineItemCard({
     const [catPickerVisible, setCatPickerVisible] = React.useState(false);
 
     return (
-        <View style={styles.lineItemCard}>
+        <Animated.View entering={FadeInDown.delay(index * 50).springify()} style={styles.lineItemCard}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <Text className="font-inter text-xs font-bold text-primary-800">Item {index + 1}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={styles.itemNumberBadge}>
+                        <Text className="font-inter text-[10px] font-bold text-white">{index + 1}</Text>
+                    </View>
+                    <Text className="font-inter text-xs font-bold text-primary-800">Item {index + 1}</Text>
+                </View>
                 <Pressable onPress={() => onRemove(item.id)} hitSlop={8}>
                     <Text className="font-inter text-xs font-semibold text-danger-500">Remove</Text>
                 </Pressable>
@@ -315,7 +368,7 @@ function LineItemCard({
                     />
                 </View>
             </View>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -344,8 +397,6 @@ function CreateExpenseClaimModal({
     const [merchantName, setMerchantName] = React.useState('');
     const [projectCode, setProjectCode] = React.useState('');
     const [receipts, setReceipts] = React.useState<Receipt[]>([]);
-    const [receiptUrl, setReceiptUrl] = React.useState('');
-    const [receiptName, setReceiptName] = React.useState('');
     const [lineItems, setLineItems] = React.useState<LineItem[]>([]);
 
     const [categoryPickerVisible, setCategoryPickerVisible] = React.useState(false);
@@ -362,8 +413,6 @@ function CreateExpenseClaimModal({
             setMerchantName('');
             setProjectCode('');
             setReceipts([]);
-            setReceiptUrl('');
-            setReceiptName('');
             setLineItems([]);
         }
     }, [visible]);
@@ -391,17 +440,51 @@ function CreateExpenseClaimModal({
         setLineItems((prev) => prev.filter((li) => li.id !== id));
     };
 
-    // Receipt helpers
-    const addReceipt = () => {
-        if (!receiptUrl.trim()) return;
-        const name = receiptName.trim() || `Receipt ${receipts.length + 1}`;
-        setReceipts((prev) => [...prev, { fileName: name, fileUrl: receiptUrl.trim() }]);
-        setReceiptUrl('');
-        setReceiptName('');
+    // Receipt helpers — file & camera upload
+    const pickDocument = async () => {
+        const result = await DocumentPicker.getDocumentAsync({
+            type: ['image/*', 'application/pdf'],
+            multiple: true,
+            copyToCacheDirectory: true,
+        });
+        if (!result.canceled && result.assets) {
+            const newReceipts = result.assets.map(asset => ({
+                fileName: asset.name,
+                fileUrl: asset.uri,
+                fileSize: asset.size,
+            }));
+            setReceipts(prev => [...prev, ...newReceipts]);
+        }
+    };
+
+    const takePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+            allowsEditing: true,
+        });
+        if (!result.canceled && result.assets[0]) {
+            const asset = result.assets[0];
+            const fileName = asset.uri.split('/').pop() ?? `photo_${Date.now()}.jpg`;
+            setReceipts(prev => [...prev, {
+                fileName,
+                fileUrl: asset.uri,
+                fileSize: asset.fileSize,
+            }]);
+        }
     };
 
     const removeReceipt = (index: number) => {
         setReceipts((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const isImageUri = (uri: string) => {
+        const lower = uri.toLowerCase();
+        return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.gif') || lower.endsWith('.webp') || lower.startsWith('file://');
     };
 
     // Running total from line items
@@ -428,7 +511,7 @@ function CreateExpenseClaimModal({
             paymentMethod: paymentMethod || undefined,
             merchantName: merchantName.trim() || undefined,
             projectCode: projectCode.trim() || undefined,
-            receipts: receipts.length > 0 ? receipts : undefined,
+            receipts: receipts.length > 0 ? receipts.map(r => ({ fileName: r.fileName, fileUrl: r.fileUrl })) : undefined,
             items: lineItems.map((li) => ({
                 categoryCode: li.categoryCode,
                 description: li.description.trim(),
@@ -446,12 +529,32 @@ function CreateExpenseClaimModal({
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">New Expense Claim</Text>
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: '80%' }}>
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, paddingTop: 0 }]}>
+                    {/* Gradient Header */}
+                    <LinearGradient
+                        colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.modalGradientHeader}
+                    >
+                        <View style={styles.sheetHandleWhite} />
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text className="font-inter text-lg font-bold text-white">New Expense Claim</Text>
+                            {hasLineItems && (
+                                <View style={styles.runningTotalBadge}>
+                                    <Text className="font-inter text-xs font-bold text-white">{formatCurrency(lineItemsTotal)}</Text>
+                                </View>
+                            )}
+                        </View>
+                    </LinearGradient>
+
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: '80%' }} contentContainerStyle={{ paddingTop: 16 }}>
+
+                        {/* ── Section 1: Claim Details ── */}
+                        <SectionHeader title="Claim Details" />
+
                         {/* Title */}
-                        <View style={styles.fieldWrap}>
+                        <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
                                 Title <Text className="text-danger-500">*</Text>
                             </Text>
@@ -464,10 +567,10 @@ function CreateExpenseClaimModal({
                                     onChangeText={setTitle}
                                 />
                             </View>
-                        </View>
+                        </Animated.View>
 
                         {/* Category Picker */}
-                        <View style={styles.fieldWrap}>
+                        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
                                 Category <Text className="text-danger-500">*</Text>
                             </Text>
@@ -485,10 +588,10 @@ function CreateExpenseClaimModal({
                                 selectedValue={category}
                                 onSelect={setCategory}
                             />
-                        </View>
+                        </Animated.View>
 
                         {/* From / To Date */}
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Animated.View entering={FadeInDown.delay(150).springify()} style={{ flexDirection: 'row', gap: 8 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">From Date</Text>
                                 <View style={styles.inputWrap}>
@@ -515,10 +618,13 @@ function CreateExpenseClaimModal({
                                     />
                                 </View>
                             </View>
-                        </View>
+                        </Animated.View>
+
+                        {/* ── Section 2: Payment & Info ── */}
+                        <SectionHeader title="Payment & Info" />
 
                         {/* Payment Method */}
-                        <View style={styles.fieldWrap}>
+                        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Payment Method</Text>
                             <Pressable onPress={() => setPaymentPickerVisible(true)} style={styles.dropdownBtn}>
                                 <Text className={`font-inter text-sm ${paymentMethod ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
@@ -534,10 +640,10 @@ function CreateExpenseClaimModal({
                                 selectedValue={paymentMethod}
                                 onSelect={setPaymentMethod}
                             />
-                        </View>
+                        </Animated.View>
 
                         {/* Merchant + Project Code */}
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Animated.View entering={FadeInDown.delay(250).springify()} style={{ flexDirection: 'row', gap: 8 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Merchant</Text>
                                 <View style={styles.inputWrap}>
@@ -563,10 +669,10 @@ function CreateExpenseClaimModal({
                                     />
                                 </View>
                             </View>
-                        </View>
+                        </Animated.View>
 
                         {/* Description */}
-                        <View style={styles.fieldWrap}>
+                        <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput
@@ -579,13 +685,16 @@ function CreateExpenseClaimModal({
                                     numberOfLines={3}
                                 />
                             </View>
-                        </View>
+                        </Animated.View>
 
-                        {/* ── Line Items Section ── */}
+                        {/* ── Section 3: Expense Items ── */}
                         <View style={styles.sectionDivider}>
-                            <Text className="font-inter text-xs font-bold text-primary-800">
-                                Line Items <Text className="text-danger-500">*</Text>
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <View style={styles.sectionAccentBar} />
+                                <Text className="font-inter text-xs font-bold text-primary-800">
+                                    Expense Items <Text className="text-danger-500">*</Text>
+                                </Text>
+                            </View>
                             {hasLineItems && (
                                 <View style={styles.totalBadge}>
                                     <Text className="font-inter text-xs font-bold text-primary-700">
@@ -610,45 +719,46 @@ function CreateExpenseClaimModal({
                             <Text className="font-inter text-xs font-bold text-primary-600">+ Add Item</Text>
                         </Pressable>
 
-                        {/* ── Receipts Section ── */}
-                        <View style={[styles.sectionDivider, { marginTop: 4 }]}>
-                            <Text className="font-inter text-xs font-bold text-primary-800">Receipts / Proofs</Text>
+                        {/* ── Section 4: Receipts & Proof ── */}
+                        <SectionHeader title="Receipts & Proof" />
+
+                        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+                            <Pressable onPress={pickDocument} style={styles.uploadBtn}>
+                                <UploadIcon />
+                                <Text className="font-inter text-xs font-bold text-primary-600">Upload File</Text>
+                            </Pressable>
+                            <Pressable onPress={takePhoto} style={styles.uploadBtn}>
+                                <CameraIcon />
+                                <Text className="font-inter text-xs font-bold text-primary-600">Take Photo</Text>
+                            </Pressable>
                         </View>
 
                         {receipts.map((r, idx) => (
-                            <View key={`receipt-${idx}`} style={styles.receiptRow}>
+                            <View key={`receipt-${idx}`} style={styles.receiptCard}>
+                                {isImageUri(r.fileUrl) ? (
+                                    <Image source={{ uri: r.fileUrl }} style={styles.receiptThumb} resizeMode="cover" />
+                                ) : (
+                                    <View style={[styles.receiptThumb, { justifyContent: 'center', alignItems: 'center' }]}>
+                                        <FileIcon />
+                                    </View>
+                                )}
                                 <View style={{ flex: 1 }}>
                                     <Text className="font-inter text-xs font-semibold text-primary-950" numberOfLines={1}>{r.fileName}</Text>
-                                    <Text className="font-inter text-[10px] text-info-600 mt-0.5" numberOfLines={1}>{r.fileUrl}</Text>
+                                    {r.fileSize != null && (
+                                        <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">{formatFileSize(r.fileSize)}</Text>
+                                    )}
                                 </View>
                                 <Pressable onPress={() => removeReceipt(idx)} hitSlop={8}>
-                                    <Text className="font-inter text-xs font-semibold text-danger-500">Remove</Text>
+                                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                                        <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                    </Svg>
                                 </Pressable>
                             </View>
                         ))}
 
-                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-                            <View style={{ flex: 1 }}>
-                                <View style={styles.inputWrapSm}>
-                                    <TextInput
-                                        style={styles.textInputSm}
-                                        placeholder="Receipt URL"
-                                        placeholderTextColor={colors.neutral[400]}
-                                        value={receiptUrl}
-                                        onChangeText={setReceiptUrl}
-                                        autoCapitalize="none"
-                                        keyboardType="url"
-                                    />
-                                </View>
-                            </View>
-                            <Pressable
-                                onPress={addReceipt}
-                                disabled={!receiptUrl.trim()}
-                                style={[styles.addReceiptBtn, !receiptUrl.trim() && { opacity: 0.4 }]}
-                            >
-                                <Text className="font-inter text-xs font-bold text-primary-600">Add</Text>
-                            </Pressable>
-                        </View>
+                        {receipts.length === 0 && (
+                            <Text className="font-inter text-[10px] text-neutral-400 mb-4">No receipts added yet</Text>
+                        )}
                     </ScrollView>
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
@@ -892,6 +1002,7 @@ const styles = StyleSheet.create({
     empty: { alignItems: 'center', paddingTop: 60 },
     formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
+    sheetHandleWhite: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.4)', alignSelf: 'center', marginBottom: 12 },
     fieldWrap: { marginBottom: 14 },
     inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     inputWrapSm: { backgroundColor: colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
@@ -931,8 +1042,18 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: colors.neutral[200],
+        borderLeftWidth: 3,
+        borderLeftColor: colors.primary[400],
         padding: 12,
         marginBottom: 10,
+    },
+    itemNumberBadge: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: colors.primary[500],
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     sectionDivider: {
         flexDirection: 'row',
@@ -942,6 +1063,19 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         borderTopWidth: 1,
         borderTopColor: colors.neutral[100],
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 14,
+        marginTop: 4,
+    },
+    sectionAccentBar: {
+        width: 3,
+        height: 16,
+        borderRadius: 2,
+        backgroundColor: colors.primary[400],
     },
     totalBadge: {
         backgroundColor: colors.primary[50],
@@ -959,24 +1093,49 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary[50],
         marginBottom: 14,
     },
-    receiptRow: {
+    modalGradientHeader: {
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 24,
+        paddingTop: 12,
+        paddingBottom: 16,
+        marginHorizontal: -24,
+    },
+    runningTotalBadge: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    uploadBtn: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingVertical: 6,
-        paddingHorizontal: 8,
-        backgroundColor: colors.neutral[50],
-        borderRadius: 8,
-        marginBottom: 6,
-    },
-    addReceiptBtn: {
-        height: 38,
-        paddingHorizontal: 14,
-        borderRadius: 10,
-        borderWidth: 1,
+        justifyContent: 'center',
+        gap: 6,
+        height: 48,
+        borderRadius: 12,
+        borderWidth: 1.5,
         borderColor: colors.primary[200],
         backgroundColor: colors.primary[50],
-        justifyContent: 'center',
+    },
+    receiptCard: {
+        flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
+        padding: 10,
+        backgroundColor: colors.neutral[50],
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        marginBottom: 8,
+    },
+    receiptThumb: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        backgroundColor: colors.neutral[200],
     },
 });

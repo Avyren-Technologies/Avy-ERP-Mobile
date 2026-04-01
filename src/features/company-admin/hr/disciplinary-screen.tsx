@@ -32,6 +32,7 @@ import {
     useUpdateDisciplinaryAction,
 } from '@/features/company-admin/api/use-recruitment-mutations';
 import { useDisciplinaryActions } from '@/features/company-admin/api/use-recruitment-queries';
+import { useCanPerform } from '@/hooks/use-can-perform';
 
 // ============ TYPES ============
 
@@ -264,11 +265,12 @@ function ActionFormModal({
 
 // ============ ACTION CARD ============
 
-function ActionCard({ item, index, onTransition }: {
+function ActionCard({ item, index, onTransition, showAdminActions }: {
     item: DisciplinaryItem; index: number;
     onTransition: (next: ActionStatus) => void;
+    showAdminActions: boolean;
 }) {
-    const transitions = STATUS_TRANSITIONS[item.status] ?? [];
+    const transitions = showAdminActions ? (STATUS_TRANSITIONS[item.status] ?? []) : [];
 
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
@@ -320,6 +322,7 @@ export function DisciplinaryScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+    const isHrAdmin = useCanPerform('hr:read');
 
     const [search, setSearch] = React.useState('');
     const [formVisible, setFormVisible] = React.useState(false);
@@ -374,8 +377,8 @@ export function DisciplinaryScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Disciplinary Actions</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{actions.length} action{actions.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950">{isHrAdmin ? 'Disciplinary Actions' : 'My Disciplinary Actions'}</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500">{isHrAdmin ? `${actions.length} action${actions.length !== 1 ? 's' : ''}` : 'View disciplinary actions related to you'}</Text>
             <View style={{ marginTop: 16 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by employee or type..." /></View>
         </Animated.View>
     );
@@ -389,17 +392,17 @@ export function DisciplinaryScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <AppTopHeader title="Disciplinary" onMenuPress={toggle} />
+            <AppTopHeader title={isHrAdmin ? 'Disciplinary' : 'My Disciplinary'} onMenuPress={toggle} />
             <FlatList
                 data={filtered}
-                renderItem={({ item, index }) => <ActionCard item={item} index={index} onTransition={next => handleTransition(item, next)} />}
+                renderItem={({ item, index }) => <ActionCard item={item} index={index} onTransition={next => handleTransition(item, next)} showAdminActions={isHrAdmin} />}
                 keyExtractor={item => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
-            <FAB onPress={() => setFormVisible(true)} />
+            {isHrAdmin && <FAB onPress={() => setFormVisible(true)} />}
             <ActionFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} employeeOptions={employeeOptions} isSaving={createMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>

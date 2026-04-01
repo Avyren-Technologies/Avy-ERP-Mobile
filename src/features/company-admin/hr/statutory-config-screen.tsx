@@ -52,7 +52,7 @@ interface PFForm {
 
 interface ESIForm { employeeRate: string; employerRate: string; wageCeiling: string; }
 
-interface PTConfigItem { id: string; state: string; slabs: { from: number; to: number; tax: number }[]; frequency: string; registrationNumber: string; }
+interface PTConfigItem { id: string; state: string; slabs: { from: number; to: number; tax: number }[]; frequency: string; registrationNumber: string; financialYear?: string; monthlyOverrides?: Record<string, number>; }
 
 interface GratuityForm { formula: string; baseSalary: string; maxAmount: string; provisionMethod: string; trustEnabled: boolean; }
 
@@ -180,9 +180,11 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
     const [slabs, setSlabs] = React.useState<{ from: string; to: string; tax: string }[]>([{ from: '0', to: '15000', tax: '0' }]);
     const [frequency, setFrequency] = React.useState('Monthly');
     const [regNumber, setRegNumber] = React.useState('');
+    const [financialYear, setFinancialYear] = React.useState('');
+    const [monthlyOverrides, setMonthlyOverrides] = React.useState<Record<string, string>>({});
 
     React.useEffect(() => {
-        if (visible) { setState(''); setSlabs([{ from: '0', to: '15000', tax: '0' }]); setFrequency('Monthly'); setRegNumber(''); }
+        if (visible) { setState(''); setSlabs([{ from: '0', to: '15000', tax: '0' }]); setFrequency('Monthly'); setRegNumber(''); setFinancialYear(''); setMonthlyOverrides({}); }
     }, [visible]);
 
     const addSlab = () => setSlabs(prev => [...prev, { from: '', to: '', tax: '' }]);
@@ -191,8 +193,12 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
 
     const handleSave = () => {
         if (!state) return;
+        const overridesPayload: Record<string, number> = {};
+        Object.entries(monthlyOverrides).forEach(([k, v]) => { if (v !== '') overridesPayload[k] = Number(v) || 0; });
         onSave({
             state, frequency, registrationNumber: regNumber,
+            financialYear: financialYear || undefined,
+            monthlyOverrides: Object.keys(overridesPayload).length > 0 ? overridesPayload : undefined,
             slabs: slabs.map(s => ({ from: Number(s.from) || 0, to: Number(s.to) || 0, tax: Number(s.tax) || 0 })),
         });
     };
@@ -210,6 +216,10 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Registration Number</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="PT Registration No." placeholderTextColor={colors.neutral[400]} value={regNumber} onChangeText={setRegNumber} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Financial Year</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 2025-26" placeholderTextColor={colors.neutral[400]} value={financialYear} onChangeText={setFinancialYear} /></View>
                         </View>
                         <Text className="mb-2 mt-2 font-inter text-xs font-bold text-neutral-500">Tax Slabs</Text>
                         {slabs.map((slab, idx) => (
@@ -241,6 +251,25 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
                             <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" /></Svg>
                             <Text className="ml-2 font-inter text-xs font-semibold text-primary-600">Add Slab</Text>
                         </Pressable>
+                        <Text className="mb-1 mt-4 font-inter text-xs font-bold text-neutral-500">Monthly Overrides</Text>
+                        <Text className="mb-2 font-inter text-[10px] text-neutral-400">Override PT amount for specific months</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                            {(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const).map((label, i) => {
+                                const month = String(i + 1);
+                                return (
+                                    <View key={month} style={{ width: '22%' }}>
+                                        <Text className="mb-1 font-inter text-[10px] text-neutral-400">{label}</Text>
+                                        <View style={styles.inputWrapSmall}>
+                                            <TextInput style={styles.textInputSmall} value={monthlyOverrides[month] ?? ''} onChangeText={v => setMonthlyOverrides(prev => {
+                                                const next = { ...prev };
+                                                if (v === '') { delete next[month]; } else { next[month] = v; }
+                                                return next;
+                                            })} keyboardType="number-pad" placeholder="-" placeholderTextColor={colors.neutral[300]} />
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
@@ -363,6 +392,7 @@ export function StatutoryConfigScreen() {
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
             id: item.id ?? '', state: item.state ?? '', slabs: item.slabs ?? [], frequency: item.frequency ?? 'Monthly', registrationNumber: item.registrationNumber ?? '',
+            financialYear: item.financialYear ?? '', monthlyOverrides: item.monthlyOverrides ?? {},
         }));
     }, [ptResponse]);
     const [ptFormVisible, setPTFormVisible] = React.useState(false);
@@ -515,7 +545,7 @@ export function StatutoryConfigScreen() {
                             <View key={pt.id} style={styles.listItem}>
                                 <View style={{ flex: 1 }}>
                                     <Text className="font-inter text-sm font-semibold text-primary-950">{pt.state}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">{pt.slabs.length} slab{pt.slabs.length !== 1 ? 's' : ''}  {'\u00B7'}  {pt.frequency}</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500">{pt.slabs.length} slab{pt.slabs.length !== 1 ? 's' : ''}  {'\u00B7'}  {pt.frequency}{pt.financialYear ? `  \u00B7  FY ${pt.financialYear}` : ''}</Text>
                                 </View>
                                 <Pressable onPress={() => handleDeletePT(pt)} hitSlop={8}>
                                     <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>

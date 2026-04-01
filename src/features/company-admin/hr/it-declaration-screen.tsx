@@ -33,6 +33,7 @@ import {
     useVerifyITDeclaration,
 } from '@/features/company-admin/api/use-ess-mutations';
 import { useITDeclarations } from '@/features/company-admin/api/use-ess-queries';
+import { useCanPerform } from '@/hooks/use-can-perform';
 
 // ============ TYPES ============
 
@@ -327,9 +328,10 @@ function DeclarationFormModal({
 
 // ============ DECLARATION CARD ============
 
-function DeclarationCard({ item, index, onSubmit, onVerify, onLock }: {
+function DeclarationCard({ item, index, onSubmit, onVerify, onLock, canVerify, canLock }: {
     item: DeclarationItem; index: number;
     onSubmit: () => void; onVerify: () => void; onLock: () => void;
+    canVerify: boolean; canLock: boolean;
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
@@ -351,12 +353,12 @@ function DeclarationCard({ item, index, onSubmit, onVerify, onLock }: {
                         <Text className="font-inter text-xs font-bold text-white">Submit</Text>
                     </Pressable>
                 )}
-                {item.status === 'Submitted' && (
+                {canVerify && item.status === 'Submitted' && (
                     <Pressable onPress={onVerify} style={[styles.actionBtn, { backgroundColor: colors.success[600] }]}>
                         <Text className="font-inter text-xs font-bold text-white">Verify</Text>
                     </Pressable>
                 )}
-                {item.status === 'Verified' && (
+                {canLock && item.status === 'Verified' && (
                     <Pressable onPress={onLock} style={[styles.actionBtn, { backgroundColor: colors.primary[600] }]}>
                         <Text className="font-inter text-xs font-bold text-white">Lock</Text>
                     </Pressable>
@@ -372,6 +374,8 @@ export function ITDeclarationScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+    const canVerify = useCanPerform('hr:approve') || useCanPerform('hr:update') || useCanPerform('company:configure');
+    const canLock = useCanPerform('hr:approve') || useCanPerform('hr:update') || useCanPerform('company:configure');
 
     const { data: response, isLoading, error, refetch, isFetching } = useITDeclarations();
     const createMutation = useCreateITDeclaration();
@@ -424,7 +428,7 @@ export function ITDeclarationScreen() {
     };
 
     const renderItem = ({ item, index }: { item: DeclarationItem; index: number }) => (
-        <DeclarationCard item={item} index={index} onSubmit={() => handleSubmitDecl(item)} onVerify={() => handleVerify(item)} onLock={() => handleLock(item)} />
+        <DeclarationCard item={item} index={index} onSubmit={() => handleSubmitDecl(item)} onVerify={() => handleVerify(item)} onLock={() => handleLock(item)} canVerify={canVerify} canLock={canLock} />
     );
 
     const renderHeader = () => (

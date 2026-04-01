@@ -336,22 +336,45 @@ export function LeaveBalanceScreen() {
     const employees: EmployeeBalance[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? item.employeeId ?? '',
-            employeeId: item.employeeId ?? item.id ?? '',
-            employeeName: item.employeeName ?? '',
-            employeePhoto: item.employeePhoto ?? '',
-            balances: (item.balances ?? []).map((b: any) => ({
-                leaveTypeId: b.leaveTypeId ?? '',
-                leaveTypeName: b.leaveTypeName ?? '',
-                leaveTypeCode: b.leaveTypeCode ?? '',
-                opening: b.opening ?? 0,
-                accrued: b.accrued ?? 0,
-                taken: b.taken ?? 0,
-                adjusted: b.adjusted ?? 0,
-                balance: b.balance ?? 0,
-                entitlement: b.entitlement ?? 0,
-            })),
+
+        // API returns flat balance records with nested employee/leaveType relations.
+        // Prisma Decimal fields come as strings. Group by employee for display.
+        const grouped: Record<string, { employee: any; balances: LeaveBalanceEntry[] }> = {};
+
+        for (const item of raw) {
+            const empId = item.employeeId ?? '';
+            if (!grouped[empId]) {
+                const emp = item.employee ?? {};
+                const name = [emp.firstName, emp.lastName].filter(Boolean).join(' ') || empId;
+                grouped[empId] = { employee: { id: empId, name, photo: '' }, balances: [] };
+            }
+            const lt = item.leaveType ?? {};
+            const opening = Number(item.openingBalance ?? 0);
+            const accrued = Number(item.accrued ?? 0);
+            const taken = Number(item.taken ?? 0);
+            const adjusted = Number(item.adjusted ?? 0);
+            const balance = Number(item.balance ?? 0);
+            const entitlement = opening + accrued;
+
+            grouped[empId].balances.push({
+                leaveTypeId: item.leaveTypeId ?? lt.id ?? '',
+                leaveTypeName: lt.name ?? '',
+                leaveTypeCode: lt.code ?? '',
+                opening,
+                accrued,
+                taken,
+                adjusted,
+                balance,
+                entitlement,
+            });
+        }
+
+        return Object.entries(grouped).map(([empId, g]) => ({
+            id: empId,
+            employeeId: empId,
+            employeeName: g.employee.name,
+            employeePhoto: g.employee.photo,
+            balances: g.balances,
         }));
     }, [response]);
 

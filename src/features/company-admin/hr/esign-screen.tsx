@@ -26,6 +26,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useDispatchESign } from '@/features/company-admin/api/use-recruitment-mutations';
 import { useESignStatus, usePendingESign } from '@/features/company-admin/api/use-recruitment-queries';
+import { useCanPerform } from '@/hooks/use-can-perform';
 
 // ============ TYPES ============
 
@@ -96,7 +97,7 @@ function FilterChips({ value, onSelect }: { value: string; onSelect: (v: string)
 
 // ============ ESIGN CARD ============
 
-function ESignCard({ item, index, onResend, isResending }: { item: ESignRecord; index: number; onResend: () => void; isResending: boolean }) {
+function ESignCard({ item, index, onResend, isResending, showAdminActions }: { item: ESignRecord; index: number; onResend: () => void; isResending: boolean; showAdminActions: boolean }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -108,7 +109,7 @@ function ESignCard({ item, index, onResend, isResending }: { item: ESignRecord; 
                         </View>
                         <Text className="mt-1 font-inter text-xs text-neutral-500">{item.employeeName}</Text>
                     </View>
-                    {item.status === 'PENDING' && (
+                    {showAdminActions && item.status === 'PENDING' && (
                         <Pressable onPress={onResend} disabled={isResending} style={styles.resendBtn}>
                             <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke={colors.primary[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             <Text className="font-inter text-[10px] font-bold text-primary-600 ml-1">Resend</Text>
@@ -134,6 +135,7 @@ export function ESignScreen() {
     const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState('All');
+    const isHrAdmin = useCanPerform('hr:read');
 
     const queryStatus = statusFilter === 'All' ? undefined : statusFilter;
     const { data: response, isLoading, error, refetch, isFetching } = usePendingESign();
@@ -159,13 +161,13 @@ export function ESignScreen() {
     };
 
     const renderItem = ({ item, index }: { item: ESignRecord; index: number }) => (
-        <ESignCard item={item} index={index} onResend={() => handleResend(item.id)} isResending={dispatchMutation.isPending} />
+        <ESignCard item={item} index={index} onResend={() => handleResend(item.id)} isResending={dispatchMutation.isPending} showAdminActions={isHrAdmin} />
     );
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">E-Signatures</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">Track electronic signature requests</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950">{isHrAdmin ? 'E-Signatures' : 'My E-Sign Requests'}</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500">{isHrAdmin ? 'Track electronic signature requests' : 'View your e-signature requests'}</Text>
 
             {/* Stats */}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
@@ -192,7 +194,7 @@ export function ESignScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <AppTopHeader title="E-Signatures" onMenuPress={toggle} />
+            <AppTopHeader title={isHrAdmin ? 'E-Signatures' : 'My E-Sign Requests'} onMenuPress={toggle} />
             <FlatList
                 data={filtered}
                 renderItem={renderItem}

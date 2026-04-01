@@ -536,36 +536,78 @@ function RoleFormScreen({
                         const permCount = getModulePermCount(mod.module);
                         const modulePerms = mod.actions.map((a) => `${mod.module}:${a}`);
                         const allSelected = modulePerms.every((p) => permissions.includes(p));
+                        const someSelected = !allSelected && modulePerms.some((p) => permissions.includes(p));
 
                         return (
                             <View key={mod.module} style={formStyles.moduleCard}>
-                                <Pressable
-                                    onPress={() => toggleModule(mod.module)}
-                                    style={formStyles.moduleHeader}
-                                >
-                                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">
-                                            {mod.label}
-                                        </Text>
-                                        {permCount > 0 && (
-                                            <View style={formStyles.permCountBadge}>
-                                                <Text className="font-inter text-[9px] font-bold text-primary-700">
-                                                    {permCount}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <Svg width={14} height={14} viewBox="0 0 24 24">
-                                        <Path
-                                            d={isExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
-                                            stroke={colors.neutral[400]}
-                                            strokeWidth="2"
-                                            fill="none"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </Svg>
-                                </Pressable>
+                                <View style={formStyles.moduleHeader}>
+                                    {/* Select-all checkbox on the header row */}
+                                    <Pressable
+                                        onPress={() => toggleAllModulePerms(mod.module)}
+                                        hitSlop={6}
+                                        style={{ marginRight: 10 }}
+                                    >
+                                        <View
+                                            style={[
+                                                formStyles.checkbox,
+                                                allSelected && formStyles.checkboxActive,
+                                                someSelected && formStyles.checkboxIndeterminate,
+                                            ]}
+                                        >
+                                            {allSelected && (
+                                                <Svg width={10} height={10} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d="M5 12l5 5L20 7"
+                                                        stroke="#fff"
+                                                        strokeWidth="3"
+                                                        fill="none"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </Svg>
+                                            )}
+                                            {someSelected && (
+                                                <Svg width={10} height={10} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d="M5 12h14"
+                                                        stroke="#fff"
+                                                        strokeWidth="3"
+                                                        fill="none"
+                                                        strokeLinecap="round"
+                                                    />
+                                                </Svg>
+                                            )}
+                                        </View>
+                                    </Pressable>
+
+                                    <Pressable
+                                        onPress={() => toggleModule(mod.module)}
+                                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                                    >
+                                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950">
+                                                {mod.label}
+                                            </Text>
+                                            {permCount > 0 && (
+                                                <View style={formStyles.permCountBadge}>
+                                                    <Text className="font-inter text-[9px] font-bold text-primary-700">
+                                                        {permCount}/{mod.actions.length}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <Svg width={14} height={14} viewBox="0 0 24 24">
+                                            <Path
+                                                d={isExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                                                stroke={colors.neutral[400]}
+                                                strokeWidth="2"
+                                                fill="none"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </Svg>
+                                    </Pressable>
+                                </View>
 
                                 {isExpanded && (
                                     <Animated.View entering={FadeIn.duration(150)} style={formStyles.moduleBody}>
@@ -1076,6 +1118,10 @@ const formStyles = StyleSheet.create({
     checkboxActive: {
         backgroundColor: colors.primary[600],
         borderColor: colors.primary[600],
+    },
+    checkboxIndeterminate: {
+        backgroundColor: colors.primary[400],
+        borderColor: colors.primary[400],
     },
     summaryCard: {
         backgroundColor: colors.white,

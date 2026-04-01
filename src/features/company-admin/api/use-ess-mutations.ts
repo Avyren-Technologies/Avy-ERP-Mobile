@@ -379,6 +379,19 @@ export function useSubmitMyExpenseClaim() {
     mutationFn: (id: string) => essApi.submitMyExpenseClaim(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: essKeys.myExpenseClaims() });
+      queryClient.invalidateQueries({ queryKey: essKeys.expenseClaimsSummary() });
+    },
+  });
+}
+
+/** Cancel a DRAFT or SUBMITTED expense claim */
+export function useCancelMyExpenseClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.cancelMyExpenseClaim(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myExpenseClaims() });
+      queryClient.invalidateQueries({ queryKey: essKeys.expenseClaimsSummary() });
     },
   });
 }

@@ -37,6 +37,7 @@ import {
     useUpdateHoliday,
 } from '@/features/company-admin/api/use-attendance-mutations';
 import { useHolidays } from '@/features/company-admin/api/use-attendance-queries';
+import { useCanPerform } from '@/hooks/use-can-perform';
 
 // ============ TYPES ============
 
@@ -282,10 +283,10 @@ function HolidayFormModal({
 
 // ============ HOLIDAY CARD ============
 
-function HolidayCard({ item, index, onEdit, onDelete }: { item: HolidayItem; index: number; onEdit: () => void; onDelete: () => void }) {
+function HolidayCard({ item, index, onEdit, onDelete, readOnly }: { item: HolidayItem; index: number; onEdit: () => void; onDelete: () => void; readOnly?: boolean }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
-            <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+            <Pressable onPress={readOnly ? undefined : onEdit} style={({ pressed }) => [styles.card, !readOnly && pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -294,9 +295,11 @@ function HolidayCard({ item, index, onEdit, onDelete }: { item: HolidayItem; ind
                         </View>
                         <Text className="mt-1 font-inter text-xs text-neutral-500">{formatHolidayDate(item.date)}</Text>
                     </View>
-                    <Pressable onPress={onDelete} hitSlop={8}>
-                        <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                    </Pressable>
+                    {!readOnly && (
+                        <Pressable onPress={onDelete} hitSlop={8}>
+                            <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                        </Pressable>
+                    )}
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
@@ -319,6 +322,8 @@ export function HolidayScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+    const canCreate = useCanPerform('hr:create') || useCanPerform('company:configure');
+    const canUpdate = useCanPerform('hr:update') || useCanPerform('company:configure');
 
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
     const [search, setSearch] = React.useState('');
@@ -379,7 +384,7 @@ export function HolidayScreen() {
     };
 
     const renderItem = ({ item, index }: { item: HolidayItem; index: number }) => (
-        <HolidayCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
+        <HolidayCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} readOnly={!canUpdate} />
     );
 
     const renderHeader = () => (
@@ -389,10 +394,12 @@ export function HolidayScreen() {
                     <Text className="font-inter text-2xl font-bold text-primary-950">Holidays</Text>
                     <Text className="mt-1 font-inter text-sm text-neutral-500">{holidays.length} holiday{holidays.length !== 1 ? 's' : ''}</Text>
                 </View>
-                <Pressable onPress={() => setCloneVisible(true)} style={styles.cloneBtn}>
-                    <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.602-1.43L16.083 2.57A2 2 0 0014.685 2H10a2 2 0 00-2 2z" stroke={colors.primary[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke={colors.primary[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                    <Text className="ml-1 font-inter text-xs font-bold text-primary-600">Clone Year</Text>
-                </Pressable>
+                {canCreate && (
+                    <Pressable onPress={() => setCloneVisible(true)} style={styles.cloneBtn}>
+                        <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.602-1.43L16.083 2.57A2 2 0 0014.685 2H10a2 2 0 00-2 2z" stroke={colors.primary[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Path d="M16 18v2a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2" stroke={colors.primary[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                        <Text className="ml-1 font-inter text-xs font-bold text-primary-600">Clone Year</Text>
+                    </Pressable>
+                )}
             </View>
             <View style={{ marginTop: 16 }}>
                 <YearSelector value={selectedYear} onSelect={setSelectedYear} />
@@ -423,7 +430,7 @@ export function HolidayScreen() {
                 keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
-            <FAB onPress={handleAdd} />
+            {canCreate && <FAB onPress={handleAdd} />}
             <HolidayFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending} />
             <CloneModal visible={cloneVisible} onClose={() => setCloneVisible(false)} onClone={handleClone} isCloning={cloneMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />

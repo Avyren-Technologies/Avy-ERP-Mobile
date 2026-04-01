@@ -468,6 +468,21 @@ export const essApi = {
     return r.data;
   },
 
+  cancelMyExpenseClaim: async (id: string) => {
+    const r = await client.patch(`/hr/ess/my-expense-claims/${id}/cancel`);
+    return r.data;
+  },
+
+  getExpenseCategories: async () => {
+    const r = await client.get('/hr/ess/expense-categories');
+    return r.data;
+  },
+
+  getMyExpenseClaimsSummary: async () => {
+    const r = await client.get('/hr/ess/my-expense-claims/summary');
+    return r.data;
+  },
+
   // ── Loans ─────────────────────────────────────────────────────
   getMyLoans: async () => {
     const r = await client.get('/hr/ess/my-loans');

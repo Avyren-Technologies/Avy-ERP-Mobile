@@ -45,8 +45,13 @@ interface AttendanceRecord {
     punchIn: string;
     punchOut: string;
     workedHours: number;
-    status: 'Present' | 'Absent' | 'Half Day' | 'On Leave' | 'Week Off';
+    status: string;
     isLate: boolean;
+    lateMinutes: number | null;
+    shiftName: string;
+    shiftTime: string;
+    finalStatusReason: string;
+    source: string;
 }
 
 interface DepartmentBreakdown {
@@ -85,16 +90,23 @@ function formatDate(date: Date) {
 
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { bg: string; text: string }> = {
-        Present: { bg: colors.success[50], text: 'text-success-700' },
-        Absent: { bg: colors.danger[50], text: 'text-danger-700' },
-        'Half Day': { bg: colors.warning[50], text: 'text-warning-700' },
-        'On Leave': { bg: colors.info[50], text: 'text-info-700' },
-        'Week Off': { bg: colors.neutral[100], text: 'text-neutral-600' },
+        PRESENT: { bg: colors.success[50], text: 'text-success-700' },
+        ABSENT: { bg: colors.danger[50], text: 'text-danger-700' },
+        LOP: { bg: colors.danger[50], text: 'text-danger-700' },
+        HALF_DAY: { bg: colors.warning[50], text: 'text-warning-700' },
+        LATE: { bg: colors.warning[50], text: 'text-warning-700' },
+        INCOMPLETE: { bg: colors.warning[50], text: 'text-warning-700' },
+        ON_LEAVE: { bg: colors.info[50], text: 'text-info-700' },
+        HOLIDAY: { bg: colors.info[50], text: 'text-info-700' },
+        WEEK_OFF: { bg: colors.neutral[100], text: 'text-neutral-600' },
+        EARLY_EXIT: { bg: colors.warning[50], text: 'text-warning-700' },
     };
-    const c = config[status] ?? config.Present;
+    const key = status?.toUpperCase();
+    const c = config[key] ?? config.PRESENT;
+    const label = status?.replace(/_/g, ' ');
     return (
         <View style={[styles.statusBadge, { backgroundColor: c.bg }]}>
-            <Text className={`font-inter text-[10px] font-bold ${c.text}`}>{status}</Text>
+            <Text className={`font-inter text-[10px] font-bold ${c.text}`}>{label}</Text>
         </View>
     );
 }
@@ -203,6 +215,8 @@ function DepartmentFilter({
 
 function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) {
     const initials = getInitials(item.employeeName);
+    const hrs = typeof item.workedHours === 'number' && Number.isFinite(item.workedHours) ? item.workedHours
+        : typeof item.workedHours === 'string' ? parseFloat(item.workedHours) || 0 : 0;
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 40)}>
             <View style={styles.card}>
@@ -215,7 +229,14 @@ function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) 
                             <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
                             {item.isLate && <LateBadge />}
                         </View>
-                        <Text className="font-inter text-[10px] text-neutral-500">{item.employeeCode} {item.department ? `\u2022 ${item.department}` : ''}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                            {item.employeeCode}{item.department ? ` \u2022 ${item.department}` : ''}
+                        </Text>
+                        {item.shiftName ? (
+                            <Text className="font-inter text-[10px] text-neutral-400" numberOfLines={1}>
+                                {item.shiftName} ({item.shiftTime})
+                            </Text>
+                        ) : null}
                     </View>
                     <StatusBadge status={item.status} />
                 </View>
@@ -227,9 +248,19 @@ function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) 
                         <Text className="font-inter text-[10px] text-neutral-500">Out: {formatTime(item.punchOut)}</Text>
                     </View>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">{item.workedHours > 0 ? `${item.workedHours.toFixed(1)} hrs` : '--'}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">{hrs > 0 ? `${hrs.toFixed(1)} hrs` : '--'}</Text>
                     </View>
+                    {item.isLate && item.lateMinutes ? (
+                        <View style={[styles.metaChip, { backgroundColor: colors.warning[50] }]}>
+                            <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.warning[700] }}>Late {item.lateMinutes}m</Text>
+                        </View>
+                    ) : null}
                 </View>
+                {item.finalStatusReason ? (
+                    <Text className="font-inter text-[9px] text-neutral-400" numberOfLines={1} style={{ marginTop: 4, paddingHorizontal: 2 }}>
+                        {item.finalStatusReason}
+                    </Text>
+                ) : null}
             </View>
         </Animated.View>
     );
@@ -253,14 +284,15 @@ export function AttendanceDashboardScreen() {
 
     const isLoading = summaryLoading || recordsLoading;
 
-    // Parse summary
+    // Parse summary — backend wraps counts in a `summary` sub-object
     const summaryData = React.useMemo(() => {
         const raw = (summaryResponse as any)?.data ?? summaryResponse ?? {};
+        const s = raw.summary ?? raw;
         return {
-            present: raw.present ?? 0,
-            absent: raw.absent ?? 0,
-            late: raw.late ?? 0,
-            onLeave: raw.onLeave ?? 0,
+            present: s.present ?? 0,
+            absent: s.absent ?? 0,
+            late: s.late ?? 0,
+            onLeave: s.onLeave ?? 0,
         };
     }, [summaryResponse]);
 
@@ -271,34 +303,43 @@ export function AttendanceDashboardScreen() {
         { label: 'On Leave', value: summaryData.onLeave, color: colors.info[500], bgColor: colors.info[50], icon: 'calendar' },
     ];
 
-    // Parse department breakdown
+    // Parse department breakdown — backend uses `departmentBreakdown` array
     const departments: DepartmentBreakdown[] = React.useMemo(() => {
-        const raw = (summaryResponse as any)?.data?.departments ?? (summaryResponse as any)?.departments ?? [];
+        const summaryRaw = (summaryResponse as any)?.data ?? summaryResponse ?? {};
+        const raw = summaryRaw.departmentBreakdown ?? summaryRaw.departments ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((d: any) => ({
-            id: d.id ?? d.departmentId ?? '',
-            name: d.name ?? d.departmentName ?? '',
+            id: d.departmentId ?? d.id ?? '',
+            name: d.departmentName ?? d.name ?? '',
             present: d.present ?? 0,
             total: d.total ?? 0,
         }));
     }, [summaryResponse]);
 
-    // Parse records
+    // Parse records — map nested employee/shift objects to flat fields
     const records: AttendanceRecord[] = React.useMemo(() => {
         const raw = (recordsResponse as any)?.data ?? recordsResponse ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((r: any) => ({
-            id: r.id ?? '',
-            employeeName: r.employeeName ?? r.employee?.name ?? '',
-            employeeCode: r.employeeCode ?? r.employee?.code ?? '',
-            department: r.department ?? r.departmentName ?? '',
-            departmentId: r.departmentId ?? '',
-            punchIn: r.punchIn ?? r.checkIn ?? '',
-            punchOut: r.punchOut ?? r.checkOut ?? '',
-            workedHours: r.workedHours ?? r.totalHours ?? 0,
-            status: r.status ?? 'Present',
-            isLate: r.isLate ?? false,
-        }));
+        return raw.map((r: any) => {
+            const emp = r.employee ?? {};
+            return {
+                id: r.id ?? '',
+                employeeName: r.employeeName ?? ([emp.firstName, emp.lastName].filter(Boolean).join(' ') || '—'),
+                employeeCode: r.employeeCode ?? emp.employeeId ?? '',
+                department: r.department ?? emp.department?.name ?? '',
+                departmentId: r.departmentId ?? emp.department?.id ?? '',
+                punchIn: r.punchIn ?? '',
+                punchOut: r.punchOut ?? '',
+                workedHours: r.workedHours ?? 0,
+                status: r.status ?? 'PRESENT',
+                isLate: r.isLate ?? false,
+                lateMinutes: r.lateMinutes ?? null,
+                shiftName: r.shift?.name ?? '',
+                shiftTime: r.shift ? `${r.shift.startTime} – ${r.shift.endTime}` : '',
+                finalStatusReason: r.finalStatusReason ?? '',
+                source: r.source ?? '',
+            };
+        });
     }, [recordsResponse]);
 
     const renderItem = ({ item, index }: { item: AttendanceRecord; index: number }) => (

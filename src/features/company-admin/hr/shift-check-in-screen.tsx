@@ -34,15 +34,26 @@ const MAX_SLIDE = TRACK_W - THUMB_SIZE - 8;
 
 /* ── Types ── */
 
+interface ShiftBreakInfo {
+    id: string;
+    name: string;
+    startTime: string | null;
+    duration: number;
+    type: string;
+    isPaid: boolean;
+}
+
 interface AttendanceRecord {
     id: string;
     punchIn: string | null;
     punchOut: string | null;
-    workedHours: number | null;
+    workedHours: number | string | null;
     status: string;
     geoStatus: string | null;
-    shift?: { name: string; fromTime?: string; toTime?: string } | null;
+    shift?: { name: string; startTime?: string; endTime?: string; breaks?: ShiftBreakInfo[] } | null;
     location?: { name: string } | null;
+    checkInLatitude?: number | null;
+    checkInLongitude?: number | null;
 }
 
 type AttStatus = 'NOT_CHECKED_IN' | 'CHECKED_IN' | 'CHECKED_OUT' | 'NOT_LINKED';
@@ -59,6 +70,15 @@ const fmtDur = (s: number) => {
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+};
+
+const parseWorkedHours = (value: number | string | null | undefined): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
 };
 
 /* ── Icons ── */
@@ -288,6 +308,9 @@ export function ShiftCheckInScreen() {
 
     const attStatus: AttStatus = statusData?.status ?? 'NOT_CHECKED_IN';
     const record: AttendanceRecord | null = statusData?.record ?? null;
+    const workedHours = parseWorkedHours(record?.workedHours);
+    // Shift info: from the attendance record if checked in, or from currentShift if not yet checked in
+    const shiftInfo = record?.shift ?? (statusData as any)?.currentShift ?? null;
 
     // Elapsed timer
     const [elapsed, setElapsed] = React.useState(0);
@@ -318,7 +341,10 @@ export function ShiftCheckInScreen() {
             if (geo) { body.latitude = geo.lat; body.longitude = geo.lng; }
             return (await client.post('/hr/attendance/check-in', body) as any).data;
         },
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
+            qc.invalidateQueries({ queryKey: ['ess', 'dashboard'] });
+        },
     });
     const checkOutMut = useMutation({
         mutationFn: async () => {
@@ -337,7 +363,10 @@ export function ShiftCheckInScreen() {
             if (geo) { body.latitude = geo.lat; body.longitude = geo.lng; }
             return (await client.post('/hr/attendance/check-out', body) as any).data;
         },
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
+            qc.invalidateQueries({ queryKey: ['ess', 'dashboard'] });
+        },
     });
 
     const isBusy = checkInMut.isPending || checkOutMut.isPending;
@@ -413,20 +442,33 @@ export function ShiftCheckInScreen() {
 
                     {/* Schedule */}
                     <Card icon={<BriefIcon />} title="Today's Schedule" delay={300}>
-                        {record?.shift ? (
+                        {shiftInfo ? (
                             <View style={{ gap: 6 }}>
-                                <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{record.shift.name}</Text>
+                                <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.name}</Text>
                                 <View style={$.cols}>
                                     <View style={{ flex: 1 }}>
                                         <Text className="font-inter text-xs" style={{ color: colors.neutral[500] }}>Start</Text>
-                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{record.shift.fromTime ?? '--'}</Text>
+                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.startTime ?? '--'}</Text>
                                     </View>
                                     <View style={$.vDiv} />
                                     <View style={{ flex: 1 }}>
                                         <Text className="font-inter text-xs" style={{ color: colors.neutral[500] }}>End</Text>
-                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{record.shift.toTime ?? '--'}</Text>
+                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.endTime ?? '--'}</Text>
                                     </View>
                                 </View>
+                                {shiftInfo.breaks && shiftInfo.breaks.length > 0 && (
+                                    <View style={{ marginTop: 6, gap: 4 }}>
+                                        <Text className="font-inter text-xs font-semibold" style={{ color: colors.neutral[500] }}>Breaks</Text>
+                                        {shiftInfo.breaks.map((b: ShiftBreakInfo) => (
+                                            <View key={b.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: b.isPaid ? colors.success[500] : colors.warning[500] }} />
+                                                <Text className="font-inter text-xs" style={{ color: colors.neutral[600], flex: 1 }}>
+                                                    {b.name}{b.startTime ? ` at ${b.startTime}` : ''} — {b.duration}min{b.isPaid ? ' (paid)' : ''}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
                             </View>
                         ) : (
                             <Text className="font-inter text-xs" style={{ color: colors.neutral[400] }}>No shift assigned</Text>
@@ -467,7 +509,7 @@ export function ShiftCheckInScreen() {
                             <View style={[$.sumItem, $.sumCenter]}>
                                 <Text className="font-inter text-xs" style={{ color: colors.neutral[500] }}>Duration</Text>
                                 <Text className="font-inter text-sm font-bold" style={{ color: colors.primary[950], fontVariant: ['tabular-nums'] }}>
-                                    {attStatus === 'CHECKED_IN' ? fmtDur(elapsed) : record?.workedHours != null ? `${record.workedHours.toFixed(1)} hrs` : '--'}
+                                    {attStatus === 'CHECKED_IN' ? fmtDur(elapsed) : workedHours != null ? `${workedHours.toFixed(1)} hrs` : '--'}
                                 </Text>
                             </View>
                             <View style={$.sumItem}>

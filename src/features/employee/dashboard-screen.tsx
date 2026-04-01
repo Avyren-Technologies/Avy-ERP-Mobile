@@ -95,6 +95,12 @@ function parseWorkedHours(value: unknown): number | null {
     return null;
 }
 
+function formatMaxOneDecimal(value: number): string {
+    if (!Number.isFinite(value)) return '0';
+    const rounded = Math.round((value + Number.EPSILON) * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 function formatTimeShort(iso: string | null | undefined): string {
     if (!iso) return '--:--';
     const d = new Date(iso);
@@ -110,19 +116,65 @@ const DEFAULT_DASHBOARD_STATS: DashboardData['stats'] = {
     goals: { activeCount: 0, avgCompletion: 0 },
 };
 
-function normalizeDashboardData(data: DashboardData): DashboardData {
+function normalizeDashboardData(raw: Record<string, unknown>): DashboardData {
+    const data = raw as Record<string, any>;
+
+    // Map backend response shape to frontend DashboardData.
+    // Backend returns `attendanceStatus` + `currentShift` separately;
+    // frontend expects a combined `shift: DashboardShiftInfo`.
+    let shift: DashboardShiftInfo | null = data.shift ?? null;
+    if (!shift && data.attendanceStatus) {
+        const att = data.attendanceStatus as Record<string, any>;
+        const cs = data.currentShift as Record<string, any> | null;
+        shift = {
+            shiftName: cs?.name ?? 'Unknown Shift',
+            startTime: cs?.startTime ?? '--:--',
+            endTime: cs?.endTime ?? '--:--',
+            status: att.status ?? 'NOT_CHECKED_IN',
+            attendanceRecordId: att.record?.id ?? null,
+            punchIn: att.record?.punchIn ?? null,
+            punchOut: att.record?.punchOut ?? null,
+            elapsedSeconds: att.elapsedSeconds ?? 0,
+            workedHours: att.record?.workedHours ?? null,
+            locationName: att.record?.location?.name ?? null,
+        };
+    }
+
+    // Map backend `leaveBalance` → frontend `leaveBalances`
+    const leaveBalances: DashboardLeaveBalanceItem[] = (data.leaveBalances ?? data.leaveBalance ?? []).map(
+        (lb: Record<string, any>) => ({
+            leaveTypeName: lb.leaveTypeName ?? lb.leaveTypeCode ?? '',
+            allocated: lb.allocated ?? lb.accrued ?? 0,
+            used: lb.used ?? lb.taken ?? 0,
+            remaining: lb.remaining ?? lb.balance ?? 0,
+            color: lb.color,
+        }),
+    );
+
+    // Map backend `myGoals` → frontend `stats.goals`
+    const myGoals = data.myGoals as Record<string, any> | null;
+    const monthlyTrend = data.monthlyTrend as any[] | null;
+    const currentMonth = monthlyTrend?.length ? monthlyTrend[monthlyTrend.length - 1] : null;
+
     return {
         announcements: data.announcements ?? [],
-        shift: data.shift ?? null,
+        shift,
         stats: {
             ...DEFAULT_DASHBOARD_STATS,
             ...(data.stats ?? {}),
+            leaveBalanceTotal: data.stats?.leaveBalanceTotal ?? leaveBalances.reduce((s: number, lb: DashboardLeaveBalanceItem) => s + lb.remaining, 0),
+            presentDays: data.stats?.presentDays ?? currentMonth?.presentDays ?? 0,
+            workingDays: data.stats?.workingDays ?? currentMonth?.workingDays ?? 0,
+            attendancePercentage: data.stats?.attendancePercentage ?? currentMonth?.attendancePercentage ?? 0,
+            pendingApprovalsCount: data.stats?.pendingApprovalsCount ?? (data.pendingApprovals as any[] | null)?.length ?? 0,
             goals: {
                 ...DEFAULT_DASHBOARD_STATS.goals,
                 ...(data.stats?.goals ?? {}),
+                activeCount: data.stats?.goals?.activeCount ?? myGoals?.totalActive ?? 0,
+                avgCompletion: data.stats?.goals?.avgCompletion ?? myGoals?.averageCompletion ?? 0,
             },
         },
-        leaveBalances: data.leaveBalances ?? [],
+        leaveBalances,
         recentAttendance: data.recentAttendance ?? [],
         teamSummary: data.teamSummary ?? null,
         pendingApprovals: data.pendingApprovals ?? [],
@@ -414,6 +466,11 @@ function SlideAction({
 }) {
     const pan = React.useRef(new Animated.Value(0)).current;
     const completedRef = React.useRef(false);
+    const isDone = mode === 'done';
+
+    if (isDone) {
+        return null;
+    }
 
     React.useEffect(() => {
         pan.setValue(0);
@@ -449,10 +506,9 @@ function SlideAction({
         }),
     ).current;
 
-    const isDone = mode === 'done';
     const isCheckIn = mode === 'checkin';
-    const trackColor = isDone ? 'rgba(255,255,255,0.1)' : isCheckIn ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)';
-    const label = isDone ? 'Shift Complete' : loading ? 'Processing...' : isCheckIn ? 'Slide to Check In' : 'Slide to Check Out';
+    const trackColor = isCheckIn ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)';
+    const label = loading ? 'Processing...' : isCheckIn ? 'Slide to Check In' : 'Slide to Check Out';
 
     return (
         <View style={{ alignItems: 'center', marginTop: 20 }}>
@@ -471,11 +527,6 @@ function SlideAction({
                             <ArrowIcon s={20} c={colors.danger[600]} />
                         )}
                     </Animated.View>
-                )}
-                {isDone && (
-                    <View style={[S.thumb, { position: 'absolute', left: MAX_SLIDE / 2 }]}>
-                        <CheckIcon s={20} c={colors.neutral[500]} />
-                    </View>
                 )}
             </View>
         </View>
@@ -772,8 +823,9 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
         else if (slideMode === 'checkout') checkOutMut.mutate();
     }, [slideMode, checkInMut, checkOutMut]);
 
-    // FIX 2: Clock font sizes adjusted to avoid clipping
-    const clockFontSize = isNarrowScreen ? 42 : 48;
+    // Compact clock sizing to keep the hero card denser.
+    const clockFontSize = isNarrowScreen ? 36 : 40;
+    const clockLineHeight = isNarrowScreen ? 42 : 46;
 
     return (
         <AnimatedRN.View entering={FadeInDown.delay(150).duration(500)} style={S.sectionContainer}>
@@ -787,13 +839,13 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                     {shift ? (
                         <>
                             {/* Shift name + time */}
-                            <Text className="font-inter text-lg font-bold" style={{ color: '#FFFFFF', letterSpacing: 0.5 }}>
+                            <Text className="font-inter text-base font-bold" style={{ color: '#FFFFFF', letterSpacing: 0.4 }}>
                                 {shift.shiftName}
                             </Text>
                             <View style={{ marginTop: 4 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
                                     <ClockIcon s={14} c="rgba(255,255,255,0.7)" />
-                                    <Text className="font-inter text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: 0.5 }}>
+                                    <Text className="font-inter text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: 0.4 }}>
                                         {shift.startTime} -- {shift.endTime}
                                     </Text>
                                 </View>
@@ -808,9 +860,10 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                             {/* FIX 2: Live clock with reduced letterSpacing and adjustsFontSizeToFit */}
                             <Text
                                 className="font-inter"
-                                style={[S.shiftClock, { fontSize: clockFontSize }]}
+                                style={[S.shiftClock, { fontSize: clockFontSize, lineHeight: clockLineHeight }]}
                                 adjustsFontSizeToFit
                                 numberOfLines={1}
+                                allowFontScaling={false}
                             >
                                 {clockStr}
                             </Text>
@@ -832,15 +885,17 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                             {/* Checked out: show worked hours */}
                             {isCheckedOut && workedHrs != null && (
                                 <View style={S.workedBox}>
-                                    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' }}>
-                                        <CheckIcon s={24} c="#6EE7B7" />
+                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+                                        <CheckIcon s={20} c="#6EE7B7" />
                                     </View>
-                                    <Text className="font-inter text-sm font-bold" style={{ color: 'rgba(255,255,255,0.9)', marginTop: 6 }}>
-                                        Shift Complete
-                                    </Text>
-                                    <Text className="font-inter text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                        {workedHrs.toFixed(1)} hrs worked
-                                    </Text>
+                                    <View style={{ alignItems: 'flex-start', marginLeft: 10 }}>
+                                        <Text className="font-inter text-sm font-bold" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                                            Shift Complete
+                                        </Text>
+                                        <Text className="font-inter text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                            {workedHrs.toFixed(1)} hrs worked
+                                        </Text>
+                                    </View>
                                 </View>
                             )}
                         </>
@@ -873,8 +928,10 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                         </>
                     )}
 
-                    {/* Slide action */}
-                    <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} />
+                    {/* Slide action: hidden in completed state per UX requirement */}
+                    {slideMode !== 'done' && (
+                        <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} />
+                    )}
 
                     {/* Break schedule pills */}
                     {shift && shift.status !== 'NOT_LINKED' && (
@@ -1516,15 +1573,15 @@ function LeaveDonutChart({ leaveDonut }: { leaveDonut: DashboardLeaveDonutItem[]
                             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
                                 {selectedSeg ? (
                                     <>
-                                        <Text className="font-inter text-lg font-bold" style={{ color: selectedSeg.fill, fontVariant: ['tabular-nums'] }}>{selectedSeg.remaining}</Text>
+                                        <Text className="font-inter text-lg font-bold" style={{ color: selectedSeg.fill, fontVariant: ['tabular-nums'] }}>{formatMaxOneDecimal(selectedSeg.remaining)}</Text>
                                         <Text className="font-inter" style={{ fontSize: 9, color: colors.neutral[500], fontWeight: '600' }}>{selectedSeg.category}</Text>
                                         <Text className="font-inter" style={{ fontSize: 8, color: colors.neutral[400], fontWeight: '500' }}>
-                                            {selectedSeg.used}/{selectedSeg.totalEntitled} used
+                                            {formatMaxOneDecimal(selectedSeg.used)}/{formatMaxOneDecimal(selectedSeg.totalEntitled)} used
                                         </Text>
                                     </>
                                 ) : (
                                     <>
-                                        <Text className="font-inter text-2xl font-bold" style={{ color: colors.primary[950], fontVariant: ['tabular-nums'] }}>{totalRemaining}</Text>
+                                        <Text className="font-inter text-2xl font-bold" style={{ color: colors.primary[950], fontVariant: ['tabular-nums'] }}>{formatMaxOneDecimal(totalRemaining)}</Text>
                                         <Text className="font-inter" style={{ fontSize: 10, color: colors.neutral[400], fontWeight: '500' }}>days left</Text>
                                     </>
                                 )}
@@ -1542,7 +1599,7 @@ function LeaveDonutChart({ leaveDonut }: { leaveDonut: DashboardLeaveDonutItem[]
                             <View style={[S.donutLegendItem, selectedSegment === idx && { backgroundColor: colors.primary[50], borderRadius: 8, padding: 4, marginHorizontal: -4 }]}>
                                 <View style={[S.legendDot, { backgroundColor: seg.fill }]} />
                                 <Text className="font-inter" style={{ fontSize: 10, fontWeight: '500', color: colors.neutral[500], flex: 1 }} numberOfLines={1}>{seg.category}</Text>
-                                <Text className="font-inter" style={{ fontSize: 10, fontWeight: '700', color: colors.primary[950], fontVariant: ['tabular-nums'] }}>{seg.used}/{seg.totalEntitled}</Text>
+                                <Text className="font-inter" style={{ fontSize: 10, fontWeight: '700', color: colors.primary[950], fontVariant: ['tabular-nums'] }}>{formatMaxOneDecimal(seg.used)}/{formatMaxOneDecimal(seg.totalEntitled)}</Text>
                             </View>
                         </Pressable>
                     ))}
@@ -2347,15 +2404,18 @@ const S = StyleSheet.create({
         elevation: 10,
     },
     shiftGradient: {
-        padding: 24,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
         alignItems: 'center',
     },
     shiftClock: {
         fontWeight: '800',
         color: '#FFFFFF',
-        marginTop: 16,
+        marginTop: 10,
         fontVariant: ['tabular-nums'],
-        letterSpacing: 1,
+        letterSpacing: 0.5,
+        textAlign: 'center',
+        includeFontPadding: false,
     },
     // FIX 2: No shift state
     noShiftClockWrap: {
@@ -2410,26 +2470,27 @@ const S = StyleSheet.create({
         borderRadius: 3,
     },
     elapsedBox: {
-        marginTop: 14,
+        marginTop: 10,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 6,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
     },
     workedBox: {
-        marginTop: 14,
+        marginTop: 10,
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        justifyContent: 'center',
     },
     breaksRow: {
-        marginTop: 16,
-        paddingTop: 14,
+        marginTop: 12,
+        paddingTop: 10,
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.1)',
         flexDirection: 'row',

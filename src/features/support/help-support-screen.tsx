@@ -24,6 +24,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useSupportTickets } from '@/features/company-admin/api/use-company-admin-queries';
@@ -463,6 +464,7 @@ function CreateTicketSheet({
 export function HelpSupportScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { toggle } = useSidebar();
     const sheetRef = React.useRef<BottomSheet>(null);
 
     const [activeTab, setActiveTab] = React.useState<Tab>('My Tickets');
@@ -505,14 +507,17 @@ export function HelpSupportScreen() {
                 end={{ x: 1, y: 1 }}
                 style={s.header}
             >
-                <Animated.View entering={FadeInUp.duration(400)}>
-                    <Text className="font-inter text-xl font-bold text-white">
-                        Help & Support
-                    </Text>
-                    <Text className="mt-1 font-inter text-xs text-white/70">
-                        Get help or track your support tickets
-                    </Text>
-                </Animated.View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <HamburgerButton onPress={toggle} />
+                    <Animated.View entering={FadeInUp.duration(400)} style={{ flex: 1 }}>
+                        <Text className="font-inter text-xl font-bold text-white">
+                            Help & Support
+                        </Text>
+                        <Text className="mt-1 font-inter text-xs text-white/70">
+                            Get help or track your support tickets
+                        </Text>
+                    </Animated.View>
+                </View>
             </LinearGradient>
 
             {/* Tabs */}

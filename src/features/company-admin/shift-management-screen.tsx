@@ -21,6 +21,7 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { showErrorMessage } from '@/components/ui/utils';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -205,7 +206,30 @@ export function ShiftManagementScreen() {
     };
 
     const handleSave = async () => {
-        const payload: CreateShiftPayload = { ...form };
+        // Client-side validation
+        if (!form.name.trim()) {
+            showErrorMessage('Shift name is required');
+            return;
+        }
+        if (!form.startTime || !form.endTime) {
+            showErrorMessage('Start time and end time are required');
+            return;
+        }
+        if (form.startTime === form.endTime) {
+            showErrorMessage('Start time and end time cannot be the same. A shift must have a duration.');
+            return;
+        }
+        // Check name uniqueness against loaded shifts
+        const existingShifts = (data as any)?.data ?? data ?? [];
+        const isDuplicateName = Array.isArray(existingShifts) && existingShifts.some(
+            (s: any) => s.name?.toLowerCase() === form.name.trim().toLowerCase() && s.id !== editingId
+        );
+        if (isDuplicateName) {
+            showErrorMessage(`A shift named "${form.name}" already exists.`);
+            return;
+        }
+
+        const payload: CreateShiftPayload = { ...form, name: form.name.trim() };
         try {
             if (editingId) {
                 await updateMutation.mutateAsync({ id: editingId, data: payload });
@@ -213,7 +237,7 @@ export function ShiftManagementScreen() {
                 await createMutation.mutateAsync(payload);
             }
             setModalOpen(false);
-        } catch { /* showError handles */ }
+        } catch { /* mutation onError handles toast */ }
     };
 
     const handleDelete = (shift: CompanyShift) => {

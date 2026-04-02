@@ -26,6 +26,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { showSuccess, showErrorMessage } from '@/components/ui/utils';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import {
     useInvoiceDetail,
@@ -78,23 +79,7 @@ function formatCurrency(amount: number): string {
     }).format(amount);
 }
 
-function formatDate(dateStr?: string): string {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatDateTime(dateStr?: string): string {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
+// formatDate and formatDateTime removed — use fmt.date() / fmt.dateTime() from useCompanyFormatter inside components
 
 function toStatusBadge(status: InvoiceStatus): 'paid' | 'pending' | 'overdue' | 'cancelled' {
     switch (status) {
@@ -267,6 +252,9 @@ function SectionCard({
 export function InvoiceDetailScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const fmt = useCompanyFormatter();
+    const formatDate = (d?: string) => !d ? '—' : fmt.date(d);
+    const formatDateTime = (d?: string) => !d ? '—' : fmt.dateTime(d);
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { data: response, isLoading, error, refetch } = useInvoiceDetail(id ?? '');

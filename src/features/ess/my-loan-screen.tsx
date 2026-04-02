@@ -66,7 +66,7 @@ function ApplyLoanModal({
     visible, onClose, onSave, isSaving, policies,
 }: {
     visible: boolean; onClose: () => void;
-    onSave: (data: { policyId: string; amount: number; tenureMonths: number; reason: string }) => void;
+    onSave: (data: { policyId: string; amount: number; tenure: number; reason: string }) => void;
     isSaving: boolean;
     policies: any[];
 }) {
@@ -219,7 +219,7 @@ function ApplyLoanModal({
                             onPress={() => onSave({
                                 policyId,
                                 amount: parsedAmount,
-                                tenureMonths: parsedTenure,
+                                tenure: parsedTenure,
                                 reason: reason.trim(),
                             })}
                             disabled={!isValid || isSaving}
@@ -253,7 +253,7 @@ export function MyLoanScreen() {
         return Array.isArray(raw) ? raw : [];
     }, [policiesData]);
 
-    const handleApply = (formData: { policyId: string; amount: number; tenureMonths: number; reason: string }) => {
+    const handleApply = (formData: { policyId: string; amount: number; tenure: number; reason: string }) => {
         showConfirm({
             title: 'Apply for Loan',
             message: `Are you sure you want to apply for a loan of ${formatCurrency(formData.amount)}?`,

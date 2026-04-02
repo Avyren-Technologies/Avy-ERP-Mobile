@@ -34,6 +34,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess, showErrorMessage } from '@/components/ui/utils';
 import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useDashboard, essKeys } from '@/features/company-admin/api/use-ess-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { checkPermission } from '@/lib/api/auth';
 import { client } from '@/lib/api/client';
 import type {
@@ -69,14 +70,7 @@ function getGreeting(): string {
     return 'Good evening';
 }
 
-function formatDate(): string {
-    return new Date().toLocaleDateString('en-IN', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -101,11 +95,7 @@ function formatMaxOneDecimal(value: number): string {
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
-function formatTimeShort(iso: string | null | undefined): string {
-    if (!iso) return '--:--';
-    const d = new Date(iso);
-    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-}
+// formatTimeShort removed — use fmt.time() from useCompanyFormatter inside components
 
 const DEFAULT_DASHBOARD_STATS: DashboardData['stats'] = {
     leaveBalanceTotal: 0,
@@ -591,6 +581,7 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const router = useRouter();
+    const fmt = useCompanyFormatter();
 
     return (
         <AnimatedRN.View entering={FadeInUp.duration(600)}>
@@ -614,7 +605,7 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
                             </View>
                         </View>
                         <Text className="font-inter" style={S.dateText}>
-                            {formatDate()}
+                            {fmt.date(new Date().toISOString())}
                         </Text>
                     </View>
 
@@ -731,17 +722,18 @@ function AnnouncementsTicker({ announcements }: { announcements: DashboardAnnoun
 function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
     const queryClient = useQueryClient();
     const isNarrowScreen = SCREEN_WIDTH < 380;
+    const fmt = useCompanyFormatter();
 
     // Live clock
     const [clockStr, setClockStr] = React.useState(() =>
-        new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+        fmt.timeWithSeconds(new Date().toISOString())
     );
     React.useEffect(() => {
         const id = setInterval(() => {
-            setClockStr(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+            setClockStr(fmt.timeWithSeconds(new Date().toISOString()));
         }, 1000);
         return () => clearInterval(id);
-    }, []);
+    }, [fmt]);
 
     // GPS
     const [geo, setGeo] = React.useState<{ lat: number; lng: number } | null>(null);
@@ -846,7 +838,7 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
                                     <ClockIcon s={14} c="rgba(255,255,255,0.7)" />
                                     <Text className="font-inter text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: 0.4 }}>
-                                        {shift.startTime} -- {shift.endTime}
+                                        {fmt.shiftTime(shift.startTime)} — {fmt.shiftTime(shift.endTime)}
                                     </Text>
                                 </View>
                                 {shift.locationName && (
@@ -985,6 +977,7 @@ function getShiftDotColor(shiftType: string | null): string {
 
 function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[] | null }) {
     const { width } = useWindowDimensions();
+    const fmt = useCompanyFormatter();
     const today = new Date();
     const [currentMonth, setCurrentMonth] = React.useState(today.getMonth());
     const [currentYear, setCurrentYear] = React.useState(today.getFullYear());
@@ -1179,7 +1172,7 @@ function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <CalendarIcon s={16} c={colors.primary[500]} />
                                     <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>
-                                        {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                        {fmt.date(selectedDate + 'T00:00:00')}
                                     </Text>
                                 </View>
                                 {selectedDayData.isHoliday ? (
@@ -1217,7 +1210,7 @@ function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[
                                         </View>
                                         {selectedDayData.startTime && selectedDayData.endTime && (
                                             <Text className="font-inter text-xs" style={{ color: colors.neutral[500], marginLeft: 14, fontVariant: ['tabular-nums'] }}>
-                                                {selectedDayData.startTime} -- {selectedDayData.endTime}
+                                                {fmt.shiftTime(selectedDayData.startTime)} — {fmt.shiftTime(selectedDayData.endTime)}
                                             </Text>
                                         )}
                                     </View>
@@ -1231,7 +1224,7 @@ function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <CalendarIcon s={16} c={colors.neutral[400]} />
                                 <Text className="font-inter text-sm" style={{ color: colors.neutral[400] }}>
-                                    {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} -- No data available
+                                    {fmt.date(selectedDate + 'T00:00:00')} — No data available
                                 </Text>
                             </View>
                         )}
@@ -1343,6 +1336,7 @@ function QuickStatsRow({ data }: { data: DashboardData }) {
 
 function WeeklyAttendanceChart({ weeklyChart }: { weeklyChart: DashboardWeeklyChartDay[] | null }) {
     const { width } = useWindowDimensions();
+    const fmt = useCompanyFormatter();
     const chartW = width - 96;
     const chartH = 180;
     const paddingLeft = 30;
@@ -1459,7 +1453,7 @@ function WeeklyAttendanceChart({ weeklyChart }: { weeklyChart: DashboardWeeklyCh
                                 ]}
                             >
                                 <Text className="font-inter text-xs font-bold" style={{ color: colors.primary[950] }}>
-                                    {new Date(weeklyChart[selectedBarIdx].date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' })}
+                                    {fmt.date(weeklyChart[selectedBarIdx].date)}
                                 </Text>
                                 <Text className="font-inter" style={{ fontSize: 10, color: colors.neutral[500], marginTop: 2 }}>
                                     {weeklyChart[selectedBarIdx].hoursWorked.toFixed(1)}h worked
@@ -1733,6 +1727,8 @@ function LeaveBalanceSection({ balances }: { balances: DashboardLeaveBalanceItem
 }
 
 function RecentAttendanceSection({ records }: { records: DashboardAttendanceDay[] }) {
+    const fmt = useCompanyFormatter();
+    const formatTimeShort = (iso: string | null | undefined) => !iso ? '--:--' : fmt.time(iso);
     const last7 = records.slice(0, 7);
 
     return (
@@ -1756,7 +1752,7 @@ function RecentAttendanceSection({ records }: { records: DashboardAttendanceDay[
                                         <View style={{ width: 36, alignItems: 'center' }}>
                                             <Text className="font-inter text-xs font-bold" style={{ color: colors.primary[950] }}>{new Date(day.date).getDate()}</Text>
                                             <Text className="font-inter" style={{ fontSize: 9, color: colors.neutral[400], textTransform: 'uppercase', fontWeight: '500' }}>
-                                                {new Date(day.date).toLocaleDateString('en-IN', { weekday: 'short' })}
+                                                {fmt.parseToZoned(day.date).toFormat('ccc')}
                                             </Text>
                                         </View>
                                         <AttendanceStatusBadge status={day.status} />
@@ -2040,6 +2036,7 @@ function PendingApprovalsCard({ approvals }: { approvals: DashboardPendingApprov
 // ================================================================
 
 function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
+    const fmt = useCompanyFormatter();
     const next8 = holidays.slice(0, 8);
 
     const daysUntil = (dateStr: string): number => {
@@ -2097,7 +2094,7 @@ function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
                                                 {d.getDate()}
                                             </Text>
                                             <Text className="font-inter" style={{ fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                                {d.toLocaleDateString('en-IN', { month: 'short' })}
+                                                {fmt.parseToZoned(h.date).toFormat('MMM')}
                                             </Text>
                                         </LinearGradient>
                                     ) : (
@@ -2106,7 +2103,7 @@ function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
                                                 {d.getDate()}
                                             </Text>
                                             <Text className="font-inter" style={{ fontSize: 9, fontWeight: '700', color: colors.primary[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                                {d.toLocaleDateString('en-IN', { month: 'short' })}
+                                                {fmt.parseToZoned(h.date).toFormat('MMM')}
                                             </Text>
                                         </View>
                                     )}
@@ -2118,7 +2115,7 @@ function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
                                         </Text>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                             <Text className="font-inter" style={{ fontSize: 11, color: colors.neutral[400] }}>
-                                                {d.toLocaleDateString('en-IN', { weekday: 'long' })}
+                                                {fmt.parseToZoned(h.date).toFormat('cccc')}
                                             </Text>
                                             <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.neutral[300] }} />
                                             <Text className="font-inter" style={{ fontSize: 11, color: thisWeek ? colors.primary[600] : colors.neutral[400], fontWeight: thisWeek ? '600' : '400' }}>

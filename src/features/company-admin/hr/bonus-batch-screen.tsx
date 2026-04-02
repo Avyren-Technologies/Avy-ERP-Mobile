@@ -32,6 +32,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useApproveBonusBatch, useCreateBonusBatch, useMergeBonusBatch } from '@/features/company-admin/api/use-bonus-batch-mutations';
 import { useBonusBatch, useBonusBatches } from '@/features/company-admin/api/use-bonus-batch-queries';
 import { useDepartments, useDesignations, useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -669,6 +670,7 @@ function MergeModal({
 // ============ BATCH CARD ============
 
 function BatchCard({ item, index, onPress }: { item: BonusBatchItem; index: number; onPress: () => void }) {
+    const fmt = useCompanyFormatter();
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
@@ -679,7 +681,7 @@ function BatchCard({ item, index, onPress }: { item: BonusBatchItem; index: numb
                             <TypeBadge type={item.type} />
                         </View>
                         <Text className="mt-1 font-inter text-xs text-neutral-500">
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                            {item.createdAt ? fmt.date(item.createdAt) : ''}
                         </Text>
                     </View>
                     <StatusBadge status={item.status} />

@@ -29,6 +29,7 @@ import {
     useGenerateForm24Q,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { useStatutoryFilings } from '@/features/company-admin/api/use-payroll-run-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -93,6 +94,7 @@ function InfoRow({ label, value }: { label: string; value: string | React.ReactN
 // ============ FILING CARD ============
 
 function FilingCard({ item, index }: { item: any; index: number }) {
+    const fmt = useCompanyFormatter();
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -111,7 +113,7 @@ function FilingCard({ item, index }: { item: any; index: number }) {
                     ) : null}
                     <View style={styles.metaChip}>
                         <Text className="font-inter text-[10px] text-neutral-500">
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                            {item.createdAt ? fmt.date(item.createdAt) : '—'}
                         </Text>
                     </View>
                     <View style={styles.metaChip}>

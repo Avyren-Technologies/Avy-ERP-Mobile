@@ -41,6 +41,7 @@ import {
     useUpdateShiftSchedule,
 } from '@/features/company-admin/api/use-shift-rotation-mutations';
 import { useShiftSchedules } from '@/features/company-admin/api/use-shift-rotation-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -427,6 +428,7 @@ function ScheduleCard({ item, index, onEdit, onDelete, onExecute, onDetail, isEx
     item: ShiftSchedule; index: number; onEdit: () => void; onDelete: () => void;
     onExecute: () => void; onDetail: () => void; isExecuting: boolean;
 }) {
+    const fmt = useCompanyFormatter();
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onDetail} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
@@ -453,7 +455,7 @@ function ScheduleCard({ item, index, onEdit, onDelete, onExecute, onDetail, isEx
                     </View>
                     {item.effectiveFrom && (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">From: {new Date(item.effectiveFrom).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500">From: {fmt.date(item.effectiveFrom)}</Text>
                         </View>
                     )}
                 </View>

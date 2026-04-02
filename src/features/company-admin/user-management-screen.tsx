@@ -37,6 +37,7 @@ import {
     useUpdateUserStatus,
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyUsers, useRbacRoles } from '@/features/company-admin/api/use-company-admin-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -67,7 +68,7 @@ function getInitials(name: string): string {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function formatLastLogin(dateStr?: string): string {
+function formatLastLogin(dateStr: string | undefined, fmtDate: (iso: string) => string): string {
     if (!dateStr) return 'Never';
     const now = Date.now();
     const then = new Date(dateStr).getTime();
@@ -79,7 +80,7 @@ function formatLastLogin(dateStr?: string): string {
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
     if (days < 30) return `${days}d ago`;
-    return new Date(dateStr).toLocaleDateString();
+    return fmtDate(dateStr);
 }
 
 function mapApiUser(item: any): UserData {
@@ -112,6 +113,7 @@ function UserCard({
     onEdit: (user: UserData) => void;
     onToggleStatus: (user: UserData) => void;
 }) {
+    const fmt = useCompanyFormatter();
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 50)}>
             <View style={styles.card}>
@@ -239,7 +241,7 @@ function UserCard({
                             />
                         </Svg>
                         <Text className="font-inter text-[10px] text-neutral-400">
-                            {formatLastLogin(user.lastLogin)}
+                            {formatLastLogin(user.lastLogin, fmt.date)}
                         </Text>
                     </View>
                 </View>

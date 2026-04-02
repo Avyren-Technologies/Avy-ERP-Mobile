@@ -22,6 +22,7 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
@@ -126,12 +127,7 @@ const STATUS_TO_STEP: Record<RunStatus, number> = {
 
 const formatCurrency = (n: number) => `\u20B9${n.toLocaleString('en-IN')}`;
 
-const formatDate = (d: string) => {
-    if (!d) return '';
-    try {
-        return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch { return d; }
-};
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 // ============ SHARED ATOMS ============
 
@@ -246,6 +242,8 @@ function NewRunModal({ visible, onClose, onCreate, isCreating }: {
 // ============ RUN LIST CARD ============
 
 function RunCard({ item, index, onPress }: { item: PayrollRunItem; index: number; onPress: () => void }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '' : fmt.date(d);
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>

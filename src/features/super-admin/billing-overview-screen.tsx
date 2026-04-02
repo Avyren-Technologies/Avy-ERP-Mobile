@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { useBillingSummary, useInvoices, useRevenueChart } from '@/features/super-admin/api/use-dashboard-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_W = (SCREEN_WIDTH - 48 - 12) / 2;
@@ -58,10 +59,7 @@ function formatIndianCurrency(amount: number): string {
     return `₹${amount}`;
 }
 
-function formatDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function getMonthLabel(monthStr: string): string {
     const [, mm] = monthStr.split('-');
@@ -163,6 +161,8 @@ function RevenueChart({ chartData, isLoading }: { chartData: Array<{ month: stri
 export function BillingOverviewScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => fmt.date(d);
 
     const { data: summaryResponse, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = useBillingSummary();
     const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices({ page: 1, limit: 6 });

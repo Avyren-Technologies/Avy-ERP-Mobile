@@ -35,6 +35,7 @@ import {
     useSettleTravelAdvance,
 } from '@/features/company-admin/api/use-payroll-mutations';
 import { useTravelAdvances } from '@/features/company-admin/api/use-payroll-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -452,6 +453,7 @@ function SettlementResultModal({
 // ============ ADVANCE CARD ============
 
 function AdvanceCard({ item, index, onSettle }: { item: TravelAdvance; index: number; onSettle: () => void }) {
+    const fmt = useCompanyFormatter();
     const canSettle = !(item.isSettled) && (item.status === 'ACTIVE' || item.status === 'APPROVED');
 
     return (
@@ -470,7 +472,7 @@ function AdvanceCard({ item, index, onSettle }: { item: TravelAdvance; index: nu
                     {item.estimatedDate && (
                         <View style={styles.metaChip}>
                             <Text className="font-inter text-[10px] text-neutral-500">
-                                {new Date(item.estimatedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                {fmt.date(item.estimatedDate)}
                             </Text>
                         </View>
                     )}

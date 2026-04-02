@@ -29,6 +29,7 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import {
     useCreateOnboardingTemplate,
@@ -241,6 +242,7 @@ function TemplateCard({ item, index, onEdit, onDelete }: { item: TemplateItem; i
 // ============ TASK CARD ============
 
 function TaskCard({ item, index, onComplete, onSkip }: { item: TaskItem; index: number; onComplete: () => void; onSkip: () => void }) {
+    const fmt = useCompanyFormatter();
     const isPending = item.status?.toLowerCase() === 'pending';
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
@@ -260,7 +262,7 @@ function TaskCard({ item, index, onComplete, onSkip }: { item: TaskItem; index: 
                     ) : null}
                     {item.dueDate ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Due: {new Date(item.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500">Due: {fmt.date(item.dueDate)}</Text>
                         </View>
                     ) : null}
                 </View>

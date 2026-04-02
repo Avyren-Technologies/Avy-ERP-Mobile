@@ -26,6 +26,7 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { ImageViewer, isImageFile } from '@/components/ui/image-viewer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -120,14 +121,7 @@ function formatCurrency(amount: number | string): string {
     return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatDate(dateStr: string): string {
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch {
-        return dateStr;
-    }
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function formatFileSize(bytes?: number): string {
     if (!bytes) return '';
@@ -822,6 +816,8 @@ function ClaimCard({ item, index, onApprove, onReject }: {
     item: any; index: number;
     onApprove: () => void; onReject: () => void;
 }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '' : fmt.date(d);
     const status = item.status ?? 'Draft';
     const claimedAmount = Number(item.amount ?? 0);
     const approvedAmount = item.approvedAmount != null ? Number(item.approvedAmount) : null;

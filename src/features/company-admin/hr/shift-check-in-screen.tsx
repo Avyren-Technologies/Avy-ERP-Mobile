@@ -22,6 +22,7 @@ import colors from '@/components/ui/colors';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { client } from '@/lib/api/client';
 import { enqueuePunch, getQueueLength, syncQueue } from '@/lib/offline-punch-queue';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -60,10 +61,7 @@ type AttStatus = 'NOT_CHECKED_IN' | 'CHECKED_IN' | 'CHECKED_OUT' | 'NOT_LINKED';
 
 /* ── Helpers ── */
 
-const fmtTime = (iso?: string | null) => {
-    if (!iso) return '--:--';
-    return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-};
+// fmtTime removed — use fmt.time() from useCompanyFormatter inside components
 
 const fmtDur = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -234,16 +232,18 @@ export function ShiftCheckInScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const qc = useQueryClient();
+    const fmt = useCompanyFormatter();
+    const fmtTime = (iso?: string | null) => !iso ? '--:--' : fmt.time(iso);
 
     // Live clock — only updates the display string to avoid full re-renders
-    const [clockStr, setClockStr] = React.useState(() => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
-    const [dateStr] = React.useState(() => new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+    const [clockStr, setClockStr] = React.useState(() => fmt.timeWithSeconds(new Date().toISOString()));
+    const [dateStr] = React.useState(() => fmt.date(new Date().toISOString()));
     React.useEffect(() => {
         const id = setInterval(() => {
-            setClockStr(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+            setClockStr(fmt.timeWithSeconds(new Date().toISOString()));
         }, 1000);
         return () => clearInterval(id);
-    }, []);
+    }, [fmt]);
 
     // GPS with expo-location (proper permission handling)
     const [geo, setGeo] = React.useState<{ lat: number; lng: number } | null>(null);
@@ -448,12 +448,12 @@ export function ShiftCheckInScreen() {
                                 <View style={$.cols}>
                                     <View style={{ flex: 1 }}>
                                         <Text className="font-inter text-xs" style={{ color: colors.neutral[500] }}>Start</Text>
-                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.startTime ?? '--'}</Text>
+                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.startTime ? fmt.shiftTime(shiftInfo.startTime) : '--'}</Text>
                                     </View>
                                     <View style={$.vDiv} />
                                     <View style={{ flex: 1 }}>
                                         <Text className="font-inter text-xs" style={{ color: colors.neutral[500] }}>End</Text>
-                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.endTime ?? '--'}</Text>
+                                        <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{shiftInfo.endTime ? fmt.shiftTime(shiftInfo.endTime) : '--'}</Text>
                                     </View>
                                 </View>
                                 {shiftInfo.breaks && shiftInfo.breaks.length > 0 && (
@@ -463,7 +463,7 @@ export function ShiftCheckInScreen() {
                                             <View key={b.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                                 <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: b.isPaid ? colors.success[500] : colors.warning[500] }} />
                                                 <Text className="font-inter text-xs" style={{ color: colors.neutral[600], flex: 1 }}>
-                                                    {b.name}{b.startTime ? ` at ${b.startTime}` : ''} — {b.duration}min{b.isPaid ? ' (paid)' : ''}
+                                                    {b.name}{b.startTime ? ` at ${fmt.shiftTime(b.startTime)}` : ''} — {b.duration}min{b.isPaid ? ' (paid)' : ''}
                                                 </Text>
                                             </View>
                                         ))}

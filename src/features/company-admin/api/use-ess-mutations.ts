@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { essApi, type ESSConfig } from '@/lib/api/ess';
 import { essKeys } from '@/features/company-admin/api/use-ess-queries';
+import { leaveKeys } from '@/features/company-admin/api/use-leave-queries';
 
 // ── ESS Config ────────────────────────────────────────────────────
 
@@ -246,6 +247,10 @@ export function useApplyLeave() {
       essApi.applyLeave(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: essKeys.myLeaveBalance() });
+      queryClient.invalidateQueries({ queryKey: leaveKeys.requests() });
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
+      queryClient.invalidateQueries({ queryKey: leaveKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: essKeys.dashboard() });
     },
   });
 }

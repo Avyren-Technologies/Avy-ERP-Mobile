@@ -19,6 +19,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import {
     usePlatformSupportStats,
@@ -118,7 +119,7 @@ function TicketIcon() {
 
 // ============ HELPERS ============
 
-function getRelativeTime(dateStr: string): string {
+function getRelativeTime(dateStr: string, fmtDate: (iso: string) => string): string {
     const now = new Date();
     const date = new Date(dateStr);
     const diffMs = now.getTime() - date.getTime();
@@ -129,7 +130,7 @@ function getRelativeTime(dateStr: string): string {
     if (diffHrs < 24) return `${diffHrs}h ago`;
     const diffDays = Math.floor(diffHrs / 24);
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    return fmtDate(dateStr);
 }
 
 function getStatusBadgeStyle(status: string) {
@@ -229,6 +230,7 @@ function FilterChips<T extends string>({
 }
 
 function TicketCard({ ticket, onPress }: { ticket: any; onPress: () => void }) {
+    const fmt = useCompanyFormatter();
     const statusStyle = getStatusBadgeStyle(ticket.status);
     const priorityStyle = getPriorityBadgeStyle(ticket.priority);
     const isModuleChange = ticket.category === 'MODULE_CHANGE';
@@ -251,7 +253,7 @@ function TicketCard({ ticket, onPress }: { ticket: any; onPress: () => void }) {
                     </Text>
                 </View>
                 <Text className="font-inter text-[11px] text-neutral-400">
-                    {getRelativeTime(ticket.createdAt ?? ticket.updatedAt)}
+                    {getRelativeTime(ticket.createdAt ?? ticket.updatedAt, fmt.date)}
                 </Text>
             </View>
 

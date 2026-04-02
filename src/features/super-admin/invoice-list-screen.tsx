@@ -26,6 +26,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useInvoiceList } from '@/features/super-admin/api/use-invoice-queries';
 import type { Invoice, InvoiceStatus, InvoiceType } from '@/lib/api/invoice';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ CONSTANTS ============
 
@@ -70,11 +71,7 @@ function formatCurrency(amount: number): string {
     }).format(amount);
 }
 
-function formatDate(dateStr?: string): string {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function toStatusBadge(status: InvoiceStatus): 'paid' | 'pending' | 'overdue' | 'cancelled' {
     switch (status) {
@@ -89,6 +86,8 @@ function toStatusBadge(status: InvoiceStatus): 'paid' | 'pending' | 'overdue' | 
 
 function InvoiceCard({ invoice, index }: { invoice: Invoice; index: number }) {
     const router = useRouter();
+    const fmt = useCompanyFormatter();
+    const formatDate = (d?: string) => !d ? '' : fmt.date(d);
     const typeColor = TYPE_BADGE_COLORS[invoice.invoiceType] ?? TYPE_BADGE_COLORS.SUBSCRIPTION;
     const typeLabel = TYPE_LABELS[invoice.invoiceType] ?? invoice.invoiceType;
 

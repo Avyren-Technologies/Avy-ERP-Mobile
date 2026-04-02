@@ -29,6 +29,7 @@ import {
     useUpdateTicketStatus,
 } from '@/features/super-admin/api/use-support-mutations';
 import { useTicketSocket } from '@/hooks/use-ticket-socket';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ CONSTANTS ============
 
@@ -59,15 +60,7 @@ function formatStatusLabel(status: string): string {
     return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function formatTime(dateStr: string): string {
-    const d = new Date(dateStr);
-    return d.toLocaleString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
+// formatTime removed — use fmt.dateTime() from useCompanyFormatter inside components
 
 // ============ ICONS ============
 
@@ -90,6 +83,8 @@ function SendIcon({ color }: { color: string }) {
 // ============ SUB-COMPONENTS ============
 
 function ChatBubble({ message, isAdmin, isSystem }: { message: any; isAdmin: boolean; isSystem: boolean }) {
+    const fmt = useCompanyFormatter();
+    const formatTime = (d: string) => fmt.dateTime(d);
     if (isSystem) {
         return (
             <View style={{ alignItems: 'center', paddingVertical: 8, paddingHorizontal: 20 }}>

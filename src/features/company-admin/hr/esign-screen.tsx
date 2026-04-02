@@ -27,6 +27,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useDispatchESign } from '@/features/company-admin/api/use-recruitment-mutations';
 import { useESignStatus, usePendingESign } from '@/features/company-admin/api/use-recruitment-queries';
 import { useCanPerform } from '@/hooks/use-can-perform';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -98,6 +99,7 @@ function FilterChips({ value, onSelect }: { value: string; onSelect: (v: string)
 // ============ ESIGN CARD ============
 
 function ESignCard({ item, index, onResend, isResending, showAdminActions }: { item: ESignRecord; index: number; onResend: () => void; isResending: boolean; showAdminActions: boolean }) {
+    const fmt = useCompanyFormatter();
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -119,7 +121,7 @@ function ESignCard({ item, index, onResend, isResending, showAdminActions }: { i
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
                         <Text className="font-inter text-[10px] text-neutral-500">
-                            Dispatched: {item.dispatchedAt ? new Date(item.dispatchedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                            Dispatched: {item.dispatchedAt ? fmt.date(item.dispatchedAt) : 'N/A'}
                         </Text>
                     </View>
                 </View>

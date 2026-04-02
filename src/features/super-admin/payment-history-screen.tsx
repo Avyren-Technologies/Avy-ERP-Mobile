@@ -27,6 +27,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { usePaymentList, useRecordPayment } from '@/features/super-admin/api/use-payment-queries';
 import type { PaymentMethod, PaymentRecord, RecordPaymentPayload } from '@/lib/api/payment';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ CONSTANTS ============
 
@@ -62,22 +63,13 @@ function formatCurrency(amount: number): string {
     }).format(amount);
 }
 
-function formatDate(dateStr: string): string {
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        });
-    } catch {
-        return dateStr;
-    }
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 // ============ PAYMENT CARD ============
 
 function PaymentCard({ payment, index }: { payment: PaymentRecord; index: number }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => fmt.date(d);
     const methodStyle = METHOD_COLORS[payment.method] ?? METHOD_COLORS.OTHER;
 
     return (

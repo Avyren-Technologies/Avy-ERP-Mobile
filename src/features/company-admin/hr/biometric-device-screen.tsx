@@ -25,6 +25,7 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -66,14 +67,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 
 // ============ HELPERS ============
 
-function formatSyncTime(dateStr: string) {
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-    } catch {
-        return dateStr;
-    }
-}
+// formatSyncTime removed — use fmt.dateTime() from useCompanyFormatter inside components
 
 // ============ STATUS BADGE ============
 
@@ -240,6 +234,8 @@ function DeviceCard({ item, index, onEdit, onDelete, onTest, onSync, isTesting, 
     item: BiometricDevice; index: number; onEdit: () => void; onDelete: () => void;
     onTest: () => void; onSync: () => void; isTesting: boolean; isSyncing: boolean;
 }) {
+    const fmt = useCompanyFormatter();
+    const formatSyncTime = (d: string) => fmt.dateTime(d);
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>

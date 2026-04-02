@@ -28,6 +28,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useOrgChart } from '@/features/company-admin/api/use-hr-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -441,8 +442,9 @@ function EmployeeTooltip({ node, onClose }: {
     node: OrgNode;
     onClose: () => void;
 }) {
+    const fmt = useCompanyFormatter();
     const joinDate = node.joiningDate
-        ? new Date(node.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        ? fmt.date(node.joiningDate)
         : null;
     const statusLabel = node.status ? node.status.replace(/_/g, ' ') : null;
 

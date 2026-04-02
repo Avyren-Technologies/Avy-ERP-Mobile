@@ -25,6 +25,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 
 import { useEscalateConversation, useSendChatbotMessage, useStartConversation } from '@/features/company-admin/api/use-chatbot-mutations';
 import { useChatbotMessages } from '@/features/company-admin/api/use-chatbot-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -63,6 +64,7 @@ function TypingIndicator() {
 // ============ MESSAGE BUBBLE ============
 
 function MessageBubble({ message, index }: { message: ChatMessage; index: number }) {
+    const fmt = useCompanyFormatter();
     const isUser = message.role === 'user';
     return (
         <Animated.View entering={FadeInUp.duration(300).delay(50 + index * 30)} style={[styles.messageRow, isUser && styles.messageRowUser]}>
@@ -74,7 +76,7 @@ function MessageBubble({ message, index }: { message: ChatMessage; index: number
             <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
                 <Text className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>{message.content}</Text>
                 <Text className={`font-inter text-[10px] mt-1 ${isUser ? 'text-primary-200 text-right' : 'text-neutral-400'}`}>
-                    {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    {message.timestamp ? fmt.time(message.timestamp) : ''}
                 </Text>
             </View>
             {isUser && (

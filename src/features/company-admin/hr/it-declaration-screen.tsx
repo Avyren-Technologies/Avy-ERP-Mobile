@@ -217,11 +217,32 @@ function DeclarationFormModal({
     const totalDeductions = sec80CTotal + sec80CCDTotal + sec80DTotal + otherDeductions + hraTotal + ltaTotal + homeLoanTotal;
     const otherIncome = num(form.interestIncome) + num(form.rentalIncome) + num(form.otherSources);
 
-    const isValid = form.employeeName.trim() && form.financialYear.trim();
+    const isValid = form.financialYear.trim();
 
     const handleSave = () => {
         if (!isValid) return;
-        onSave({ ...form, totalDeclared: totalDeductions, otherIncomeTotal: otherIncome } as unknown as Record<string, unknown>);
+        // Build backend-compatible payload with section objects
+        const payload: Record<string, unknown> = {
+            financialYear: form.financialYear,
+            regime: form.regime === 'Old' ? 'OLD' : 'NEW',
+            section80C: {
+                lifeInsurance: num(form.lic), ppf: num(form.ppf), elss: num(form.elss),
+                nsc: num(form.nsc), homeLoanPrincipal: num(form.homeLoanPrincipal), tuitionFees: num(form.schoolFees),
+            },
+            section80CCD: { npsEmployee: num(form.npsEmployee), npsAdditional: num(form.npsAdditional) },
+            section80D: { selfFamilyPremium: num(form.selfHealthPremium), parentsPremium: num(form.parentPremium) },
+            section80E: { educationLoanInterest: num(form.educationLoanInterest) },
+            section80G: { donations: num(form.donations) },
+            section80GG: { rentPaid: num(form.rentPaid80GG) },
+            section80TTA: { savingsInterest: num(form.savingsInterest) },
+            hraExemption: { rentPaid: num(form.hraRent), landlordPan: form.landlordPan, landlordName: form.landlordName, cityType: form.cityType },
+            ltaExemption: { travelCost: num(form.travelCost) },
+            homeLoanInterest: { interestAmount: num(form.homeLoanInterest), lenderName: form.lenderName, lenderPan: form.lenderPan },
+            otherIncome: { interestIncome: num(form.interestIncome), rentalIncome: num(form.rentalIncome), otherSources: num(form.otherSources) },
+        };
+        // employeeName is kept for HR display; backend uses employeeId (auto-set for non-HR)
+        if (form.employeeName.trim()) payload.employeeName = form.employeeName;
+        onSave(payload);
     };
 
     return (
@@ -395,8 +416,9 @@ export function ITDeclarationScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
-    const canVerify = useCanPerform('hr:approve') || useCanPerform('hr:update') || useCanPerform('company:configure');
-    const canLock = useCanPerform('hr:approve') || useCanPerform('hr:update') || useCanPerform('company:configure');
+    const canVerify = useCanPerform('hr:approve') || useCanPerform('company:configure');
+    const canLock = useCanPerform('hr:approve') || useCanPerform('company:configure');
+    const isHrAdmin = useCanPerform('hr:approve') || useCanPerform('hr:configure') || useCanPerform('company:configure');
 
     const { data: response, isLoading, error, refetch, isFetching } = useITDeclarations();
     const createMutation = useCreateITDeclaration();
@@ -410,11 +432,36 @@ export function ITDeclarationScreen() {
     const declarations: DeclarationItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? '', employeeName: item.employeeName ?? '',
-            financialYear: item.financialYear ?? '', regime: normalizeTaxRegime(item.regime),
-            totalDeclared: item.totalDeclared ?? 0, status: normalizeDeclarationStatus(item.status),
-        }));
+        return raw.map((item: any) => {
+            // Map nested employee object to flat name
+            const emp = item.employee ?? {};
+            const empName = item.employeeName
+                || [emp.firstName, emp.lastName].filter(Boolean).join(' ')
+                || emp.employeeId || '—';
+            // Compute total from section data if not provided
+            let totalDeclared = item.totalDeclared ?? 0;
+            if (!totalDeclared) {
+                const sumObj = (obj: any) => {
+                    if (!obj || typeof obj !== 'object') return 0;
+                    return Object.values(obj).reduce((s: number, v) => s + (Number(v) || 0), 0);
+                };
+                totalDeclared += Math.min(sumObj(item.section80C), 150000);
+                const ccd = item.section80CCD;
+                if (ccd) totalDeclared += (Number(ccd.npsEmployee) || 0) + Math.min(Number(ccd.npsAdditional) || 0, 50000);
+                totalDeclared += sumObj(item.section80D);
+                for (const key of ['section80E', 'section80G', 'section80GG', 'section80TTA', 'hraExemption', 'ltaExemption', 'homeLoanInterest']) {
+                    totalDeclared += sumObj(item[key]);
+                }
+            }
+            return {
+                id: item.id ?? '',
+                employeeName: empName,
+                financialYear: item.financialYear ?? '',
+                regime: normalizeTaxRegime(item.regime),
+                totalDeclared,
+                status: normalizeDeclarationStatus(item.status),
+            };
+        });
     }, [response]);
 
     const filtered = React.useMemo(() => {
@@ -455,7 +502,9 @@ export function ITDeclarationScreen() {
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <Text className="font-inter text-2xl font-bold text-primary-950">IT Declarations</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{declarations.length} declaration{declarations.length !== 1 ? 's' : ''}</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500">
+                {isHrAdmin ? `${declarations.length} declaration${declarations.length !== 1 ? 's' : ''}` : 'Your income tax declarations'}
+            </Text>
             <View style={{ marginTop: 14 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by employee or FY..." /></View>
         </Animated.View>
     );

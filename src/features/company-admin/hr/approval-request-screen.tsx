@@ -52,13 +52,55 @@ const STATUS_COLORS: Record<RequestStatus, { bg: string; text: string; dot: stri
 };
 
 const ENTITY_COLORS: Record<string, { bg: string; text: string }> = {
-    'Leave': { bg: colors.info[50], text: colors.info[700] },
+    'Leave Request': { bg: colors.info[50], text: colors.info[700] },
     'Attendance': { bg: colors.warning[50], text: colors.warning[700] },
-    'Reimbursement': { bg: colors.success[50], text: colors.success[700] },
-    'Loan': { bg: colors.primary[50], text: colors.primary[700] },
-    'Overtime': { bg: colors.accent[50], text: colors.accent[700] },
-    'Resignation': { bg: colors.danger[50], text: colors.danger[700] },
+    'WFH Request': { bg: colors.success[50], text: colors.success[700] },
+    'Loan Application': { bg: colors.primary[50], text: colors.primary[700] },
+    'Shift Swap': { bg: colors.accent[50], text: colors.accent[700] },
+    'Expense Claim': { bg: colors.warning[50], text: colors.warning[700] },
+    'IT Declaration': { bg: colors.neutral[100], text: colors.neutral[700] },
 };
+
+/** Map raw entityType to human-readable label */
+const ENTITY_LABELS: Record<string, string> = {
+    LeaveRequest: 'Leave Request',
+    AttendanceOverride: 'Attendance',
+    LoanRecord: 'Loan Application',
+    WfhRequest: 'WFH Request',
+    ShiftSwapRequest: 'Shift Swap',
+    ExpenseClaim: 'Expense Claim',
+    ITDeclaration: 'IT Declaration',
+};
+
+/** Capitalize status from UPPER_CASE to Title Case */
+function titleCaseStatus(s: string): RequestStatus {
+    if (!s) return 'Pending';
+    const lower = s.toLowerCase();
+    const map: Record<string, RequestStatus> = {
+        pending: 'Pending', approved: 'Approved', rejected: 'Rejected',
+        escalated: 'Escalated', in_progress: 'Pending',
+    };
+    return map[lower] ?? 'Pending';
+}
+
+/** Build a summary from the request data payload */
+function buildSummary(entityType: string, data: any): string {
+    if (!data) return '';
+    switch (entityType) {
+        case 'LeaveRequest':
+            return `${data.days ?? 1} day(s): ${data.fromDate ?? ''} → ${data.toDate ?? ''}${data.reason ? ` — ${data.reason}` : ''}`;
+        case 'LoanRecord':
+            return `₹${Number(data.amount ?? 0).toLocaleString('en-IN')} for ${data.tenure ?? '—'} months${data.reason ? ` — ${data.reason}` : ''}`;
+        case 'WfhRequest':
+            return `${data.fromDate ?? ''} → ${data.toDate ?? ''} (${data.days ?? 1} day${(data.days ?? 1) > 1 ? 's' : ''})${data.reason ? ` — ${data.reason}` : ''}`;
+        case 'ShiftSwapRequest':
+            return `Swap on ${data.swapDate ?? ''}${data.reason ? ` — ${data.reason}` : ''}`;
+        case 'AttendanceOverride':
+            return `${data.issueType ?? 'Correction'}${data.reason ? ` — ${data.reason}` : ''}`;
+        default:
+            return data.reason ?? data.description ?? '';
+    }
+}
 
 const STATUS_FILTERS: ('All' | RequestStatus)[] = ['All', 'Pending', 'Approved', 'Rejected', 'Escalated'];
 
@@ -169,16 +211,20 @@ export function ApprovalRequestScreen() {
     const parseItems = (resp: any): ApprovalRequestItem[] => {
         const raw = resp?.data ?? resp ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? '',
-            requesterName: item.requesterName ?? item.employeeName ?? '',
-            entityType: item.entityType ?? item.type ?? '',
-            summary: item.summary ?? item.description ?? '',
-            submittedDate: item.submittedDate ?? item.createdAt ?? '',
-            status: item.status ?? 'Pending',
-            currentStep: item.currentStep ?? 0,
-            totalSteps: item.totalSteps ?? 0,
-        }));
+        return raw.map((item: any) => {
+            const steps = item.workflow?.steps ?? item.steps ?? [];
+            const entityType = ENTITY_LABELS[item.entityType] ?? item.entityType ?? '';
+            return {
+                id: item.id ?? '',
+                requesterName: item.requesterName ?? item.employeeName ?? item.data?.employeeId ?? 'Employee',
+                entityType,
+                summary: item.summary ?? item.description ?? buildSummary(item.entityType, item.data),
+                submittedDate: item.submittedDate ?? item.createdAt ?? '',
+                status: titleCaseStatus(item.status),
+                currentStep: Math.max(0, (item.currentStep ?? 1) - 1), // API is 1-based
+                totalSteps: steps.length,
+            };
+        });
     };
 
     const pendingItems = React.useMemo(() => parseItems(pendingResponse), [pendingResponse]);

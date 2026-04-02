@@ -23,6 +23,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -68,14 +69,7 @@ const YEARS = [2025, 2026, 2027];
 
 // ============ HELPERS ============
 
-function formatHolidayDate(dateStr: string) {
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-    } catch {
-        return dateStr;
-    }
-}
+// formatHolidayDate removed — use fmt.date() from useCompanyFormatter inside components
 
 // ============ TYPE BADGE ============
 
@@ -284,6 +278,8 @@ function HolidayFormModal({
 // ============ HOLIDAY CARD ============
 
 function HolidayCard({ item, index, onEdit, onDelete, readOnly }: { item: HolidayItem; index: number; onEdit: () => void; onDelete: () => void; readOnly?: boolean }) {
+    const fmt = useCompanyFormatter();
+    const formatHolidayDate = (d: string) => fmt.date(d);
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={readOnly ? undefined : onEdit} style={({ pressed }) => [styles.card, !readOnly && pressed && styles.cardPressed]}>

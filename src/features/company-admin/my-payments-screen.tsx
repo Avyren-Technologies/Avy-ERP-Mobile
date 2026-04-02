@@ -19,6 +19,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useMyPayments } from '@/features/company-admin/api/use-company-admin-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -41,11 +42,7 @@ function formatCurrency(amount: number, currency = 'INR') {
     return `${currency} ${amount.toLocaleString()}`;
 }
 
-function formatDate(dateStr: string): string {
-    if (!dateStr) return '--';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function getMethodColor(method: string): { bg: string; text: string } {
     const m = method?.toLowerCase();
@@ -67,6 +64,8 @@ function getMethodColor(method: string): { bg: string; text: string } {
 // ============ PAYMENT CARD ============
 
 function PaymentCard({ item, index }: { item: PaymentItem; index: number }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '--' : fmt.date(d);
     const methodColor = getMethodColor(item.method);
 
     return (

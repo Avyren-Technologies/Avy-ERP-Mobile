@@ -23,6 +23,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useAuditLogs, useAuditFilterOptions } from '@/features/super-admin/api/use-audit-queries';
 import { useCompanyAuditLogs } from '@/features/company-admin/api/use-company-admin-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -52,18 +53,15 @@ function getActionColor(action: string) {
     return { bg: colors.neutral[100], text: colors.neutral[600], border: colors.neutral[200] };
 }
 
-function formatTimestamp(ts: string) {
-    const d = new Date(ts);
-    const date = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-    const time = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-    return { date, time };
-}
+// formatTimestamp removed — use fmt from useCompanyFormatter inside components
 
 // ============ AUDIT LOG CARD ============
 
 function AuditLogCard({ item, index }: { item: AuditLogItem; index: number }) {
+    const fmt = useCompanyFormatter();
     const actionColor = getActionColor(item.action);
-    const { date, time } = formatTimestamp(item.timestamp);
+    const date = fmt.date(item.timestamp);
+    const time = fmt.time(item.timestamp);
 
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 40)}>

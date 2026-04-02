@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import {
     useMyCostBreakdown,
@@ -76,11 +77,7 @@ function formatCurrency(amount: number, currency = 'INR') {
     return `${currency} ${amount.toLocaleString()}`;
 }
 
-function formatDate(dateStr: string): string {
-    if (!dateStr) return '--';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function mapInvoiceStatus(status: string): 'paid' | 'pending' | 'overdue' {
     const s = status?.toLowerCase();
@@ -101,6 +98,8 @@ function mapSubscriptionStatus(status: string): 'active' | 'trial' | 'suspended'
 // ============ COMPONENTS ============
 
 function SubscriptionCard({ sub, isLoading }: { sub: SubscriptionInfo | null; isLoading: boolean }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '--' : fmt.date(d);
     if (isLoading) {
         return (
             <View style={styles.sectionCard}>
@@ -258,6 +257,8 @@ function CostBreakdownSection({ data, isLoading }: { data: CostBreakdownData | n
 }
 
 function RecentInvoiceRow({ item }: { item: InvoiceItem }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '--' : fmt.date(d);
     return (
         <View style={styles.invoiceRow}>
             <View style={{ flex: 1 }}>

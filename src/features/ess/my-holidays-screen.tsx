@@ -15,6 +15,7 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useMyHolidays } from '@/features/company-admin/api/use-ess-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 type HolidayType = 'NATIONAL' | 'REGIONAL' | 'COMPANY' | 'OPTIONAL';
 
@@ -34,18 +35,11 @@ function TypeBadge({ type }: { type: string }) {
     );
 }
 
-function formatDate(dateStr: string): string {
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-    } catch {
-        return dateStr;
-    }
-}
-
 export function MyHolidaysScreen() {
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => fmt.date(d);
 
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = React.useState(currentYear);

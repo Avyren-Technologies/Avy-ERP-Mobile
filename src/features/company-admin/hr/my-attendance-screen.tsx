@@ -24,6 +24,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useRegularizeAttendance } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyAttendance } from '@/features/company-admin/api/use-ess-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -70,13 +71,7 @@ function getFirstDayOfWeek(year: number, month: number): number {
     return new Date(year, month, 1).getDay();
 }
 
-function formatTime(time: string): string {
-    if (!time) return '--:--';
-    try {
-        const d = new Date(time);
-        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch { return time; }
-}
+// formatTime removed — use fmt.time() from useCompanyFormatter inside components
 
 // ============ CALENDAR VIEW ============
 
@@ -259,6 +254,8 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }:
 export function MyAttendanceScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
+    const fmt = useCompanyFormatter();
+    const formatTime = (time: string) => !time ? '--:--' : fmt.time(time);
     const now = new Date();
     const [year, setYear] = React.useState(now.getFullYear());
     const [month, setMonth] = React.useState(now.getMonth());

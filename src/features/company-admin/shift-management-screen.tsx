@@ -38,6 +38,7 @@ import {
 import type { CompanyShift, ShiftBreak, ShiftType, BreakType, CreateShiftPayload, CreateShiftBreakPayload } from '@/lib/api/company-admin';
 
 import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ CONSTANTS ============
 
@@ -152,6 +153,7 @@ export function ShiftManagementScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const confirmModal = useConfirmModal();
+    const fmt = useCompanyFormatter();
 
     const { data, isLoading, isError, refetch } = useCompanyShifts();
     const createMutation = useCreateShift();
@@ -296,7 +298,7 @@ export function ShiftManagementScreen() {
                 </View>
             </View>
             <Text className="font-inter text-base font-bold text-primary-950">{item.name}</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{item.startTime} - {item.endTime}{item.isCrossDay ? ' (Cross-day)' : ''}</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500">{fmt.shiftTime(item.startTime)} — {fmt.shiftTime(item.endTime)}{item.isCrossDay ? ' (Cross-day)' : ''}</Text>
             {(item.breaks?.length ?? 0) > 0 && (
                 <Text className="mt-1 font-inter text-xs text-neutral-400">{item.breaks?.length} break(s)</Text>
             )}

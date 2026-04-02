@@ -22,6 +22,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { showSuccess } from '@/components/ui/utils';
 import { Skeleton, SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import { USER_TIERS } from './tenant-onboarding/constants';
 
@@ -73,14 +74,7 @@ function formatCurrency(amount?: number): string {
     return `\u20B9${amount.toLocaleString('en-IN')}`;
 }
 
-function formatDate(dateStr?: string): string {
-    if (!dateStr) return '--';
-    try {
-        return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch {
-        return dateStr;
-    }
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 const isReactivatable = (status: SubscriptionStatus) =>
     status === 'SUSPENDED' || status === 'CANCELLED' || status === 'EXPIRED';
@@ -128,6 +122,8 @@ function AmcStatusBadge({ status }: { status: AmcStatus }) {
 }
 
 function LocationCard({ location, index }: { location: LocationCostBreakdown; index: number }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d?: string) => !d ? '--' : fmt.date(d);
     const showAmc = location.billingType === 'ONE_TIME_AMC' && location.endpointType === 'default';
 
     return (
@@ -303,6 +299,8 @@ export function SubscriptionDetailScreen() {
     const router = useRouter();
     const { companyId } = useLocalSearchParams<{ companyId: string }>();
     const insets = useSafeAreaInsets();
+    const fmt = useCompanyFormatter();
+    const formatDate = (d?: string) => !d ? '--' : fmt.date(d);
 
     // Data
     const { data: subResponse, isLoading, isError, refetch } = useSubscriptionDetail(companyId ?? '');

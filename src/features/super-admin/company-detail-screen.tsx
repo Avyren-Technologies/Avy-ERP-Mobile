@@ -32,6 +32,7 @@ import type { UserTierKey } from './tenant-onboarding/types';
 
 import { useTenantDetail, useUpdateCompanyStatus, useDeleteCompany } from '@/features/super-admin/api/use-tenant-queries';
 import { useEntityAuditLogs } from '@/features/super-admin/api/use-audit-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { CompanyDetailEditModal } from '@/features/super-admin/company-detail-edit-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -494,13 +495,12 @@ function AuditActionBadge({ action }: { action: string }) {
 
 function AuditHistorySection({ companyId }: { companyId: string }) {
     const { data, isLoading } = useEntityAuditLogs('COMPANY', companyId);
+    const fmt = useCompanyFormatter();
     const logs: any[] = data?.data ?? data ?? [];
 
     const formatTimestamp = (ts: string) => {
         if (!ts) return '';
-        const d = new Date(ts);
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) +
-            ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        return fmt.dateTime(ts);
     };
 
     return (

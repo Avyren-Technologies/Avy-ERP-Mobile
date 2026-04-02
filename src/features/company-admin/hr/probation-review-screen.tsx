@@ -29,6 +29,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useSubmitProbationReview } from '@/features/company-admin/api/use-hr-mutations';
 import { useProbationDue } from '@/features/company-admin/api/use-hr-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -198,6 +199,7 @@ function ReviewModal({
 // ============ EMPLOYEE CARD ============
 
 function EmployeeCard({ item, index, onReview }: { item: ProbationEmployee; index: number; onReview: () => void }) {
+    const fmt = useCompanyFormatter();
     const endDate = item.probationEndDate ?? (item as any).probationEnd;
     const days = getDaysRemaining(endDate);
     const borderColor = days < 7 ? colors.danger[200] : days < 15 ? colors.warning[200] : days < 30 ? '#FDE68A' : colors.primary[50];
@@ -229,7 +231,7 @@ function EmployeeCard({ item, index, onReview }: { item: ProbationEmployee; inde
                     ) : null}
                     {endDate ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Ends: {new Date(endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500">Ends: {fmt.date(endDate)}</Text>
                         </View>
                     ) : null}
                 </View>

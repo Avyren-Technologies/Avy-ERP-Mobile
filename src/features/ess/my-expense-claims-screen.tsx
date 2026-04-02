@@ -28,6 +28,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
 import { useCancelMyExpenseClaim, useCreateMyExpenseClaim, useSubmitMyExpenseClaim } from '@/features/company-admin/api/use-ess-mutations';
 import { useExpenseCategories, useExpenseClaimsSummary, useMyExpenseClaims } from '@/features/company-admin/api/use-ess-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -108,14 +109,7 @@ function formatCurrency(amount: number | string): string {
     return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatDate(dateStr: string): string {
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch {
-        return dateStr;
-    }
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function formatFileSize(bytes?: number): string {
     if (!bytes) return '';
@@ -821,6 +815,8 @@ export function MyExpenseClaimsScreen() {
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => fmt.date(d);
 
     const { data, isLoading, refetch } = useMyExpenseClaims();
     const { data: summaryData } = useExpenseClaimsSummary();

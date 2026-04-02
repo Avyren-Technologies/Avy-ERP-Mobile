@@ -608,7 +608,7 @@ function TabLayoutInner() {
                             href: visibleTabs.has('admin-support') ? undefined : null,
                         }}
                     />
-                    {/* Settings tab — always last visible tab */}
+                    {/* Settings tab — always last visible tab, routes to settings screen */}
                     <Tabs.Screen
                         name="more"
                         options={{
@@ -616,15 +616,15 @@ function TabLayoutInner() {
                             tabBarIcon: ({ color, focused }) => (
                                 <TabIcon icon={Settings} color={color} focused={focused} />
                             ),
-                            tabBarButtonTestID: 'more-tab',
+                            tabBarButtonTestID: 'settings-tab',
                             href: visibleTabs.has('more') ? undefined : null,
                         }}
-                        listeners={(!isEmployee && (isCompanyAdmin || (userRole === 'user' && showSettingsTab))) ? {
+                        listeners={{
                             tabPress: (e) => {
                                 e.preventDefault();
-                                router.navigate('/more');
+                                router.navigate('/settings');
                             },
-                        } : undefined}
+                        }}
                     />
                     {/* ── Hidden route tabs ── */}
                     <Tabs.Screen

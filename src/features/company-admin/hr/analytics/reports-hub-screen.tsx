@@ -40,6 +40,7 @@ import {
   useReportCatalog,
   useReportHistory,
 } from '@/features/company-admin/api/use-analytics-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { analyticsApi } from '@/lib/api/analytics';
 
 // ---------------------------------------------------------------------------
@@ -126,14 +127,7 @@ function getCategoryConfig(category: string) {
   );
 }
 
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -288,6 +282,8 @@ function HistoryCard({
   onRegenerate: (reportType: string) => void;
   downloading: boolean;
 }) {
+  const fmt = useCompanyFormatter();
+  const formatDate = (d: string) => fmt.date(d);
   const cfg = getCategoryConfig(item.category);
 
   return (

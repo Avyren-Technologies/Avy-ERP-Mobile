@@ -20,6 +20,7 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useDashboard } from '@/features/company-admin/api/use-ess-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ================================================================
 // Icons
@@ -74,15 +75,10 @@ function priorityBorder(priority: Priority): string {
 // ================================================================
 
 function AnnouncementCard({ item, index }: { item: DashboardAnnouncement; index: number }) {
+    const fmt = useCompanyFormatter();
     const pConfig = priorityConfig(item.priority);
     const dateStr = item.createdAt
-        ? new Date(item.createdAt).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
+        ? fmt.dateTime(item.createdAt)
         : '';
 
     return (

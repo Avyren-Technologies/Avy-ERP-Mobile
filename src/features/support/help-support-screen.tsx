@@ -28,6 +28,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useSupportTickets } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCreateSupportTicket } from '@/features/company-admin/api/use-company-admin-mutations';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ CONSTANTS ============
 
@@ -173,7 +174,7 @@ function SendIcon() {
 
 // ============ HELPER ============
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, fmtDate: (iso: string) => string): string {
     const now = Date.now();
     const date = new Date(dateStr).getTime();
     const diffMs = now - date;
@@ -184,7 +185,7 @@ function formatRelativeTime(dateStr: string): string {
     if (diffHrs < 24) return `${diffHrs} hr${diffHrs > 1 ? 's' : ''} ago`;
     const diffDays = Math.floor(diffHrs / 24);
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return new Date(dateStr).toLocaleDateString();
+    return fmtDate(dateStr);
 }
 
 // ============ SUB-COMPONENTS ============
@@ -248,6 +249,7 @@ interface Ticket {
 }
 
 function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }) {
+    const fmt = useCompanyFormatter();
     return (
         <Pressable onPress={onPress} style={s.ticketCard}>
             <View style={s.ticketCardHeader}>
@@ -264,7 +266,7 @@ function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
             <View style={s.ticketCardMeta}>
                 <CategoryChip category={ticket.category} />
                 <Text className="font-inter text-xs text-neutral-400">
-                    {formatRelativeTime(ticket.updatedAt || ticket.createdAt)}
+                    {formatRelativeTime(ticket.updatedAt || ticket.createdAt, fmt.date)}
                 </Text>
             </View>
 

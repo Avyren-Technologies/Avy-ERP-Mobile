@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import {
     useMyInvoiceDetail,
@@ -73,11 +74,7 @@ function formatCurrency(amount: number, currency = 'INR') {
     return `${currency} ${amount.toLocaleString()}`;
 }
 
-function formatDate(dateStr: string): string {
-    if (!dateStr) return '--';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+// formatDate removed — use fmt.date() from useCompanyFormatter inside components
 
 function mapStatus(status: string): 'paid' | 'pending' | 'overdue' {
     const s = status?.toLowerCase();
@@ -134,6 +131,8 @@ function FilterChips({
 // ============ INVOICE DETAIL PANEL ============
 
 function InvoiceDetailPanel({ invoiceId, onClose }: { invoiceId: string; onClose: () => void }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '--' : fmt.date(d);
     const { data, isLoading } = useMyInvoiceDetail(invoiceId);
 
     const detail: InvoiceDetail | null = React.useMemo(() => {
@@ -251,6 +250,8 @@ function InvoiceRow({
     isExpanded: boolean;
     onToggle: () => void;
 }) {
+    const fmt = useCompanyFormatter();
+    const formatDate = (d: string) => !d ? '--' : fmt.date(d);
     return (
         <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
             <Pressable style={styles.invoiceCard} onPress={onToggle}>

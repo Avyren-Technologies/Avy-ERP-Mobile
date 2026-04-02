@@ -25,6 +25,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useAttendanceRecords, useAttendanceSummary } from '@/features/company-admin/api/use-attendance-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 // ============ TYPES ============
 
@@ -72,19 +73,7 @@ function getInitials(name: string) {
         .toUpperCase();
 }
 
-function formatTime(time: string) {
-    if (!time) return '--:--';
-    try {
-        const d = new Date(time);
-        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch {
-        return time;
-    }
-}
-
-function formatDate(date: Date) {
-    return date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-}
+// formatTime and formatDate removed — use fmt.time() / fmt.date() from useCompanyFormatter inside components
 
 // ============ STATUS BADGE ============
 
@@ -151,6 +140,7 @@ function DepartmentBar({ item }: { item: DepartmentBreakdown }) {
 // ============ DATE PICKER ============
 
 function DatePicker({ value, onChange }: { value: Date; onChange: (d: Date) => void }) {
+    const fmt = useCompanyFormatter();
     const goBack = () => {
         const d = new Date(value);
         d.setDate(d.getDate() - 1);
@@ -171,7 +161,7 @@ function DatePicker({ value, onChange }: { value: Date; onChange: (d: Date) => v
                 </Svg>
             </Pressable>
             <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text className="font-inter text-sm font-bold text-primary-950">{formatDate(value)}</Text>
+                <Text className="font-inter text-sm font-bold text-primary-950">{fmt.date(value.toISOString())}</Text>
                 {isToday && <Text className="font-inter text-[10px] text-primary-500">Today</Text>}
             </View>
             <Pressable onPress={goForward} style={styles.dateArrow}>
@@ -214,6 +204,8 @@ function DepartmentFilter({
 // ============ ATTENDANCE RECORD CARD ============
 
 function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) {
+    const fmt = useCompanyFormatter();
+    const formatTime = (time: string) => !time ? '--:--' : fmt.time(time);
     const initials = getInitials(item.employeeName);
     const hrs = typeof item.workedHours === 'number' && Number.isFinite(item.workedHours) ? item.workedHours
         : typeof item.workedHours === 'string' ? parseFloat(item.workedHours) || 0 : 0;

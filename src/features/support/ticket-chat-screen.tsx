@@ -28,6 +28,7 @@ import {
     useCloseSupportTicket,
     useSendSupportMessage,
 } from '@/features/company-admin/api/use-company-admin-mutations';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useTicketSocket } from '@/hooks/use-ticket-socket';
 
 // ============ TYPES ============
@@ -115,21 +116,7 @@ function SendIcon() {
 
 // ============ HELPERS ============
 
-function formatTime(dateStr: string): string {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    const today = new Date();
-    const isToday = d.toDateString() === today.toDateString();
-    if (isToday) return 'Today';
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
+// formatTime and formatDate removed — use fmt from useCompanyFormatter inside components
 
 // ============ MESSAGE BUBBLE ============
 
@@ -142,6 +129,8 @@ function MessageBubble({
     isOwn: boolean;
     isSystem: boolean;
 }) {
+    const fmt = useCompanyFormatter();
+    const formatTime = (dateStr: string) => fmt.time(dateStr);
     if (isSystem) {
         return (
             <View style={s.systemMsg}>
@@ -217,6 +206,8 @@ export function TicketChatScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const user = useAuthStore.use.user();
+    const fmt = useCompanyFormatter();
+    const formatDate = (dateStr: string) => fmt.relativeDate(dateStr);
 
     const { data, isLoading } = useSupportTicket(id ?? '');
     const sendMutation = useSendSupportMessage();

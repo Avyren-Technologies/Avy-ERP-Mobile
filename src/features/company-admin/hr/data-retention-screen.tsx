@@ -28,6 +28,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 import {
     useCreateConsent,
@@ -292,6 +293,7 @@ function PolicyCard({ item, index, onEdit, onDelete }: { item: RetentionPolicy; 
 // ============ REQUEST CARD ============
 
 function RequestCard({ item, index, onProcess }: { item: AccessRequest; index: number; onProcess: (id: string, action: string) => void }) {
+    const fmt = useCompanyFormatter();
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -302,7 +304,7 @@ function RequestCard({ item, index, onProcess }: { item: AccessRequest; index: n
                             <TypeBadge type={item.type} />
                         </View>
                         <Text className="mt-1 font-inter text-xs text-neutral-500">
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                            {item.createdAt ? fmt.date(item.createdAt) : ''}
                         </Text>
                     </View>
                     <StatusBadge status={item.status} />

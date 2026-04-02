@@ -419,8 +419,9 @@ export function TenantOnboardingScreen() {
                     showSuccess('Company Created', 'Tenant onboarded successfully.');
                     router.back();
                 } catch (err: any) {
-                    const apiError = err as AxiosError<{ message?: string }>;
+                    const apiError = err as AxiosError<{ message?: string; error?: string }>;
                     const errorMessage = apiError.response?.data?.message
+                        ?? apiError.response?.data?.error
                         ?? err?.message
                         ?? 'An error occurred while creating the company. Please try again.';
                     showConfirm({

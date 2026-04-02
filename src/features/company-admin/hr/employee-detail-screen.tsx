@@ -1144,10 +1144,13 @@ export function EmployeeDetailScreen() {
 
     const employeeOptions = React.useMemo(() => {
         const raw = (empListResponse as any)?.data ?? empListResponse ?? [];
-        return Array.isArray(raw) ? raw.map((e: any) => ({
-            id: e.id ?? '',
-            name: [e.firstName, e.lastName].filter(Boolean).join(' ') || e.fullName || e.name || '',
-        })) : [];
+        return Array.isArray(raw) ? raw.map((e: any) => {
+            const fullName = [e.firstName, e.lastName].filter(Boolean).join(' ') || e.fullName || e.name || '';
+            const empId = e.employeeId ?? '';
+            const role = e.designation?.name ?? e.designationName ?? '';
+            const parts = [fullName, empId && `(${empId})`, role && `— ${role}`].filter(Boolean);
+            return { id: e.id ?? '', name: parts.join(' ') };
+        }) : [];
     }, [empListResponse]);
 
     const locationOptions = React.useMemo(() => {

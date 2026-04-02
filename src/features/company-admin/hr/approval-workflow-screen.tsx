@@ -276,14 +276,14 @@ export function ApprovalWorkflowScreen() {
             name: item.name ?? '',
             triggerEvent: item.triggerEvent ?? '',
             steps: (item.steps ?? []).map((s: any, i: number) => ({
-                order: s.order ?? i + 1,
-                approverRole: s.approverRole ?? 'Manager',
+                order: s.stepOrder ?? s.order ?? i + 1,
+                approverRole: s.approverRole ?? 'MANAGER',
                 slaHours: String(s.slaHours ?? 24),
                 autoEscalate: s.autoEscalate ?? false,
                 autoApprove: s.autoApprove ?? false,
                 autoReject: s.autoReject ?? false,
             })),
-            active: item.active ?? true,
+            active: item.isActive ?? item.active ?? true,
         }));
     }, [response]);
 
@@ -291,10 +291,25 @@ export function ApprovalWorkflowScreen() {
     const handleEdit = (item: WorkflowItem) => { setEditItem(item); setFormVisible(true); };
 
     const handleSave = (data: Record<string, unknown>) => {
+        const stepsRaw = data.steps as WorkflowStep[] | undefined;
+        const steps = (stepsRaw ?? []).map((s, i) => ({
+            stepOrder: s.order ?? i + 1,
+            approverRole: s.approverRole,
+            slaHours: Number.parseInt(String(s.slaHours), 10) || 24,
+            autoEscalate: s.autoEscalate,
+            autoApprove: s.autoApprove,
+            autoReject: s.autoReject,
+        }));
+        const payload = {
+            name: data.name as string,
+            triggerEvent: data.triggerEvent as string,
+            isActive: data.active as boolean,
+            steps,
+        };
         if (editItem) {
-            updateMutation.mutate({ id: editItem.id, data }, { onSuccess: () => setFormVisible(false) });
+            updateMutation.mutate({ id: editItem.id, data: payload }, { onSuccess: () => setFormVisible(false) });
         } else {
-            createMutation.mutate(data, { onSuccess: () => setFormVisible(false) });
+            createMutation.mutate(payload, { onSuccess: () => setFormVisible(false) });
         }
     };
 
@@ -307,7 +322,7 @@ export function ApprovalWorkflowScreen() {
     };
 
     const handleToggle = (item: WorkflowItem, active: boolean) => {
-        updateMutation.mutate({ id: item.id, data: { active } });
+        updateMutation.mutate({ id: item.id, data: { isActive: active } });
     };
 
     const renderItem = ({ item, index }: { item: WorkflowItem; index: number }) => (

@@ -1,15 +1,13 @@
+import type { ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
-import {
-    Pressable,
-    StyleSheet,
-    ViewStyle,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withSpring,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
@@ -29,6 +27,11 @@ export function FAB({
     style,
     gradient = [colors.gradient.start, colors.gradient.end] as const,
 }: FABProps) {
+    const insets = useSafeAreaInsets();
+    /** Must clear the root tab bar — see `(app)/_layout.tsx` TAB_BAR_HEIGHT */
+    const bottomAboveTabBar =
+        (Platform.OS === 'ios' ? 54 : 68) + insets.bottom + 16;
+
     const scale = useSharedValue(1);
 
     const animatedStyle = useAnimatedStyle(() => ({
@@ -87,7 +90,7 @@ export function FAB({
             onPress={onPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
-            style={[styles.fab, animatedStyle, style]}
+            style={[styles.fab, { bottom: bottomAboveTabBar }, animatedStyle, style]}
         >
             <LinearGradient
                 colors={gradient}
@@ -104,7 +107,6 @@ export function FAB({
 const styles = StyleSheet.create({
     fab: {
         position: 'absolute',
-        bottom: 24,
         right: 24,
         width: 60,
         height: 60,

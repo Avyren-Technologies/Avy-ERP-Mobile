@@ -222,37 +222,6 @@ function SignInButton({ email, password, isLoading, onPress }: SignInButtonProps
   );
 }
 
-function RegisterSection({ onPress }: { onPress: () => void }) {
-  return (
-    <Animated.View entering={FadeIn.duration(500).delay(500)} style={styles.registerSection}>
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text className="font-inter mx-4 text-xs font-semibold" style={styles.dividerText}>
-          NEW TO AVY ERP?
-        </Text>
-        <View style={styles.dividerLine} />
-      </View>
-      <Pressable onPress={onPress} style={styles.registerButtonWrapper}>
-        <View style={styles.registerButton}>
-          <Svg width={20} height={20} viewBox="0 0 24 24">
-            <Path
-              d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2M10 21v-4h4v4"
-              stroke="#DCE8FF"
-              strokeWidth="1.5"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          <Text className="font-inter ml-2 text-sm font-bold" style={styles.registerText}>
-            Register Your Company
-          </Text>
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <Animated.View entering={FadeIn.duration(300)} style={styles.backContainer}>
@@ -399,10 +368,6 @@ export function LoginScreen() {
     }
   };
 
-  const handleRegisterCompany = () => {
-    // TODO: Navigate to company registration flow
-  };
-
   const handleForgotPassword = () => {
     router.push('/forgot-password');
   };
@@ -493,7 +458,6 @@ export function LoginScreen() {
                 />
               </Animated.View>
 
-              <RegisterSection onPress={handleRegisterCompany} />
               <FooterSection />
             </View>
           </ScrollView>
@@ -630,41 +594,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.white,
-  },
-  registerSection: {
-    width: '100%',
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(182,205,255,0.26)',
-  },
-  dividerText: {
-    color: 'rgba(220,232,255,0.65)',
-  },
-  registerButtonWrapper: {
-    width: '100%',
-  },
-  registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(182,205,255,0.38)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  registerText: {
-    color: '#E5EEFF',
   },
   footer: {
     marginTop: 14,

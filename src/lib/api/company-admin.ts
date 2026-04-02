@@ -195,6 +195,8 @@ export const companyAdminApi = {
   deleteContact: (id: string) => client.delete(`/company/contacts/${id}`),
 
   // ── No Series (full CRUD) ──────────────────────────────────────────
+  getLinkedScreens: () => client.get('/company/no-series/linked-screens'),
+
   listNoSeries: () => client.get('/company/no-series'),
 
   createNoSeries: (data: Record<string, unknown>) =>

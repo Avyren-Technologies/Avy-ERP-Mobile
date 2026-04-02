@@ -33,17 +33,11 @@ import {
     useDeleteNoSeries,
     useUpdateNoSeries,
 } from '@/features/company-admin/api/use-company-admin-mutations';
-import { useCompanyNoSeries } from '@/features/company-admin/api/use-company-admin-queries';
+import { useCompanyNoSeries, useLinkedScreens } from '@/features/company-admin/api/use-company-admin-queries';
 
 // ============ CONSTANTS ============
 
-const LINKED_SCREENS = [
-    'Employee Onboarding', 'Attendance', 'Leave Management', 'Payroll',
-    'Work Order', 'Production Order', 'Andon Ticket', 'Quality Check',
-    'Non-Conformance', 'Maintenance Ticket', 'Preventive Maintenance',
-    'GRN', 'Material Request', 'Gate Pass', 'Stock Transfer',
-    'Sales Invoice', 'Purchase Order', 'Delivery Challan', 'Goods Return',
-];
+// Linked screens fetched from API — see useLinkedScreens() hook
 
 // ============ TYPES ============
 
@@ -71,7 +65,7 @@ function getPreview(item: NoSeriesItem): string {
     const count = Number.parseInt(item.numberCount || '5', 10);
     const start = Number.parseInt(item.startNumber || '1', 10);
     const num = String(start).padStart(count, '0');
-    return `${item.prefix}${item.suffix}${num}`;
+    return `${item.prefix}${num}${item.suffix}`;
 }
 
 // ============ LINKED SCREEN DROPDOWN ============
@@ -79,9 +73,11 @@ function getPreview(item: NoSeriesItem): string {
 function LinkedScreenDropdown({
     value,
     onSelect,
+    options,
 }: {
     value: string;
     onSelect: (v: string) => void;
+    options: Array<{ value: string; label: string }>;
 }) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
@@ -96,8 +92,8 @@ function LinkedScreenDropdown({
     }, [open]);
 
     const filtered = search
-        ? LINKED_SCREENS.filter(s => s.toLowerCase().includes(search.toLowerCase()))
-        : LINKED_SCREENS;
+        ? options.filter(s => s.label.toLowerCase().includes(search.toLowerCase()) || s.value.toLowerCase().includes(search.toLowerCase()))
+        : options;
 
     return (
         <View style={[styles.fieldWrap, { zIndex: open ? 1200 : 1, position: 'relative' }]}>
@@ -109,7 +105,7 @@ function LinkedScreenDropdown({
                 style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, open && { borderColor: colors.primary[400] }]}
             >
                 <Text className={`flex-1 font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
-                    {value || 'Select screen...'}
+                    {options.find(o => o.value === value)?.label ?? value || 'Select screen...'}
                 </Text>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
                     <Path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} stroke={open ? colors.primary[500] : colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -137,15 +133,15 @@ function LinkedScreenDropdown({
                         </View>
                         <ScrollView showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
                             {filtered.map((item, idx) => {
-                                const isSelected = item === value;
+                                const isSelected = item.value === value;
                                 return (
                                     <Pressable
-                                        key={item}
-                                        onPress={() => { onSelect(item); setOpen(false); }}
+                                        key={item.value}
+                                        onPress={() => { onSelect(item.value); setOpen(false); }}
                                         style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, backgroundColor: isSelected ? colors.primary[50] : '#fff', borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.neutral[100] }}
                                     >
                                         <Text className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950'}`}>
-                                            {item}
+                                            {item.label}
                                         </Text>
                                         {isSelected && (
                                             <Svg width={15} height={15} viewBox="0 0 24 24">
@@ -176,12 +172,14 @@ function NoSeriesFormModal({
     onSave,
     initialData,
     isSaving,
+    linkedScreenOptions,
 }: {
     visible: boolean;
     onClose: () => void;
     onSave: (data: Omit<NoSeriesItem, 'id'>) => void;
     initialData?: NoSeriesItem | null;
     isSaving: boolean;
+    linkedScreenOptions: Array<{ value: string; label: string }>;
 }) {
     const insets = useSafeAreaInsets();
     const [code, setCode] = React.useState('');
@@ -217,7 +215,7 @@ function NoSeriesFormModal({
     const previewItem: NoSeriesItem = { id: '', code, description, linkedScreen, prefix, suffix, numberCount, startNumber };
     const preview = getPreview(previewItem);
     const nextNum = String(Number.parseInt(startNumber || '1') + 1).padStart(Number.parseInt(numberCount || '5'), '0');
-    const nextPreview = `${prefix}${suffix}${nextNum}`;
+    const nextPreview = `${prefix}${nextNum}${suffix}`;
 
     const handleSave = () => {
         if (!code.trim() || !linkedScreen) return;
@@ -265,7 +263,7 @@ function NoSeriesFormModal({
                         </View>
 
                         {/* Linked Screen */}
-                        <LinkedScreenDropdown value={linkedScreen} onSelect={setLinkedScreen} />
+                        <LinkedScreenDropdown value={linkedScreen} onSelect={setLinkedScreen} options={linkedScreenOptions} />
 
                         {/* Prefix + Suffix */}
                         <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -334,11 +332,13 @@ function NoSeriesCard({
     index,
     onEdit,
     onDelete,
+    screenLabel,
 }: {
     item: NoSeriesItem;
     index: number;
     onEdit: () => void;
     onDelete: () => void;
+    screenLabel?: string;
 }) {
     const preview = getPreview(item);
 
@@ -358,7 +358,7 @@ function NoSeriesCard({
                             </View>
                             {item.linkedScreen ? (
                                 <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
-                                    {item.linkedScreen}
+                                    {screenLabel ?? item.linkedScreen}
                                 </Text>
                             ) : null}
                         </View>
@@ -393,9 +393,16 @@ export function NoSeriesManagementScreen() {
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data: response, isLoading, error, refetch, isFetching } = useCompanyNoSeries();
+    const { data: linkedScreensData } = useLinkedScreens();
     const createMutation = useCreateNoSeries();
     const updateMutation = useUpdateNoSeries();
     const deleteMutation = useDeleteNoSeries();
+
+    const linkedScreenOptions = React.useMemo(() => {
+        const raw: any[] = (linkedScreensData as any)?.data ?? linkedScreensData ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((s: any) => ({ value: s.value ?? s, label: s.label ?? s }));
+    }, [linkedScreensData]);
 
     const [formVisible, setFormVisible] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<NoSeriesItem | null>(null);
@@ -463,6 +470,7 @@ export function NoSeriesManagementScreen() {
             index={index}
             onEdit={() => handleEdit(item)}
             onDelete={() => handleDelete(item)}
+            screenLabel={linkedScreenOptions.find(s => s.value === item.linkedScreen)?.label}
         />
     );
 
@@ -537,6 +545,7 @@ export function NoSeriesManagementScreen() {
                 onSave={handleSave}
                 initialData={editingItem}
                 isSaving={createMutation.isPending || updateMutation.isPending}
+                linkedScreenOptions={linkedScreenOptions}
             />
 
             <ConfirmModal {...confirmModalProps} />

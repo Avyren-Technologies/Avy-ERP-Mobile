@@ -376,12 +376,27 @@ export const DOWNTIME_TYPES = [
 
 // ============ NO SERIES ============
 
-export const NO_SERIES_SCREENS = [
-    'Employee Onboarding', 'Attendance', 'Leave Management', 'Payroll',
-    'Work Order', 'Production Order', 'Andon Ticket', 'Quality Check',
-    'Non-Conformance', 'Maintenance Ticket', 'Preventive Maintenance',
-    'GRN', 'Material Request', 'Gate Pass', 'Stock Transfer',
-    'Sales Invoice', 'Purchase Order', 'Delivery Challan', 'Goods Return',
+export const NO_SERIES_SCREENS: { value: string; label: string }[] = [
+    { value: 'Employee', label: 'Employee Onboarding' },
+    { value: 'Leave Management', label: 'Leave Management' },
+    { value: 'Payroll', label: 'Payroll Run' },
+    { value: 'Recruitment', label: 'Recruitment' },
+    { value: 'Training', label: 'Training' },
+    { value: 'Performance', label: 'Performance Review' },
+    { value: 'ESS', label: 'ESS Requests' },
+    { value: 'Expense', label: 'Expense Claims' },
+    { value: 'Asset', label: 'Asset Management' },
+    { value: 'Letter', label: 'HR Letters' },
+    { value: 'Offboarding', label: 'Offboarding' },
+    { value: 'Production Order', label: 'Production Order' },
+    { value: 'Quality Check', label: 'Quality Check' },
+    { value: 'Purchase Order', label: 'Purchase Order' },
+    { value: 'Goods Receipt', label: 'Goods Receipt Note' },
+    { value: 'Stock Transfer', label: 'Stock Transfer' },
+    { value: 'Gate Pass', label: 'Gate Pass' },
+    { value: 'Visitor', label: 'Visitor Registration' },
+    { value: 'Maintenance', label: 'Maintenance Request' },
+    { value: 'Support Ticket', label: 'Support Ticket' },
 ];
 
 // ============ IOT ============

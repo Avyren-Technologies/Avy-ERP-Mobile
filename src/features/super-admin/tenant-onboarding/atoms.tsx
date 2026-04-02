@@ -234,7 +234,7 @@ export function FormSelect({
     direction = 'down',
 }: {
     label: string;
-    options: string[];
+    options: string[] | { value: string; label: string }[];
     selected: string;
     onSelect: (v: string) => void;
     placeholder?: string;
@@ -246,6 +246,10 @@ export function FormSelect({
     const [visible, setVisible] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const inputRef = React.useRef<TextInput>(null);
+
+    const normalized = React.useMemo(() =>
+        options.map((o) => typeof o === 'string' ? { value: o, label: o } : o),
+    [options]);
 
     React.useEffect(() => {
         let timer: any;
@@ -259,8 +263,10 @@ export function FormSelect({
     }, [visible]);
 
     const filteredOptions = searchQuery
-        ? options.filter((opt) => opt.toLowerCase().startsWith(searchQuery.toLowerCase()))
-        : options;
+        ? normalized.filter((opt) => opt.label.toLowerCase().startsWith(searchQuery.toLowerCase()) || opt.value.toLowerCase().startsWith(searchQuery.toLowerCase()))
+        : normalized;
+
+    const selectedLabel = normalized.find((opt) => opt.value === selected)?.label ?? selected;
 
     return (
         <View style={[S.fieldWrap, { zIndex: visible ? 1200 : 1, position: 'relative' }]}>
@@ -278,7 +284,7 @@ export function FormSelect({
                     className={`flex-1 font-inter text-sm ${selected ? 'text-primary-950' : 'text-neutral-400'}`}
                     numberOfLines={1}
                 >
-                    {selected || placeholder}
+                    {selected ? selectedLabel : placeholder}
                 </Text>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
                     <Path
@@ -341,7 +347,7 @@ export function FormSelect({
                         }}
                     >
                         {/* Quick Jump Input for long lists (e.g. States) */}
-                        {options.length > 8 && (
+                        {normalized.length > 8 && (
                             <View
                                 style={{
                                     paddingHorizontal: 12,
@@ -398,12 +404,12 @@ export function FormSelect({
                         >
                             {filteredOptions.length > 0 ? (
                                 filteredOptions.map((item, idx) => {
-                                    const isSelected = item === selected;
+                                    const isSelected = item.value === selected;
                                     return (
                                         <Pressable
-                                            key={item}
+                                            key={item.value}
                                             onPress={() => {
-                                                onSelect(item);
+                                                onSelect(item.value);
                                                 setVisible(false);
                                             }}
                                             style={{
@@ -419,7 +425,7 @@ export function FormSelect({
                                             <Text
                                                 className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
                                             >
-                                                {item}
+                                                {item.label}
                                             </Text>
                                             {isSelected && (
                                                 <Svg width={15} height={15} viewBox="0 0 24 24">

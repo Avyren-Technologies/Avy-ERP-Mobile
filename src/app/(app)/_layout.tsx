@@ -1,111 +1,61 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as LocalAuthentication from 'expo-local-authentication';
 import { Redirect, SplashScreen, Tabs, usePathname, useRouter } from 'expo-router';
+import {
+    Building,
+    Building2,
+    CalendarCheck,
+    Clock,
+    CreditCard,
+    Fingerprint,
+    Headphones,
+    LayoutDashboard,
+    Settings,
+    Users,
+} from 'lucide-react-native';
 import * as React from 'react';
-import { useCallback, useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import type { SidebarIconType, SidebarSection } from '@/components/ui/sidebar'; // eslint-disable-line perfectionist/sort-imports
 import colors from '@/components/ui/colors';
 import {
     Sidebar,
     SidebarProvider,
 } from '@/components/ui/sidebar';
-import type { SidebarSection, SidebarIconType } from '@/components/ui/sidebar';
+import { showSuccess } from '@/components/ui/utils';
 import {
-    useAuthStore as useAuth,
     getDisplayName,
-    getUserInitials,
     getRoleLabel,
+    getUserInitials,
+    useAuthStore as useAuth,
 } from '@/features/auth/use-auth-store';
-import { checkPermission } from '@/lib/api/auth';
 import { useNavigationManifest } from '@/features/company-admin/api/use-company-admin-queries';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
+import { checkPermission } from '@/lib/api/auth';
+import { client } from '@/lib/api/client';
+import { getToken } from '@/lib/auth/utils';
 import { useIsFirstTime } from '@/lib/hooks/use-is-first-time';
+import { getItem, setItem } from '@/lib/storage';
 
-// ============ TAB ICON COMPONENTS ============
+// ============ TAB ICON COMPONENT ============
 
-function DashboardIcon({ color, focused }: { color: string; focused: boolean }) {
+function TabIcon({ icon: Icon, color, focused }: { icon: any; color: string; focused: boolean }) {
     return (
         <View style={styles.tabIconContainer}>
             {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Rect x="3" y="3" width="7" height="7" rx="2" fill={focused ? colors.primary[500] : 'none'} stroke={color} strokeWidth="1.8" />
-                <Rect x="14" y="3" width="7" height="7" rx="2" fill={focused ? colors.primary[500] : 'none'} stroke={color} strokeWidth="1.8" opacity={focused ? 0.7 : 1} />
-                <Rect x="3" y="14" width="7" height="7" rx="2" fill={focused ? colors.primary[500] : 'none'} stroke={color} strokeWidth="1.8" opacity={focused ? 0.7 : 1} />
-                <Rect x="14" y="14" width="7" height="7" rx="2" fill={focused ? colors.primary[500] : 'none'} stroke={color} strokeWidth="1.8" opacity={focused ? 0.5 : 1} />
-            </Svg>
+            <Icon color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
         </View>
     );
 }
 
-function CompaniesIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Path
-                    d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2"
-                    stroke={color}
-                    strokeWidth="1.8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
-        </View>
-    );
-}
+// ============ TAB BAR VISIBILITY CONTEXT ============
 
-function BillingIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Rect x="1" y="4" width="22" height="16" rx="2" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
-                <Path d="M1 10h22" stroke={focused ? 'rgba(255,255,255,0.5)' : color} strokeWidth="1.8" />
-            </Svg>
-        </View>
-    );
-}
-
-function MoreIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Circle cx="12" cy="5" r="2" fill={color} />
-                <Circle cx="12" cy="12" r="2" fill={color} />
-                <Circle cx="12" cy="19" r="2" fill={color} />
-            </Svg>
-        </View>
-    );
-}
-
-function LeaveIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
-                <Path d="M16 2v4M8 2v4M3 10h18" stroke={focused ? 'rgba(255,255,255,0.6)' : color} strokeWidth="1.8" strokeLinecap="round" />
-                <Path d="M9 16l2 2 4-4" stroke={focused ? '#FFFFFF' : color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-        </View>
-    );
-}
-
-function AttendanceIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="1.8" fill={focused ? colors.primary[500] : 'none'} />
-                <Path d="M12 6v6l4 2" stroke={focused ? '#FFFFFF' : color} strokeWidth="1.8" strokeLinecap="round" />
-            </Svg>
-        </View>
-    );
-}
+type TabBarControl = { hide: () => void; show: () => void };
+const TabBarVisibilityContext = React.createContext<TabBarControl>({ hide: () => {}, show: () => {} });
+export const useTabBarVisibility = () => React.useContext(TabBarVisibilityContext);
 
 // ============ MANIFEST ICON MAPPING ============
 
@@ -144,7 +94,7 @@ function isPathActive(currentPath: string, itemPath: string): boolean {
     // Convert web paths to mobile paths for comparison
     const mobilePath = itemPath.replace(/^\/app/, '');
     if (mobilePath === '/dashboard') return currentPath === '/';
-    return currentPath === mobilePath || currentPath.startsWith(mobilePath + '/');
+    return currentPath === mobilePath || currentPath.startsWith(`${mobilePath}/`);
 }
 
 function toMobileRoutePath(itemPath: string): string {
@@ -215,82 +165,122 @@ function AppSidebar() {
     );
 }
 
+// ============ BIOMETRIC PROMPT MODAL ============
+
+const BIOMETRIC_PROMPT_SHOWN_KEY = 'biometric_prompt_shown';
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const BIOMETRIC_TOKEN_KEY = 'biometric_token';
+
+function BiometricPromptModal({
+    onEnable,
+    onSkip,
+}: {
+    onEnable: () => void;
+    onSkip: () => void;
+}) {
+    return (
+        <Modal transparent animationType="fade" statusBarTranslucent>
+            <View style={biometricStyles.overlay}>
+                <View style={biometricStyles.card}>
+                    <View style={biometricStyles.iconContainer}>
+                        <Fingerprint color={colors.primary[600]} size={48} strokeWidth={1.5} />
+                    </View>
+                    <Text style={biometricStyles.title}>Enable Biometric Login?</Text>
+                    <Text style={biometricStyles.description}>
+                        Sign in faster with Face ID / Fingerprint next time you open the app.
+                    </Text>
+                    <Pressable style={biometricStyles.enableButton} onPress={onEnable}>
+                        <Text style={biometricStyles.enableButtonText}>Enable</Text>
+                    </Pressable>
+                    <Pressable style={biometricStyles.skipButton} onPress={onSkip}>
+                        <Text style={biometricStyles.skipButtonText}>Not Now</Text>
+                    </Pressable>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+const biometricStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 32,
+    },
+    card: {
+        backgroundColor: colors.white,
+        borderRadius: 24,
+        paddingVertical: 32,
+        paddingHorizontal: 24,
+        width: '100%',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 16,
+    },
+    iconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.primary[50],
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    title: {
+        fontFamily: 'Inter',
+        fontSize: 20,
+        fontWeight: '700',
+        color: colors.neutral[900],
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    description: {
+        fontFamily: 'Inter',
+        fontSize: 14,
+        fontWeight: '400',
+        color: colors.neutral[500],
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    enableButton: {
+        backgroundColor: colors.primary[600],
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        width: '100%',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    enableButtonText: {
+        fontFamily: 'Inter',
+        fontSize: 16,
+        fontWeight: '700',
+        color: colors.white,
+    },
+    skipButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 32,
+        width: '100%',
+        alignItems: 'center',
+    },
+    skipButtonText: {
+        fontFamily: 'Inter',
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.neutral[400],
+    },
+});
+
 // ============ TAB LAYOUT ============
 
-function HRIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Path
-                    d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
-                    stroke={color}
-                    strokeWidth="1.8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
-        </View>
-    );
-}
-
-function CompanyIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Path
-                    d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M8 11h2M14 11h2M8 15h2M14 15h2"
-                    stroke={color}
-                    strokeWidth="1.8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
-        </View>
-    );
-}
-
-function SettingsIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.8" fill="none" />
-                <Path
-                    d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-                    stroke={color}
-                    strokeWidth="1.8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
-        </View>
-    );
-}
-
-function SupportIcon({ color, focused }: { color: string; focused: boolean }) {
-    return (
-        <View style={styles.tabIconContainer}>
-            {focused && <View style={styles.tabActiveIndicator} />}
-            <Svg width={24} height={24} viewBox="0 0 24 24">
-                <Path
-                    d="M21 12a8 8 0 10-16 0v6a2 2 0 002 2h3v-4H7v-4a6 6 0 1112 0v4h-3v4h3a2 2 0 002-2v-6z"
-                    stroke={color}
-                    strokeWidth="1.8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </Svg>
-        </View>
-    );
-}
-
 function TabLayoutInner() {
+    'use no memo'; // Reanimated shared values are incompatible with React Compiler
     const status = useAuth.use.status();
     const userRole = useAuth.use.userRole();
     const permissions = useAuth.use.permissions();
@@ -310,6 +300,96 @@ function TabLayoutInner() {
     // Android base: 68px content (larger touch targets) + gesture nav inset if present
     const TAB_BAR_HEIGHT = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
 
+    // ── Animated tab bar hide/show ──
+    const tabTranslateY = useSharedValue(0);
+    const autoShowRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const hideTabBar = useCallback(() => {
+        tabTranslateY.value = withTiming(TAB_BAR_HEIGHT + 10, { duration: 250 });
+        if (autoShowRef.current) clearTimeout(autoShowRef.current);
+        autoShowRef.current = setTimeout(() => {
+            tabTranslateY.value = withTiming(0, { duration: 300 });
+        }, 3000);
+    }, [TAB_BAR_HEIGHT, tabTranslateY]);
+
+    const showTabBar = useCallback(() => {
+        if (autoShowRef.current) clearTimeout(autoShowRef.current);
+        tabTranslateY.value = withTiming(0, { duration: 300 });
+    }, [tabTranslateY]);
+
+    const tabBarControl: TabBarControl = React.useMemo(
+        () => ({ hide: hideTabBar, show: showTabBar }),
+        [hideTabBar, showTabBar],
+    );
+
+    useEffect(() => {
+        return () => {
+            if (autoShowRef.current) clearTimeout(autoShowRef.current);
+        };
+    }, []);
+
+    const tabBarAnimStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: tabTranslateY.value }],
+    }));
+
+    // ── Biometric prompt ──
+    const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+
+    useEffect(() => {
+        async function checkBiometric() {
+            // Only for company users
+            if (isSuperAdmin || status !== 'signIn') return;
+
+            const alreadyAsked = getItem<boolean>(BIOMETRIC_PROMPT_SHOWN_KEY);
+            const biometricEnabled = getItem<boolean>(BIOMETRIC_ENABLED_KEY);
+            if (alreadyAsked || biometricEnabled) return;
+
+            // Check device capability
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+            if (!hasHardware || !isEnrolled) return;
+
+            // Check company setting
+            try {
+                const response = await client.get('/auth/security-settings');
+                const data = response as any;
+                if (!data?.data?.biometricLoginEnabled) return;
+            } catch {
+                return;
+            }
+
+            // Show prompt after a short delay
+            setTimeout(() => setShowBiometricPrompt(true), 1500);
+        }
+        checkBiometric();
+    }, [status, isSuperAdmin]);
+
+    const handleEnableBiometric = useCallback(async () => {
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Confirm to enable biometric login',
+            });
+            if (result.success) {
+                const token = getToken();
+                if (token?.refresh) {
+                    await setItem(BIOMETRIC_TOKEN_KEY, token.refresh);
+                    await setItem(BIOMETRIC_ENABLED_KEY, true);
+                }
+                showSuccess('Biometric login enabled');
+            }
+        } catch {
+            // ignore
+        }
+        await setItem(BIOMETRIC_PROMPT_SHOWN_KEY, true);
+        setShowBiometricPrompt(false);
+    }, []);
+
+    const handleSkipBiometric = useCallback(async () => {
+        await setItem(BIOMETRIC_PROMPT_SHOWN_KEY, true);
+        setShowBiometricPrompt(false);
+    }, []);
+
+    // ── Splash screen ──
     const hideSplash = useCallback(async () => {
         await SplashScreen.hideAsync();
     }, []);
@@ -339,208 +419,254 @@ function TabLayoutInner() {
     const visibleTabs = new Set<string>(['index']);
 
     if (isEmployee) {
-        // Employee gets: Dashboard, Leave, Attendance, More
+        // Employee gets: Dashboard, Leave, Attendance, Settings
         visibleTabs.add('my-leave');
         visibleTabs.add('my-attendance');
         visibleTabs.add('more');
     } else if (isSuperAdmin) {
-        // Super admin gets: Dashboard, Companies, Billing, More, Admin Support
+        // Super admin gets: Dashboard, Companies, Billing, Support, Settings
         visibleTabs.add('companies');
         visibleTabs.add('billing');
-        visibleTabs.add('more');
         visibleTabs.add('admin-support');
+        visibleTabs.add('more');
     } else {
-        // Company admin / Manager / custom roles
+        // Company admin / Manager / custom roles: Dashboard, Company, HR, Support, Settings
         if (showCompanyTab) visibleTabs.add('companies');
         if (showBillingTab) visibleTabs.add('billing');
-        // Always show More for admin-level users (access to settings, ops, etc.)
-        visibleTabs.add('more');
         visibleTabs.add('support');
+        visibleTabs.add('more');
     }
 
     return (
-        <>
-            <Tabs
-                screenOptions={{
-                    tabBarStyle: {
-                        backgroundColor: colors.white,
-                        borderTopWidth: 0,
-                        elevation: 12,
-                        shadowColor: colors.primary[900],
-                        shadowOffset: { width: 0, height: -4 },
-                        shadowOpacity: 0.08,
-                        shadowRadius: 16,
-                        height: TAB_BAR_HEIGHT,
-                        paddingTop: 8,
-                        paddingBottom: insets.bottom,
-                        borderTopLeftRadius: 24,
-                        borderTopRightRadius: 24,
-                    },
-                    tabBarActiveTintColor: colors.primary[600],
-                    tabBarInactiveTintColor: colors.neutral[400],
-                    tabBarLabelStyle: {
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        fontWeight: '600',
-                        marginTop: 4,
-                    },
-                    headerShown: false,
-                }}
-            >
-                <Tabs.Screen
-                    name="index"
-                    options={{
-                        title: 'Dashboard',
-                        tabBarIcon: ({ color, focused }) => (
-                            <DashboardIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'dashboard-tab',
-                    }}
-                />
-                <Tabs.Screen
-                    name="companies"
-                    options={{
-                        title: isCompanyAdmin || userRole === 'user' ? 'Company' : 'Companies',
-                        tabBarIcon: ({ color, focused }) => (
-                            isCompanyAdmin
-                                ? <CompanyIcon color={color} focused={focused} />
-                                : <CompaniesIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'companies-tab',
-                        href: visibleTabs.has('companies') ? undefined : null,
-                    }}
-                    listeners={(isCompanyAdmin || (userRole === 'user' && showCompanyTab)) ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            // Use navigate (not push) to avoid corrupting the back stack
-                            router.navigate('/company/profile');
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen
-                    name="billing"
-                    options={{
-                        title: isCompanyAdmin || (userRole === 'user' && showBillingTab) ? 'HR' : 'Billing',
-                        tabBarIcon: ({ color, focused }) => (
-                            isCompanyAdmin
-                                ? <HRIcon color={color} focused={focused} />
-                                : <BillingIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'billing-tab',
-                        href: visibleTabs.has('billing') ? undefined : null,
-                    }}
-                    listeners={(isCompanyAdmin || (userRole === 'user' && showBillingTab)) ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            router.navigate('/company/hr/employees');
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen
-                    name="more"
-                    options={{
-                        title: isEmployee ? 'More' : 'Settings',
-                        tabBarIcon: ({ color, focused }) => (
-                            isEmployee
-                                ? <MoreIcon color={color} focused={focused} />
-                                : <SettingsIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'more-tab',
-                        href: visibleTabs.has('more') ? undefined : null,
-                    }}
-                    listeners={(!isEmployee && (isCompanyAdmin || (userRole === 'user' && showSettingsTab))) ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            router.navigate('/more');
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen
-                    name="reports"
-                    options={{ href: null }}
-                />
-                <Tabs.Screen
-                    name="settings"
-                    options={{ href: null }}
-                />
-                <Tabs.Screen
-                    name="help"
-                    options={{ href: null }}
-                />
-                <Tabs.Screen
-                    name="modules"
-                    options={{ href: null }}
-                />
-                <Tabs.Screen
-                    name="support"
-                    options={{
-                        title: 'Support',
-                        tabBarIcon: ({ color, focused }) => (
-                            <SupportIcon color={color} focused={focused} />
-                        ),
-                        href: visibleTabs.has('support') ? undefined : null,
-                    }}
-                />
-                <Tabs.Screen
-                    name="admin-support"
-                    options={{
-                        title: 'Support',
-                        tabBarIcon: ({ color, focused }) => (
-                            <SupportIcon color={color} focused={focused} />
-                        ),
-                        href: visibleTabs.has('admin-support') ? undefined : null,
-                    }}
-                />
-                {/* ── Employee-specific tabs ── */}
-                <Tabs.Screen
-                    name="my-leave"
-                    options={{
-                        title: 'Leave',
-                        tabBarIcon: ({ color, focused }) => (
-                            <LeaveIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'my-leave-tab',
-                        href: visibleTabs.has('my-leave') ? '/my-leave' : null,
-                    }}
-                    listeners={isEmployee ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            router.navigate('/company/hr/my-leave');
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen
-                    name="my-attendance"
-                    options={{
-                        title: 'Attendance',
-                        tabBarIcon: ({ color, focused }) => (
-                            <AttendanceIcon color={color} focused={focused} />
-                        ),
-                        tabBarButtonTestID: 'my-attendance-tab',
-                        href: visibleTabs.has('my-attendance') ? '/my-attendance' : null,
-                    }}
-                    listeners={isEmployee ? {
-                        tabPress: (e) => {
-                            e.preventDefault();
-                            router.navigate('/company/hr/my-attendance');
-                        },
-                    } : undefined}
-                />
-                <Tabs.Screen name="tenant/[id]" options={{ href: null }} />
-                <Tabs.Screen
-                    name="tenant/add-company"
-                    options={{
-                        href: null,
+        <TabBarVisibilityContext.Provider value={tabBarControl}>
+            <>
+                <Tabs
+                    screenOptions={{
                         tabBarStyle: { display: 'none' },
+                        headerShown: false,
                     }}
-                />
-                <Tabs.Screen name="tenant/module-assignment" options={{ href: null }} />
-                <Tabs.Screen name="company" options={{ href: null }} />
-            </Tabs>
+                    tabBar={(props) => (
+                        <Animated.View style={[{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                        }, tabBarAnimStyle]}>
+                            <View style={{
+                                backgroundColor: colors.white,
+                                borderTopWidth: 0,
+                                elevation: 12,
+                                shadowColor: colors.primary[900],
+                                shadowOffset: { width: 0, height: -4 },
+                                shadowOpacity: 0.08,
+                                shadowRadius: 16,
+                                height: TAB_BAR_HEIGHT,
+                                paddingTop: 8,
+                                paddingBottom: insets.bottom,
+                                borderTopLeftRadius: 24,
+                                borderTopRightRadius: 24,
+                                flexDirection: 'row',
+                            }}>
+                                {props.state.routes.map((route, index) => {
+                                    const { options } = props.descriptors[route.key];
+                                    // Only show tabs that are in the visibleTabs set
+                                    if (!visibleTabs.has(route.name)) return null;
 
-            {/* Sidebar renders above everything */}
-            <AppSidebar />
-        </>
+                                    const isFocused = props.state.index === index;
+                                    const color = isFocused ? colors.primary[600] : colors.neutral[400];
+                                    const label = options.title ?? route.name;
+
+                                    return (
+                                        <Pressable
+                                            key={route.key}
+                                            accessibilityRole="button"
+                                            accessibilityState={isFocused ? { selected: true } : {}}
+                                            onPress={() => {
+                                                const event = props.navigation.emit({
+                                                    type: 'tabPress',
+                                                    target: route.key,
+                                                    canPreventDefault: true,
+                                                });
+                                                if (!isFocused && !event.defaultPrevented) {
+                                                    props.navigation.navigate(route.name);
+                                                }
+                                            }}
+                                            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            {options.tabBarIcon?.({ color, focused: isFocused, size: 22 })}
+                                            <Text style={{
+                                                fontFamily: 'Inter',
+                                                fontSize: 11,
+                                                fontWeight: isFocused ? '700' : '600',
+                                                marginTop: 4,
+                                                color,
+                                            }}>{label}</Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                        </Animated.View>
+                    )}
+                >
+                    <Tabs.Screen
+                        name="index"
+                        options={{
+                            title: 'Dashboard',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={LayoutDashboard} color={color} focused={focused} />
+                            ),
+                            tabBarButtonTestID: 'dashboard-tab',
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="companies"
+                        options={{
+                            title: isCompanyAdmin || userRole === 'user' ? 'Company' : 'Companies',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={isCompanyAdmin ? Building : Building2} color={color} focused={focused} />
+                            ),
+                            tabBarButtonTestID: 'companies-tab',
+                            href: visibleTabs.has('companies') ? undefined : null,
+                        }}
+                        listeners={(isCompanyAdmin || (userRole === 'user' && showCompanyTab)) ? {
+                            tabPress: (e) => {
+                                e.preventDefault();
+                                // Use navigate (not push) to avoid corrupting the back stack
+                                router.navigate('/company/profile');
+                            },
+                        } : undefined}
+                    />
+                    <Tabs.Screen
+                        name="billing"
+                        options={{
+                            title: isCompanyAdmin || (userRole === 'user' && showBillingTab) ? 'HR' : 'Billing',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={isCompanyAdmin ? Users : CreditCard} color={color} focused={focused} />
+                            ),
+                            tabBarButtonTestID: 'billing-tab',
+                            href: visibleTabs.has('billing') ? undefined : null,
+                        }}
+                        listeners={(isCompanyAdmin || (userRole === 'user' && showBillingTab)) ? {
+                            tabPress: (e) => {
+                                e.preventDefault();
+                                router.navigate('/company/hr/employees');
+                            },
+                        } : undefined}
+                    />
+                    {/* ── Employee-specific tabs ── */}
+                    <Tabs.Screen
+                        name="my-leave"
+                        options={{
+                            title: 'Leave',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={CalendarCheck} color={color} focused={focused} />
+                            ),
+                            tabBarButtonTestID: 'my-leave-tab',
+                            href: visibleTabs.has('my-leave') ? '/my-leave' : null,
+                        }}
+                        listeners={isEmployee ? {
+                            tabPress: (e) => {
+                                e.preventDefault();
+                                router.navigate('/company/hr/my-leave');
+                            },
+                        } : undefined}
+                    />
+                    <Tabs.Screen
+                        name="my-attendance"
+                        options={{
+                            title: 'Attendance',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={Clock} color={color} focused={focused} />
+                            ),
+                            tabBarButtonTestID: 'my-attendance-tab',
+                            href: visibleTabs.has('my-attendance') ? '/my-attendance' : null,
+                        }}
+                        listeners={isEmployee ? {
+                            tabPress: (e) => {
+                                e.preventDefault();
+                                router.navigate('/company/hr/my-attendance');
+                            },
+                        } : undefined}
+                    />
+                    <Tabs.Screen
+                        name="support"
+                        options={{
+                            title: 'Support',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={Headphones} color={color} focused={focused} />
+                            ),
+                            href: visibleTabs.has('support') ? undefined : null,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="admin-support"
+                        options={{
+                            title: 'Support',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={Headphones} color={color} focused={focused} />
+                            ),
+                            href: visibleTabs.has('admin-support') ? undefined : null,
+                        }}
+                    />
+                    {/* Settings tab — always last visible tab */}
+                    <Tabs.Screen
+                        name="more"
+                        options={{
+                            title: 'Settings',
+                            tabBarIcon: ({ color, focused }) => (
+                                <TabIcon icon={Settings} color={color} focused={focused} />
+                            ),
+                            tabBarButtonTestID: 'more-tab',
+                            href: visibleTabs.has('more') ? undefined : null,
+                        }}
+                        listeners={(!isEmployee && (isCompanyAdmin || (userRole === 'user' && showSettingsTab))) ? {
+                            tabPress: (e) => {
+                                e.preventDefault();
+                                router.navigate('/more');
+                            },
+                        } : undefined}
+                    />
+                    {/* ── Hidden route tabs ── */}
+                    <Tabs.Screen
+                        name="reports"
+                        options={{ href: null }}
+                    />
+                    <Tabs.Screen
+                        name="settings"
+                        options={{ href: null }}
+                    />
+                    <Tabs.Screen
+                        name="help"
+                        options={{ href: null }}
+                    />
+                    <Tabs.Screen
+                        name="modules"
+                        options={{ href: null }}
+                    />
+                    <Tabs.Screen name="tenant/[id]" options={{ href: null }} />
+                    <Tabs.Screen
+                        name="tenant/add-company"
+                        options={{
+                            href: null,
+                            tabBarStyle: { display: 'none' },
+                        }}
+                    />
+                    <Tabs.Screen name="tenant/module-assignment" options={{ href: null }} />
+                    <Tabs.Screen name="company" options={{ href: null }} />
+                </Tabs>
+
+                {/* Sidebar renders above everything */}
+                <AppSidebar />
+
+                {/* Biometric prompt modal */}
+                {showBiometricPrompt && (
+                    <BiometricPromptModal
+                        onEnable={handleEnableBiometric}
+                        onSkip={handleSkipBiometric}
+                    />
+                )}
+            </>
+        </TabBarVisibilityContext.Provider>
     );
 }
 

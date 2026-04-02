@@ -107,14 +107,35 @@ function formatCurrency(n: number): string {
     return `\u20B9${  n.toLocaleString('en-IN')}`;
 }
 
+function normalizeDeclarationStatus(value: unknown): DeclarationStatus {
+    const raw = String(value ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    switch (raw) {
+        case 'submitted':
+            return 'Submitted';
+        case 'verified':
+            return 'Verified';
+        case 'locked':
+            return 'Locked';
+        case 'draft':
+        default:
+            return 'Draft';
+    }
+}
+
+function normalizeTaxRegime(value: unknown): TaxRegime {
+    const raw = String(value ?? '').trim().toLowerCase();
+    return raw === 'new' ? 'New' : 'Old';
+}
+
 // ============ SHARED ATOMS ============
 
-function StatusBadge({ status }: { status: DeclarationStatus }) {
-    const s = STATUS_COLORS[status];
+function StatusBadge({ status }: { status: string }) {
+    const normalizedStatus = normalizeDeclarationStatus(status);
+    const s = STATUS_COLORS[normalizedStatus];
     return (
         <View style={[styles.statusBadge, { backgroundColor: s.bg }]}>
             <View style={[styles.statusDot, { backgroundColor: s.dot }]} />
-            <Text style={{ color: s.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{status}</Text>
+            <Text style={{ color: s.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{normalizedStatus}</Text>
         </View>
     );
 }
@@ -391,8 +412,8 @@ export function ITDeclarationScreen() {
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
             id: item.id ?? '', employeeName: item.employeeName ?? '',
-            financialYear: item.financialYear ?? '', regime: item.regime ?? 'Old',
-            totalDeclared: item.totalDeclared ?? 0, status: item.status ?? 'Draft',
+            financialYear: item.financialYear ?? '', regime: normalizeTaxRegime(item.regime),
+            totalDeclared: item.totalDeclared ?? 0, status: normalizeDeclarationStatus(item.status),
         }));
     }, [response]);
 

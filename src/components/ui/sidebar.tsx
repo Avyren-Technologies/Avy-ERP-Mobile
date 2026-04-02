@@ -7,6 +7,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    TextInput,
     View,
 } from 'react-native';
 import Animated, {
@@ -268,6 +269,8 @@ export function Sidebar({
     const { isOpen, close, progress } = useSidebar();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
     const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
+    const [searchText, setSearchText] = React.useState('');
+    const searchInputRef = React.useRef<TextInput>(null);
 
     const sidebarWidth = useSharedValue(SIDEBAR_FULL_WIDTH);
 
@@ -292,6 +295,40 @@ export function Sidebar({
         });
         setOpenGroups((prev) => ({ ...prev, ...next }));
     }, [sections]);
+
+    // Reset search when sidebar closes; auto-focus when it opens
+    React.useEffect(() => {
+        if (!isOpen) {
+            setSearchText('');
+        } else {
+            // Delay focus slightly so the sidebar animation has started
+            const timer = setTimeout(() => searchInputRef.current?.focus(), OPEN_DURATION + 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
+
+    // Filter sections when searching
+    const isSearching = searchText.trim().length > 0;
+    const filteredItems = React.useMemo(() => {
+        if (!isSearching) return [];
+        const query = searchText.toLowerCase().trim();
+        const results: SidebarNavItem[] = [];
+        for (const section of sections) {
+            for (const item of section.items) {
+                const labelMatch = item.label.toLowerCase().includes(query);
+                const childMatches = item.children?.filter((c) =>
+                    c.label.toLowerCase().includes(query)
+                );
+                if (labelMatch || (childMatches && childMatches.length > 0)) {
+                    results.push({
+                        ...item,
+                        children: childMatches && childMatches.length > 0 ? childMatches : item.children,
+                    });
+                }
+            }
+        }
+        return results;
+    }, [isSearching, searchText, sections]);
 
     // Animated styles — all run on UI thread
     const containerStyle = useAnimatedStyle(() => ({
@@ -405,6 +442,58 @@ export function Sidebar({
                     </View>
                 </LinearGradient>
 
+                {/* Search Bar */}
+                <View style={styles.searchBarContainer}>
+                    <View style={styles.searchBar}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24" style={styles.searchIcon}>
+                            <Circle
+                                cx="11"
+                                cy="11"
+                                r="8"
+                                stroke={colors.neutral[400]}
+                                strokeWidth="2"
+                                fill="none"
+                            />
+                            <Path
+                                d="M21 21l-4.35-4.35"
+                                stroke={colors.neutral[400]}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
+                        </Svg>
+                        <TextInput
+                            ref={searchInputRef}
+                            style={styles.searchInput}
+                            placeholder="Search navigation..."
+                            placeholderTextColor={colors.neutral[400]}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            autoCorrect={false}
+                            autoCapitalize="none"
+                            returnKeyType="search"
+                        />
+                        {searchText.length > 0 && (
+                            <Pressable
+                                onPress={() => {
+                                    setSearchText('');
+                                    searchInputRef.current?.focus();
+                                }}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                style={styles.searchClearBtn}
+                            >
+                                <Svg width={14} height={14} viewBox="0 0 24 24">
+                                    <Path
+                                        d="M18 6L6 18M6 6l12 12"
+                                        stroke={colors.neutral[400]}
+                                        strokeWidth="2.2"
+                                        strokeLinecap="round"
+                                    />
+                                </Svg>
+                            </Pressable>
+                        )}
+                    </View>
+                </View>
+
                 {/* Navigation Items — Scrollable */}
                 <ScrollView
                     style={styles.navContainer}
@@ -413,30 +502,14 @@ export function Sidebar({
                     bounces={true}
                     removeClippedSubviews={true}
                 >
-                    {sections.map((section) => (
-                        <View key={section.title ?? section.items[0]?.id ?? 'default'}>
-                            {/* Module separator */}
-                            {section.moduleSeparator && (
-                                <View style={styles.moduleSeparator}>
-                                    <View style={styles.moduleSeparatorLine} />
-                                    <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
-                                        {section.moduleSeparator}
-                                    </Text>
-                                    <View style={styles.moduleSeparatorLine} />
-                                </View>
-                            )}
+                    {isSearching ? (
+                        /* Flat filtered results when searching */
+                        filteredItems.length > 0 ? (
                             <View style={styles.navSection}>
-                                {section.title && (
-                                    <View style={styles.sectionTitleWrap}>
-                                        <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400">
-                                            {section.title}
-                                        </Text>
-                                    </View>
-                                )}
-                                {section.items.map((item) => (
+                                {filteredItems.map((item) => (
                                     <View key={item.id}>
                                         <SidebarNavItem item={item} onClose={close} />
-                                        {item.children && item.children.length > 0 && openGroups[item.id] && (
+                                        {item.children && item.children.length > 0 && (
                                             <View style={styles.childContainer}>
                                                 <View style={styles.childDottedLine} />
                                                 {item.children.map((child) => (
@@ -463,27 +536,90 @@ export function Sidebar({
                                                 ))}
                                             </View>
                                         )}
-                                        {item.children && item.children.length > 0 && (
-                                            <Pressable
-                                                onPress={() => setOpenGroups((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
-                                                style={styles.groupToggleBtn}
-                                            >
-                                                <Svg width={14} height={14} viewBox="0 0 24 24">
-                                                    <Path
-                                                        d={openGroups[item.id] ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
-                                                        stroke={colors.neutral[400]}
-                                                        strokeWidth="2.2"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    />
-                                                </Svg>
-                                            </Pressable>
-                                        )}
                                     </View>
                                 ))}
                             </View>
-                        </View>
-                    ))}
+                        ) : (
+                            <View style={styles.searchEmptyState}>
+                                <Text className="font-inter text-sm text-neutral-400">
+                                    No results found
+                                </Text>
+                            </View>
+                        )
+                    ) : (
+                        /* Normal sections view */
+                        sections.map((section) => (
+                            <View key={section.title ?? section.items[0]?.id ?? 'default'}>
+                                {/* Module separator */}
+                                {section.moduleSeparator && (
+                                    <View style={styles.moduleSeparator}>
+                                        <View style={styles.moduleSeparatorLine} />
+                                        <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
+                                            {section.moduleSeparator}
+                                        </Text>
+                                        <View style={styles.moduleSeparatorLine} />
+                                    </View>
+                                )}
+                                <View style={styles.navSection}>
+                                    {section.title && (
+                                        <View style={styles.sectionTitleWrap}>
+                                            <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400">
+                                                {section.title}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    {section.items.map((item) => (
+                                        <View key={item.id}>
+                                            <SidebarNavItem item={item} onClose={close} />
+                                            {item.children && item.children.length > 0 && openGroups[item.id] && (
+                                                <View style={styles.childContainer}>
+                                                    <View style={styles.childDottedLine} />
+                                                    {item.children.map((child) => (
+                                                        <Pressable
+                                                            key={child.path}
+                                                            onPress={() => {
+                                                                child.onPress?.();
+                                                                close();
+                                                            }}
+                                                            style={({ pressed }) => [
+                                                                styles.childItem,
+                                                                child.isActive && styles.childItemActive,
+                                                                pressed && !child.isActive && styles.childItemPressed,
+                                                            ]}
+                                                        >
+                                                            <View style={[styles.childBranch, child.isActive && styles.childBranchActive]} />
+                                                            <Text
+                                                                className={`font-inter text-xs font-semibold ${child.isActive ? 'text-primary-700' : 'text-neutral-500'}`}
+                                                                numberOfLines={1}
+                                                            >
+                                                                {child.label}
+                                                            </Text>
+                                                        </Pressable>
+                                                    ))}
+                                                </View>
+                                            )}
+                                            {item.children && item.children.length > 0 && (
+                                                <Pressable
+                                                    onPress={() => setOpenGroups((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                                                    style={styles.groupToggleBtn}
+                                                >
+                                                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                                                        <Path
+                                                            d={openGroups[item.id] ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                                                            stroke={colors.neutral[400]}
+                                                            strokeWidth="2.2"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                    </Svg>
+                                                </Pressable>
+                                            )}
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        ))
+                    )}
                 </ScrollView>
 
                 {/* Sign Out */}
@@ -814,5 +950,47 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 1,
         backgroundColor: colors.primary[100],
+    },
+    searchBarContainer: {
+        paddingHorizontal: 12,
+        paddingTop: 10,
+        paddingBottom: 4,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.neutral[100],
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 0,
+        shadowColor: colors.neutral[400],
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    searchIcon: {
+        marginRight: 8,
+        flexShrink: 0,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 13,
+        fontFamily: 'Inter',
+        color: colors.neutral[700],
+        paddingVertical: 10,
+    },
+    searchClearBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: colors.neutral[200],
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 4,
+    },
+    searchEmptyState: {
+        paddingVertical: 32,
+        alignItems: 'center',
     },
 });

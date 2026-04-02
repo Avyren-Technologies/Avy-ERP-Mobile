@@ -247,6 +247,10 @@ export const essApi = {
   updateEssConfig: (data: Partial<ESSConfig>) =>
     client.patch('/hr/ess-config', data),
 
+  // ── Approval Workflow Config ─────────────────────────────────
+  getApprovalWorkflowConfig: () =>
+    client.get('/hr/approval-workflow-config'),
+
   // ── Approval Workflows ────────────────────────────────────────
   listApprovalWorkflows: (params?: ApprovalWorkflowListParams) =>
     client.get('/hr/approval-workflows', { params }),
@@ -498,4 +502,14 @@ export const essApi = {
     const r = await client.post('/hr/ess/apply-loan', data);
     return r.data;
   },
+
+  // ── Appraisal Entries ──────────────────────────────────────────
+  getMyAppraisals: () =>
+    client.get('/hr/appraisal-entries'),
+
+  getMyAppraisalEntry: (id: string) =>
+    client.get(`/hr/appraisal-entries/${id}`),
+
+  submitSelfReview: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/appraisal-entries/${id}/self-review`, data),
 };

@@ -61,6 +61,12 @@ const refreshClient = axios.create({
   baseURL: Env.EXPO_PUBLIC_API_URL,
 });
 
+refreshClient.interceptors.request.use((config) => {
+  const { Platform } = require('react-native');
+  config.headers['X-Device-Info'] = Platform.OS === 'ios' ? 'mobile-ios' : 'mobile-android';
+  return config;
+});
+
 /**
  * Auth API service.
  *
@@ -78,8 +84,11 @@ export const authApi = {
       refreshToken,
     }),
 
-  logout: () =>
-    client.post('/auth/logout') as Promise<ApiResponse>,
+  logout: () => {
+    // Send refreshToken so the backend can remove the ActiveSession record
+    const tokenData = require('@/lib/auth/utils').getToken();
+    return client.post('/auth/logout', { refreshToken: tokenData?.refresh }) as Promise<ApiResponse>;
+  },
 
   forgotPassword: (email: string) =>
     client.post('/auth/forgot-password', { email }) as Promise<ApiResponse>,
@@ -95,4 +104,16 @@ export const authApi = {
 
   changePassword: (currentPassword: string, newPassword: string) =>
     client.post('/auth/change-password', { currentPassword, newPassword }) as Promise<ApiResponse>,
+
+  verifyMfa: (mfaToken: string, code: string) =>
+    client.post('/auth/mfa/verify', { mfaToken, code }) as Promise<ApiResponse<LoginResponse>>,
+
+  setupMfa: (mfaToken?: string) =>
+    client.post('/auth/mfa/setup', mfaToken ? { mfaToken } : undefined) as Promise<ApiResponse<{ secret: string; otpauthUrl: string; qrCodeDataUrl: string }>>,
+
+  confirmMfa: (code: string, mfaToken?: string) =>
+    client.post('/auth/mfa/confirm', { code, ...(mfaToken ? { mfaToken } : {}) }) as Promise<ApiResponse<LoginResponse>>,
+
+  disableMfa: (password: string) =>
+    client.post('/auth/mfa/disable', { password }) as Promise<ApiResponse>,
 };

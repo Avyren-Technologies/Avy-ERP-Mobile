@@ -408,3 +408,17 @@ export function useApplyForLoan() {
     },
   });
 }
+
+// ── Appraisal Self-Review ──────────────────────────────────────────
+
+/** Submit self-review for an appraisal entry */
+export function useSubmitSelfReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      essApi.submitSelfReview(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myAppraisals() });
+    },
+  });
+}

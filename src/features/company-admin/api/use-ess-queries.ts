@@ -24,6 +24,10 @@ export const essKeys = {
   essConfig: () =>
     [...essKeys.all, 'config'] as const,
 
+  // Approval Workflow Config
+  workflowConfig: () =>
+    [...essKeys.all, 'workflow-config'] as const,
+
   // Approval Workflows
   workflows: (params?: ApprovalWorkflowListParams) =>
     params ? [...essKeys.all, 'workflows', params] as const : [...essKeys.all, 'workflows'] as const,
@@ -100,6 +104,10 @@ export const essKeys = {
   loanPolicies: () =>
     [...essKeys.all, 'loan-policies'] as const,
 
+  // Appraisals
+  myAppraisals: () =>
+    [...essKeys.all, 'my-appraisals'] as const,
+
   // MSS Manager Self-Service
   teamMembers: (params?: MssTeamMembersParams) =>
     params ? [...essKeys.all, 'team-members', params] as const : [...essKeys.all, 'team-members'] as const,
@@ -133,6 +141,15 @@ export function useEssConfig() {
 }
 
 // --- Approval Workflow Queries ---
+
+/** Approval workflow config (trigger events, approver roles) */
+export function useApprovalWorkflowConfig() {
+  return useQuery({
+    queryKey: essKeys.workflowConfig(),
+    queryFn: () => essApi.getApprovalWorkflowConfig(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 /** List approval workflows */
 export function useApprovalWorkflows(params?: ApprovalWorkflowListParams) {
@@ -416,5 +433,15 @@ export function useEssLoanPolicies() {
   return useQuery({
     queryKey: essKeys.loanPolicies(),
     queryFn: () => essApi.getAvailableLoanPolicies(),
+  });
+}
+
+// --- Appraisal Queries ---
+
+/** Employee's own appraisal entries */
+export function useMyAppraisals() {
+  return useQuery({
+    queryKey: essKeys.myAppraisals(),
+    queryFn: () => essApi.getMyAppraisals(),
   });
 }

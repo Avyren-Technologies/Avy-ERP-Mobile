@@ -2,7 +2,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import Env from 'env';
 import {
   Dimensions,
   Image,
@@ -24,11 +23,9 @@ import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useLoginMutation } from '@/features/auth/use-auth-mutations';
-import { createLogger } from '@/lib/logger';
-
-const logger = createLogger('LoginScreen');
-
+import { useBiometricLogin } from '@/hooks/use-biometric-login';
 
 type EmailInputProps = {
   email: string;
@@ -301,38 +298,104 @@ export function LoginScreen() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isPasswordVisible, setIsPasswordVisible] = React.useState(false);
-  const [error, setError] = React.useState('');
   const [emailFocused, setEmailFocused] = React.useState(false);
   const [passwordFocused, setPasswordFocused] = React.useState(false);
   const passwordRef = React.useRef<TextInput>(null);
   const loginMutation = useLoginMutation();
+  const { isChecking: isBiometricChecking, biometricSuccess } = useBiometricLogin();
+
+  // If biometric login succeeded, navigate to app
+  React.useEffect(() => {
+    if (biometricSuccess) {
+      router.replace('/(app)');
+    }
+  }, [biometricSuccess, router]);
+
+  // Show loading while biometric check is in progress
+  if (isBiometricChecking) {
+    return (
+      <View style={styles.container}>
+        <Image
+          source={require('../../../assets/illustrations/Login-Screen.png')}
+          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={[
+            'rgba(7,20,43,0.05)',
+            'rgba(7,20,43,0.15)',
+            'rgba(7,20,43,0.6)',
+            'rgba(7,20,43,0.92)',
+            'rgba(7,20,43,0.98)',
+          ]}
+          locations={[0, 0.25, 0.45, 0.6, 1]}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={styles.loadingDots}>
+            <View style={[styles.loadingDot, { opacity: 0.3 }]} />
+            <View style={[styles.loadingDot, { opacity: 0.6 }]} />
+            <View style={[styles.loadingDot, { opacity: 1 }]} />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   const handleSignIn = async () => {
-    if (!email || !password) {
+    if (!email.trim()) {
+      showErrorMessage('Please enter your email address');
       return;
     }
-    setError('');
-    const baseUrl = Env.EXPO_PUBLIC_API_URL;
-    const endpoint = '/auth/login';
-    const fullUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}${endpoint}` : null;
-    logger.info('Sign in attempt', {
-      email: email.trim(),
-      baseUrl,
-      endpoint,
-      fullUrl,
-    });
+    if (!password) {
+      showErrorMessage('Please enter your password');
+      return;
+    }
     try {
-      await loginMutation.mutateAsync({ email: email.trim(), password });
-      logger.info('Sign in successful — navigating to app');
+      const response = await loginMutation.mutateAsync({ email: email.trim(), password });
+
+      if (response.data && 'mfaRequired' in response.data && (response.data as any).mfaRequired) {
+        const mfaData = response.data as any;
+        if (mfaData.mfaSetupRequired) {
+          // Company enforces MFA but user hasn't set it up — redirect to setup
+          router.push({ pathname: '/mfa-setup', params: { mfaToken: mfaData.mfaToken } });
+        } else {
+          // User has MFA — redirect to verify
+          router.push({ pathname: '/mfa-verify', params: { mfaToken: mfaData.mfaToken } });
+        }
+        return;
+      }
+
       router.replace('/(app)');
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        'Sign in failed. Please try again.';
-      logger.error('Sign in failed', { message });
-      setError(message);
+      const code = err?.response?.data?.code || err?.code;
+      const serverMessage = err?.response?.data?.error || err?.response?.data?.message;
+
+      // Map error codes to user-friendly messages
+      switch (code) {
+        case 'INVALID_CREDENTIALS':
+          showErrorMessage('Invalid email or password. Please check your credentials.');
+          break;
+        case 'ACCOUNT_INACTIVE':
+          showErrorMessage('Your account has been deactivated. Please contact your administrator.');
+          break;
+        case 'ACCOUNT_LOCKED':
+          showErrorMessage(serverMessage || 'Account locked due to too many failed attempts. Please try again later.');
+          break;
+        case 'VALIDATION_ERROR':
+          showErrorMessage(serverMessage || 'Please enter a valid email and password.');
+          break;
+        default:
+          if (err?.response?.status >= 500) {
+            showErrorMessage('Server error. Please try again later.');
+          } else if (!err?.response) {
+            showErrorMessage('Unable to connect to the server. Please check your internet connection.');
+          } else {
+            showErrorMessage(serverMessage || 'Login failed. Please try again.');
+          }
+      }
     }
   };
 

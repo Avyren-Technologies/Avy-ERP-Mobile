@@ -298,14 +298,14 @@ function TabLayoutInner() {
     const [isFirstTime] = useIsFirstTime();
     const insets = useSafeAreaInsets();
     const isSuperAdmin = userRole === 'super-admin';
-    const isCompanyAdmin = userRole === 'company-admin';
-    const isEmployee =
-        userRole !== 'super-admin' &&
-        userRole !== 'company-admin' &&
-        permissions.some((p: string) => p.startsWith('ess:')) &&
-        !permissions.some(
-            (p: string) => p === 'company:read' || p === 'company:*'
-        );
+    // Determine effective role from PERMISSIONS, not from User.role (which is always COMPANY_ADMIN for company users).
+    // A user is an "employee" if they have ESS permissions but NOT company:read/company:* (admin-level access).
+    const hasCompanyAccess = permissions.some(
+        (p: string) => p === 'company:read' || p === 'company:*' || p === 'company:configure'
+    );
+    const hasEssAccess = permissions.some((p: string) => p.startsWith('ess:'));
+    const isEmployee = !isSuperAdmin && hasEssAccess && !hasCompanyAccess;
+    const isCompanyAdmin = !isSuperAdmin && hasCompanyAccess;
     // iOS base: 54px content + dynamic home indicator clearance
     // Android base: 68px content (larger touch targets) + gesture nav inset if present
     const TAB_BAR_HEIGHT = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
@@ -343,12 +343,19 @@ function TabLayoutInner() {
         visibleTabs.add('my-leave');
         visibleTabs.add('my-attendance');
         visibleTabs.add('more');
+    } else if (isSuperAdmin) {
+        // Super admin gets: Dashboard, Companies, Billing, More, Admin Support
+        visibleTabs.add('companies');
+        visibleTabs.add('billing');
+        visibleTabs.add('more');
+        visibleTabs.add('admin-support');
     } else {
+        // Company admin / Manager / custom roles
         if (showCompanyTab) visibleTabs.add('companies');
         if (showBillingTab) visibleTabs.add('billing');
-        if (showSettingsTab || canViewOps) visibleTabs.add('more');
-        if (isSuperAdmin) visibleTabs.add('admin-support');
-        else visibleTabs.add('support');
+        // Always show More for admin-level users (access to settings, ops, etc.)
+        visibleTabs.add('more');
+        visibleTabs.add('support');
     }
 
     return (

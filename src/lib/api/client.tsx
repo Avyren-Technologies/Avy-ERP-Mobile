@@ -1,6 +1,7 @@
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import Env from 'env';
+import { Platform } from 'react-native';
 
 import { showErrorMessage, showWarning } from '@/components/ui/utils';
 import { getToken } from '@/lib/auth/utils';
@@ -31,9 +32,10 @@ function processQueue(error: unknown, token: string | null = null) {
   failedQueue = [];
 }
 
-// --- Request interceptor: attach access token ---
+// --- Request interceptor: attach access token + device info ---
 client.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    config.headers['X-Device-Info'] = Platform.OS === 'ios' ? 'mobile-ios' : 'mobile-android';
     const tokenData = getToken();
     if (tokenData?.access) {
       config.headers.Authorization = `Bearer ${tokenData.access}`;

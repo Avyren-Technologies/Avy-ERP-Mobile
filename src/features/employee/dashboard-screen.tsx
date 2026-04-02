@@ -603,7 +603,7 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
                 <View style={S.welcomeHeaderRow}>
                     {/* FIX 1: Hamburger LEFT */}
                     <HamburgerButton onPress={toggle} />
-                    
+
                     <View style={S.welcomeTextWrap}>
                         <View style={S.greetingRow}>
                             <Text className="font-inter" style={S.greeting}>
@@ -935,16 +935,24 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
 
                     {/* Break schedule pills */}
                     {shift && shift.status !== 'NOT_LINKED' && (
-                        <View style={S.breaksRow}>
-                            <Text className="font-inter" style={{ fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase', marginRight: 4 }}>Breaks</Text>
-                            <View style={S.breakPill}>
-                                <CoffeeIcon s={11} />
-                                <Text className="font-inter text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Lunch 12:30 - 1:00</Text>
-                            </View>
-                            <View style={S.breakPill}>
-                                <CoffeeIcon s={11} />
-                                <Text className="font-inter text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Tea 3:30 - 3:45</Text>
-                            </View>
+                        <View style={S.breaksWrapper}>
+                            <Text className="font-inter" style={S.breaksLabel}>Breaks</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                bounces={false}
+                                contentContainerStyle={S.breaksScrollContent}
+                                style={{ flex: 1 }}
+                            >
+                                <View style={S.breakPill}>
+                                    <CoffeeIcon s={10} />
+                                    <Text className="font-inter" style={S.breakText}>Lunch 12:30 - 1:00</Text>
+                                </View>
+                                <View style={S.breakPill}>
+                                    <CoffeeIcon s={10} />
+                                    <Text className="font-inter" style={S.breakText}>Tea 3:30 - 3:45</Text>
+                                </View>
+                            </ScrollView>
                         </View>
                     )}
                 </LinearGradient>
@@ -2488,27 +2496,44 @@ const S = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    breaksRow: {
+    breaksWrapper: {
         marginTop: 12,
         paddingTop: 10,
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.1)',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+        width: '100%',
+    },
+    breaksLabel: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginRight: 8,
+    },
+    breaksScrollContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingRight: 12,
     },
     breakPill: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+    },
+    breakText: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: '500',
     },
 
     // Slide

@@ -105,7 +105,7 @@ function LinkedScreenDropdown({
                 style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, open && { borderColor: colors.primary[400] }]}
             >
                 <Text className={`flex-1 font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
-                    {options.find(o => o.value === value)?.label ?? value || 'Select screen...'}
+                    {options.find(o => o.value === value)?.label ?? (value || 'Select screen...')}
                 </Text>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
                     <Path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} stroke={open ? colors.primary[500] : colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />

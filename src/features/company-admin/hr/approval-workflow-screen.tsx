@@ -31,7 +31,7 @@ import {
     useDeleteApprovalWorkflow,
     useUpdateApprovalWorkflow,
 } from '@/features/company-admin/api/use-ess-mutations';
-import { useApprovalWorkflows } from '@/features/company-admin/api/use-ess-queries';
+import { useApprovalWorkflows, useApprovalWorkflowConfig } from '@/features/company-admin/api/use-ess-queries';
 
 // ============ TYPES ============
 
@@ -54,39 +54,38 @@ interface WorkflowItem {
 
 // ============ CONSTANTS ============
 
-const TRIGGER_EVENTS = [
-    'Leave Application', 'Attendance Regularization', 'Overtime Claim', 'Reimbursement',
-    'Loan Application', 'Resignation', 'Payroll Approval', 'Salary Revision',
-    'Asset Request', 'Training Request', 'Shift Change',
+const TRIGGER_COLOR_CYCLE = [
+    { bg: colors.info[50], text: colors.info[700] },
+    { bg: colors.warning[50], text: colors.warning[700] },
+    { bg: colors.accent[50], text: colors.accent[700] },
+    { bg: colors.success[50], text: colors.success[700] },
+    { bg: colors.primary[50], text: colors.primary[700] },
+    { bg: colors.danger[50], text: colors.danger[700] },
 ];
 
-const APPROVER_ROLES = ['Manager', 'HR', 'Finance', 'Director', 'CEO'];
-
-const TRIGGER_COLORS: Record<string, { bg: string; text: string }> = {
-    'Leave Application': { bg: colors.info[50], text: colors.info[700] },
-    'Attendance Regularization': { bg: colors.warning[50], text: colors.warning[700] },
-    'Overtime Claim': { bg: colors.accent[50], text: colors.accent[700] },
-    'Reimbursement': { bg: colors.success[50], text: colors.success[700] },
-    'Loan Application': { bg: colors.primary[50], text: colors.primary[700] },
-    'Resignation': { bg: colors.danger[50], text: colors.danger[700] },
-    'Payroll Approval': { bg: colors.info[50], text: colors.info[700] },
-    'Salary Revision': { bg: colors.warning[50], text: colors.warning[700] },
-};
+function getTriggerColor(value: string) {
+    let hash = 0;
+    for (let i = 0; i < value.length; i++) hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+    return TRIGGER_COLOR_CYCLE[Math.abs(hash) % TRIGGER_COLOR_CYCLE.length];
+}
 
 // ============ WORKFLOW FORM MODAL ============
 
 function WorkflowFormModal({
-    visible, onClose, onSave, isSaving, editItem,
+    visible, onClose, onSave, isSaving, editItem, triggerEvents, approverRoles,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void; isSaving: boolean;
     editItem?: WorkflowItem | null;
+    triggerEvents: Array<{ value: string; label: string }>;
+    approverRoles: Array<{ value: string; label: string }>;
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [triggerEvent, setTriggerEvent] = React.useState('');
     const [triggerOpen, setTriggerOpen] = React.useState(false);
-    const [steps, setSteps] = React.useState<WorkflowStep[]>([{ order: 1, approverRole: 'Manager', slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
+    const defaultRole = approverRoles[0]?.value ?? 'MANAGER';
+    const [steps, setSteps] = React.useState<WorkflowStep[]>([{ order: 1, approverRole: defaultRole, slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
     const [active, setActive] = React.useState(true);
 
     React.useEffect(() => {
@@ -94,17 +93,17 @@ function WorkflowFormModal({
             if (editItem) {
                 setName(editItem.name);
                 setTriggerEvent(editItem.triggerEvent);
-                setSteps(editItem.steps.length > 0 ? editItem.steps : [{ order: 1, approverRole: 'Manager', slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
+                setSteps(editItem.steps.length > 0 ? editItem.steps : [{ order: 1, approverRole: defaultRole, slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
                 setActive(editItem.active);
             } else {
                 setName(''); setTriggerEvent('');
-                setSteps([{ order: 1, approverRole: 'Manager', slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
+                setSteps([{ order: 1, approverRole: defaultRole, slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
                 setActive(true);
             }
         }
     }, [visible, editItem]);
 
-    const addStep = () => setSteps(prev => [...prev, { order: prev.length + 1, approverRole: 'HR', slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
+    const addStep = () => setSteps(prev => [...prev, { order: prev.length + 1, approverRole: approverRoles[1]?.value ?? defaultRole, slaHours: '24', autoEscalate: false, autoApprove: false, autoReject: false }]);
     const removeStep = (idx: number) => setSteps(prev => prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, order: i + 1 })));
     const updateStep = (idx: number, patch: Partial<WorkflowStep>) => setSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
 
@@ -133,7 +132,7 @@ function WorkflowFormModal({
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Trigger Event <Text className="text-danger-500">*</Text></Text>
                             <Pressable onPress={() => setTriggerOpen(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${triggerEvent ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>{triggerEvent || 'Select event...'}</Text>
+                                <Text className={`font-inter text-sm ${triggerEvent ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>{triggerEvents.find(t => t.value === triggerEvent)?.label ?? (triggerEvent || 'Select event...')}</Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
                             <Modal visible={triggerOpen} transparent animationType="slide" onRequestClose={() => setTriggerOpen(false)}>
@@ -143,10 +142,10 @@ function WorkflowFormModal({
                                         <View style={styles.sheetHandle} />
                                         <Text className="font-inter text-base font-bold text-primary-950 mb-3">Trigger Event</Text>
                                         <ScrollView showsVerticalScrollIndicator={false}>
-                                            {TRIGGER_EVENTS.map(ev => (
-                                                <Pressable key={ev} onPress={() => { setTriggerEvent(ev); setTriggerOpen(false); }}
-                                                    style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: ev === triggerEvent ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                                    <Text className={`font-inter text-sm ${ev === triggerEvent ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{ev}</Text>
+                                            {triggerEvents.map(ev => (
+                                                <Pressable key={ev.value} onPress={() => { setTriggerEvent(ev.value); setTriggerOpen(false); }}
+                                                    style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: ev.value === triggerEvent ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
+                                                    <Text className={`font-inter text-sm ${ev.value === triggerEvent ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{ev.label}</Text>
                                                 </Pressable>
                                             ))}
                                         </ScrollView>
@@ -175,11 +174,11 @@ function WorkflowFormModal({
                                 </View>
                                 {/* Approver Role */}
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                                    {APPROVER_ROLES.map(role => {
-                                        const sel = role === step.approverRole;
+                                    {approverRoles.map(role => {
+                                        const sel = role.value === step.approverRole;
                                         return (
-                                            <Pressable key={role} onPress={() => updateStep(idx, { approverRole: role })} style={[styles.chip, sel && styles.chipActive]}>
-                                                <Text className={`font-inter text-[10px] font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{role}</Text>
+                                            <Pressable key={role.value} onPress={() => updateStep(idx, { approverRole: role.value })} style={[styles.chip, sel && styles.chipActive]}>
+                                                <Text className={`font-inter text-[10px] font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{role.label}</Text>
                                             </Pressable>
                                         );
                                     })}
@@ -224,8 +223,9 @@ function WorkflowFormModal({
 
 // ============ WORKFLOW CARD ============
 
-function WorkflowCard({ item, index, onEdit, onDelete, onToggle }: { item: WorkflowItem; index: number; onEdit: () => void; onDelete: () => void; onToggle: (v: boolean) => void }) {
-    const tc = TRIGGER_COLORS[item.triggerEvent] ?? { bg: colors.neutral[100], text: colors.neutral[700] };
+function WorkflowCard({ item, index, onEdit, onDelete, onToggle, triggerEvents }: { item: WorkflowItem; index: number; onEdit: () => void; onDelete: () => void; onToggle: (v: boolean) => void; triggerEvents: Array<{ value: string; label: string }> }) {
+    const tc = getTriggerColor(item.triggerEvent);
+    const triggerLabel = triggerEvents.find(t => t.value === item.triggerEvent)?.label ?? item.triggerEvent;
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onEdit} style={styles.card}>
@@ -233,7 +233,7 @@ function WorkflowCard({ item, index, onEdit, onDelete, onToggle }: { item: Workf
                     <View style={{ flex: 1 }}>
                         <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
                         <View style={[styles.triggerBadge, { backgroundColor: tc.bg }]}>
-                            <Text style={{ color: tc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.triggerEvent}</Text>
+                            <Text style={{ color: tc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{triggerLabel}</Text>
                         </View>
                     </View>
                     <Switch value={item.active} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={item.active ? colors.primary[600] : colors.neutral[300]} />
@@ -257,9 +257,13 @@ export function ApprovalWorkflowScreen() {
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data: response, isLoading, error, refetch, isFetching } = useApprovalWorkflows();
+    const { data: configResponse } = useApprovalWorkflowConfig();
     const createMutation = useCreateApprovalWorkflow();
     const updateMutation = useUpdateApprovalWorkflow();
     const deleteMutation = useDeleteApprovalWorkflow();
+
+    const triggerEvents: Array<{ value: string; label: string }> = (configResponse as any)?.data?.triggerEvents ?? [];
+    const approverRoles: Array<{ value: string; label: string }> = (configResponse as any)?.data?.approverRoles ?? [];
 
     const [formVisible, setFormVisible] = React.useState(false);
     const [editItem, setEditItem] = React.useState<WorkflowItem | null>(null);
@@ -307,7 +311,7 @@ export function ApprovalWorkflowScreen() {
     };
 
     const renderItem = ({ item, index }: { item: WorkflowItem; index: number }) => (
-        <WorkflowCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} onToggle={v => handleToggle(item, v)} />
+        <WorkflowCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} onToggle={v => handleToggle(item, v)} triggerEvents={triggerEvents} />
     );
 
     const renderHeader = () => (
@@ -338,7 +342,7 @@ export function ApprovalWorkflowScreen() {
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
             <FAB onPress={handleCreate} />
-            <WorkflowFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} isSaving={createMutation.isPending || updateMutation.isPending} editItem={editItem} />
+            <WorkflowFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} isSaving={createMutation.isPending || updateMutation.isPending} editItem={editItem} triggerEvents={triggerEvents} approverRoles={approverRoles} />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );

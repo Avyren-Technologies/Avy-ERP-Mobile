@@ -22,6 +22,7 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { ImageViewer, isImageFile } from '@/components/ui/image-viewer';
 import { FAB } from '@/components/ui/fab';
 import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
@@ -402,6 +403,27 @@ function CreateExpenseClaimModal({
     const [categoryPickerVisible, setCategoryPickerVisible] = React.useState(false);
     const [paymentPickerVisible, setPaymentPickerVisible] = React.useState(false);
 
+    // Image viewer state
+    const [viewerImages, setViewerImages] = React.useState<Array<{ fileName: string; fileUrl: string }>>([]);
+    const [viewerIndex, setViewerIndex] = React.useState(0);
+    const [viewerOpen, setViewerOpen] = React.useState(false);
+
+    const openReceiptViewer = (receiptList: Receipt[], index: number) => {
+        const imageReceipts = receiptList.filter(r => isImageFile(r.fileUrl));
+        if (imageReceipts.length === 0) {
+            showErrorMessage('This file cannot be previewed');
+            return;
+        }
+        // Find the adjusted index in the filtered list
+        const tappedReceipt = receiptList[index];
+        const adjustedIndex = isImageFile(tappedReceipt.fileUrl)
+            ? imageReceipts.findIndex(r => r.fileUrl === tappedReceipt.fileUrl)
+            : 0;
+        setViewerImages(imageReceipts.map(r => ({ fileName: r.fileName, fileUrl: r.fileUrl })));
+        setViewerIndex(adjustedIndex >= 0 ? adjustedIndex : 0);
+        setViewerOpen(true);
+    };
+
     React.useEffect(() => {
         if (visible) {
             setTitle('');
@@ -734,7 +756,11 @@ function CreateExpenseClaimModal({
                         </View>
 
                         {receipts.map((r, idx) => (
-                            <View key={`receipt-${idx}`} style={styles.receiptCard}>
+                            <Pressable
+                                key={`receipt-${idx}`}
+                                onPress={() => openReceiptViewer(receipts, idx)}
+                                style={styles.receiptCard}
+                            >
                                 {isImageUri(r.fileUrl) ? (
                                     <Image source={{ uri: r.fileUrl }} style={styles.receiptThumb} resizeMode="cover" />
                                 ) : (
@@ -747,18 +773,28 @@ function CreateExpenseClaimModal({
                                     {r.fileSize != null && (
                                         <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">{formatFileSize(r.fileSize)}</Text>
                                     )}
+                                    {isImageFile(r.fileUrl) && (
+                                        <Text className="font-inter text-[10px] text-info-500 mt-0.5">Tap to view</Text>
+                                    )}
                                 </View>
                                 <Pressable onPress={() => removeReceipt(idx)} hitSlop={8}>
                                     <Svg width={16} height={16} viewBox="0 0 24 24">
                                         <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                     </Svg>
                                 </Pressable>
-                            </View>
+                            </Pressable>
                         ))}
 
                         {receipts.length === 0 && (
                             <Text className="font-inter text-[10px] text-neutral-400 mb-4">No receipts added yet</Text>
                         )}
+
+                        <ImageViewer
+                            images={viewerImages}
+                            initialIndex={viewerIndex}
+                            visible={viewerOpen}
+                            onClose={() => setViewerOpen(false)}
+                        />
                     </ScrollView>
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
@@ -794,6 +830,26 @@ export function MyExpenseClaimsScreen() {
     const cancelClaim = useCancelMyExpenseClaim();
 
     const [formVisible, setFormVisible] = React.useState(false);
+
+    // Image viewer state for list view receipts
+    const [listViewerImages, setListViewerImages] = React.useState<Array<{ fileName: string; fileUrl: string }>>([]);
+    const [listViewerIndex, setListViewerIndex] = React.useState(0);
+    const [listViewerOpen, setListViewerOpen] = React.useState(false);
+
+    const openListReceiptViewer = (receiptList: any[], index: number) => {
+        const imageReceipts = receiptList.filter((r: any) => isImageFile(r.fileUrl ?? ''));
+        if (imageReceipts.length === 0) {
+            showErrorMessage('This file cannot be previewed');
+            return;
+        }
+        const tappedReceipt = receiptList[index];
+        const adjustedIndex = isImageFile(tappedReceipt?.fileUrl ?? '')
+            ? imageReceipts.findIndex((r: any) => r.fileUrl === tappedReceipt.fileUrl)
+            : 0;
+        setListViewerImages(imageReceipts.map((r: any) => ({ fileName: r.fileName ?? 'Receipt', fileUrl: r.fileUrl })));
+        setListViewerIndex(adjustedIndex >= 0 ? adjustedIndex : 0);
+        setListViewerOpen(true);
+    };
 
     const claims = React.useMemo(() => {
         const raw = (data as any)?.data ?? (data as any)?.claims ?? [];
@@ -916,9 +972,15 @@ export function MyExpenseClaimsScreen() {
                 {Array.isArray(item.receipts) && item.receipts.length > 0 && (
                     <View style={{ marginTop: 4 }}>
                         {item.receipts.map((r: any, rIdx: number) => (
-                            <Text key={`r-${rIdx}`} className="font-inter text-[10px] text-info-600" numberOfLines={1}>
-                                {r.fileName ?? `Receipt ${rIdx + 1}`}
-                            </Text>
+                            <Pressable
+                                key={`r-${rIdx}`}
+                                onPress={() => isImageFile(r.fileUrl ?? '') ? openListReceiptViewer(item.receipts, rIdx) : showErrorMessage('This file cannot be previewed')}
+                                hitSlop={4}
+                            >
+                                <Text className="font-inter text-[10px] text-info-600" numberOfLines={1} style={{ textDecorationLine: 'underline' }}>
+                                    {r.fileName ?? `Receipt ${rIdx + 1}`}
+                                </Text>
+                            </Pressable>
                         ))}
                     </View>
                 )}
@@ -977,6 +1039,12 @@ export function MyExpenseClaimsScreen() {
                 categories={categoryOptions}
             />
             <ConfirmModal {...confirmModalProps} />
+            <ImageViewer
+                images={listViewerImages}
+                initialIndex={listViewerIndex}
+                visible={listViewerOpen}
+                onClose={() => setListViewerOpen(false)}
+            />
         </View>
     );
 }

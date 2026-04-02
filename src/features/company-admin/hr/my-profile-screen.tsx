@@ -57,6 +57,24 @@ function maskValue(val: string, showLast: number = 4): string {
     return '*'.repeat(val.length - showLast) + val.slice(-showLast);
 }
 
+function asDisplayText(value: unknown): string {
+    if (value == null) return '';
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    if (Array.isArray(value)) {
+        return value.map(asDisplayText).filter(Boolean).join(', ');
+    }
+    if (typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        const preferred = record.name ?? record.label ?? record.title ?? record.value ?? record.code;
+        if (preferred != null && (typeof preferred === 'string' || typeof preferred === 'number')) {
+            return String(preferred);
+        }
+    }
+    return '';
+}
+
 // ============ SHARED ATOMS ============
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -223,25 +241,25 @@ export function MyProfileScreen() {
         const d: any = (response as any)?.data ?? response;
         if (!d) return null;
         return {
-            name: d.name ?? `${d.firstName ?? ''} ${d.lastName ?? ''}`.trim(),
-            employeeCode: d.employeeCode ?? d.code ?? '',
-            designation: d.designation ?? '',
-            department: d.department ?? '',
-            dateOfJoining: d.dateOfJoining ?? d.joiningDate ?? '',
-            reportingTo: d.reportingTo ?? d.managerName ?? '',
-            employeeType: d.employeeType ?? d.type ?? '',
-            email: d.email ?? '',
-            phone: d.phone ?? d.mobile ?? '',
-            address: d.address ?? '',
-            emergencyContact: d.emergencyContact ?? d.emergencyContactName ?? '',
-            emergencyPhone: d.emergencyPhone ?? d.emergencyContactPhone ?? '',
-            bankName: d.bankName ?? '',
-            accountNumber: d.accountNumber ?? '',
-            ifscCode: d.ifscCode ?? d.ifsc ?? '',
-            pan: d.pan ?? '',
-            aadhaar: d.aadhaar ?? '',
-            uan: d.uan ?? '',
-            esiNumber: d.esiNumber ?? '',
+            name: asDisplayText(d.name) || `${asDisplayText(d.firstName)} ${asDisplayText(d.lastName)}`.trim(),
+            employeeCode: asDisplayText(d.employeeCode ?? d.code),
+            designation: asDisplayText(d.designation),
+            department: asDisplayText(d.department),
+            dateOfJoining: asDisplayText(d.dateOfJoining ?? d.joiningDate),
+            reportingTo: asDisplayText(d.reportingTo ?? d.managerName),
+            employeeType: asDisplayText(d.employeeType ?? d.type),
+            email: asDisplayText(d.email),
+            phone: asDisplayText(d.phone ?? d.mobile),
+            address: asDisplayText(d.address),
+            emergencyContact: asDisplayText(d.emergencyContact ?? d.emergencyContactName),
+            emergencyPhone: asDisplayText(d.emergencyPhone ?? d.emergencyContactPhone),
+            bankName: asDisplayText(d.bankName),
+            accountNumber: asDisplayText(d.accountNumber),
+            ifscCode: asDisplayText(d.ifscCode ?? d.ifsc),
+            pan: asDisplayText(d.pan),
+            aadhaar: asDisplayText(d.aadhaar),
+            uan: asDisplayText(d.uan),
+            esiNumber: asDisplayText(d.esiNumber),
         };
     }, [response]);
 

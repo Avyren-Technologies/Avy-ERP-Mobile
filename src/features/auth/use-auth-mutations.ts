@@ -13,21 +13,47 @@ export function useLoginMutation() {
             return response;
         },
         onSuccess: (response) => {
+            if (response.success && response.data) {
+                // MFA challenge — don't sign in, let the caller handle navigation
+                if ('mfaRequired' in response.data && (response.data as any).mfaRequired) {
+                    return; // Caller checks response.data.mfaRequired
+                }
+
+                // Normal login
+                if (response.data.user && response.data.tokens) {
+                    const { user, tokens } = response.data;
+                    const payload = decodeJwtPayload(tokens.accessToken);
+                    const permissions: string[] = Array.isArray(payload?.permissions)
+                        ? (payload.permissions as string[])
+                        : [];
+                    const userWithPermissions = { ...user, permissions };
+                    logger.info('Login API success', { email: user.email, role: user.role, permissionCount: permissions.length });
+                    signIn(
+                        { access: tokens.accessToken, refresh: tokens.refreshToken },
+                        userWithPermissions,
+                    );
+                }
+            }
+        },
+    });
+}
+
+export function useMfaVerifyMutation() {
+    return useMutation({
+        mutationFn: async ({ mfaToken, code }: { mfaToken: string; code: string }) => {
+            const response = await authApi.verifyMfa(mfaToken, code);
+            return response;
+        },
+        onSuccess: (response) => {
             if (response.success && response.data?.user && response.data?.tokens) {
                 const { user, tokens } = response.data;
-                // Decode JWT to extract permissions (embedded in token payload by backend)
                 const payload = decodeJwtPayload(tokens.accessToken);
                 const permissions: string[] = Array.isArray(payload?.permissions)
                     ? (payload.permissions as string[])
                     : [];
-                const userWithPermissions = { ...user, permissions };
-                logger.info('Login API success', { email: user.email, role: user.role, permissionCount: permissions.length });
                 signIn(
-                    {
-                        access: tokens.accessToken,
-                        refresh: tokens.refreshToken,
-                    },
-                    userWithPermissions,
+                    { access: tokens.accessToken, refresh: tokens.refreshToken },
+                    { ...user, permissions },
                 );
             }
         },

@@ -23,11 +23,13 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { ImageViewer, isImageFile } from '@/components/ui/image-viewer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showErrorMessage } from '@/components/ui/utils';
 
 import { useExpenseCategories } from '@/features/company-admin/api/use-ess-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
@@ -408,6 +410,26 @@ function ClaimFormModal({
     const [categoryPickerVisible, setCategoryPickerVisible] = React.useState(false);
     const [paymentPickerVisible, setPaymentPickerVisible] = React.useState(false);
 
+    // Image viewer state
+    const [viewerImages, setViewerImages] = React.useState<Array<{ fileName: string; fileUrl: string }>>([]);
+    const [viewerIndex, setViewerIndex] = React.useState(0);
+    const [viewerOpen, setViewerOpen] = React.useState(false);
+
+    const openReceiptViewer = (receiptList: ReceiptItem[], index: number) => {
+        const imageReceipts = receiptList.filter(r => isImageFile(r.fileUrl));
+        if (imageReceipts.length === 0) {
+            showErrorMessage('This file cannot be previewed');
+            return;
+        }
+        const tappedReceipt = receiptList[index];
+        const adjustedIndex = isImageFile(tappedReceipt.fileUrl)
+            ? imageReceipts.findIndex(r => r.fileUrl === tappedReceipt.fileUrl)
+            : 0;
+        setViewerImages(imageReceipts.map(r => ({ fileName: r.fileName, fileUrl: r.fileUrl })));
+        setViewerIndex(adjustedIndex >= 0 ? adjustedIndex : 0);
+        setViewerOpen(true);
+    };
+
     React.useEffect(() => {
         if (visible) {
             setEmployeeId('');
@@ -720,7 +742,11 @@ function ClaimFormModal({
                         </View>
 
                         {receipts.map((r, idx) => (
-                            <View key={`receipt-${idx}`} style={styles.receiptCard}>
+                            <Pressable
+                                key={`receipt-${idx}`}
+                                onPress={() => openReceiptViewer(receipts, idx)}
+                                style={styles.receiptCard}
+                            >
                                 {r.fileUrl.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) || r.fileUrl.startsWith('file://') ? (
                                     <Image source={{ uri: r.fileUrl }} style={styles.receiptThumb} />
                                 ) : (
@@ -736,14 +762,24 @@ function ClaimFormModal({
                                     {r.fileSize ? (
                                         <Text className="font-inter text-[10px] text-neutral-400 mt-0.5">{formatFileSize(r.fileSize)}</Text>
                                     ) : null}
+                                    {isImageFile(r.fileUrl) && (
+                                        <Text className="font-inter text-[10px] text-info-500 mt-0.5">Tap to view</Text>
+                                    )}
                                 </View>
                                 <Pressable onPress={() => removeReceipt(idx)} hitSlop={8}>
                                     <Svg width={16} height={16} viewBox="0 0 24 24">
                                         <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                     </Svg>
                                 </Pressable>
-                            </View>
+                            </Pressable>
                         ))}
+
+                        <ImageViewer
+                            images={viewerImages}
+                            initialIndex={viewerIndex}
+                            visible={viewerOpen}
+                            onClose={() => setViewerOpen(false)}
+                        />
 
                         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
                             <Pressable onPress={handleUploadFile} style={styles.uploadBtn}>

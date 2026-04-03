@@ -50,6 +50,7 @@ interface CompanyDetailUI {
     industry: string;
     companyCode: string;
     shortName: string;
+    slug: string;
     status: WizardStatus;
     cin: string;
     incorporationDate: string;
@@ -135,6 +136,7 @@ function mapApiToDetailUI(raw: any): CompanyDetailUI {
         industry: identity.industry ?? raw.industry ?? '',
         companyCode: identity.companyCode ?? raw.companyCode ?? '',
         shortName: identity.shortName ?? raw.shortName ?? '',
+        slug: raw.tenant?.slug ?? raw.slug ?? '',
         status: (raw.wizardStatus ?? raw.status ?? 'Draft') as WizardStatus,
         cin: identity.cin ?? raw.cin ?? '',
         incorporationDate: identity.incorporationDate ?? raw.incorporationDate ?? '',
@@ -145,7 +147,7 @@ function mapApiToDetailUI(raw: any): CompanyDetailUI {
         regLine1: address.line1 ?? address.regLine1 ?? '', regLine2: address.line2 ?? address.regLine2 ?? '', regCity: address.city ?? address.regCity ?? '', regDistrict: address.district ?? address.regDistrict ?? '', regPin: address.pin ?? address.regPin ?? '', regState: address.state ?? address.regState ?? '', regCountry: address.country ?? address.regCountry ?? 'India', sameAsRegistered: raw.address?.sameAsRegistered ?? raw.sameAsRegistered ?? true,
         fyType: fiscal.fyType ?? '', fyCustomStartMonth: fiscal.fyCustomStartMonth ?? '', fyCustomEndMonth: fiscal.fyCustomEndMonth ?? '', payrollFreq: fiscal.payrollFreq ?? '', cutoffDay: fiscal.cutoffDay ?? '', disbursementDay: fiscal.disbursementDay ?? '', weekStart: fiscal.weekStart ?? '', timezone: fiscal.timezone ?? '', workingDays: fiscal.workingDays ?? [],
         currency: preferences.currency ?? '', language: preferences.language ?? '', dateFormat: preferences.dateFormat ?? '', indiaCompliance: preferences.indiaCompliance ?? false, mobileApp: preferences.mobileApp ?? false, webApp: preferences.webApp ?? false, bankIntegration: preferences.bankIntegration ?? false, biometric: preferences.biometric ?? false, emailNotif: preferences.emailNotif ?? false, mfa: controls.mfa ?? preferences.mfa ?? false,
-        endpointType: (endpoint.endpointType ?? raw.endpointType ?? 'default') as 'default' | 'custom', endpointUrl: endpoint.customBaseUrl ?? raw.customEndpointUrl ?? 'https://api.avyerp.com',
+        endpointType: (endpoint.endpointType ?? raw.endpointType ?? 'default') as 'default' | 'custom', endpointUrl: endpoint.customBaseUrl ?? raw.customEndpointUrl ?? 'https://avy-erp-api.avyren.in',
         multiLocationMode: strategy.multiLocationMode ?? raw.multiLocationMode ?? false, locationConfig: strategy.locationConfig ?? raw.locationConfig ?? 'common',
         locations: locations.map((loc: any) => ({
             id: loc.id ?? '', name: loc.name ?? '', code: loc.code ?? '', type: loc.facilityType ?? loc.type ?? '',
@@ -866,6 +868,7 @@ export function CompanyDetailScreen() {
                             <InfoRow label="Employees" value={company.employees} />
                             <InfoRow label="Website" value={company.website} />
                             <InfoRow label="Email Domain" value={company.emailDomain} />
+                            {company.slug ? <InfoRow label="Subdomain" value={`${company.slug}.avyren.in`} /> : null}
                             <InfoRow label="Registered" value={company.createdAt} />
                         </View>
                     </Animated.View>
@@ -991,7 +994,7 @@ export function CompanyDetailScreen() {
                             {endpointType === 'default' ? (
                                 <View style={styles.serverUrlDisplay}>
                                     <Text className="font-inter text-sm font-medium text-success-700">
-                                        https://api.avyerp.com
+                                        https://avy-erp-api.avyren.in
                                     </Text>
                                     <View style={styles.connectedBadge}>
                                         <View style={[styles.serverDot, { backgroundColor: colors.success[500] }]} />

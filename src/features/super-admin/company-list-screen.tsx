@@ -57,6 +57,7 @@ interface CompanyItem {
     multiLocationMode: boolean;
     primaryContact: string;
     primaryDesignation: string;
+    slug: string;
 }
 
 // Maps wizard status to StatusBadge variant
@@ -91,6 +92,7 @@ function mapApiCompany(item: any): CompanyItem {
         multiLocationMode: item.multiLocationMode ?? false,
         primaryContact: item.contacts?.[0]?.name ?? item.primaryContact ?? '',
         primaryDesignation: item.contacts?.[0]?.designation ?? item.primaryDesignation ?? '',
+        slug: item.tenant?.slug ?? item.slug ?? '',
     };
 }
 
@@ -144,6 +146,11 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             >
                                 {company.displayName}
                             </Text>
+                            {company.slug ? (
+                                <Text className="font-inter text-[10px] text-primary-400" numberOfLines={1}>
+                                    {company.slug}.avyren.in
+                                </Text>
+                            ) : null}
                             <View style={styles.industryRow}>
                                 <Text className="font-inter text-xs text-neutral-500">
                                     {company.industry}

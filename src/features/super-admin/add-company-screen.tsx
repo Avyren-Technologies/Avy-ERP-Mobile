@@ -306,7 +306,7 @@ export function AddCompanyScreen() {
                                         </View>
                                         <View>
                                             <Text className="font-inter text-sm font-bold text-primary-950">Default (Avyren-hosted)</Text>
-                                            <Text className="font-inter text-xs text-neutral-500">https://api.avyerp.com</Text>
+                                            <Text className="font-inter text-xs text-neutral-500">https://avy-erp-api.avyren.in</Text>
                                         </View>
                                     </View>
                                     <View style={[styles.recommendedTag, serverType !== 'default' && { opacity: 0 }]}>

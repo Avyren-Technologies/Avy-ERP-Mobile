@@ -291,7 +291,7 @@ function EndpointFields({
         <>
             <ModalRadioOption
                 label="Default (Avyren Cloud)"
-                subtitle="https://api.avyerp.com"
+                subtitle="https://avy-erp-api.avyren.in"
                 selected={data.endpointType === 'default'}
                 onPress={() => onChange('endpointType', 'default')}
             />

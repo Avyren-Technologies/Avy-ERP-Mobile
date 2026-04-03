@@ -29,6 +29,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { storage } from '@/lib/storage';
+import { addCalendarDaysToIsoDate, getProbationDaysFromDesignation } from '@/lib/probation-end-date';
 
 import {
     useCreateEmployee,
@@ -763,7 +764,10 @@ function ProfessionalTab({
             <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} />
             <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} />
             <FormField label="Notice Period (Days)" value={form.noticePeriodDays} onChangeText={(v) => onChange({ noticePeriodDays: v })} keyboardType="number-pad" placeholder="e.g. 90" />
-            <FormField label="Probation End Date" value={form.probationEndDate} onChangeText={(v) => onChange({ probationEndDate: v })} placeholder="Auto-calculated" editable={false} />
+            <FormField label="Probation End Date" value={form.probationEndDate} onChangeText={(v) => onChange({ probationEndDate: v })} placeholder="YYYY-MM-DD" editable={false} />
+            <Text className="font-inter mt-1 text-[10px] leading-4 text-neutral-500">
+                Set by joining date + probation days on the designation (HR → Designations). Edit designation to change default length.
+            </Text>
         </Animated.View>
     );
 }
@@ -1133,10 +1137,26 @@ export function EmployeeDetailScreen() {
         return Array.isArray(raw) ? raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })) : [];
     }, [deptResponse]);
 
-    const desigOptions = React.useMemo(() => {
+    const designationsFull = React.useMemo(() => {
         const raw = (desigResponse as any)?.data ?? desigResponse ?? [];
-        return Array.isArray(raw) ? raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })) : [];
+        return Array.isArray(raw) ? raw : [];
     }, [desigResponse]);
+
+    const desigOptions = React.useMemo(
+        () => designationsFull.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })),
+        [designationsFull],
+    );
+
+    // Probation end = joining date + designation.probationDays (Designation master)
+    React.useEffect(() => {
+        if (!professional.designationId || !professional.joiningDate.trim()) return;
+        const desig = designationsFull.find((d: any) => d.id === professional.designationId);
+        const days = getProbationDaysFromDesignation(desig);
+        if (days == null) return;
+        const formatted = addCalendarDaysToIsoDate(professional.joiningDate, days);
+        if (!formatted) return;
+        setProfessional((p) => (p.probationEndDate === formatted ? p : { ...p, probationEndDate: formatted }));
+    }, [professional.designationId, professional.joiningDate, designationsFull]);
 
     const empTypeOptions = React.useMemo(() => {
         const raw = (empTypeResponse as any)?.data ?? empTypeResponse ?? [];
@@ -1247,7 +1267,7 @@ export function EmployeeDetailScreen() {
             locationId: d.locationId ?? d.location?.id ?? '',
             costCentreId: d.costCentreId ?? d.costCentre?.id ?? '',
             noticePeriodDays: d.noticePeriodDays?.toString() ?? '',
-            probationEndDate: d.probationEndDate ?? '',
+            probationEndDate: d.probationEndDate ? String(d.probationEndDate).slice(0, 10) : '',
         });
 
         setSalary({
@@ -1340,6 +1360,7 @@ export function EmployeeDetailScreen() {
         locationId: professional.locationId || undefined,
         costCentreId: professional.costCentreId || undefined,
         noticePeriodDays: professional.noticePeriodDays ? parseInt(professional.noticePeriodDays, 10) : undefined,
+        probationEndDate: professional.probationEndDate?.trim() || undefined,
         // Salary
         annualCtc: salary.annualCtc ? parseFloat(salary.annualCtc) : undefined,
         paymentMode: salary.paymentMode || undefined,

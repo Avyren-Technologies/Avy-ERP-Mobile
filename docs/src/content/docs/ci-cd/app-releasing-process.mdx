@@ -129,7 +129,7 @@ If you prefer not to push the `.env` file (recommended), you need to add all you
   uses: SpicyPizza/create-envfile@v2.0
   with:
     envkey_DEBUG: false
-    envkey_SECRET_KEY: ${{ secrets.PRODUCTION_SECRET_KEY }}
+    envkey_EXPO_PUBLIC_API_URL: ${{ secrets.PRODUCTION_API_URL }}
     file_name: .env
 
 - name: ⏱️ EAS Build
@@ -139,7 +139,7 @@ If you prefer not to push the `.env` file (recommended), you need to add all you
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-This action will create a new `.env` file with the `DEBUG` and `SECRET_KEY` variables you added to the action. so make sure to include all your env variables to the action.
+This action will create a new `.env` file with the variables you listed (for example `DEBUG` and `EXPO_PUBLIC_API_URL`). Include every variable your `env.ts` / build expects.
 
 ## Create new release
 

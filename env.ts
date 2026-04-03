@@ -1,3 +1,16 @@
+/**
+ * Environment variables loaded at build time (EXPO_PUBLIC_*).
+ *
+ * From process.env / .env:
+ * - EXPO_PUBLIC_APP_ENV — development | preview | production
+ * - EXPO_PUBLIC_API_URL — backend base URL (must include /api/v1), required for API + socket
+ * - EXPO_PUBLIC_ASSOCIATED_DOMAIN — optional, Universal Links (https URL)
+ * - EXPO_PUBLIC_GOOGLE_MAPS_API_KEY — optional, native Maps in app.config.ts
+ *
+ * Not in schema: STRICT_ENV_VALIDATION=1 enables strict Zod checks (e.g. CI).
+ *
+ * Name, bundle IDs, scheme, version are derived in this file (not from .env).
+ */
 import z from 'zod';
 
 import packageJSON from './package.json';
@@ -12,12 +25,7 @@ const envSchema = z.object({
   EXPO_PUBLIC_VERSION: z.string(),
   EXPO_PUBLIC_API_URL: z.string().url(),
   EXPO_PUBLIC_ASSOCIATED_DOMAIN: z.string().url().optional(),
-  EXPO_PUBLIC_VAR_NUMBER: z.number(),
-  EXPO_PUBLIC_VAR_BOOL: z.boolean(),
   EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional(),
-
-  // only available for app.config.ts usage
-  APP_BUILD_ONLY_VAR: z.string().optional(),
 });
 
 // Config records per environment
@@ -57,10 +65,7 @@ const _env: z.infer<typeof envSchema> = {
   EXPO_PUBLIC_VERSION: packageJSON.version,
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL ?? '',
   EXPO_PUBLIC_ASSOCIATED_DOMAIN: process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN,
-  EXPO_PUBLIC_VAR_NUMBER: Number(process.env.EXPO_PUBLIC_VAR_NUMBER ?? 0),
-  EXPO_PUBLIC_VAR_BOOL: process.env.EXPO_PUBLIC_VAR_BOOL === 'true',
   EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-  APP_BUILD_ONLY_VAR: process.env.APP_BUILD_ONLY_VAR,
 };
 
 function getValidatedEnv(env: z.infer<typeof envSchema>) {

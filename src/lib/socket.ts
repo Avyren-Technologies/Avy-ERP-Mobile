@@ -6,7 +6,8 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
     if (!socket) {
-        const apiUrl = Env.EXPO_PUBLIC_API_URL || 'https://avy-erp-api.avyren.in';
+        const apiUrl = Env.EXPO_PUBLIC_API_URL
+            || 'https://avy-erp-api.avyrentechnologies.com/api/v1';
         const baseUrl = apiUrl.replace(/\/api\/v1\/?$/, '');
         socket = io(baseUrl, {
             transports: ['websocket', 'polling'],

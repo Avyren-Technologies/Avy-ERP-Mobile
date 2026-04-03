@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: SCREEN_HEIGHT,
     paddingHorizontal: 24,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   backContainer: {
     width: '100%',
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
   bottomBlock: {
     width: '100%',
-    marginTop: 22,
+    marginTop: 140,
   },
   welcomeSection: {
     alignItems: 'flex-start',

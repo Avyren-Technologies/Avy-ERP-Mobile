@@ -178,50 +178,50 @@ function PaginationDots({
 }
 
 // ─── Register Company Button (outlined) ─────────────────────────────
-function RegisterButton({
-  onPress,
-  colors,
-}: {
-  onPress: () => void;
-  colors: ReturnType<typeof useThemeColors>;
-}) {
-  const scale = useSharedValue(1);
+// function RegisterButton({
+//   onPress,
+//   colors,
+// }: {
+//   onPress: () => void;
+//   colors: ReturnType<typeof useThemeColors>;
+// }) {
+//   const scale = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+//   const animatedStyle = useAnimatedStyle(() => ({
+//     transform: [{ scale: scale.value }],
+//   }));
 
-  return (
-    <Animated.View style={[styles.registerWrapper, animatedStyle]}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => {
-          scale.value = withSpring(0.97, { stiffness: 300, damping: 18 });
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, { stiffness: 300, damping: 18 });
-        }}
-        style={[
-          styles.registerButton,
-          {
-            borderColor: colors.registerBorder,
-            backgroundColor: colors.registerBg,
-          },
-        ]}
-        accessible
-        accessibilityRole="button"
-        accessibilityLabel="Register your company"
-      >
-        <Text
-          className="font-inter text-sm font-semibold"
-          style={{ color: colors.registerText }}
-        >
-          Register Your Company
-        </Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
+//   return (
+//     <Animated.View style={[styles.registerWrapper, animatedStyle]}>
+//       <Pressable
+//         onPress={onPress}
+//         onPressIn={() => {
+//           scale.value = withSpring(0.97, { stiffness: 300, damping: 18 });
+//         }}
+//         onPressOut={() => {
+//           scale.value = withSpring(1, { stiffness: 300, damping: 18 });
+//         }}
+//         style={[
+//           styles.registerButton,
+//           {
+//             borderColor: colors.registerBorder,
+//             backgroundColor: colors.registerBg,
+//           },
+//         ]}
+//         accessible
+//         accessibilityRole="button"
+//         accessibilityLabel="Register your company"
+//       >
+//         <Text
+//           className="font-inter text-sm font-semibold"
+//           style={{ color: colors.registerText }}
+//         >
+//           Register Your Company
+//         </Text>
+//       </Pressable>
+//     </Animated.View>
+//   );
+// }
 
 // ─── CTA Button ──────────────────────────────────────────────────────
 function CTAButton({
@@ -329,7 +329,7 @@ function OnboardingSlide({
         <CTAButton label={step.ctaLabel} onPress={onCTA} colors={colors} />
 
         {/* Register Your Company — secondary action on last slide */}
-        {step.showRegisterOption && (
+        {/* {step.showRegisterOption && (
           <>
             <View style={styles.orDivider}>
               <View
@@ -345,9 +345,9 @@ function OnboardingSlide({
                 style={[styles.orLine, { backgroundColor: colors.orLine }]}
               />
             </View>
-            <RegisterButton onPress={onRegister} colors={colors} />
+            <RegisterButton onPress={onRegister} colors={colors} /> 
           </>
-        )}
+        )} */}
       </View>
     </View>
   );

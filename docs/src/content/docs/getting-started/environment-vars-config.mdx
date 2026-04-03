@@ -25,7 +25,7 @@ All the code related to environment variables is located in the `env.ts` file at
 **Critical distinction:**
 
 - **`EXPO_PUBLIC_*` prefixed variables**: Accessible in BOTH `app.config.ts` AND your `src` folder (client code)
-- **Non-prefixed variables** (like `SECRET_KEY`): ONLY accessible in `app.config.ts` at build-time, NOT in your client code
+- **Non-prefixed variables** (build-time secrets): ONLY accessible in `app.config.ts` at build-time, NOT in your client code
 
 This is an Expo convention that ensures secrets never leak to the client-side bundle.
 
@@ -110,13 +110,13 @@ console.log(Env.EXPO_PUBLIC_MY_NEW_VAR);
 ```
 
 :::note[Type Conversion]
-All environment variables are strings by default. Convert them to the correct type:
+All environment variables are strings by default. Convert them to the correct type in `_env`, for example:
 ```ts
 // For numbers
-EXPO_PUBLIC_VAR_NUMBER: Number(process.env.EXPO_PUBLIC_VAR_NUMBER ?? 0),
+EXPO_PUBLIC_MY_NUMBER: Number(process.env.EXPO_PUBLIC_MY_NUMBER ?? 0),
 
 // For booleans
-EXPO_PUBLIC_VAR_BOOL: process.env.EXPO_PUBLIC_VAR_BOOL === 'true',
+EXPO_PUBLIC_MY_FLAG: process.env.EXPO_PUBLIC_MY_FLAG === 'true',
 ```
 :::
 

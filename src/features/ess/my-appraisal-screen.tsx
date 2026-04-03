@@ -20,7 +20,7 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
-import { useSubmitSelfReview } from '@/features/company-admin/api/use-ess-mutations';
+import { useEssSubmitSelfReview } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyAppraisals } from '@/features/company-admin/api/use-ess-queries';
 
 // ── Types ────────────────────────────────────────────────────────
@@ -340,7 +340,7 @@ export function MyAppraisalScreen() {
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
     const { data, isLoading, refetch } = useMyAppraisals();
-    const submitReview = useSubmitSelfReview();
+    const submitReview = useEssSubmitSelfReview();
 
     const [selfReviewEntry, setSelfReviewEntry] = React.useState<AppraisalEntry | null>(null);
     const [detailEntry, setDetailEntry] = React.useState<AppraisalEntry | null>(null);

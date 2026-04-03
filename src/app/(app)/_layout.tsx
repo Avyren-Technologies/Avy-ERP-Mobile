@@ -28,8 +28,8 @@ import {
 import { showSuccess } from '@/components/ui/utils';
 import {
     getDisplayName,
-    getRoleLabel,
     getUserInitials,
+    getUserRoleDisplayLabel,
     useAuthStore as useAuth,
 } from '@/features/auth/use-auth-store';
 import { useNavigationManifest } from '@/features/company-admin/api/use-company-admin-queries';
@@ -157,7 +157,7 @@ function AppSidebar() {
         <Sidebar
             sections={sections}
             userName={getDisplayName(user)}
-            userRole={getRoleLabel(userRole)}
+            userRole={getUserRoleDisplayLabel(user, userRole)}
             userInitials={getUserInitials(user)}
             onSignOut={signOut}
             collapsible={false}

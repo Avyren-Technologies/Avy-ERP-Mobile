@@ -39,6 +39,24 @@ export function getRoleLabel(role: UserRole | null): string {
     }
 }
 
+/**
+ * Display label for sidebar / profile — matches web `TopBar` ProfileDropdown:
+ * prefer tenant RBAC name, then formatted platform `role`, then coarse app role.
+ */
+export function getUserRoleDisplayLabel(user: AuthUser | null, userRole: UserRole | null): string {
+    const tenantRoleName = typeof user?.roleName === 'string' ? user.roleName.trim() : '';
+    const rawRole = user?.role ?? '';
+    if (tenantRoleName) return tenantRoleName;
+    if (rawRole) {
+        return rawRole.replace(/[_-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    }
+    return getRoleLabel(userRole);
+}
+
+export function persistAuthUser(user: AuthUser): void {
+    setItem(USER_DATA_KEY, user);
+}
+
 /** Get initials from first + last name. */
 export function getUserInitials(user: AuthUser | null): string {
     if (!user) return '?';
@@ -75,7 +93,7 @@ const _useAuthStore = create<AuthState>((set) => ({
         const resolvedRole = role ?? mapBackendRole(user.role);
         const permissions = user.permissions ?? [];
         setToken(token);
-        setItem(USER_DATA_KEY, user);
+        persistAuthUser(user);
         logger.info('User signed in', { email: user.email, role: resolvedRole, permissionCount: permissions.length });
         set({ status: 'signIn', token, user, userRole: resolvedRole, permissions });
     },

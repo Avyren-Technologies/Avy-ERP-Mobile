@@ -32,6 +32,7 @@ import { storage } from '@/lib/storage';
 
 import {
     useCreateEmployee,
+    useDeleteEmployee,
     useUpdateEmployee,
     useUpdateEmployeeStatus,
 } from '@/features/company-admin/api/use-hr-mutations';
@@ -50,7 +51,7 @@ import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/
 
 // ============ TYPES ============
 
-type EmployeeStatus = 'Active' | 'Probation' | 'Confirmed' | 'On Notice' | 'Exited';
+type EmployeeStatus = 'Active' | 'Probation' | 'Confirmed' | 'On Notice' | 'Suspended' | 'Exited';
 type TabKey = 'personal' | 'professional' | 'salary' | 'bank' | 'documents' | 'timeline';
 
 interface PersonalForm {
@@ -195,6 +196,7 @@ function statusBadge(status: EmployeeStatus) {
         case 'Probation': return { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] };
         case 'Confirmed': return { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] };
         case 'On Notice': return { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[600] };
+        case 'Suspended': return { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[400] };
         case 'Exited': return { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[500] };
         default: return { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] };
     }
@@ -1034,9 +1036,18 @@ export function EmployeeDetailScreen() {
     const createMutation = useCreateEmployee();
     const updateMutation = useUpdateEmployee();
     const statusMutation = useUpdateEmployeeStatus();
+    const deleteMutation = useDeleteEmployee();
     const confirmModal = useConfirmModal();
     const resetConfirmModal = useConfirmModal();
+    const deactivateModal = useConfirmModal();
     const [draftRestored, setDraftRestored] = React.useState(false);
+
+    // Exit form state (for deactivate flow)
+    const [showExitForm, setShowExitForm] = React.useState(false);
+    const [exitReason, setExitReason] = React.useState('');
+    const [lastWorkingDate, setLastWorkingDate] = React.useState(
+        new Date().toISOString().split('T')[0],
+    );
 
     // Load draft on mount (create mode only)
     React.useEffect(() => {
@@ -1147,8 +1158,9 @@ export function EmployeeDetailScreen() {
         return Array.isArray(raw) ? raw.map((e: any) => {
             const fullName = [e.firstName, e.lastName].filter(Boolean).join(' ') || e.fullName || e.name || '';
             const empId = e.employeeId ?? '';
-            const role = e.designation?.name ?? e.designationName ?? '';
-            const parts = [fullName, empId && `(${empId})`, role && `— ${role}`].filter(Boolean);
+            // Tenant RBAC role name; fallback to designation when employee has no login / tenant role.
+            const roleLabel = e.rbacRoleName ?? e.designation?.name ?? e.designationName ?? '';
+            const parts = [fullName, empId && `(${empId})`, roleLabel && `— ${roleLabel}`].filter(Boolean);
             return { id: e.id ?? '', name: parts.join(' ') };
         }) : [];
     }, [empListResponse]);
@@ -1433,12 +1445,19 @@ export function EmployeeDetailScreen() {
 
         confirmModal.show({
             title: action,
-            message: `Are you sure you want to ${action.toLowerCase()} for ${employeeName || 'this employee'}?`,
+            message: newStatus === 'On Notice'
+                ? `Are you sure you want to put ${employeeName || 'this employee'} on notice? You will be able to set the last working date.`
+                : `Are you sure you want to ${action.toLowerCase()} for ${employeeName || 'this employee'}?`,
             confirmText: action,
             variant,
             onConfirm: () => {
+                const statusData: Record<string, unknown> = { status: newStatus };
+                // Include lastWorkingDate when transitioning to On Notice or Exited
+                if (newStatus === 'On Notice' || newStatus === 'Exited') {
+                    statusData.lastWorkingDate = lastWorkingDate || new Date().toISOString().split('T')[0];
+                }
                 statusMutation.mutate(
-                    { id: employeeId, data: { status: newStatus } },
+                    { id: employeeId, data: statusData },
                     {
                         onSuccess: () => {
                             setEmployeeStatus(newStatus as EmployeeStatus);
@@ -1451,6 +1470,39 @@ export function EmployeeDetailScreen() {
                 );
             },
         });
+    };
+
+    const handleDeactivate = () => {
+        if (isCreateMode || employeeStatus === 'Exited') return;
+        setShowExitForm(true);
+    };
+
+    const handleConfirmDeactivation = () => {
+        if (!exitReason.trim()) {
+            showErrorMessage('Please provide an exit reason.');
+            return;
+        }
+        statusMutation.mutate(
+            {
+                id: employeeId,
+                data: {
+                    status: 'EXITED',
+                    exitReason: exitReason.trim(),
+                    lastWorkingDate: lastWorkingDate || new Date().toISOString().split('T')[0],
+                },
+            },
+            {
+                onSuccess: () => {
+                    setEmployeeStatus('Exited');
+                    setShowExitForm(false);
+                    setExitReason('');
+                    showSuccess('Employee Deactivated', `${employeeName || 'Employee'} has been deactivated.`);
+                },
+                onError: (err: any) => {
+                    showErrorMessage(err?.message ?? 'Failed to deactivate employee.');
+                },
+            },
+        );
     };
 
     const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -1600,6 +1652,54 @@ export function EmployeeDetailScreen() {
                 )}
             </ScrollView>
 
+            {/* Exit Form Panel */}
+            {showExitForm && (
+                <Animated.View entering={FadeInUp.duration(300)} style={st.exitFormPanel}>
+                    <View style={st.exitFormHeader}>
+                        <Text className="font-inter text-sm font-bold text-danger-700">
+                            Deactivate Employee
+                        </Text>
+                        <Pressable onPress={() => setShowExitForm(false)} hitSlop={8}>
+                            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                                <Path d="M18 6L6 18M6 6l12 12" stroke={colors.neutral[500]} strokeWidth="2" strokeLinecap="round" />
+                            </Svg>
+                        </Pressable>
+                    </View>
+                    <FormField
+                        label="Exit Reason"
+                        value={exitReason}
+                        onChangeText={setExitReason}
+                        placeholder="e.g. Resigned, Terminated, End of Contract..."
+                        required
+                        multiline
+                    />
+                    <FormField
+                        label="Last Working Date"
+                        value={lastWorkingDate}
+                        onChangeText={setLastWorkingDate}
+                        placeholder="YYYY-MM-DD"
+                        required
+                    />
+                    <Pressable
+                        onPress={handleConfirmDeactivation}
+                        style={({ pressed }) => [
+                            st.deactivateConfirmBtn,
+                            pressed && { opacity: 0.85 },
+                            statusMutation.isPending && { opacity: 0.6 },
+                        ]}
+                        disabled={statusMutation.isPending}
+                    >
+                        {statusMutation.isPending ? (
+                            <ActivityIndicator color={colors.white} size="small" />
+                        ) : (
+                            <Text className="font-inter text-sm font-bold text-white">
+                                Confirm Deactivation
+                            </Text>
+                        )}
+                    </Pressable>
+                </Animated.View>
+            )}
+
             {/* Bottom Action Bar */}
             {(() => {
                 const createTabOrder: TabKey[] = ['personal', 'professional', 'salary', 'bank', 'documents'];
@@ -1627,6 +1727,27 @@ export function EmployeeDetailScreen() {
                                           ? 'Complete Exit'
                                           : 'Initiate Exit'}
                                 </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Deactivate button (edit mode, not already exited) */}
+                        {!isCreateMode && employeeStatus !== 'Exited' && employeeStatus !== 'On Notice' && (
+                            <Pressable
+                                onPress={handleDeactivate}
+                                style={({ pressed }) => [
+                                    st.deactivateBtn,
+                                    pressed && { opacity: 0.85 },
+                                ]}
+                            >
+                                <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                                    <Path
+                                        d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                                        stroke={colors.danger[600]}
+                                        strokeWidth="1.8"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </Svg>
                             </Pressable>
                         )}
 
@@ -1685,6 +1806,7 @@ export function EmployeeDetailScreen() {
 
             <ConfirmModal {...confirmModal.modalProps} />
             <ConfirmModal {...resetConfirmModal.modalProps} />
+            <ConfirmModal {...deactivateModal.modalProps} />
         </View>
     );
 }
@@ -1993,5 +2115,37 @@ const st = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 8,
         elevation: 4,
+    },
+    deactivateBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.danger[50],
+        borderWidth: 1,
+        borderColor: colors.danger[200],
+    },
+    exitFormPanel: {
+        backgroundColor: colors.white,
+        borderTopWidth: 1,
+        borderTopColor: colors.danger[200],
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: 8,
+    },
+    exitFormHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    deactivateConfirmBtn: {
+        height: 48,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.danger[600],
+        marginBottom: 8,
     },
 });

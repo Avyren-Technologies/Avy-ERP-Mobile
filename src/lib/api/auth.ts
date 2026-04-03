@@ -17,6 +17,8 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   role: string;
+  /** Tenant RBAC role display name from GET /auth/profile (matches web TopBar). */
+  roleName?: string | null;
   companyId?: string;
   tenantId?: string;
   permissions?: string[];

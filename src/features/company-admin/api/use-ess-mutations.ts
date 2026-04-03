@@ -416,8 +416,8 @@ export function useApplyForLoan() {
 
 // ── Appraisal Self-Review ──────────────────────────────────────────
 
-/** Submit self-review for an appraisal entry */
-export function useSubmitSelfReview() {
+/** Submit self-review for an appraisal entry (ESS / employee self-service API). */
+export function useEssSubmitSelfReview() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>

@@ -19,17 +19,20 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
+import { useDeleteEmployee } from '@/features/company-admin/api/use-hr-mutations';
 import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
 
 // ============ TYPES ============
 
-type EmployeeStatus = 'Active' | 'Probation' | 'Confirmed' | 'On Notice' | 'Exited';
+type EmployeeStatus = 'Active' | 'Probation' | 'Confirmed' | 'On Notice' | 'Suspended' | 'Exited';
 
 interface EmployeeListItem {
     id: string;
@@ -64,6 +67,8 @@ function statusBadgeStyle(status: EmployeeStatus) {
             return { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] };
         case 'On Notice':
             return { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[600] };
+        case 'Suspended':
+            return { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[400] };
         case 'Exited':
             return { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[500] };
         default:
@@ -92,10 +97,12 @@ function EmployeeCard({
     employee,
     index,
     onPress,
+    onDelete,
 }: {
     employee: EmployeeListItem;
     index: number;
     onPress: () => void;
+    onDelete?: () => void;
 }) {
     const badge = statusBadgeStyle(employee.status);
     const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
@@ -145,6 +152,28 @@ function EmployeeCard({
                             </Text>
                         ) : null}
                     </View>
+
+                    {/* Deactivate Button */}
+                    {employee.status !== 'Exited' && onDelete && (
+                        <Pressable
+                            onPress={(e) => { e.stopPropagation(); onDelete(); }}
+                            hitSlop={8}
+                            style={({ pressed }) => [
+                                styles.trashBtn,
+                                pressed && { opacity: 0.6, backgroundColor: colors.danger[100] },
+                            ]}
+                        >
+                            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                                <Path
+                                    d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                                    stroke={colors.danger[500]}
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </Svg>
+                        </Pressable>
+                    )}
 
                     {/* Status Badge */}
                     <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
@@ -248,6 +277,7 @@ const STATUS_FILTERS = [
     { key: 'Probation', label: 'Probation' },
     { key: 'Confirmed', label: 'Confirmed' },
     { key: 'On Notice', label: 'On Notice' },
+    { key: 'Suspended', label: 'Suspended' },
     { key: 'Exited', label: 'Exited' },
 ];
 
@@ -262,6 +292,10 @@ export function EmployeeDirectoryScreen() {
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [deptFilter, setDeptFilter] = React.useState('');
     const [page, setPage] = React.useState(1);
+
+    // Delete employee
+    const deleteEmployee = useDeleteEmployee();
+    const deleteModal = useConfirmModal();
 
     // Fetch departments for filter dropdown
     const { data: deptResponse } = useDepartments();
@@ -323,6 +357,26 @@ export function EmployeeDirectoryScreen() {
             pathname: '/company/hr/employee-detail',
             params: { mode: 'create' },
         } as any);
+    };
+
+    const handleDeleteEmployee = (employee: EmployeeListItem) => {
+        const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ') || 'this employee';
+        deleteModal.show({
+            title: `Deactivate ${fullName}?`,
+            message: `This will set the employee status to Exited. This action can be reversed by changing the status back.`,
+            confirmText: 'Deactivate',
+            variant: 'danger',
+            onConfirm: () => {
+                deleteEmployee.mutateAsync(employee.id)
+                    .then(() => {
+                        showSuccess('Employee Deactivated', `${fullName} has been deactivated.`);
+                        deleteModal.hide();
+                    })
+                    .catch((err: any) => {
+                        showErrorMessage(err?.message ?? 'Failed to deactivate employee.');
+                    });
+            },
+        });
     };
 
     // Filter chips with count on "All"
@@ -509,6 +563,7 @@ export function EmployeeDirectoryScreen() {
             employee={item}
             index={index}
             onPress={() => handleEmployeePress(item)}
+            onDelete={() => handleDeleteEmployee(item)}
         />
     );
 
@@ -556,6 +611,7 @@ export function EmployeeDirectoryScreen() {
             />
 
             <FAB onPress={handleAddEmployee} />
+            <ConfirmModal {...deleteModal.modalProps} />
         </View>
     );
 }
@@ -699,6 +755,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+    },
+    trashBtn: {
+        width: 30,
+        height: 30,
+        borderRadius: 10,
+        backgroundColor: colors.danger[50],
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 6,
     },
     statusBadge: {
         flexDirection: 'row',

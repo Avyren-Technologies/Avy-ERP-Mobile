@@ -26,7 +26,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { useAuthStore, getDisplayName } from '@/features/auth/use-auth-store';
+import { getDisplayName, getUserRoleDisplayLabel, useAuthStore } from '@/features/auth/use-auth-store';
 import { useCompanyActivity } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
 
@@ -271,7 +271,9 @@ function HeaderSection({ stats }: { stats?: any }) {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const user = useAuthStore.use.user();
+    const userRole = useAuthStore.use.userRole();
     const displayName = getDisplayName(user);
+    const roleLabel = getUserRoleDisplayLabel(user, userRole);
     const userTier = stats?.userTier ?? 'N/A';
 
     return (
@@ -292,7 +294,7 @@ function HeaderSection({ stats }: { stats?: any }) {
 
                         <View style={styles.headerTextContainer}>
                             <Text className="font-inter text-sm font-medium text-primary-200">
-                                Company Admin
+                                {roleLabel}
                             </Text>
                             <Text className="font-inter text-xl font-bold text-white" numberOfLines={1}>
                                 {displayName}

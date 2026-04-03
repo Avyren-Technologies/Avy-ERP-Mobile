@@ -29,8 +29,8 @@ import colors from '@/components/ui/colors';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import {
   getDisplayName,
-  getRoleLabel,
   getUserInitials,
+  getUserRoleDisplayLabel,
   useAuthStore,
 } from '@/features/auth/use-auth-store';
 import { authApi } from '@/lib/api/auth';
@@ -52,7 +52,7 @@ export function SettingsScreen() {
 
   const displayName = getDisplayName(user);
   const initials = getUserInitials(user);
-  const roleLabel = getRoleLabel(userRole);
+  const roleLabel = getUserRoleDisplayLabel(user, userRole);
 
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
   const [biometricEnabled, setBiometricEnabled] = React.useState(false);

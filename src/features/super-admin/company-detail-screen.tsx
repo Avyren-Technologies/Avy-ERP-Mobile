@@ -51,6 +51,7 @@ interface CompanyDetailUI {
     companyCode: string;
     shortName: string;
     slug: string;
+    customDomain: string;
     status: WizardStatus;
     cin: string;
     incorporationDate: string;
@@ -137,6 +138,7 @@ function mapApiToDetailUI(raw: any): CompanyDetailUI {
         companyCode: identity.companyCode ?? raw.companyCode ?? '',
         shortName: identity.shortName ?? raw.shortName ?? '',
         slug: raw.tenant?.slug ?? raw.slug ?? '',
+        customDomain: raw.tenant?.customDomain ?? raw.customDomain ?? '',
         status: (raw.wizardStatus ?? raw.status ?? 'Draft') as WizardStatus,
         cin: identity.cin ?? raw.cin ?? '',
         incorporationDate: identity.incorporationDate ?? raw.incorporationDate ?? '',
@@ -868,6 +870,8 @@ export function CompanyDetailScreen() {
                             <InfoRow label="Employees" value={company.employees} />
                             <InfoRow label="Website" value={company.website} />
                             <InfoRow label="Email Domain" value={company.emailDomain} />
+                            <InfoRow label="Custom Domain" value={company.customDomain} />
+                            <InfoRow label="Slug" value={company.slug} />
                             {company.slug ? <InfoRow label="Subdomain" value={`${company.slug}.avyren.in`} /> : null}
                             <InfoRow label="Registered" value={company.createdAt} />
                         </View>

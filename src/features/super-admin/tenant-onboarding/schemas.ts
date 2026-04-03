@@ -2,10 +2,22 @@ import { z } from 'zod';
 
 // ============ STEP 1 — Company Identity ============
 
+const RESERVED_SLUGS = new Set([
+    'admin', 'www', 'api', 'app', 'staging', 'dev', 'test', 'demo',
+    'mail', 'ftp', 'cdn', 'static', 'assets', 'docs', 'help',
+    'support', 'status', 'blog', 'avy-erp-api', 'pg', 'ssh',
+]);
+
 export const step1Schema = z.object({
     logoUri: z.string().optional(),
     logoBase64: z.string().optional(),
     displayName: z.string().min(2, 'Display name is required (min 2 characters)'),
+    slug: z
+        .string()
+        .min(3, 'Slug must be at least 3 characters')
+        .max(50, 'Slug must be at most 50 characters')
+        .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, 'Only lowercase letters, numbers & hyphens. Cannot start or end with hyphen.')
+        .refine((v) => !RESERVED_SLUGS.has(v), 'This subdomain is reserved'),
     legalName: z.string().min(2, 'Legal / registered name is required'),
     businessType: z.string().min(1, 'Select a business type'),
     industry: z.string().min(1, 'Select an industry'),

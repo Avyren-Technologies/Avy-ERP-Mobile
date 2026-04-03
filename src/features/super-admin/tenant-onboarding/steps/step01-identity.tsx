@@ -14,6 +14,28 @@ import type { Step1Form } from '../types';
 import { BUSINESS_TYPES, COMPANY_STATUSES, INDUSTRIES } from '../constants';
 import { S } from '../shared-styles';
 
+const RESERVED_SLUGS = new Set([
+    'admin', 'www', 'api', 'app', 'staging', 'dev', 'test', 'demo',
+    'mail', 'ftp', 'cdn', 'static', 'assets', 'docs', 'help',
+    'support', 'status', 'blog', 'avy-erp-api', 'pg', 'ssh',
+]);
+
+function generateSlug(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 50);
+}
+
+function validateSlug(slug: string): string | undefined {
+    if (slug.length < 3) return 'Slug must be at least 3 characters';
+    if (slug.length > 50) return 'Slug must be at most 50 characters';
+    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) return 'Only lowercase letters, numbers & hyphens. Cannot start or end with hyphen.';
+    if (RESERVED_SLUGS.has(slug)) return 'This subdomain is reserved';
+    return undefined;
+}
+
 function generateCompanyCode(displayName: string): string {
     const normalized = displayName.toUpperCase().replace(/[^A-Z0-9\s]/g, ' ').trim();
     if (!normalized) return '';
@@ -47,6 +69,9 @@ export function Step1Identity({
     const [permissionError, setPermissionError] = React.useState('');
     const lastAutoCodeRef = React.useRef('');
     const manualCompanyCodeOverrideRef = React.useRef(false);
+    const lastAutoSlugRef = React.useRef('');
+    const manualSlugOverrideRef = React.useRef(false);
+    const [slugError, setSlugError] = React.useState<string | undefined>(undefined);
 
     React.useEffect(() => {
         const generatedCode = generateCompanyCode(form.displayName ?? '');
@@ -63,6 +88,21 @@ export function Step1Identity({
             lastAutoCodeRef.current = generatedCode;
         }
     }, [form.displayName, form.companyCode, setForm]);
+
+    // Auto-generate slug from displayName (unless manually edited)
+    React.useEffect(() => {
+        const generatedSlug = generateSlug(form.displayName ?? '');
+        if (!generatedSlug) return;
+
+        const currentSlug = form.slug ?? '';
+        const shouldAutofill = !manualSlugOverrideRef.current
+            && (currentSlug.length === 0 || currentSlug === lastAutoSlugRef.current);
+
+        if (shouldAutofill && generatedSlug !== currentSlug) {
+            setForm({ slug: generatedSlug });
+            lastAutoSlugRef.current = generatedSlug;
+        }
+    }, [form.displayName, form.slug, setForm]);
 
     const pickFromGallery = async () => {
         setShowOptions(false);
@@ -258,6 +298,21 @@ export function Step1Identity({
                     onChangeText={(v) => setForm({ displayName: v })}
                     required
                     error={errors?.displayName}
+                />
+                <FormInput
+                    label="Subdomain Slug"
+                    placeholder="e.g. apex-manufacturing"
+                    value={form.slug}
+                    onChangeText={(v) => {
+                        manualSlugOverrideRef.current = true;
+                        const sanitized = v.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        setForm({ slug: sanitized });
+                        setSlugError(validateSlug(sanitized));
+                    }}
+                    required
+                    autoCapitalize="none"
+                    hint={form.slug ? `Your ERP: ${form.slug}.avyren.in` : 'Auto-generated from display name. Override if needed.'}
+                    error={slugError ?? errors?.slug}
                 />
                 <FormInput
                     label="Legal / Registered Name"

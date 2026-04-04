@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -37,6 +38,7 @@ import {
     useDeleteEmployee,
     useUpdateEmployee,
     useUpdateEmployeeStatus,
+    useUploadDocument,
 } from '@/features/company-admin/api/use-hr-mutations';
 import {
     useCostCentres,
@@ -888,11 +890,53 @@ function BankTab({
     form: BankForm;
     onChange: (updates: Partial<BankForm>) => void;
 }) {
+    const [ifscVerifying, setIfscVerifying] = React.useState(false);
+    const [ifscError, setIfscError] = React.useState('');
+
+    const fetchIfscDetails = React.useCallback(async (ifsc: string) => {
+        if (ifsc.length !== 11) {
+            setIfscError('');
+            return;
+        }
+        setIfscVerifying(true);
+        setIfscError('');
+        try {
+            const res = await fetch(`https://ifsc.razorpay.com/${ifsc}`);
+            if (!res.ok) throw new Error('Invalid IFSC');
+            const data = await res.json();
+            onChange({
+                bankName: data.BANK ?? '',
+                bankBranch: [data.BRANCH, data.CITY, data.STATE].filter(Boolean).join(', ') || '',
+            });
+        } catch {
+            setIfscError('Could not verify IFSC code');
+        } finally {
+            setIfscVerifying(false);
+        }
+    }, [onChange]);
+
     const accountMismatch = form.accountNumber && form.confirmAccountNumber && form.accountNumber !== form.confirmAccountNumber;
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Bank Account" />
-            <FormField label="IFSC Code" value={form.ifscCode} onChangeText={(v) => onChange({ ifscCode: v.toUpperCase() })} placeholder="e.g. SBIN0001234" autoCapitalize="characters" />
+            <FormField
+                label="IFSC Code"
+                value={form.ifscCode}
+                onChangeText={(v) => {
+                    const upper = v.toUpperCase();
+                    onChange({ ifscCode: upper });
+                    fetchIfscDetails(upper);
+                }}
+                placeholder="e.g. SBIN0001234"
+                autoCapitalize="characters"
+                error={ifscError || undefined}
+            />
+            {ifscVerifying && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -10, marginBottom: 12 }}>
+                    <ActivityIndicator size="small" color={colors.primary[500]} />
+                    <Text className="font-inter text-[10px] font-semibold text-primary-600">Verifying IFSC...</Text>
+                </View>
+            )}
             <FormField label="Bank Name" value={form.bankName} onChangeText={(v) => onChange({ bankName: v })} placeholder="Auto-filled from IFSC" editable={!form.ifscCode} />
             <FormField label="Bank Branch" value={form.bankBranch} onChangeText={(v) => onChange({ bankBranch: v })} placeholder="Auto-filled from IFSC" editable={!form.ifscCode} />
             <FormField label="Account Number" value={form.accountNumber} onChangeText={(v) => onChange({ accountNumber: v })} keyboardType="number-pad" placeholder="Enter account number" />
@@ -914,11 +958,15 @@ function DocumentsTab({
     onChange,
     docs,
     employeeId,
+    onUpload,
+    isUploading,
 }: {
     form: DocumentsForm;
     onChange: (updates: Partial<DocumentsForm>) => void;
     docs: DocItem[];
     employeeId: string;
+    onUpload: () => void;
+    isUploading: boolean;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
@@ -973,13 +1021,21 @@ function DocumentsTab({
                 ))
             )}
 
-            {/* Upload placeholder button */}
-            <Pressable style={st.uploadBtn}>
-                <Svg width={18} height={18} viewBox="0 0 24 24">
-                    <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke={colors.primary[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
+            {/* Upload button */}
+            <Pressable
+                style={[st.uploadBtn, isUploading && { opacity: 0.6 }]}
+                onPress={onUpload}
+                disabled={isUploading}
+            >
+                {isUploading ? (
+                    <ActivityIndicator size="small" color={colors.primary[500]} />
+                ) : (
+                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                        <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke={colors.primary[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                )}
                 <Text className="font-inter text-sm font-semibold text-primary-600">
-                    Upload Document
+                    {isUploading ? 'Uploading...' : 'Upload Document'}
                 </Text>
             </Pressable>
         </Animated.View>
@@ -1113,6 +1169,7 @@ export function EmployeeDetailScreen() {
     const updateMutation = useUpdateEmployee();
     const statusMutation = useUpdateEmployeeStatus();
     const deleteMutation = useDeleteEmployee();
+    const uploadMutation = useUploadDocument();
     const confirmModal = useConfirmModal();
     const resetConfirmModal = useConfirmModal();
     const deactivateModal = useConfirmModal();
@@ -1517,6 +1574,42 @@ export function EmployeeDetailScreen() {
         }
     };
 
+    // Document upload handler
+    const handleUploadDocument = async () => {
+        if (!employeeId) {
+            showErrorMessage('Please save the employee first before uploading documents.');
+            return;
+        }
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*', 'application/pdf'],
+                multiple: false,
+                copyToCacheDirectory: true,
+            });
+            if (result.canceled || !result.assets?.length) return;
+            const asset = result.assets[0];
+            const formData = new FormData();
+            formData.append('file', {
+                uri: asset.uri,
+                name: asset.name,
+                type: asset.mimeType ?? 'application/octet-stream',
+            } as any);
+            uploadMutation.mutate(
+                { employeeId, data: formData },
+                {
+                    onSuccess: () => {
+                        showSuccess('Document Uploaded', 'Document has been uploaded successfully.');
+                    },
+                    onError: (err: any) => {
+                        showErrorMessage(err?.message ?? 'Failed to upload document.');
+                    },
+                },
+            );
+        } catch {
+            showErrorMessage('Failed to pick document.');
+        }
+    };
+
     // Collect all form data
     const collectFormData = (): Record<string, unknown> => ({
         // Profile photo
@@ -1871,6 +1964,8 @@ export function EmployeeDetailScreen() {
                         onChange={(u) => setDocuments((p) => ({ ...p, ...u }))}
                         docs={docItems}
                         employeeId={employeeId}
+                        onUpload={handleUploadDocument}
+                        isUploading={uploadMutation.isPending}
                     />
                 )}
                 {activeTab === 'timeline' && (
@@ -1934,7 +2029,7 @@ export function EmployeeDetailScreen() {
                 const isNotLastCreateTab = isCreateMode && currentCreateTabIndex >= 0 && currentCreateTabIndex < createTabOrder.length - 1;
 
                 return (
-                    <View style={[st.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+                    <View style={[st.bottomBar, { paddingBottom: insets.bottom + 80 }]}>
                         {/* Status action (edit mode only) */}
                         {!isCreateMode && employeeStatus !== 'Exited' && (
                             <Pressable

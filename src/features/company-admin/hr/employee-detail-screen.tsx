@@ -29,7 +29,8 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { storage } from '@/lib/storage';
-import { addCalendarDaysToIsoDate, getProbationDaysFromDesignation } from '@/lib/probation-end-date';
+import { computeProbationEndIsoFromMasters } from '@/lib/probation-end-date';
+import { resolveCostCentreIdForDepartment } from '@/lib/employee-org-defaults';
 
 import {
     useCreateEmployee,
@@ -750,8 +751,8 @@ function ProfessionalTab({
             <SectionTitle title="Employment" />
             <FormField label="Joining Date" value={form.joiningDate} onChangeText={(v) => onChange({ joiningDate: v })} placeholder="YYYY-MM-DD" required />
             <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required createRoute={{ route: '/company/hr/employee-types', label: 'Create Employee Type' }} />
-            <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required createRoute={{ route: '/company/hr/departments', label: 'Create Department' }} />
             <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required createRoute={{ route: '/company/hr/designations', label: 'Create Designation' }} />
+            <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required createRoute={{ route: '/company/hr/departments', label: 'Create Department' }} />
             <DropdownField label="Grade" options={grades} selected={form.gradeId} onSelect={(v) => onChange({ gradeId: v })} createRoute={{ route: '/company/hr/grades', label: 'Create Grade' }} />
 
             <SectionTitle title="Reporting" />
@@ -764,9 +765,12 @@ function ProfessionalTab({
             <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} />
             <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} />
             <FormField label="Notice Period (Days)" value={form.noticePeriodDays} onChangeText={(v) => onChange({ noticePeriodDays: v })} keyboardType="number-pad" placeholder="e.g. 90" />
+            <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500">
+                Defaults from the grade (Grade master). You can override per employee.
+            </Text>
             <FormField label="Probation End Date" value={form.probationEndDate} onChangeText={(v) => onChange({ probationEndDate: v })} placeholder="YYYY-MM-DD" editable={false} />
             <Text className="font-inter mt-1 text-[10px] leading-4 text-neutral-500">
-                Set by joining date + probation days on the designation (HR → Designations). Edit designation to change default length.
+                Auto: designation probation days if set, else grade probation months (same rules as the server).
             </Text>
         </Animated.View>
     );
@@ -1022,13 +1026,18 @@ export function EmployeeDetailScreen() {
     const [userRole, setUserRole] = React.useState('');
     const [employeeName, setEmployeeName] = React.useState('');
 
+    const prevDeptIdRef = React.useRef<string | null>(null);
+    const prevGradeIdRef = React.useRef<string | null>(null);
+    const lastProbationKeyRef = React.useRef<string | null>(null);
+
     // Data queries
     const { data: employeeData, isLoading: employeeLoading } = useEmployee(employeeId);
-    const { data: deptResponse } = useDepartments();
-    const { data: desigResponse } = useDesignations();
-    const { data: empTypeResponse } = useEmployeeTypes();
-    const { data: gradeResponse } = useGrades();
-    const { data: costCentreResponse } = useCostCentres();
+    const listParams = React.useMemo(() => ({ limit: 500, page: 1 }), []);
+    const { data: deptResponse } = useDepartments(listParams);
+    const { data: desigResponse } = useDesignations(listParams);
+    const { data: empTypeResponse } = useEmployeeTypes(listParams);
+    const { data: gradeResponse } = useGrades(listParams);
+    const { data: costCentreResponse } = useCostCentres(listParams);
     const { data: rbacRolesResponse, isError: rolesError, isLoading: rolesLoading } = useRbacRoles();
     const { data: locationResponse } = useCompanyLocations();
     const { data: shiftResponse } = useCompanyShifts();
@@ -1132,10 +1141,15 @@ export function EmployeeDetailScreen() {
     };
 
     // Map dropdown data
-    const deptOptions = React.useMemo(() => {
+    const departmentsFull = React.useMemo(() => {
         const raw = (deptResponse as any)?.data ?? deptResponse ?? [];
-        return Array.isArray(raw) ? raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })) : [];
+        return Array.isArray(raw) ? raw : [];
     }, [deptResponse]);
+
+    const deptOptions = React.useMemo(
+        () => departmentsFull.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })),
+        [departmentsFull],
+    );
 
     const designationsFull = React.useMemo(() => {
         const raw = (desigResponse as any)?.data ?? desigResponse ?? [];
@@ -1147,31 +1161,105 @@ export function EmployeeDetailScreen() {
         [designationsFull],
     );
 
-    // Probation end = joining date + designation.probationDays (Designation master)
-    React.useEffect(() => {
-        if (!professional.designationId || !professional.joiningDate.trim()) return;
-        const desig = designationsFull.find((d: any) => d.id === professional.designationId);
-        const days = getProbationDaysFromDesignation(desig);
-        if (days == null) return;
-        const formatted = addCalendarDaysToIsoDate(professional.joiningDate, days);
-        if (!formatted) return;
-        setProfessional((p) => (p.probationEndDate === formatted ? p : { ...p, probationEndDate: formatted }));
-    }, [professional.designationId, professional.joiningDate, designationsFull]);
-
     const empTypeOptions = React.useMemo(() => {
         const raw = (empTypeResponse as any)?.data ?? empTypeResponse ?? [];
         return Array.isArray(raw) ? raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })) : [];
     }, [empTypeResponse]);
 
-    const gradeOptions = React.useMemo(() => {
+    const gradesFull = React.useMemo(() => {
         const raw = (gradeResponse as any)?.data ?? gradeResponse ?? [];
-        return Array.isArray(raw) ? raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })) : [];
+        return Array.isArray(raw) ? raw : [];
     }, [gradeResponse]);
 
-    const costCentreOptions = React.useMemo(() => {
+    const gradeOptions = React.useMemo(
+        () => gradesFull.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })),
+        [gradesFull],
+    );
+
+    const costCentresFull = React.useMemo(() => {
         const raw = (costCentreResponse as any)?.data ?? costCentreResponse ?? [];
-        return Array.isArray(raw) ? raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })) : [];
+        return Array.isArray(raw) ? raw : [];
     }, [costCentreResponse]);
+
+    const costCentreOptions = React.useMemo(
+        () => costCentresFull.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' })),
+        [costCentresFull],
+    );
+
+    React.useEffect(() => {
+        lastProbationKeyRef.current = null;
+    }, [isCreateMode, employeeId]);
+
+    // Apply department + grade from Designation master
+    React.useEffect(() => {
+        if (!professional.designationId) return;
+        const desig = designationsFull.find((d: any) => d.id === professional.designationId);
+        if (!desig) return;
+        setProfessional((p) => {
+            let next = { ...p };
+            let changed = false;
+            if (desig.departmentId && desig.departmentId !== p.departmentId) {
+                next.departmentId = desig.departmentId;
+                changed = true;
+            }
+            if (desig.gradeId && desig.gradeId !== p.gradeId) {
+                next.gradeId = desig.gradeId;
+                changed = true;
+            }
+            return changed ? next : p;
+        });
+    }, [professional.designationId, designationsFull]);
+
+    // Default cost centre from Department master when department changes
+    React.useEffect(() => {
+        const cur = professional.departmentId || null;
+        const prev = prevDeptIdRef.current;
+        const dept = departmentsFull.find((d: any) => d.id === cur);
+        const should =
+            (prev !== null && cur !== prev) ||
+            (isCreateMode && !!cur && prev === null);
+        if (should && dept) {
+            const cc = resolveCostCentreIdForDepartment(dept, costCentresFull);
+            if (cc) {
+                setProfessional((p) => (p.costCentreId === cc ? p : { ...p, costCentreId: cc }));
+            }
+        }
+        if (cur !== prev) prevDeptIdRef.current = cur;
+    }, [professional.departmentId, departmentsFull, costCentresFull, isCreateMode]);
+
+    // Default notice period from Grade master when grade changes
+    React.useEffect(() => {
+        const cur = professional.gradeId || null;
+        const prev = prevGradeIdRef.current;
+        const g = gradesFull.find((x: any) => x.id === cur);
+        const should =
+            (prev !== null && cur !== prev) ||
+            (isCreateMode && !!cur && prev === null);
+        if (should && g?.noticeDays != null) {
+            setProfessional((p) => ({ ...p, noticePeriodDays: String(g.noticeDays) }));
+        }
+        if (cur !== prev) prevGradeIdRef.current = cur;
+    }, [professional.gradeId, gradesFull, isCreateMode]);
+
+    // Probation end: designation days, else grade months (aligned with API)
+    React.useEffect(() => {
+        if (!professional.joiningDate.trim()) return;
+        const key = `${professional.designationId}|${professional.gradeId}|${professional.joiningDate}`;
+        if (lastProbationKeyRef.current === null) {
+            lastProbationKeyRef.current = key;
+            if (!isCreateMode) return;
+        } else if (key === lastProbationKeyRef.current) {
+            return;
+        } else {
+            lastProbationKeyRef.current = key;
+        }
+        const desig = designationsFull.find((d: any) => d.id === professional.designationId);
+        const grade = gradesFull.find((g: any) => g.id === professional.gradeId);
+        const formatted = computeProbationEndIsoFromMasters(professional.joiningDate, desig, grade);
+        if (formatted) {
+            setProfessional((p) => (p.probationEndDate === formatted ? p : { ...p, probationEndDate: formatted }));
+        }
+    }, [professional.designationId, professional.gradeId, professional.joiningDate, designationsFull, gradesFull, isCreateMode]);
 
     const employeeOptions = React.useMemo(() => {
         const raw = (empListResponse as any)?.data ?? empListResponse ?? [];
@@ -1269,6 +1357,8 @@ export function EmployeeDetailScreen() {
             noticePeriodDays: d.noticePeriodDays?.toString() ?? '',
             probationEndDate: d.probationEndDate ? String(d.probationEndDate).slice(0, 10) : '',
         });
+        prevDeptIdRef.current = d.departmentId ?? d.department?.id ?? null;
+        prevGradeIdRef.current = d.gradeId ?? d.grade?.id ?? null;
 
         setSalary({
             annualCtc: d.annualCtc?.toString() ?? d.salary?.annualCtc?.toString() ?? '',

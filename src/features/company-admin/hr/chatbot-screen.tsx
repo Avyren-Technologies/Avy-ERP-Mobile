@@ -61,6 +61,157 @@ function TypingIndicator() {
     );
 }
 
+// ============ MARKDOWN RENDERER FOR NATIVE ============
+
+/** Parses inline markdown: **bold**, *italic*, _italic_ */
+function InlineMarkdownText({ text, isUser }: { text: string; isUser: boolean }) {
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(_(.+?)_)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let key = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(
+                <Text key={key++} className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>
+                    {text.slice(lastIndex, match.index)}
+                </Text>
+            );
+        }
+        if (match[1]) {
+            // Bold
+            parts.push(
+                <Text key={key++} className={`font-inter-bold text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>
+                    {match[2]}
+                </Text>
+            );
+        } else if (match[3]) {
+            // Italic *text*
+            parts.push(
+                <Text key={key++} className={`font-inter italic text-sm leading-5 ${isUser ? 'text-white/70' : 'text-neutral-500'}`}>
+                    {match[4]}
+                </Text>
+            );
+        } else if (match[5]) {
+            // Italic _text_
+            parts.push(
+                <Text key={key++} className={`font-inter italic text-sm leading-5 ${isUser ? 'text-white/70' : 'text-neutral-500'}`}>
+                    {match[6]}
+                </Text>
+            );
+        }
+        lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+        parts.push(
+            <Text key={key++} className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>
+                {text.slice(lastIndex)}
+            </Text>
+        );
+    }
+
+    return <Text>{parts}</Text>;
+}
+
+/** Renders a markdown table */
+function MarkdownTable({ lines, isUser }: { lines: string[]; isUser: boolean }) {
+    const dataRows = lines.filter(l => !/^\|[\s\-|:]+\|$/.test(l));
+    const headerRow = dataRows[0];
+    const bodyRows = dataRows.slice(1);
+    const parseRow = (row: string) => row.split('|').map(c => c.trim()).filter(Boolean);
+
+    return (
+        <View style={mdStyles.tableWrap}>
+            {headerRow && (
+                <View style={[mdStyles.tableRow, mdStyles.tableHeaderRow, isUser && mdStyles.tableHeaderRowUser]}>
+                    {parseRow(headerRow).map((cell, ci) => (
+                        <View key={ci} style={mdStyles.tableCell}>
+                            <Text className={`font-inter-bold text-[11px] ${isUser ? 'text-white/90' : 'text-neutral-700'}`}>
+                                <InlineMarkdownText text={cell} isUser={isUser} />
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+            )}
+            {bodyRows.map((row, ri) => (
+                <View key={ri} style={[
+                    mdStyles.tableRow,
+                    ri % 2 === 1 && !isUser && mdStyles.tableRowAlt,
+                    isUser && mdStyles.tableRowUser,
+                ]}>
+                    {parseRow(row).map((cell, ci) => (
+                        <View key={ci} style={mdStyles.tableCell}>
+                            <Text className={`font-inter text-[11px] ${isUser ? 'text-white/80' : 'text-neutral-600'}`}>
+                                <InlineMarkdownText text={cell} isUser={isUser} />
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+            ))}
+        </View>
+    );
+}
+
+/** Full markdown block renderer for chatbot assistant messages */
+function ChatMarkdownNative({ content, isUser }: { content: string; isUser: boolean }) {
+    const blocks = content.split('\n\n');
+
+    return (
+        <View style={{ gap: 8 }}>
+            {blocks.map((block, blockIdx) => {
+                const trimmed = block.trim();
+                if (!trimmed) return null;
+
+                const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
+
+                // Table
+                const isTable = lines.length >= 2 && lines[0].startsWith('|') && lines.some(l => /^\|[\s\-|:]+\|$/.test(l));
+                if (isTable) {
+                    return <MarkdownTable key={blockIdx} lines={lines} isUser={isUser} />;
+                }
+
+                // Bullet list
+                const isList = lines.every(l => l.startsWith('- '));
+                if (isList) {
+                    return (
+                        <View key={blockIdx} style={{ gap: 4 }}>
+                            {lines.map((line, li) => (
+                                <View key={li} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                                    <Text className={`font-inter text-sm ${isUser ? 'text-white/60' : 'text-primary-400'}`} style={{ marginTop: 1 }}>•</Text>
+                                    <View style={{ flex: 1 }}>
+                                        <InlineMarkdownText text={line.replace(/^- /, '')} isUser={isUser} />
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    );
+                }
+
+                // Regular paragraph
+                return (
+                    <View key={blockIdx}>
+                        {lines.map((line, li) => (
+                            <InlineMarkdownText key={li} text={line} isUser={isUser} />
+                        ))}
+                    </View>
+                );
+            })}
+        </View>
+    );
+}
+
+const mdStyles = StyleSheet.create({
+    tableWrap: { borderRadius: 8, borderWidth: 1, borderColor: colors.neutral[200], overflow: 'hidden', marginVertical: 2 },
+    tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    tableHeaderRow: { backgroundColor: colors.neutral[50] },
+    tableHeaderRowUser: { backgroundColor: 'rgba(255,255,255,0.15)' },
+    tableRowAlt: { backgroundColor: colors.neutral[50] + '40' },
+    tableRowUser: { borderBottomColor: 'rgba(255,255,255,0.1)' },
+    tableCell: { flex: 1, paddingHorizontal: 8, paddingVertical: 5 },
+});
+
 // ============ MESSAGE BUBBLE ============
 
 function MessageBubble({ message, index }: { message: ChatMessage; index: number }) {
@@ -74,7 +225,11 @@ function MessageBubble({ message, index }: { message: ChatMessage; index: number
                 </View>
             )}
             <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-                <Text className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>{message.content}</Text>
+                {isUser ? (
+                    <Text className={`font-inter text-sm leading-5 text-white`}>{message.content}</Text>
+                ) : (
+                    <ChatMarkdownNative content={message.content} isUser={false} />
+                )}
                 <Text className={`font-inter text-[10px] mt-1 ${isUser ? 'text-primary-200 text-right' : 'text-neutral-400'}`}>
                     {message.timestamp ? fmt.time(message.timestamp) : ''}
                 </Text>

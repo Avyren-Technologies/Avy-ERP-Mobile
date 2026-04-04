@@ -50,6 +50,7 @@ import {
     useGrades,
 } from '@/features/company-admin/api/use-hr-queries';
 import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
+import { useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
 
 // ============ TYPES ============
 
@@ -110,7 +111,8 @@ interface ProfessionalForm {
 interface SalaryForm {
     annualCtc: string;
     paymentMode: string;
-    salaryStructure: string;
+    structureId: string;
+    salaryStructure: Record<string, number> | null;
 }
 
 interface BankForm {
@@ -167,7 +169,7 @@ const INITIAL_PROFESSIONAL: ProfessionalForm = {
 };
 
 const INITIAL_SALARY: SalaryForm = {
-    annualCtc: '', paymentMode: '', salaryStructure: '',
+    annualCtc: '', paymentMode: '', structureId: '', salaryStructure: null,
 };
 
 const INITIAL_BANK: BankForm = {
@@ -779,9 +781,15 @@ function ProfessionalTab({
 function SalaryTab({
     form,
     onChange,
+    structureOptions,
+    structuresData,
+    onComputeBreakdown,
 }: {
     form: SalaryForm;
     onChange: (updates: Partial<SalaryForm>) => void;
+    structureOptions: { id: string; name: string }[];
+    structuresData: any[];
+    onComputeBreakdown: (structure: any, annualCtc: number) => void;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
@@ -797,7 +805,14 @@ function SalaryTab({
                         placeholder="e.g. 12,00,000"
                         placeholderTextColor={colors.neutral[400]}
                         value={form.annualCtc}
-                        onChangeText={(v) => onChange({ annualCtc: v.replace(/[^0-9]/g, '') })}
+                        onChangeText={(v) => {
+                            const cleaned = v.replace(/[^0-9]/g, '');
+                            onChange({ annualCtc: cleaned });
+                            if (form.structureId && cleaned) {
+                                const structure = structuresData.find((s: any) => s.id === form.structureId);
+                                if (structure) onComputeBreakdown(structure, parseFloat(cleaned));
+                            }
+                        }}
                         keyboardType="number-pad"
                     />
                 </View>
@@ -810,11 +825,58 @@ function SalaryTab({
             <ChipSelect label="Payment Mode" options={['NEFT', 'IMPS', 'Cheque']} selected={form.paymentMode} onSelect={(v) => onChange({ paymentMode: v })} />
 
             <SectionTitle title="Salary Structure" />
-            <View style={st.readOnlyCard}>
-                <Text className="font-inter text-xs text-neutral-500">
-                    {form.salaryStructure || 'Salary structure will be configured in Phase 4 (Payroll module). Currently read-only.'}
-                </Text>
-            </View>
+            <DropdownField
+                label="Select Salary Structure"
+                options={structureOptions}
+                selected={form.structureId}
+                onSelect={(sid) => {
+                    onChange({ structureId: sid });
+                    if (sid && form.annualCtc) {
+                        const structure = structuresData.find((s: any) => s.id === sid);
+                        if (structure) onComputeBreakdown(structure, parseFloat(form.annualCtc));
+                    } else {
+                        onChange({ salaryStructure: null });
+                    }
+                }}
+                placeholder="Select structure..."
+            />
+
+            {form.salaryStructure && Object.keys(form.salaryStructure).length > 0 ? (
+                <View style={st.breakdownCard}>
+                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500">Component Breakdown</Text>
+                    <View style={st.breakdownHeader}>
+                        <Text className="font-inter text-[10px] font-bold text-neutral-500" style={{ flex: 1 }}>COMPONENT</Text>
+                        <Text className="font-inter text-[10px] font-bold text-neutral-500" style={{ width: 80, textAlign: 'right' }}>MONTHLY</Text>
+                        <Text className="font-inter text-[10px] font-bold text-neutral-500" style={{ width: 80, textAlign: 'right' }}>ANNUAL</Text>
+                    </View>
+                    {Object.entries(form.salaryStructure).map(([key, val]) => (
+                        <View key={key} style={st.breakdownRow}>
+                            <Text className="font-inter text-xs text-neutral-700" style={{ flex: 1 }} numberOfLines={1}>{key}</Text>
+                            <Text className="font-inter text-xs font-semibold text-primary-950" style={{ width: 80, textAlign: 'right' }}>
+                                {typeof val === 'number' ? `\u20B9${Math.round(val / 12).toLocaleString('en-IN')}` : '\u2014'}
+                            </Text>
+                            <Text className="font-inter text-xs font-semibold text-primary-950" style={{ width: 80, textAlign: 'right' }}>
+                                {typeof val === 'number' ? `\u20B9${val.toLocaleString('en-IN')}` : String(val)}
+                            </Text>
+                        </View>
+                    ))}
+                    <View style={st.breakdownTotalRow}>
+                        <Text className="font-inter text-xs font-bold text-primary-800" style={{ flex: 1 }}>Total</Text>
+                        <Text className="font-inter text-xs font-bold text-primary-800" style={{ width: 80, textAlign: 'right' }}>
+                            {`\u20B9${Math.round(Object.values(form.salaryStructure).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0) / 12).toLocaleString('en-IN')}`}
+                        </Text>
+                        <Text className="font-inter text-xs font-bold text-primary-800" style={{ width: 80, textAlign: 'right' }}>
+                            {`\u20B9${Object.values(form.salaryStructure).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0).toLocaleString('en-IN')}`}
+                        </Text>
+                    </View>
+                </View>
+            ) : (
+                <View style={st.readOnlyCard}>
+                    <Text className="font-inter text-xs text-neutral-500">
+                        {form.structureId ? 'Enter Annual CTC to see breakdown' : 'No salary structure selected'}
+                    </Text>
+                </View>
+            )}
         </Animated.View>
     );
 }
@@ -1044,6 +1106,7 @@ export function EmployeeDetailScreen() {
     const { data: empListResponse } = useEmployees({ limit: 100 });
     const { data: docsResponse } = useEmployeeDocuments(employeeId);
     const { data: timelineResponse, isLoading: timelineLoading } = useEmployeeTimeline(employeeId);
+    const { data: structuresResponse } = useSalaryStructures();
 
     // Mutations
     const createMutation = useCreateEmployee();
@@ -1283,6 +1346,50 @@ export function EmployeeDetailScreen() {
         return Array.isArray(raw) ? raw.map((s: any) => ({ id: s.id ?? '', name: s.name ?? '' })) : [];
     }, [shiftResponse]);
 
+    const salaryStructureOptions = React.useMemo(() => {
+        const raw = (structuresResponse as any)?.data ?? structuresResponse ?? [];
+        return Array.isArray(raw) ? raw.map((s: any) => ({ id: s.id ?? '', name: `${s.name ?? ''}${s.code ? ` (${s.code})` : ''}` })) : [];
+    }, [structuresResponse]);
+
+    const salaryStructuresData = React.useMemo(() => {
+        const raw = (structuresResponse as any)?.data ?? structuresResponse ?? [];
+        return Array.isArray(raw) ? raw : [];
+    }, [structuresResponse]);
+
+    const computeSalaryBreakdown = React.useCallback((structure: any, annualCtc: number) => {
+        const comps = (structure.components as any[]) ?? [];
+        const breakdown: Record<string, number> = {};
+        let basicAmount = 0;
+
+        // Pass 1: PERCENT_OF_GROSS
+        for (const c of comps) {
+            if (c.calculationMethod === 'PERCENT_OF_GROSS') {
+                const annual = (c.value / 100) * annualCtc;
+                const label = c.component?.name ?? c.componentId;
+                breakdown[label] = Math.round(annual);
+                if ((c.component?.code ?? c.component?.name ?? '').toUpperCase().includes('BASIC')) {
+                    basicAmount = annual;
+                }
+            }
+        }
+        // Pass 2: PERCENT_OF_BASIC
+        for (const c of comps) {
+            if (c.calculationMethod === 'PERCENT_OF_BASIC') {
+                const label = c.component?.name ?? c.componentId;
+                breakdown[label] = Math.round((c.value / 100) * basicAmount);
+            }
+        }
+        // Pass 3: FIXED (monthly value x 12)
+        for (const c of comps) {
+            if (c.calculationMethod === 'FIXED') {
+                const label = c.component?.name ?? c.componentId;
+                breakdown[label] = Math.round(c.value * 12);
+            }
+        }
+
+        setSalary((p) => ({ ...p, salaryStructure: breakdown }));
+    }, []);
+
     const docItems: DocItem[] = React.useMemo(() => {
         const raw = (docsResponse as any)?.data ?? docsResponse ?? [];
         return Array.isArray(raw) ? raw.map((d: any) => ({
@@ -1363,7 +1470,8 @@ export function EmployeeDetailScreen() {
         setSalary({
             annualCtc: d.annualCtc?.toString() ?? d.salary?.annualCtc?.toString() ?? '',
             paymentMode: d.paymentMode ?? d.salary?.paymentMode ?? '',
-            salaryStructure: d.salaryStructure ? JSON.stringify(d.salaryStructure, null, 2) : '',
+            structureId: d.salaryStructureId ?? '',
+            salaryStructure: d.salaryStructure ?? null,
         });
 
         setBank({
@@ -1454,6 +1562,7 @@ export function EmployeeDetailScreen() {
         // Salary
         annualCtc: salary.annualCtc ? parseFloat(salary.annualCtc) : undefined,
         paymentMode: salary.paymentMode || undefined,
+        salaryStructure: salary.salaryStructure || undefined,
         // Bank
         bankDetails: {
             ifscCode: bank.ifscCode, bankName: bank.bankName,
@@ -1745,7 +1854,13 @@ export function EmployeeDetailScreen() {
                     />
                 )}
                 {activeTab === 'salary' && (
-                    <SalaryTab form={salary} onChange={(u) => setSalary((p) => ({ ...p, ...u }))} />
+                    <SalaryTab
+                        form={salary}
+                        onChange={(u) => setSalary((p) => ({ ...p, ...u }))}
+                        structureOptions={salaryStructureOptions}
+                        structuresData={salaryStructuresData}
+                        onComputeBreakdown={computeSalaryBreakdown}
+                    />
                 )}
                 {activeTab === 'bank' && (
                     <BankTab form={bank} onChange={(u) => setBank((p) => ({ ...p, ...u }))} />
@@ -2121,6 +2236,37 @@ const st = StyleSheet.create({
         right: 12,
         top: 30,
         padding: 4,
+    },
+    // Salary breakdown
+    breakdownCard: {
+        backgroundColor: colors.neutral[50],
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        marginBottom: 16,
+    },
+    breakdownHeader: {
+        flexDirection: 'row',
+        paddingBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.neutral[200],
+        marginBottom: 4,
+    },
+    breakdownRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.neutral[100],
+    },
+    breakdownTotalRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingTop: 8,
+        marginTop: 4,
+        borderTopWidth: 1.5,
+        borderTopColor: colors.neutral[300],
     },
     // Read-only card
     readOnlyCard: {

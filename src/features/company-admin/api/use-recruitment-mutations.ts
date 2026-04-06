@@ -187,6 +187,144 @@ export function useUpdateTrainingNomination() {
   });
 }
 
+// ── Training Session Mutations ──────────────────────────────────
+
+export function useCreateTrainingSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      recruitmentApi.createTrainingSession(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateTrainingSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateTrainingSession(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateTrainingSessionStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { status: string; cancelledReason?: string } }) =>
+      recruitmentApi.updateTrainingSessionStatus(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteTrainingSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteTrainingSession(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Training Attendance Mutations ──────────────────────────────
+
+export function useRegisterSessionAttendees() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, data }: { sessionId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.registerSessionAttendees(sessionId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useMarkAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.markAttendance(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useBulkMarkAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, data }: { sessionId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.bulkMarkAttendance(sessionId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Training Evaluation Mutations ──────────────────────────────
+
+export function useSubmitTrainingEvaluation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ nominationId, data }: { nominationId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.submitTrainingEvaluation(nominationId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useSubmitEssFeedback() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ nominationId, data }: { nominationId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.submitEssFeedback(nominationId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Trainer Mutations ──────────────────────────────────────────
+
+export function useCreateTrainer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      recruitmentApi.createTrainer(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateTrainer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateTrainer(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteTrainer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteTrainer(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
 // ── Asset Category Mutations ────────────────────────────────────
 
 export function useCreateAssetCategory() {

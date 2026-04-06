@@ -32,6 +32,19 @@ export interface TrainingNominationListParams {
   status?: string;
 }
 
+export interface TrainingSessionListParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  trainingId?: string;
+}
+
+export interface TrainerListParams {
+  page?: number;
+  limit?: number;
+  type?: string;
+}
+
 export interface AssetCategoryListParams {
   page?: number;
   limit?: number;
@@ -186,6 +199,74 @@ export const recruitmentApi = {
   // ── Training Dashboard ────────────────────────────────────────
   getTrainingDashboard: () =>
     client.get('/hr/training-dashboard'),
+
+  // ── Training Sessions ───────────────────────────────────────
+  listTrainingSessions: (params?: TrainingSessionListParams) =>
+    client.get('/hr/training-sessions', { params }),
+
+  createTrainingSession: (data: Record<string, unknown>) =>
+    client.post('/hr/training-sessions', data),
+
+  getTrainingSession: (id: string) =>
+    client.get(`/hr/training-sessions/${id}`),
+
+  updateTrainingSession: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/training-sessions/${id}`, data),
+
+  updateTrainingSessionStatus: (id: string, data: { status: string; cancelledReason?: string }) =>
+    client.patch(`/hr/training-sessions/${id}/status`, data),
+
+  deleteTrainingSession: (id: string) =>
+    client.delete(`/hr/training-sessions/${id}`),
+
+  // ── Training Attendance ─────────────────────────────────────
+  listSessionAttendance: (sessionId: string) =>
+    client.get(`/hr/training-sessions/${sessionId}/attendance`),
+
+  registerSessionAttendees: (sessionId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/training-sessions/${sessionId}/attendance`, data),
+
+  markAttendance: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/training-attendance/${id}`, data),
+
+  bulkMarkAttendance: (sessionId: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/training-sessions/${sessionId}/attendance/bulk`, data),
+
+  // ── Training Evaluations ────────────────────────────────────
+  submitTrainingEvaluation: (nominationId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/training-nominations/${nominationId}/evaluation`, data),
+
+  getTrainingEvaluation: (nominationId: string) =>
+    client.get(`/hr/training-nominations/${nominationId}/evaluation`),
+
+  listSessionEvaluations: (sessionId: string) =>
+    client.get(`/hr/training-sessions/${sessionId}/evaluations`),
+
+  getTrainingEvaluationSummary: (trainingId: string) =>
+    client.get('/hr/training-evaluations/summary', { params: { trainingId } }),
+
+  submitEssFeedback: (nominationId: string, data: Record<string, unknown>) =>
+    client.post(`/ess/training/${nominationId}/feedback`, data),
+
+  // ── Expiring Certificates ──────────────────────────────────
+  getExpiringCertificates: (days: number = 30) =>
+    client.get('/hr/training-certificates/expiring', { params: { days } }),
+
+  // ── Trainers ───────────────────────────────────────────────
+  listTrainers: (params?: TrainerListParams) =>
+    client.get('/hr/trainers', { params }),
+
+  createTrainer: (data: Record<string, unknown>) =>
+    client.post('/hr/trainers', data),
+
+  getTrainer: (id: string) =>
+    client.get(`/hr/trainers/${id}`),
+
+  updateTrainer: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/trainers/${id}`, data),
+
+  deleteTrainer: (id: string) =>
+    client.delete(`/hr/trainers/${id}`),
 
   // ── Asset Categories ──────────────────────────────────────────
   listAssetCategories: (params?: AssetCategoryListParams) =>

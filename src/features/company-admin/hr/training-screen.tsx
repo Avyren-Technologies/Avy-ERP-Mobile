@@ -29,20 +29,38 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
+    useCreateTrainer,
     useCreateTrainingCatalogue,
     useCreateTrainingNomination,
+    useCreateTrainingSession,
+    useDeleteTrainer,
     useDeleteTrainingCatalogue,
+    useDeleteTrainingSession,
+    useRegisterSessionAttendees,
+    useBulkMarkAttendance,
+    useUpdateTrainer,
     useUpdateTrainingCatalogue,
     useUpdateTrainingNomination,
+    useUpdateTrainingSession,
+    useUpdateTrainingSessionStatus,
 } from '@/features/company-admin/api/use-recruitment-mutations';
-import { useTrainingCatalogue, useTrainingNominations } from '@/features/company-admin/api/use-recruitment-queries';
+import {
+    useSessionAttendance,
+    useTrainers,
+    useTrainingCatalogue,
+    useTrainingNominations,
+    useTrainingSessions,
+} from '@/features/company-admin/api/use-recruitment-queries';
 
 // ============ TYPES ============
 
 type TrainingType = 'Technical' | 'Compliance' | 'Soft Skills' | 'Leadership' | 'Safety' | 'Product' | 'Other';
 type TrainingMode = 'Online' | 'Classroom' | 'Blended' | 'Self-paced';
 type NominationStatus = 'Nominated' | 'Approved' | 'In Progress' | 'Completed' | 'Cancelled';
-type Tab = 'catalogue' | 'nominations';
+type SessionStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+type AttendanceStatus = 'REGISTERED' | 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+type TrainerType = 'INTERNAL' | 'EXTERNAL';
+type Tab = 'catalogue' | 'nominations' | 'sessions' | 'trainers';
 
 interface CatalogueItem {
     id: string;
@@ -69,7 +87,65 @@ interface NominationItem {
     nominatedAt: string;
 }
 
+interface SessionItem {
+    id: string;
+    batchName: string;
+    trainingId: string;
+    trainingName: string;
+    startDateTime: string;
+    endDateTime: string;
+    venue: string;
+    meetingLink: string;
+    maxParticipants: number;
+    trainerId: string;
+    trainerName: string;
+    status: SessionStatus;
+    attendeeCount: number;
+}
+
+interface TrainerItem {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    type: TrainerType;
+    employeeId: string;
+    employeeName: string;
+    specializations: string[];
+    qualifications: string;
+    experienceYears: number;
+    rating: number;
+    sessionCount: number;
+}
+
+interface AttendeeItem {
+    id: string;
+    employeeId: string;
+    employeeName: string;
+    status: AttendanceStatus;
+}
+
 // ============ CONSTANTS ============
+
+const SESSION_STATUS_COLORS: Record<SessionStatus, { bg: string; text: string; dot: string }> = {
+    SCHEDULED: { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] },
+    IN_PROGRESS: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
+    COMPLETED: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
+    CANCELLED: { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] },
+};
+
+const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string }> = {
+    REGISTERED: { bg: colors.info[50], text: colors.info[700] },
+    PRESENT: { bg: colors.success[50], text: colors.success[700] },
+    ABSENT: { bg: colors.danger[50], text: colors.danger[700] },
+    LATE: { bg: colors.warning[50], text: colors.warning[700] },
+    EXCUSED: { bg: colors.neutral[100], text: colors.neutral[600] },
+};
+
+const TRAINER_TYPE_COLORS: Record<TrainerType, { bg: string; text: string }> = {
+    INTERNAL: { bg: colors.primary[50], text: colors.primary[700] },
+    EXTERNAL: { bg: colors.accent[50], text: colors.accent[700] },
+};
 
 const TRAINING_TYPES: TrainingType[] = ['Technical', 'Compliance', 'Soft Skills', 'Leadership', 'Safety', 'Product', 'Other'];
 const TRAINING_MODES: TrainingMode[] = ['Online', 'Classroom', 'Blended', 'Self-paced'];
@@ -415,6 +491,432 @@ function NominationCard({ item, index, onComplete, onCancel }: {
     );
 }
 
+// ============ SESSION CARD ============
+
+function SessionStatusBadge({ status }: { status: SessionStatus }) {
+    const s = SESSION_STATUS_COLORS[status] ?? SESSION_STATUS_COLORS.SCHEDULED;
+    return (
+        <View style={[styles.statusBadge, { backgroundColor: s.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: s.dot }]} />
+            <Text style={{ color: s.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{status.replace('_', ' ')}</Text>
+        </View>
+    );
+}
+
+function SessionCard({ item, index, onStart, onComplete, onDelete, onAttendance }: {
+    item: SessionItem; index: number; onStart: () => void; onComplete: () => void; onDelete: () => void; onAttendance: () => void;
+}) {
+    const isTerminal = item.status === 'COMPLETED' || item.status === 'CANCELLED';
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.batchName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.trainingName}</Text>
+                    </View>
+                    <SessionStatusBadge status={item.status} />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                    {item.startDateTime && <Text className="font-inter text-xs text-neutral-500">From: {item.startDateTime.split('T')[0]}</Text>}
+                    {item.endDateTime && <Text className="font-inter text-xs text-neutral-500">To: {item.endDateTime.split('T')[0]}</Text>}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                    {item.venue ? <Text className="font-inter text-xs text-neutral-400">{item.venue}</Text> : null}
+                    {item.trainerName ? <Text className="font-inter text-xs text-accent-600">Trainer: {item.trainerName}</Text> : null}
+                    {item.maxParticipants > 0 && (
+                        <View style={[styles.typeBadge, { backgroundColor: colors.primary[50] }]}>
+                            <Text style={{ color: colors.primary[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.attendeeCount}/{item.maxParticipants}</Text>
+                        </View>
+                    )}
+                </View>
+                {!isTerminal && (
+                    <View style={styles.actionRow}>
+                        <Pressable onPress={onAttendance} style={[styles.cancelActionBtn, { backgroundColor: colors.info[50] }]}>
+                            <Text className="font-inter text-xs font-semibold text-info-700">Attendance</Text>
+                        </Pressable>
+                        {item.status === 'SCHEDULED' && (
+                            <>
+                                <Pressable onPress={onStart} style={styles.approveBtn}>
+                                    <Text className="font-inter text-xs font-bold text-white">Start</Text>
+                                </Pressable>
+                                <Pressable onPress={onDelete} hitSlop={8} style={styles.cancelActionBtn}>
+                                    <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                </Pressable>
+                            </>
+                        )}
+                        {item.status === 'IN_PROGRESS' && (
+                            <Pressable onPress={onComplete} style={[styles.approveBtn, { backgroundColor: colors.success[600] }]}>
+                                <Text className="font-inter text-xs font-bold text-white">Complete</Text>
+                            </Pressable>
+                        )}
+                    </View>
+                )}
+            </View>
+        </Animated.View>
+    );
+}
+
+// ============ TRAINER CARD ============
+
+function StarRating({ rating }: { rating: number }) {
+    return (
+        <View style={{ flexDirection: 'row', gap: 2 }}>
+            {[1, 2, 3, 4, 5].map(star => (
+                <Svg key={star} width={12} height={12} viewBox="0 0 24 24">
+                    <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                        fill={star <= rating ? colors.warning[400] : colors.neutral[200]}
+                        stroke={star <= rating ? colors.warning[500] : colors.neutral[300]}
+                        strokeWidth="1" />
+                </Svg>
+            ))}
+        </View>
+    );
+}
+
+function TrainerCard({ item, index, onEdit, onDelete }: {
+    item: TrainerItem; index: number; onEdit: () => void; onDelete: () => void;
+}) {
+    const displayName = item.type === 'INTERNAL' && item.employeeName ? item.employeeName : item.name;
+    const tc = TRAINER_TYPE_COLORS[item.type] ?? TRAINER_TYPE_COLORS.EXTERNAL;
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
+            <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+                <View style={styles.cardHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                        <AvatarCircle name={displayName} />
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{displayName}</Text>
+                            {item.email ? <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.email}</Text> : null}
+                        </View>
+                    </View>
+                    <View style={[styles.typeBadge, { backgroundColor: tc.bg }]}>
+                        <Text style={{ color: tc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.type}</Text>
+                    </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                    {item.specializations.length > 0 && item.specializations.map((s, i) => (
+                        <View key={i} style={[styles.typeBadge, { backgroundColor: colors.accent[50] }]}>
+                            <Text style={{ color: colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{s}</Text>
+                        </View>
+                    ))}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                    <StarRating rating={Math.round(item.rating)} />
+                    {item.sessionCount > 0 && <Text className="font-inter text-xs text-neutral-500">{item.sessionCount} sessions</Text>}
+                    {item.experienceYears > 0 && <Text className="font-inter text-xs text-neutral-400">{item.experienceYears}yr exp</Text>}
+                </View>
+                <View style={styles.cardFooter}>
+                    <Pressable onPress={onDelete} hitSlop={8}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    </Pressable>
+                </View>
+            </Pressable>
+        </Animated.View>
+    );
+}
+
+// ============ SESSION FORM MODAL ============
+
+function SessionFormModal({
+    visible, onClose, onSave, trainingOptions, trainerOptions, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (data: Record<string, unknown>) => void;
+    trainingOptions: { id: string; label: string }[];
+    trainerOptions: { id: string; label: string }[];
+    isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [trainingId, setTrainingId] = React.useState('');
+    const [batchName, setBatchName] = React.useState('');
+    const [startDateTime, setStartDateTime] = React.useState('');
+    const [endDateTime, setEndDateTime] = React.useState('');
+    const [venue, setVenue] = React.useState('');
+    const [meetingLink, setMeetingLink] = React.useState('');
+    const [maxParticipants, setMaxParticipants] = React.useState('');
+    const [trainerId, setTrainerId] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) {
+            setTrainingId(''); setBatchName(''); setStartDateTime(''); setEndDateTime('');
+            setVenue(''); setMeetingLink(''); setMaxParticipants(''); setTrainerId('');
+        }
+    }, [visible]);
+
+    const isValid = trainingId && batchName.trim();
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">New Session</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
+                        <Dropdown label="Training" value={trainingId} options={trainingOptions} onSelect={setTrainingId} placeholder="Select training..." required />
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Batch Name <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Batch A - Jan 2026" placeholderTextColor={colors.neutral[400]} value={batchName} onChangeText={setBatchName} /></View>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={[styles.fieldWrap, { flex: 1 }]}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Start Date</Text>
+                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={startDateTime} onChangeText={setStartDateTime} /></View>
+                            </View>
+                            <View style={[styles.fieldWrap, { flex: 1 }]}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">End Date</Text>
+                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={endDateTime} onChangeText={setEndDateTime} /></View>
+                            </View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Venue</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Location or room" placeholderTextColor={colors.neutral[400]} value={venue} onChangeText={setVenue} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Meeting Link</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="https://..." placeholderTextColor={colors.neutral[400]} value={meetingLink} onChangeText={setMeetingLink} autoCapitalize="none" /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Max Participants</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={maxParticipants} onChangeText={setMaxParticipants} keyboardType="number-pad" /></View>
+                        </View>
+                        <Dropdown label="Trainer" value={trainerId} options={trainerOptions} onSelect={setTrainerId} placeholder="Select trainer..." />
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave({
+                            trainingId, batchName: batchName.trim(),
+                            startDateTime: startDateTime.trim() || undefined, endDateTime: endDateTime.trim() || undefined,
+                            venue: venue.trim() || undefined, meetingLink: meetingLink.trim() || undefined,
+                            maxParticipants: Number(maxParticipants) || undefined, trainerId: trainerId || undefined,
+                        })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Creating...' : 'Create'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ TRAINER FORM MODAL ============
+
+function TrainerFormModal({
+    visible, onClose, onSave, employeeOptions, initialData, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (data: Record<string, unknown>) => void;
+    employeeOptions: { id: string; label: string }[];
+    initialData?: TrainerItem | null; isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [isInternal, setIsInternal] = React.useState(false);
+    const [employeeId, setEmployeeId] = React.useState('');
+    const [name, setName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [phone, setPhone] = React.useState('');
+    const [specializations, setSpecializations] = React.useState('');
+    const [qualifications, setQualifications] = React.useState('');
+    const [experienceYears, setExperienceYears] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) {
+            if (initialData) {
+                setIsInternal(initialData.type === 'INTERNAL');
+                setEmployeeId(initialData.employeeId ?? '');
+                setName(initialData.name ?? '');
+                setEmail(initialData.email ?? '');
+                setPhone(initialData.phone ?? '');
+                setSpecializations((initialData.specializations ?? []).join(', '));
+                setQualifications(initialData.qualifications ?? '');
+                setExperienceYears(String(initialData.experienceYears || ''));
+            } else {
+                setIsInternal(false); setEmployeeId(''); setName(''); setEmail('');
+                setPhone(''); setSpecializations(''); setQualifications(''); setExperienceYears('');
+            }
+        }
+    }, [visible, initialData]);
+
+    const isValid = isInternal ? !!employeeId : name.trim().length > 0;
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                        {initialData ? 'Edit Trainer' : 'New Trainer'}
+                    </Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
+                        <View style={styles.toggleRow}>
+                            <Text className="font-inter text-sm font-semibold text-primary-950">Internal Employee</Text>
+                            <Switch value={isInternal} onValueChange={setIsInternal} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isInternal ? colors.primary[600] : colors.neutral[300]} />
+                        </View>
+                        {isInternal ? (
+                            <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Select employee..." required />
+                        ) : (
+                            <>
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                                    <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Trainer name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
+                                </View>
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Email</Text>
+                                    <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="trainer@example.com" placeholderTextColor={colors.neutral[400]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
+                                </View>
+                            </>
+                        )}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Phone</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Phone number" placeholderTextColor={colors.neutral[400]} value={phone} onChangeText={setPhone} keyboardType="phone-pad" /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Specializations</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. React, Node.js, AWS (comma-separated)" placeholderTextColor={colors.neutral[400]} value={specializations} onChangeText={setSpecializations} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Qualifications</Text>
+                            <View style={[styles.inputWrap, { height: 60 }]}>
+                                <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Degrees, certifications..." placeholderTextColor={colors.neutral[400]} value={qualifications} onChangeText={setQualifications} multiline />
+                            </View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Experience (years)</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={experienceYears} onChangeText={setExperienceYears} keyboardType="number-pad" /></View>
+                        </View>
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave({
+                            type: isInternal ? 'INTERNAL' : 'EXTERNAL',
+                            employeeId: isInternal ? employeeId : undefined,
+                            name: isInternal ? undefined : name.trim(),
+                            email: isInternal ? undefined : email.trim() || undefined,
+                            phone: phone.trim() || undefined,
+                            specializations: specializations.split(',').map(s => s.trim()).filter(Boolean),
+                            qualifications: qualifications.trim() || undefined,
+                            experienceYears: Number(experienceYears) || undefined,
+                        })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ ATTENDANCE MODAL ============
+
+function AttendanceModal({
+    visible, onClose, sessionId, employeeOptions, onRegister, onBulkMark, isRegistering, isMarking,
+}: {
+    visible: boolean; onClose: () => void; sessionId: string;
+    employeeOptions: { id: string; label: string }[];
+    onRegister: (nominationIds: string[]) => void;
+    onBulkMark: (records: { id: string; status: AttendanceStatus }[]) => void;
+    isRegistering: boolean; isMarking: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const { data: attendanceResp, isLoading: attLoading } = useSessionAttendance(sessionId);
+    const attendees: AttendeeItem[] = React.useMemo(() => {
+        const raw = (attendanceResp as any)?.data ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((a: any) => ({ id: a.id, employeeId: a.employeeId, employeeName: a.employeeName ?? a.employee?.firstName ?? '', status: a.status ?? 'REGISTERED' }));
+    }, [attendanceResp]);
+
+    const [selectedEmpIds, setSelectedEmpIds] = React.useState<string[]>([]);
+    const [markStatuses, setMarkStatuses] = React.useState<Record<string, AttendanceStatus>>({});
+
+    React.useEffect(() => {
+        if (visible) { setSelectedEmpIds([]); setMarkStatuses({}); }
+    }, [visible]);
+
+    const toggleEmp = (id: string) => setSelectedEmpIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+    const setAttStatus = (id: string, status: AttendanceStatus) => setMarkStatuses(prev => ({ ...prev, [id]: status }));
+
+    const changedRecords = Object.entries(markStatuses)
+        .filter(([id, status]) => attendees.find(a => a.id === id)?.status !== status)
+        .map(([id, status]) => ({ id, status }));
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Session Attendance</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
+                        {attLoading ? (
+                            <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /></View>
+                        ) : (
+                            <>
+                                {attendees.length > 0 && (
+                                    <View style={{ marginBottom: 20 }}>
+                                        <Text className="font-inter text-sm font-bold text-primary-900 mb-2">Registered ({attendees.length})</Text>
+                                        {attendees.map(att => {
+                                            const currentStatus = markStatuses[att.id] ?? att.status;
+                                            const sc = ATTENDANCE_STATUS_COLORS[currentStatus] ?? ATTENDANCE_STATUS_COLORS.REGISTERED;
+                                            return (
+                                                <View key={att.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
+                                                    <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{att.employeeName}</Text>
+                                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
+                                                        {(['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'] as AttendanceStatus[]).map(st => {
+                                                            const stc = ATTENDANCE_STATUS_COLORS[st];
+                                                            const active = currentStatus === st;
+                                                            return (
+                                                                <Pressable key={st} onPress={() => setAttStatus(att.id, st)}
+                                                                    style={[styles.chip, { paddingHorizontal: 8, paddingVertical: 4 }, active && { backgroundColor: stc.bg, borderColor: stc.text }]}>
+                                                                    <Text style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: active ? '700' : '500', color: active ? stc.text : colors.neutral[500] }}>{st}</Text>
+                                                                </Pressable>
+                                                            );
+                                                        })}
+                                                    </ScrollView>
+                                                </View>
+                                            );
+                                        })}
+                                        {changedRecords.length > 0 && (
+                                            <Pressable onPress={() => onBulkMark(changedRecords)} disabled={isMarking}
+                                                style={[styles.saveBtn, { marginTop: 12 }, isMarking && { opacity: 0.5 }]}>
+                                                <Text className="font-inter text-sm font-bold text-white">{isMarking ? 'Saving...' : `Save Attendance (${changedRecords.length})`}</Text>
+                                            </Pressable>
+                                        )}
+                                    </View>
+                                )}
+                                <Text className="font-inter text-sm font-bold text-primary-900 mb-2">Add Attendees</Text>
+                                {employeeOptions.filter(e => !attendees.some(a => a.employeeId === e.id)).map(emp => {
+                                    const sel = selectedEmpIds.includes(emp.id);
+                                    return (
+                                        <Pressable key={emp.id} onPress={() => toggleEmp(emp.id)}
+                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: sel ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
+                                            <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: sel ? colors.primary[600] : colors.neutral[300], backgroundColor: sel ? colors.primary[600] : colors.white, justifyContent: 'center', alignItems: 'center' }}>
+                                                {sel && <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
+                                            </View>
+                                            <Text className="font-inter text-sm text-primary-950">{emp.label}</Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </>
+                        )}
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text></Pressable>
+                        {selectedEmpIds.length > 0 && (
+                            <Pressable onPress={() => onRegister(selectedEmpIds)} disabled={isRegistering}
+                                style={[styles.saveBtn, isRegistering && { opacity: 0.5 }]}>
+                                <Text className="font-inter text-sm font-bold text-white">{isRegistering ? 'Registering...' : `Register (${selectedEmpIds.length})`}</Text>
+                            </Pressable>
+                        )}
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
 // ============ MAIN COMPONENT ============
 
 export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab?: Tab } = {}) {
@@ -428,6 +930,8 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     // Queries
     const { data: catResponse, isLoading: catLoading, error: catError, refetch: catRefetch, isFetching: catFetching } = useTrainingCatalogue();
     const { data: nomResponse, isLoading: nomLoading, error: nomError, refetch: nomRefetch, isFetching: nomFetching } = useTrainingNominations();
+    const { data: sessResponse, isLoading: sessLoading, error: sessError, refetch: sessRefetch, isFetching: sessFetching } = useTrainingSessions();
+    const { data: trainersResponse, isLoading: trainersLoading, error: trainersError, refetch: trainersRefetch, isFetching: trainersFetching } = useTrainers();
     const { data: empResponse } = useEmployees();
 
     // Mutations
@@ -436,11 +940,23 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     const deleteCat = useDeleteTrainingCatalogue();
     const createNom = useCreateTrainingNomination();
     const updateNom = useUpdateTrainingNomination();
+    const createSess = useCreateTrainingSession();
+    const updateSessStatus = useUpdateTrainingSessionStatus();
+    const deleteSess = useDeleteTrainingSession();
+    const registerAttendees = useRegisterSessionAttendees();
+    const bulkMark = useBulkMarkAttendance();
+    const createTrainer = useCreateTrainer();
+    const updateTrainerMut = useUpdateTrainer();
+    const deleteTrainerMut = useDeleteTrainer();
 
     // Modals
     const [catFormVisible, setCatFormVisible] = React.useState(false);
     const [editingCat, setEditingCat] = React.useState<CatalogueItem | null>(null);
     const [nomFormVisible, setNomFormVisible] = React.useState(false);
+    const [sessFormVisible, setSessFormVisible] = React.useState(false);
+    const [trainerFormVisible, setTrainerFormVisible] = React.useState(false);
+    const [editingTrainer, setEditingTrainer] = React.useState<TrainerItem | null>(null);
+    const [attendanceSessionId, setAttendanceSessionId] = React.useState<string | null>(null);
 
     // Parse data
     const catalogue: CatalogueItem[] = React.useMemo(() => {
@@ -465,6 +981,32 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         }));
     }, [nomResponse]);
 
+    const sessions: SessionItem[] = React.useMemo(() => {
+        const raw = (sessResponse as any)?.data ?? sessResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((item: any) => ({
+            id: item.id ?? '', batchName: item.batchName ?? '', trainingId: item.trainingId ?? '',
+            trainingName: item.trainingName ?? item.training?.name ?? '', startDateTime: item.startDateTime ?? '',
+            endDateTime: item.endDateTime ?? '', venue: item.venue ?? '', meetingLink: item.meetingLink ?? '',
+            maxParticipants: item.maxParticipants ?? 0, trainerId: item.trainerId ?? '',
+            trainerName: item.trainerName ?? item.trainer?.name ?? '', status: item.status ?? 'SCHEDULED',
+            attendeeCount: item.attendeeCount ?? item._count?.attendance ?? 0,
+        }));
+    }, [sessResponse]);
+
+    const trainers: TrainerItem[] = React.useMemo(() => {
+        const raw = (trainersResponse as any)?.data ?? trainersResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((item: any) => ({
+            id: item.id ?? '', name: item.name ?? '', email: item.email ?? '', phone: item.phone ?? '',
+            type: item.type ?? 'EXTERNAL', employeeId: item.employeeId ?? '',
+            employeeName: item.employeeName ?? item.employee?.firstName ? `${item.employee?.firstName ?? ''} ${item.employee?.lastName ?? ''}`.trim() : '',
+            specializations: Array.isArray(item.specializations) ? item.specializations : [],
+            qualifications: item.qualifications ?? '', experienceYears: item.experienceYears ?? 0,
+            rating: item.rating ?? 0, sessionCount: item.sessionCount ?? item._count?.sessions ?? 0,
+        }));
+    }, [trainersResponse]);
+
     const employeeOptions = React.useMemo(() => {
         const raw = (empResponse as any)?.data ?? empResponse ?? [];
         if (!Array.isArray(raw)) return [];
@@ -472,6 +1014,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     }, [empResponse]);
 
     const trainingOptions = React.useMemo(() => catalogue.map(c => ({ id: c.id, label: c.name })), [catalogue]);
+    const trainerOptions = React.useMemo(() => trainers.map(t => ({ id: t.id, label: t.type === 'INTERNAL' && t.employeeName ? t.employeeName : t.name })), [trainers]);
 
     const filteredCatalogue = React.useMemo(() => {
         if (!search.trim()) return catalogue;
@@ -484,6 +1027,18 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const q = search.toLowerCase();
         return nominations.filter(n => n.employeeName.toLowerCase().includes(q) || n.trainingName.toLowerCase().includes(q));
     }, [nominations, search]);
+
+    const filteredSessions = React.useMemo(() => {
+        if (!search.trim()) return sessions;
+        const q = search.toLowerCase();
+        return sessions.filter(s => s.batchName.toLowerCase().includes(q) || s.trainingName.toLowerCase().includes(q));
+    }, [sessions, search]);
+
+    const filteredTrainers = React.useMemo(() => {
+        if (!search.trim()) return trainers;
+        const q = search.toLowerCase();
+        return trainers.filter(t => t.name.toLowerCase().includes(q) || t.employeeName.toLowerCase().includes(q) || t.specializations.some(s => s.toLowerCase().includes(q)));
+    }, [trainers, search]);
 
     // Handlers
     const handleEditCatalogue = (item: CatalogueItem) => { setEditingCat(item); setCatFormVisible(true); };
@@ -527,21 +1082,85 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         createNom.mutate(data, { onSuccess: () => setNomFormVisible(false) });
     };
 
-    const isLoading = activeTab === 'catalogue' ? catLoading : nomLoading;
-    const isFetching = activeTab === 'catalogue' ? catFetching : nomFetching;
-    const activeRefetch = activeTab === 'catalogue' ? catRefetch : nomRefetch;
-    const error = activeTab === 'catalogue' ? catError : nomError;
+    // Session handlers
+    const handleStartSession = (item: SessionItem) => {
+        showConfirm({
+            title: 'Start Session', message: `Start "${item.batchName}"?`,
+            confirmText: 'Start', variant: 'primary',
+            onConfirm: () => updateSessStatus.mutate({ id: item.id, data: { status: 'IN_PROGRESS' } }),
+        });
+    };
+
+    const handleCompleteSession = (item: SessionItem) => {
+        showConfirm({
+            title: 'Complete Session', message: `Mark "${item.batchName}" as completed?`,
+            confirmText: 'Complete', variant: 'primary',
+            onConfirm: () => updateSessStatus.mutate({ id: item.id, data: { status: 'COMPLETED' } }),
+        });
+    };
+
+    const handleDeleteSession = (item: SessionItem) => {
+        showConfirm({
+            title: 'Delete Session', message: `Delete "${item.batchName}"? This cannot be undone.`,
+            confirmText: 'Delete', variant: 'danger',
+            onConfirm: () => deleteSess.mutate(item.id),
+        });
+    };
+
+    const handleSaveSession = (data: Record<string, unknown>) => {
+        createSess.mutate(data, { onSuccess: () => setSessFormVisible(false) });
+    };
+
+    const handleRegisterAttendees = (empIds: string[]) => {
+        if (!attendanceSessionId) return;
+        registerAttendees.mutate({ sessionId: attendanceSessionId, data: { employeeIds: empIds } }, {
+            onSuccess: () => setAttendanceSessionId(null),
+        });
+    };
+
+    const handleBulkMark = (records: { id: string; status: string }[]) => {
+        if (!attendanceSessionId) return;
+        bulkMark.mutate({ sessionId: attendanceSessionId, data: { records } }, {
+            onSuccess: () => setAttendanceSessionId(null),
+        });
+    };
+
+    // Trainer handlers
+    const handleEditTrainer = (item: TrainerItem) => { setEditingTrainer(item); setTrainerFormVisible(true); };
+
+    const handleDeleteTrainer = (item: TrainerItem) => {
+        showConfirm({
+            title: 'Delete Trainer', message: `Delete trainer "${item.type === 'INTERNAL' && item.employeeName ? item.employeeName : item.name}"?`,
+            confirmText: 'Delete', variant: 'danger',
+            onConfirm: () => deleteTrainerMut.mutate(item.id),
+        });
+    };
+
+    const handleSaveTrainer = (data: Record<string, unknown>) => {
+        if (editingTrainer) {
+            updateTrainerMut.mutate({ id: editingTrainer.id, data }, { onSuccess: () => setTrainerFormVisible(false) });
+        } else {
+            createTrainer.mutate(data, { onSuccess: () => setTrainerFormVisible(false) });
+        }
+    };
+
+    const isLoading = activeTab === 'catalogue' ? catLoading : activeTab === 'nominations' ? nomLoading : activeTab === 'sessions' ? sessLoading : trainersLoading;
+    const isFetching = activeTab === 'catalogue' ? catFetching : activeTab === 'nominations' ? nomFetching : activeTab === 'sessions' ? sessFetching : trainersFetching;
+    const activeRefetch = activeTab === 'catalogue' ? catRefetch : activeTab === 'nominations' ? nomRefetch : activeTab === 'sessions' ? sessRefetch : trainersRefetch;
+    const error = activeTab === 'catalogue' ? catError : activeTab === 'nominations' ? nomError : activeTab === 'sessions' ? sessError : trainersError;
 
     const tabs: { key: Tab; label: string }[] = [
         { key: 'catalogue', label: 'Catalogue' },
         { key: 'nominations', label: 'Nominations' },
+        { key: 'sessions', label: 'Sessions' },
+        { key: 'trainers', label: 'Trainers' },
     ];
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <Text className="font-inter text-2xl font-bold text-primary-950">Training</Text>
             <Text className="mt-1 font-inter text-sm text-neutral-500">
-                {activeTab === 'catalogue' ? `${catalogue.length} training${catalogue.length !== 1 ? 's' : ''}` : `${nominations.length} nomination${nominations.length !== 1 ? 's' : ''}`}
+                {activeTab === 'catalogue' ? `${catalogue.length} training${catalogue.length !== 1 ? 's' : ''}` : activeTab === 'nominations' ? `${nominations.length} nomination${nominations.length !== 1 ? 's' : ''}` : activeTab === 'sessions' ? `${sessions.length} session${sessions.length !== 1 ? 's' : ''}` : `${trainers.length} trainer${trainers.length !== 1 ? 's' : ''}`}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ gap: 8 }}>
                 {tabs.map(tab => {
@@ -561,21 +1180,31 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         if (isLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
         if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => activeRefetch() }} /></View>;
         if (activeTab === 'catalogue') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No training courses" message="Create your first training programme." /></View>;
-        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No nominations" message="Nominate employees for training." /></View>;
+        if (activeTab === 'nominations') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No nominations" message="Nominate employees for training." /></View>;
+        if (activeTab === 'sessions') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No sessions" message="Schedule a training session." /></View>;
+        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No trainers" message="Add your first trainer." /></View>;
     };
 
     const renderItem = ({ item, index }: { item: any; index: number }) => {
         if (activeTab === 'catalogue') {
             return <CatalogueCard item={item} index={index} onEdit={() => handleEditCatalogue(item)} onDelete={() => handleDeleteCatalogue(item)} />;
         }
-        return <NominationCard item={item} index={index} onComplete={() => handleCompleteNomination(item)} onCancel={() => handleCancelNomination(item)} />;
+        if (activeTab === 'nominations') {
+            return <NominationCard item={item} index={index} onComplete={() => handleCompleteNomination(item)} onCancel={() => handleCancelNomination(item)} />;
+        }
+        if (activeTab === 'sessions') {
+            return <SessionCard item={item} index={index} onStart={() => handleStartSession(item)} onComplete={() => handleCompleteSession(item)} onDelete={() => handleDeleteSession(item)} onAttendance={() => setAttendanceSessionId(item.id)} />;
+        }
+        return <TrainerCard item={item} index={index} onEdit={() => handleEditTrainer(item)} onDelete={() => handleDeleteTrainer(item)} />;
     };
 
-    const activeData = activeTab === 'catalogue' ? filteredCatalogue : filteredNominations;
+    const activeData = activeTab === 'catalogue' ? filteredCatalogue : activeTab === 'nominations' ? filteredNominations : activeTab === 'sessions' ? filteredSessions : filteredTrainers;
 
     const handleFAB = () => {
         if (activeTab === 'catalogue') { setEditingCat(null); setCatFormVisible(true); }
-        else { setNomFormVisible(true); }
+        else if (activeTab === 'nominations') { setNomFormVisible(true); }
+        else if (activeTab === 'sessions') { setSessFormVisible(true); }
+        else { setEditingTrainer(null); setTrainerFormVisible(true); }
     };
 
     return (
@@ -592,6 +1221,11 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
             <FAB onPress={handleFAB} />
             <CatalogueFormModal visible={catFormVisible} onClose={() => setCatFormVisible(false)} onSave={handleSaveCatalogue} initialData={editingCat} isSaving={createCat.isPending || updateCat.isPending} />
             <NominationFormModal visible={nomFormVisible} onClose={() => setNomFormVisible(false)} onSave={handleSaveNomination} employeeOptions={employeeOptions} trainingOptions={trainingOptions} isSaving={createNom.isPending} />
+            <SessionFormModal visible={sessFormVisible} onClose={() => setSessFormVisible(false)} onSave={handleSaveSession} trainingOptions={trainingOptions} trainerOptions={trainerOptions} isSaving={createSess.isPending} />
+            <TrainerFormModal visible={trainerFormVisible} onClose={() => setTrainerFormVisible(false)} onSave={handleSaveTrainer} employeeOptions={employeeOptions} initialData={editingTrainer} isSaving={createTrainer.isPending || updateTrainerMut.isPending} />
+            {attendanceSessionId && (
+                <AttendanceModal visible={!!attendanceSessionId} onClose={() => setAttendanceSessionId(null)} sessionId={attendanceSessionId} employeeOptions={employeeOptions} onRegister={handleRegisterAttendees} onBulkMark={handleBulkMark} isRegistering={registerAttendees.isPending} isMarking={bulkMark.isPending} />
+            )}
             <ConfirmModal {...confirmModalProps} />
         </View>
     );

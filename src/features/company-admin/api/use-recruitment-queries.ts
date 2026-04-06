@@ -27,19 +27,25 @@ export const recruitmentKeys = {
 
   // Requisitions
   requisitions: (params?: RequisitionListParams) =>
-    [...recruitmentKeys.all, 'requisitions', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'requisitions', params] as const)
+      : ([...recruitmentKeys.all, 'requisitions'] as const),
   requisition: (id: string) =>
     [...recruitmentKeys.all, 'requisition', id] as const,
 
   // Candidates
   candidates: (params?: CandidateListParams) =>
-    [...recruitmentKeys.all, 'candidates', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'candidates', params] as const)
+      : ([...recruitmentKeys.all, 'candidates'] as const),
   candidate: (id: string) =>
     [...recruitmentKeys.all, 'candidate', id] as const,
 
   // Interviews
   interviews: (params?: InterviewListParams) =>
-    [...recruitmentKeys.all, 'interviews', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'interviews', params] as const)
+      : ([...recruitmentKeys.all, 'interviews'] as const),
   interview: (id: string) =>
     [...recruitmentKeys.all, 'interview', id] as const,
 
@@ -49,13 +55,17 @@ export const recruitmentKeys = {
 
   // Training Catalogue
   trainingCatalogue: (params?: TrainingCatalogueListParams) =>
-    [...recruitmentKeys.all, 'training-catalogue', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'training-catalogue', params] as const)
+      : ([...recruitmentKeys.all, 'training-catalogue'] as const),
   trainingCatalogueItem: (id: string) =>
     [...recruitmentKeys.all, 'training-catalogue-item', id] as const,
 
   // Training Nominations
   trainingNominations: (params?: TrainingNominationListParams) =>
-    [...recruitmentKeys.all, 'training-nominations', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'training-nominations', params] as const)
+      : ([...recruitmentKeys.all, 'training-nominations'] as const),
 
   // Training Dashboard
   trainingDashboard: () =>
@@ -63,7 +73,9 @@ export const recruitmentKeys = {
 
   // Training Sessions
   trainingSessions: (params?: TrainingSessionListParams) =>
-    [...recruitmentKeys.all, 'training-sessions', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'training-sessions', params] as const)
+      : ([...recruitmentKeys.all, 'training-sessions'] as const),
   trainingSession: (id: string) =>
     [...recruitmentKeys.all, 'training-session', id] as const,
 
@@ -81,45 +93,61 @@ export const recruitmentKeys = {
 
   // Expiring Certificates
   expiringCertificates: (days?: number) =>
-    [...recruitmentKeys.all, 'expiring-certificates', days] as const,
+    days !== undefined
+      ? ([...recruitmentKeys.all, 'expiring-certificates', days] as const)
+      : ([...recruitmentKeys.all, 'expiring-certificates'] as const),
 
   // Trainers
   trainers: (params?: TrainerListParams) =>
-    [...recruitmentKeys.all, 'trainers', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'trainers', params] as const)
+      : ([...recruitmentKeys.all, 'trainers'] as const),
   trainer: (id: string) =>
     [...recruitmentKeys.all, 'trainer', id] as const,
 
   // Asset Categories
   assetCategories: (params?: AssetCategoryListParams) =>
-    [...recruitmentKeys.all, 'asset-categories', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'asset-categories', params] as const)
+      : ([...recruitmentKeys.all, 'asset-categories'] as const),
   assetCategory: (id: string) =>
     [...recruitmentKeys.all, 'asset-category', id] as const,
 
   // Assets
   assets: (params?: AssetListParams) =>
-    [...recruitmentKeys.all, 'assets', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'assets', params] as const)
+      : ([...recruitmentKeys.all, 'assets'] as const),
   asset: (id: string) =>
     [...recruitmentKeys.all, 'asset', id] as const,
 
   // Asset Assignments
   assetAssignments: (params?: AssetAssignmentListParams) =>
-    [...recruitmentKeys.all, 'asset-assignments', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'asset-assignments', params] as const)
+      : ([...recruitmentKeys.all, 'asset-assignments'] as const),
 
   // Expense Claims
   expenseClaims: (params?: ExpenseClaimListParams) =>
-    [...recruitmentKeys.all, 'expense-claims', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'expense-claims', params] as const)
+      : ([...recruitmentKeys.all, 'expense-claims'] as const),
   expenseClaim: (id: string) =>
     [...recruitmentKeys.all, 'expense-claim', id] as const,
 
   // Letter Templates
   letterTemplates: (params?: LetterTemplateListParams) =>
-    [...recruitmentKeys.all, 'letter-templates', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'letter-templates', params] as const)
+      : ([...recruitmentKeys.all, 'letter-templates'] as const),
   letterTemplate: (id: string) =>
     [...recruitmentKeys.all, 'letter-template', id] as const,
 
   // Letters
   letters: (params?: LetterListParams) =>
-    [...recruitmentKeys.all, 'letters', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'letters', params] as const)
+      : ([...recruitmentKeys.all, 'letters'] as const),
   letter: (id: string) =>
     [...recruitmentKeys.all, 'letter', id] as const,
 
@@ -131,27 +159,33 @@ export const recruitmentKeys = {
 
   // Grievance Categories
   grievanceCategories: (params?: GrievanceCategoryListParams) =>
-    [...recruitmentKeys.all, 'grievance-categories', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'grievance-categories', params] as const)
+      : ([...recruitmentKeys.all, 'grievance-categories'] as const),
   grievanceCategory: (id: string) =>
     [...recruitmentKeys.all, 'grievance-category', id] as const,
 
   // Grievance Cases
   grievanceCases: (params?: GrievanceCaseListParams) =>
-    [...recruitmentKeys.all, 'grievance-cases', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'grievance-cases', params] as const)
+      : ([...recruitmentKeys.all, 'grievance-cases'] as const),
   grievanceCase: (id: string) =>
     [...recruitmentKeys.all, 'grievance-case', id] as const,
 
   // Disciplinary Actions
   disciplinaryActions: (params?: DisciplinaryActionListParams) =>
-    [...recruitmentKeys.all, 'disciplinary-actions', params] as const,
+    params
+      ? ([...recruitmentKeys.all, 'disciplinary-actions', params] as const)
+      : ([...recruitmentKeys.all, 'disciplinary-actions'] as const),
   disciplinaryAction: (id: string) =>
     [...recruitmentKeys.all, 'disciplinary-action', id] as const,
 
   // Offers
   offers: (params?: Record<string, unknown>) =>
     params
-      ? [...recruitmentKeys.all, 'offers', params] as const
-      : [...recruitmentKeys.all, 'offers'] as const,
+      ? ([...recruitmentKeys.all, 'offers', params] as const)
+      : ([...recruitmentKeys.all, 'offers'] as const),
   offer: (id: string) =>
     [...recruitmentKeys.all, 'offer', id] as const,
 
@@ -170,8 +204,8 @@ export const recruitmentKeys = {
   // Training Programs
   trainingPrograms: (params?: Record<string, unknown>) =>
     params
-      ? [...recruitmentKeys.all, 'training-programs', params] as const
-      : [...recruitmentKeys.all, 'training-programs'] as const,
+      ? ([...recruitmentKeys.all, 'training-programs', params] as const)
+      : ([...recruitmentKeys.all, 'training-programs'] as const),
   trainingProgram: (id: string) =>
     [...recruitmentKeys.all, 'training-program', id] as const,
   programEnrollments: (programId: string) =>
@@ -180,8 +214,8 @@ export const recruitmentKeys = {
   // Training Budgets
   trainingBudgets: (params?: Record<string, unknown>) =>
     params
-      ? [...recruitmentKeys.all, 'training-budgets', params] as const
-      : [...recruitmentKeys.all, 'training-budgets'] as const,
+      ? ([...recruitmentKeys.all, 'training-budgets', params] as const)
+      : ([...recruitmentKeys.all, 'training-budgets'] as const),
   budgetUtilization: (fiscalYear: string) =>
     [...recruitmentKeys.all, 'budget-utilization', fiscalYear] as const,
 

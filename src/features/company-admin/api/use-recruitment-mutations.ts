@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 
+import { showError } from '@/components/ui/utils';
 import { recruitmentApi } from '@/lib/api/recruitment';
 import { recruitmentKeys } from './use-recruitment-queries';
 
@@ -13,6 +15,7 @@ export function useCreateRequisition() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -24,6 +27,7 @@ export function useUpdateRequisition() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -34,6 +38,7 @@ export function useDeleteRequisition() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -47,6 +52,7 @@ export function useCreateCandidate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -58,6 +64,7 @@ export function useUpdateCandidate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -71,6 +78,7 @@ export function useCreateInterview() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -82,6 +90,7 @@ export function useUpdateInterview() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -93,6 +102,7 @@ export function useCompleteInterview() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -103,6 +113,7 @@ export function useCancelInterview() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -115,6 +126,7 @@ export function useDeleteCandidate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -126,6 +138,7 @@ export function useAdvanceCandidateStage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -139,6 +152,7 @@ export function useCreateTrainingCatalogue() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -150,6 +164,7 @@ export function useUpdateTrainingCatalogue() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -160,6 +175,7 @@ export function useDeleteTrainingCatalogue() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -173,6 +189,7 @@ export function useCreateTrainingNomination() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -184,6 +201,7 @@ export function useUpdateTrainingNomination() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -197,6 +215,7 @@ export function useCreateTrainingSession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -208,6 +227,7 @@ export function useUpdateTrainingSession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -219,6 +239,7 @@ export function useUpdateTrainingSessionStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -229,6 +250,7 @@ export function useDeleteTrainingSession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -242,6 +264,7 @@ export function useRegisterSessionAttendees() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -253,6 +276,7 @@ export function useMarkAttendance() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -264,6 +288,7 @@ export function useBulkMarkAttendance() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -277,6 +302,7 @@ export function useSubmitTrainingEvaluation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -288,6 +314,7 @@ export function useSubmitEssFeedback() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -301,6 +328,7 @@ export function useCreateTrainer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -312,6 +340,7 @@ export function useUpdateTrainer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -322,6 +351,7 @@ export function useDeleteTrainer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -335,6 +365,7 @@ export function useCreateAssetCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -346,6 +377,7 @@ export function useUpdateAssetCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -356,6 +388,7 @@ export function useDeleteAssetCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -369,6 +402,7 @@ export function useCreateAsset() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -380,6 +414,7 @@ export function useUpdateAsset() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -393,6 +428,7 @@ export function useCreateAssetAssignment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -404,6 +440,7 @@ export function useUpdateAssetAssignment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -417,6 +454,7 @@ export function useCreateExpenseClaim() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -428,6 +466,7 @@ export function useUpdateExpenseClaim() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -438,6 +477,7 @@ export function useApproveExpenseClaim() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -448,6 +488,7 @@ export function useRejectExpenseClaim() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -461,6 +502,7 @@ export function useCreateLetterTemplate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -472,6 +514,7 @@ export function useUpdateLetterTemplate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -482,6 +525,7 @@ export function useDeleteLetterTemplate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -495,6 +539,7 @@ export function useCreateLetter() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -505,6 +550,7 @@ export function useGenerateLetterPdf() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -517,6 +563,7 @@ export function useDispatchESign() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -530,6 +577,7 @@ export function useCreateGrievanceCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -541,6 +589,7 @@ export function useUpdateGrievanceCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -551,6 +600,7 @@ export function useDeleteGrievanceCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -564,6 +614,7 @@ export function useCreateGrievanceCase() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -575,6 +626,7 @@ export function useUpdateGrievanceCase() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -588,6 +640,7 @@ export function useCreateDisciplinaryAction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -599,6 +652,7 @@ export function useUpdateDisciplinaryAction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -612,6 +666,7 @@ export function useCreateOffer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -623,6 +678,7 @@ export function useUpdateOffer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -634,6 +690,7 @@ export function useUpdateOfferStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -644,6 +701,7 @@ export function useDeleteOffer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -657,6 +715,7 @@ export function useCreateCandidateEducation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -668,6 +727,7 @@ export function useUpdateCandidateEducation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -678,6 +738,7 @@ export function useDeleteCandidateEducation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -689,6 +750,7 @@ export function useCreateCandidateExperience() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -700,6 +762,7 @@ export function useUpdateCandidateExperience() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -710,6 +773,7 @@ export function useDeleteCandidateExperience() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -721,6 +785,7 @@ export function useCreateCandidateDocument() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -731,6 +796,7 @@ export function useDeleteCandidateDocument() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -744,6 +810,7 @@ export function useSubmitInterviewEvaluations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -757,6 +824,7 @@ export function useConvertCandidateToEmployee() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -770,6 +838,7 @@ export function useCreateTrainingProgram() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -781,6 +850,7 @@ export function useUpdateTrainingProgram() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -791,6 +861,7 @@ export function useDeleteTrainingProgram() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -802,6 +873,7 @@ export function useAddProgramCourse() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -813,6 +885,7 @@ export function useRemoveProgramCourse() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -824,6 +897,7 @@ export function useEnrollInProgram() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -837,6 +911,7 @@ export function useCreateTrainingBudget() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -848,6 +923,7 @@ export function useUpdateTrainingBudget() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -861,6 +937,7 @@ export function useCreateTrainingMaterial() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -872,6 +949,7 @@ export function useUpdateTrainingMaterial() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }
 
@@ -882,5 +960,6 @@ export function useDeleteTrainingMaterial() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: recruitmentKeys.all });
     },
+    onError: (err) => showError(err as AxiosError),
   });
 }

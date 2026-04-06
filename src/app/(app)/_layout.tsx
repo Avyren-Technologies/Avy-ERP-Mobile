@@ -2,6 +2,11 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Redirect, SplashScreen, Tabs, usePathname, useRouter } from 'expo-router';
 import {
+    registerForPushNotifications,
+    addNotificationResponseListener,
+    addForegroundNotificationListener,
+} from '@/lib/notifications';
+import {
     Building,
     Building2,
     CalendarCheck,
@@ -388,6 +393,51 @@ function TabLayoutInner() {
         await setItem(BIOMETRIC_PROMPT_SHOWN_KEY, true);
         setShowBiometricPrompt(false);
     }, []);
+
+    // ── Push notification registration + deep-linking ──
+    useEffect(() => {
+        if (status !== 'signIn') return;
+
+        registerForPushNotifications();
+
+        // Deep-link when user taps a notification
+        const responseSub = addNotificationResponseListener((response) => {
+            const data = response.notification.request.content.data as Record<string, string> | undefined;
+            if (!data?.entityType) return;
+
+            switch (data.entityType) {
+                case 'Interview':
+                    router.push('/company/hr/requisitions' as any);
+                    break;
+                case 'TrainingNomination':
+                    router.push('/company/hr/my-training' as any);
+                    break;
+                case 'LeaveRequest':
+                    router.push('/company/hr/my-leave' as any);
+                    break;
+                case 'AttendanceRegularization':
+                    router.push('/company/hr/my-attendance' as any);
+                    break;
+                case 'SupportTicket':
+                    router.push('/company/support/tickets' as any);
+                    break;
+                default:
+                    // For unknown entity types, navigate to dashboard
+                    break;
+            }
+        });
+
+        // Optional: handle foreground notifications (e.g., badge updates)
+        const foregroundSub = addForegroundNotificationListener(() => {
+            // Foreground notifications are shown automatically via the handler.
+            // Add custom logic here if needed (e.g., query invalidation).
+        });
+
+        return () => {
+            responseSub.remove();
+            foregroundSub.remove();
+        };
+    }, [status, router]);
 
     // ── Splash screen ──
     const hideSplash = useCallback(async () => {

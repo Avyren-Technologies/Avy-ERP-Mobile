@@ -127,6 +127,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-localization',
+    [
+      'expo-notifications',
+      {
+        icon: './assets/adaptive-icon.png',
+        color: '#4F46E5',
+      },
+    ],
     'expo-router',
     ['app-icon-badge', appIconBadgeConfig],
     ['react-native-edge-to-edge'],

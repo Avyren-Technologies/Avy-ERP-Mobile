@@ -463,3 +463,161 @@ export function useUpdateDisciplinaryAction() {
     },
   });
 }
+
+// ── Offer Mutations ────────────────────────────────────────────
+
+export function useCreateOffer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      recruitmentApi.createOffer(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateOffer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateOffer(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateOfferStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { status: string; rejectionReason?: string } }) =>
+      recruitmentApi.updateOfferStatus(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteOffer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteOffer(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Candidate Profile Mutations ────────────────────────────────
+
+export function useCreateCandidateEducation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ candidateId, data }: { candidateId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.createCandidateEducation(candidateId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateCandidateEducation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateCandidateEducation(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteCandidateEducation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteCandidateEducation(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useCreateCandidateExperience() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ candidateId, data }: { candidateId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.createCandidateExperience(candidateId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateCandidateExperience() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateCandidateExperience(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteCandidateExperience() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteCandidateExperience(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useCreateCandidateDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ candidateId, data }: { candidateId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.createCandidateDocument(candidateId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteCandidateDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteCandidateDocument(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Interview Evaluation Mutations ─────────────────────────────
+
+export function useSubmitInterviewEvaluations() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ interviewId, data }: { interviewId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.submitInterviewEvaluations(interviewId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Candidate Conversion ───────────────────────────────────────
+
+export function useConvertCandidateToEmployee() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (candidateId: string) =>
+      recruitmentApi.convertCandidateToEmployee(candidateId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}

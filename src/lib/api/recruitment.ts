@@ -324,4 +324,68 @@ export const recruitmentApi = {
 
   updateDisciplinaryAction: (id: string, data: Record<string, unknown>) =>
     client.patch(`/hr/disciplinary-actions/${id}`, data),
+
+  // ── Offers ──────────────────────────────────────────────────────
+  listOffers: (params?: Record<string, unknown>) =>
+    client.get('/hr/offers', { params }),
+
+  createOffer: (data: Record<string, unknown>) =>
+    client.post('/hr/offers', data),
+
+  getOffer: (id: string) =>
+    client.get(`/hr/offers/${id}`),
+
+  updateOffer: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/offers/${id}`, data),
+
+  updateOfferStatus: (id: string, data: { status: string; rejectionReason?: string }) =>
+    client.patch(`/hr/offers/${id}/status`, data),
+
+  deleteOffer: (id: string) =>
+    client.delete(`/hr/offers/${id}`),
+
+  // ── Candidate Profile ───────────────────────────────────────────
+  listCandidateEducation: (candidateId: string) =>
+    client.get(`/hr/candidates/${candidateId}/education`),
+
+  createCandidateEducation: (candidateId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/candidates/${candidateId}/education`, data),
+
+  updateCandidateEducation: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/candidate-education/${id}`, data),
+
+  deleteCandidateEducation: (id: string) =>
+    client.delete(`/hr/candidate-education/${id}`),
+
+  listCandidateExperience: (candidateId: string) =>
+    client.get(`/hr/candidates/${candidateId}/experience`),
+
+  createCandidateExperience: (candidateId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/candidates/${candidateId}/experience`, data),
+
+  updateCandidateExperience: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/candidate-experience/${id}`, data),
+
+  deleteCandidateExperience: (id: string) =>
+    client.delete(`/hr/candidate-experience/${id}`),
+
+  listCandidateDocuments: (candidateId: string) =>
+    client.get(`/hr/candidates/${candidateId}/documents`),
+
+  createCandidateDocument: (candidateId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/candidates/${candidateId}/documents`, data),
+
+  deleteCandidateDocument: (id: string) =>
+    client.delete(`/hr/candidate-documents/${id}`),
+
+  // ── Interview Evaluations ───────────────────────────────────────
+  submitInterviewEvaluations: (interviewId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/interviews/${interviewId}/evaluations`, data),
+
+  listInterviewEvaluations: (interviewId: string) =>
+    client.get(`/hr/interviews/${interviewId}/evaluations`),
+
+  // ── Candidate Conversion ────────────────────────────────────────
+  convertCandidateToEmployee: (candidateId: string) =>
+    client.post(`/hr/candidates/${candidateId}/convert-to-employee`),
 };

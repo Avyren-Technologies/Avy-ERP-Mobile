@@ -116,6 +116,26 @@ export const recruitmentKeys = {
     [...recruitmentKeys.all, 'disciplinary-actions', params] as const,
   disciplinaryAction: (id: string) =>
     [...recruitmentKeys.all, 'disciplinary-action', id] as const,
+
+  // Offers
+  offers: (params?: Record<string, unknown>) =>
+    params
+      ? [...recruitmentKeys.all, 'offers', params] as const
+      : [...recruitmentKeys.all, 'offers'] as const,
+  offer: (id: string) =>
+    [...recruitmentKeys.all, 'offer', id] as const,
+
+  // Candidate Profile
+  candidateEducation: (candidateId: string) =>
+    [...recruitmentKeys.all, 'candidate-education', candidateId] as const,
+  candidateExperience: (candidateId: string) =>
+    [...recruitmentKeys.all, 'candidate-experience', candidateId] as const,
+  candidateDocuments: (candidateId: string) =>
+    [...recruitmentKeys.all, 'candidate-documents', candidateId] as const,
+
+  // Interview Evaluations
+  interviewEvaluations: (interviewId: string) =>
+    [...recruitmentKeys.all, 'interview-evaluations', interviewId] as const,
 };
 
 // --- Requisition Queries ---
@@ -374,5 +394,58 @@ export function useDisciplinaryAction(id: string) {
     queryKey: recruitmentKeys.disciplinaryAction(id),
     queryFn: () => recruitmentApi.getDisciplinaryAction(id),
     enabled: !!id,
+  });
+}
+
+// --- Offer Queries ---
+
+export function useOffers(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: recruitmentKeys.offers(params),
+    queryFn: () => recruitmentApi.listOffers(params),
+  });
+}
+
+export function useOffer(id: string) {
+  return useQuery({
+    queryKey: recruitmentKeys.offer(id),
+    queryFn: () => recruitmentApi.getOffer(id),
+    enabled: !!id,
+  });
+}
+
+// --- Candidate Profile Queries ---
+
+export function useCandidateEducation(candidateId: string) {
+  return useQuery({
+    queryKey: recruitmentKeys.candidateEducation(candidateId),
+    queryFn: () => recruitmentApi.listCandidateEducation(candidateId),
+    enabled: !!candidateId,
+  });
+}
+
+export function useCandidateExperience(candidateId: string) {
+  return useQuery({
+    queryKey: recruitmentKeys.candidateExperience(candidateId),
+    queryFn: () => recruitmentApi.listCandidateExperience(candidateId),
+    enabled: !!candidateId,
+  });
+}
+
+export function useCandidateDocuments(candidateId: string) {
+  return useQuery({
+    queryKey: recruitmentKeys.candidateDocuments(candidateId),
+    queryFn: () => recruitmentApi.listCandidateDocuments(candidateId),
+    enabled: !!candidateId,
+  });
+}
+
+// --- Interview Evaluation Queries ---
+
+export function useInterviewEvaluations(interviewId: string) {
+  return useQuery({
+    queryKey: recruitmentKeys.interviewEvaluations(interviewId),
+    queryFn: () => recruitmentApi.listInterviewEvaluations(interviewId),
+    enabled: !!interviewId,
   });
 }

@@ -31,13 +31,17 @@ import {
     useCompleteInterview,
     useCreateCandidate,
     useCreateInterview,
+    useCreateOffer,
     useCreateRequisition,
     useDeleteCandidate,
+    useDeleteOffer,
     useDeleteRequisition,
     useUpdateCandidate,
+    useUpdateOffer,
+    useUpdateOfferStatus,
     useUpdateRequisition,
 } from '@/features/company-admin/api/use-recruitment-mutations';
-import { useCandidates, useInterviews, useRequisitions } from '@/features/company-admin/api/use-recruitment-queries';
+import { useCandidates, useInterviews, useOffers, useRequisitions } from '@/features/company-admin/api/use-recruitment-queries';
 
 // ============ TYPES ============
 
@@ -45,6 +49,7 @@ type ReqStatus = 'Draft' | 'Open' | 'Interviewing' | 'Offered' | 'Filled';
 type CandidateStage = 'Applied' | 'Screening' | 'Interview' | 'Offer' | 'Hired' | 'Rejected';
 type InterviewStatus = 'Scheduled' | 'Completed' | 'Cancelled' | 'No Show';
 type CandidateSource = 'Portal' | 'Referral' | 'LinkedIn' | 'Agency' | 'Walk-in' | 'Other';
+type OfferStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | 'EXPIRED';
 
 interface RequisitionItem {
     id: string;
@@ -79,6 +84,17 @@ interface InterviewItem {
     panelists: string[];
     status: InterviewStatus;
     feedback: string;
+}
+
+interface OfferItem {
+    id: string;
+    candidateId: string;
+    candidateName: string;
+    offeredCTC: number;
+    joiningDate: string;
+    validUntil: string;
+    status: OfferStatus;
+    notes: string;
 }
 
 // ============ CONSTANTS ============
@@ -116,6 +132,15 @@ const INTERVIEW_STATUS_COLORS: Record<InterviewStatus, { bg: string; text: strin
     Completed: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
     Cancelled: { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] },
     'No Show': { bg: colors.danger[50], text: colors.danger[700], dot: colors.danger[500] },
+};
+
+const OFFER_STATUS_COLORS: Record<OfferStatus, { bg: string; text: string }> = {
+    DRAFT: { bg: colors.neutral[100], text: colors.neutral[600] },
+    SENT: { bg: colors.info[50], text: colors.info[700] },
+    ACCEPTED: { bg: colors.success[50], text: colors.success[700] },
+    REJECTED: { bg: colors.danger[50], text: colors.danger[700] },
+    WITHDRAWN: { bg: colors.warning[50], text: colors.warning[700] },
+    EXPIRED: { bg: colors.neutral[100], text: colors.neutral[500] },
 };
 
 const CANDIDATE_SOURCES: CandidateSource[] = ['Portal', 'Referral', 'LinkedIn', 'Agency', 'Walk-in', 'Other'];
@@ -161,6 +186,15 @@ function IntStatusBadge({ status }: { status: InterviewStatus }) {
         <View style={[styles.statusBadge, { backgroundColor: s.bg }]}>
             <View style={[styles.statusDot, { backgroundColor: s.dot }]} />
             <Text style={{ color: s.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{status}</Text>
+        </View>
+    );
+}
+
+function OfferStatusBadge({ status }: { status: OfferStatus }) {
+    const c = OFFER_STATUS_COLORS[status] ?? OFFER_STATUS_COLORS.DRAFT;
+    return (
+        <View style={[styles.typeBadge, { backgroundColor: c.bg }]}>
+            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{status}</Text>
         </View>
     );
 }
@@ -257,7 +291,7 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 
 // ============ SECTION TYPE ============
 
-type Section = 'requisitions' | 'candidates' | 'interviews';
+type Section = 'requisitions' | 'candidates' | 'interviews' | 'offers';
 
 // ============ NEW REQUISITION MODAL ============
 
@@ -526,6 +560,106 @@ function CompleteInterviewModal({
     );
 }
 
+// ============ OFFER FORM MODAL ============
+
+function OfferFormModal({
+    visible, onClose, onSave, candidateOptions, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (data: Record<string, unknown>) => void;
+    candidateOptions: { id: string; label: string }[]; isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [candidateId, setCandidateId] = React.useState('');
+    const [offeredCTC, setOfferedCTC] = React.useState('');
+    const [joiningDate, setJoiningDate] = React.useState('');
+    const [validUntil, setValidUntil] = React.useState('');
+    const [notes, setNotes] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) { setCandidateId(''); setOfferedCTC(''); setJoiningDate(''); setValidUntil(''); setNotes(''); }
+    }, [visible]);
+
+    const isValid = candidateId && offeredCTC.trim() && joiningDate.trim();
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Create Offer</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
+                        <Dropdown label="Candidate" value={candidateId} options={candidateOptions} onSelect={setCandidateId} placeholder="Select candidate..." required />
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Offered CTC <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 1200000" placeholderTextColor={colors.neutral[400]} value={offeredCTC} onChangeText={setOfferedCTC} keyboardType="number-pad" /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Joining Date <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={joiningDate} onChangeText={setJoiningDate} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Valid Until</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={validUntil} onChangeText={setValidUntil} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Notes</Text>
+                            <View style={[styles.inputWrap, { height: 80, paddingVertical: 10 }]}>
+                                <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Additional notes..." placeholderTextColor={colors.neutral[400]} value={notes} onChangeText={setNotes} multiline />
+                            </View>
+                        </View>
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave({ candidateId, offeredCTC: Number(offeredCTC) || 0, joiningDate: joiningDate.trim(), validUntil: validUntil.trim() || undefined, notes: notes.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Creating...' : 'Create Offer'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ REJECT REASON MODAL ============
+
+function RejectReasonModal({
+    visible, onClose, onSave, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (reason: string) => void; isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [reason, setReason] = React.useState('');
+
+    React.useEffect(() => { if (visible) setReason(''); }, [visible]);
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Rejection Reason</Text>
+                    <View style={styles.fieldWrap}>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reason</Text>
+                        <View style={[styles.inputWrap, { height: 100, paddingVertical: 10 }]}>
+                            <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Why is the offer being rejected?" placeholderTextColor={colors.neutral[400]} value={reason} onChangeText={setReason} multiline />
+                        </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave(reason.trim())} disabled={isSaving} style={[styles.saveBtn, isSaving && { opacity: 0.5 }, { backgroundColor: colors.danger[600] }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Rejecting...' : 'Reject Offer'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
 // ============ CARD COMPONENTS ============
 
 function RequisitionCard({ item, index, onPress, onStatusChange, onDelete }: {
@@ -661,6 +795,73 @@ function InterviewCard({ item, index, onComplete, onCancel }: {
     );
 }
 
+function OfferCard({ item, index, onSend, onAccept, onReject, onWithdraw, onEdit, onDelete }: {
+    item: OfferItem; index: number;
+    onSend: () => void; onAccept: () => void; onReject: () => void;
+    onWithdraw: () => void; onEdit: () => void; onDelete: () => void;
+}) {
+    const isDraft = item.status === 'DRAFT';
+    const isSent = item.status === 'SENT';
+    const isTerminal = ['ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED'].includes(item.status);
+
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.candidateName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                            {'\u20B9'}{item.offeredCTC.toLocaleString('en-IN')} CTC
+                        </Text>
+                    </View>
+                    <OfferStatusBadge status={item.status} />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                    {item.joiningDate ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                            <Text className="font-inter text-xs text-neutral-500">Joining: {item.joiningDate}</Text>
+                        </View>
+                    ) : null}
+                    {item.validUntil ? (
+                        <Text className="font-inter text-xs text-neutral-400">Valid until: {item.validUntil}</Text>
+                    ) : null}
+                </View>
+                {!isTerminal && (
+                    <View style={styles.cardFooter}>
+                        {isDraft && (
+                            <>
+                                <Pressable style={[styles.actionBtn, { backgroundColor: colors.info[50] }]} onPress={onEdit}>
+                                    <Text className="font-inter text-xs" style={{ color: colors.info[700] }}>Edit</Text>
+                                </Pressable>
+                                <Pressable style={[styles.actionBtn, { backgroundColor: colors.success[50] }]} onPress={onSend}>
+                                    <Text className="font-inter text-xs" style={{ color: colors.success[700] }}>Send</Text>
+                                </Pressable>
+                                <Pressable style={[styles.actionBtn, { backgroundColor: colors.danger[50] }]} onPress={onDelete}>
+                                    <Text className="font-inter text-xs" style={{ color: colors.danger[700] }}>Delete</Text>
+                                </Pressable>
+                            </>
+                        )}
+                        {isSent && (
+                            <>
+                                <Pressable style={[styles.actionBtn, { backgroundColor: colors.success[50] }]} onPress={onAccept}>
+                                    <Text className="font-inter text-xs" style={{ color: colors.success[700] }}>Accept</Text>
+                                </Pressable>
+                                <Pressable style={[styles.actionBtn, { backgroundColor: colors.danger[50] }]} onPress={onReject}>
+                                    <Text className="font-inter text-xs" style={{ color: colors.danger[700] }}>Reject</Text>
+                                </Pressable>
+                                <Pressable style={[styles.actionBtn, { backgroundColor: colors.warning[50] }]} onPress={onWithdraw}>
+                                    <Text className="font-inter text-xs" style={{ color: colors.warning[700] }}>Withdraw</Text>
+                                </Pressable>
+                            </>
+                        )}
+                    </View>
+                )}
+            </View>
+        </Animated.View>
+    );
+}
+
 // ============ MAIN COMPONENT ============
 
 export function RequisitionsScreen({ initialSection = 'requisitions' as Section }: { initialSection?: Section } = {}) {
@@ -677,6 +878,7 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
     const { data: reqResponse, isLoading: reqLoading, error: reqError, refetch: reqRefetch, isFetching: reqFetching } = useRequisitions();
     const { data: candResponse, isLoading: candLoading, refetch: candRefetch, isFetching: candFetching } = useCandidates(selectedReqId ? { requisitionId: selectedReqId } as any : undefined);
     const { data: intResponse, isLoading: intLoading, refetch: intRefetch, isFetching: intFetching } = useInterviews(selectedReqId ? { requisitionId: selectedReqId } as any : undefined);
+    const { data: offerResponse, isLoading: offerLoading, refetch: offerRefetch, isFetching: offerFetching } = useOffers(selectedReqId ? { requisitionId: selectedReqId } as Record<string, unknown> : undefined);
 
     // Mutations
     const createReq = useCreateRequisition();
@@ -688,6 +890,10 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
     const completeInterview = useCompleteInterview();
     const cancelInterview = useCancelInterview();
     const deleteCandidateMut = useDeleteCandidate();
+    const createOfferMut = useCreateOffer();
+    const updateOfferMut = useUpdateOffer();
+    const updateOfferStatusMut = useUpdateOfferStatus();
+    const deleteOfferMut = useDeleteOffer();
 
     // Modals
     const [reqFormVisible, setReqFormVisible] = React.useState(false);
@@ -696,6 +902,9 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
     const [intFormVisible, setIntFormVisible] = React.useState(false);
     const [completeIntModalVisible, setCompleteIntModalVisible] = React.useState(false);
     const [completeIntId, setCompleteIntId] = React.useState('');
+    const [offerFormVisible, setOfferFormVisible] = React.useState(false);
+    const [rejectReasonVisible, setRejectReasonVisible] = React.useState(false);
+    const [rejectingOfferId, setRejectingOfferId] = React.useState('');
 
     // Parse data
     const requisitions: RequisitionItem[] = React.useMemo(() => {
@@ -728,6 +937,18 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         }));
     }, [intResponse]);
 
+    const offers: OfferItem[] = React.useMemo(() => {
+        const raw = (offerResponse as any)?.data ?? offerResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((item: any) => ({
+            id: item.id ?? '', candidateId: item.candidateId ?? '',
+            candidateName: item.candidate?.name ?? item.candidateName ?? '',
+            offeredCTC: item.offeredCTC ?? 0, joiningDate: item.joiningDate ?? '',
+            validUntil: item.validUntil ?? '', status: item.status ?? 'DRAFT',
+            notes: item.notes ?? '',
+        }));
+    }, [offerResponse]);
+
     const filteredReqs = React.useMemo(() => {
         let list = requisitions;
         if (statusFilter !== 'All') list = list.filter(r => r.status === statusFilter);
@@ -749,6 +970,12 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         const q = search.toLowerCase();
         return interviews.filter(i => i.candidateName.toLowerCase().includes(q));
     }, [interviews, search]);
+
+    const filteredOffers = React.useMemo(() => {
+        if (!search.trim()) return offers;
+        const q = search.toLowerCase();
+        return offers.filter(o => o.candidateName.toLowerCase().includes(q));
+    }, [offers, search]);
 
     const candidateOptions = React.useMemo(() =>
         candidates.map(c => ({ id: c.id, label: c.name })), [candidates]);
@@ -842,14 +1069,81 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         });
     };
 
-    const isLoading = activeSection === 'requisitions' ? reqLoading : activeSection === 'candidates' ? candLoading : intLoading;
-    const isFetching2 = activeSection === 'requisitions' ? reqFetching : activeSection === 'candidates' ? candFetching : intFetching;
-    const activeRefetch = activeSection === 'requisitions' ? reqRefetch : activeSection === 'candidates' ? candRefetch : intRefetch;
+    // Offer handlers
+    const handleSaveOffer = (data: Record<string, unknown>) => {
+        createOfferMut.mutate(data, { onSuccess: () => setOfferFormVisible(false) });
+    };
+
+    const handleSendOffer = (item: OfferItem) => {
+        showConfirm({
+            title: 'Send Offer',
+            message: `Send offer to ${item.candidateName}?`,
+            confirmText: 'Send', variant: 'primary',
+            onConfirm: () => updateOfferStatusMut.mutate({ id: item.id, data: { status: 'SENT' } }),
+        });
+    };
+
+    const handleAcceptOffer = (item: OfferItem) => {
+        showConfirm({
+            title: 'Accept Offer',
+            message: `Mark offer for ${item.candidateName} as accepted?`,
+            confirmText: 'Accept', variant: 'primary',
+            onConfirm: () => updateOfferStatusMut.mutate({ id: item.id, data: { status: 'ACCEPTED' } }),
+        });
+    };
+
+    const handleRejectOffer = (item: OfferItem) => {
+        setRejectingOfferId(item.id);
+        setRejectReasonVisible(true);
+    };
+
+    const handleSaveRejectOffer = (reason: string) => {
+        updateOfferStatusMut.mutate(
+            { id: rejectingOfferId, data: { status: 'REJECTED', rejectionReason: reason || undefined } },
+            { onSuccess: () => setRejectReasonVisible(false) },
+        );
+    };
+
+    const handleWithdrawOffer = (item: OfferItem) => {
+        showConfirm({
+            title: 'Withdraw Offer',
+            message: `Withdraw offer for ${item.candidateName}?`,
+            confirmText: 'Withdraw', variant: 'danger',
+            onConfirm: () => updateOfferStatusMut.mutate({ id: item.id, data: { status: 'WITHDRAWN' } }),
+        });
+    };
+
+    const handleEditOffer = (item: OfferItem) => {
+        // For simplicity, just open edit as update
+        showConfirm({
+            title: 'Edit Offer',
+            message: 'Edit this offer in the form?',
+            confirmText: 'OK', variant: 'primary',
+            onConfirm: () => {
+                // Simple inline - just redirect to create form (reuse pattern)
+                setOfferFormVisible(true);
+            },
+        });
+    };
+
+    const handleDeleteOffer = (item: OfferItem) => {
+        showConfirm({
+            title: 'Delete Offer',
+            message: `Delete offer for ${item.candidateName}? This cannot be undone.`,
+            confirmText: 'Delete', variant: 'danger',
+            onConfirm: () => deleteOfferMut.mutate(item.id),
+        });
+    };
+
+    const isLoading = activeSection === 'requisitions' ? reqLoading : activeSection === 'candidates' ? candLoading : activeSection === 'interviews' ? intLoading : offerLoading;
+    const isFetching2 = activeSection === 'requisitions' ? reqFetching : activeSection === 'candidates' ? candFetching : activeSection === 'interviews' ? intFetching : offerFetching;
+    const activeRefetch = activeSection === 'requisitions' ? reqRefetch : activeSection === 'candidates' ? candRefetch : activeSection === 'interviews' ? intRefetch : offerRefetch;
 
     const sectionTabs: { key: Section; label: string }[] = [
         { key: 'requisitions', label: 'Requisitions' },
         { key: 'candidates', label: 'Candidates' },
         { key: 'interviews', label: 'Interviews' },
+        { key: 'offers', label: 'Offers' },
     ];
 
     const renderHeader = () => (
@@ -896,6 +1190,7 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
             requisitions: { title: 'No requisitions', msg: 'Create your first job requisition.' },
             candidates: { title: 'No candidates', msg: selectedReqId ? 'Add candidates to this requisition.' : 'Select a requisition first.' },
             interviews: { title: 'No interviews', msg: selectedReqId ? 'Schedule interviews for candidates.' : 'Select a requisition first.' },
+            offers: { title: 'No offers', msg: selectedReqId ? 'Create offers for candidates.' : 'Select a requisition first.' },
         };
         const m = messages[activeSection];
         return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title={m.title} message={m.msg} /></View>;
@@ -908,15 +1203,19 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         if (activeSection === 'candidates') {
             return <CandidateCard item={item} index={index} onAdvance={() => handleAdvanceCandidate(item)} onReject={() => handleRejectCandidate(item)} onDelete={() => handleDeleteCandidate(item)} />;
         }
+        if (activeSection === 'offers') {
+            return <OfferCard item={item} index={index} onSend={() => handleSendOffer(item)} onAccept={() => handleAcceptOffer(item)} onReject={() => handleRejectOffer(item)} onWithdraw={() => handleWithdrawOffer(item)} onEdit={() => handleEditOffer(item)} onDelete={() => handleDeleteOffer(item)} />;
+        }
         return <InterviewCard item={item} index={index} onComplete={() => handleCompleteInterview(item)} onCancel={() => handleCancelInterview(item)} />;
     };
 
-    const activeData = activeSection === 'requisitions' ? filteredReqs : activeSection === 'candidates' ? filteredCandidates : filteredInterviews;
+    const activeData = activeSection === 'requisitions' ? filteredReqs : activeSection === 'candidates' ? filteredCandidates : activeSection === 'interviews' ? filteredInterviews : filteredOffers;
 
     const handleFAB = () => {
         if (activeSection === 'requisitions') { setEditingReq(null); setReqFormVisible(true); }
         else if (activeSection === 'candidates') { setCandFormVisible(true); }
-        else { setIntFormVisible(true); }
+        else if (activeSection === 'interviews') { setIntFormVisible(true); }
+        else { setOfferFormVisible(true); }
     };
 
     return (
@@ -935,6 +1234,8 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
             <CandidateFormModal visible={candFormVisible} onClose={() => setCandFormVisible(false)} onSave={handleSaveCandidate} requisitionId={selectedReqId} isSaving={createCand.isPending} />
             <InterviewFormModal visible={intFormVisible} onClose={() => setIntFormVisible(false)} onSave={handleSaveInterview} candidateOptions={candidateOptions} isSaving={createInt.isPending} />
             <CompleteInterviewModal visible={completeIntModalVisible} onClose={() => setCompleteIntModalVisible(false)} onSave={handleSaveCompleteInterview} isSaving={completeInterview.isPending} />
+            <OfferFormModal visible={offerFormVisible} onClose={() => setOfferFormVisible(false)} onSave={handleSaveOffer} candidateOptions={candidateOptions} isSaving={createOfferMut.isPending} />
+            <RejectReasonModal visible={rejectReasonVisible} onClose={() => setRejectReasonVisible(false)} onSave={handleSaveRejectOffer} isSaving={updateOfferStatusMut.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );

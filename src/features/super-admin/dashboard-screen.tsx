@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -28,7 +29,12 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 
+import { NotificationBell } from '@/features/notifications/notification-bell';
+import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
+import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
+import { notificationKeys } from '@/features/notifications/notifications-sheet';
 import { useSuperAdminStats, useRecentActivity } from '@/features/super-admin/api/use-dashboard-queries';
+import { notificationApi } from '@/lib/api/notifications';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
@@ -310,7 +316,7 @@ function ActivityTypeIcon({ type }: { type: string }) {
 
 // ============ SUB-COMPONENTS ============
 
-function HeaderSection() {
+function HeaderSection({ onBellPress, unreadCount }: { onBellPress: () => void; unreadCount: number }) {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
 
@@ -342,21 +348,7 @@ function HeaderSection() {
                     </View>
 
                     {/* Notification Bell */}
-                    <Pressable style={styles.notificationBell}>
-                        <Svg width={24} height={24} viewBox="0 0 24 24">
-                            <Path
-                                d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0"
-                                stroke="#ffffff"
-                                strokeWidth="1.8"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </Svg>
-                        <View style={styles.notificationBadge}>
-                            <Text className="font-inter text-[9px] font-bold text-white">3</Text>
-                        </View>
-                    </Pressable>
+                    <NotificationBell onPress={onBellPress} unreadCount={unreadCount} />
                 </View>
 
                 {/* Platform Health Bar */}
@@ -639,6 +631,15 @@ export function SuperAdminDashboard() {
 
     const [refreshing, setRefreshing] = React.useState(false);
 
+    // Notification bell
+    const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
+    const { data: unreadData } = useQuery({
+        queryKey: notificationKeys.unreadCount(),
+        queryFn: () => notificationApi.getUnreadCount(),
+        refetchInterval: 30000,
+    });
+    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+
     const stats = statsResponse?.data ?? statsResponse;
     const kpiData = buildKPIData(stats);
     const tenantOverview = stats?.tenantOverview ?? { active: 0, trial: 0, suspended: 0, expired: 0 };
@@ -657,7 +658,7 @@ export function SuperAdminDashboard() {
     if (statsLoading) {
         return (
             <View style={styles.container}>
-                <HeaderSection />
+                <HeaderSection onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
                 <View style={styles.kpiGrid}>
                     <Skeleton
                         isLoading={true}
@@ -704,6 +705,7 @@ export function SuperAdminDashboard() {
                         <View />
                     </Skeleton>
                 </View>
+                <NotificationsSheet ref={notifSheetRef} />
             </View>
         );
     }
@@ -749,7 +751,7 @@ export function SuperAdminDashboard() {
                 }
             >
                 {/* Header */}
-                <HeaderSection />
+                <HeaderSection onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
 
                 {/* KPI Cards Grid */}
                 <View style={styles.kpiGrid}>
@@ -767,6 +769,9 @@ export function SuperAdminDashboard() {
                 {/* Recent Activity */}
                 <RecentActivitySection items={activityItems} isLoading={activityLoading} />
             </ScrollView>
+
+            {/* Notifications Bottom Sheet */}
+            <NotificationsSheet ref={notifSheetRef} />
         </View>
     );
 }
@@ -843,27 +848,6 @@ const styles = StyleSheet.create({
     },
     headerTextContainer: {
         flex: 1,
-    },
-    notificationBell: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    notificationBadge: {
-        position: 'absolute',
-        top: 6,
-        right: 6,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: colors.danger[500],
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: colors.primary[600],
     },
     healthBar: {
         marginTop: 18,

@@ -33,10 +33,15 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess, showErrorMessage } from '@/components/ui/utils';
 import { useAuthStore } from '@/features/auth/use-auth-store';
+import { NotificationBell } from '@/features/notifications/notification-bell';
+import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
+import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
+import { notificationKeys } from '@/features/notifications/notifications-sheet';
 import { useDashboard, essKeys } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { checkPermission } from '@/lib/api/auth';
 import { client } from '@/lib/api/client';
+import { notificationApi } from '@/lib/api/notifications';
 import type {
     DashboardAnnouncement,
     DashboardAttendanceDay,
@@ -51,7 +56,7 @@ import type {
     DashboardTeamSummary,
     DashboardWeeklyChartDay,
 } from '@/lib/api/ess';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TRACK_H = 64;
@@ -577,10 +582,9 @@ function MarqueeText({ text, maxChars = 15 }: { text: string; maxChars?: number 
     );
 }
 
-function WelcomeHeader({ firstName }: { firstName: string }) {
+function WelcomeHeader({ firstName, onBellPress, unreadCount }: { firstName: string; onBellPress: () => void; unreadCount: number }) {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
-    const router = useRouter();
     const fmt = useCompanyFormatter();
 
     return (
@@ -592,7 +596,7 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
                 style={[S.welcomeCard, { paddingTop: insets.top + 16 }]}
             >
                 <View style={S.welcomeHeaderRow}>
-                    {/* FIX 1: Hamburger LEFT */}
+                    {/* Hamburger LEFT */}
                     <HamburgerButton onPress={toggle} />
 
                     <View style={S.welcomeTextWrap}>
@@ -609,22 +613,8 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
                         </Text>
                     </View>
 
-                    {/* FIX 1: Notification bell RIGHT */}
-                    <Pressable
-                        onPress={() => {
-                            try {
-                                router.push('/company/announcements' as any);
-                            } catch {
-                                showSuccess('Coming soon', 'Notifications screen is under development');
-                            }
-                        }}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        style={({ pressed }) => [S.bellButton, pressed && { opacity: 0.6 }]}
-                    >
-                        <BellIcon s={22} c="#fff" />
-                        {/* Red dot badge placeholder */}
-                        <View style={S.bellDot} />
-                    </Pressable>
+                    {/* Notification bell RIGHT */}
+                    <NotificationBell onPress={onBellPress} unreadCount={unreadCount} />
                 </View>
             </LinearGradient>
         </AnimatedRN.View>
@@ -2169,6 +2159,15 @@ export function EmployeeDashboard() {
     const { data: dashboardResponse, isLoading, refetch } = useDashboard();
     const [pullRefreshing, setPullRefreshing] = React.useState(false);
 
+    // Notification bell
+    const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
+    const { data: unreadData } = useQuery({
+        queryKey: notificationKeys.unreadCount(),
+        queryFn: () => notificationApi.getUnreadCount(),
+        refetchInterval: 30000,
+    });
+    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+
     const data: DashboardData | undefined = React.useMemo(() => {
         const raw = dashboardResponse as any;
         const extracted = raw?.data?.data ?? raw?.data ?? raw;
@@ -2183,8 +2182,9 @@ export function EmployeeDashboard() {
     if (isLoading || !data) {
         return (
             <View style={S.container}>
-                <WelcomeHeader firstName={firstName} />
+                <WelcomeHeader firstName={firstName} onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
                 <DashboardSkeleton />
+                <NotificationsSheet ref={notifSheetRef} />
             </View>
         );
     }
@@ -2207,7 +2207,7 @@ export function EmployeeDashboard() {
                 }
             >
                 {/* SECTION 1: Welcome Header */}
-                <WelcomeHeader firstName={firstName} />
+                <WelcomeHeader firstName={firstName} onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
 
                 {/* FIX 6: Announcements Ticker */}
                 <AnnouncementsTicker announcements={data.announcements} />
@@ -2250,6 +2250,9 @@ export function EmployeeDashboard() {
                 {/* FIX 7: Upcoming Holidays — Vertical List */}
                 <UpcomingHolidaysList holidays={data.upcomingHolidays} />
             </ScrollView>
+
+            {/* Notifications Bottom Sheet */}
+            <NotificationsSheet ref={notifSheetRef} />
         </View>
     );
 }

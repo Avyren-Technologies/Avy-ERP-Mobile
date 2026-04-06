@@ -2,6 +2,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Pressable,
     RefreshControl,
@@ -28,7 +29,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { getDisplayName, getUserRoleDisplayLabel, useAuthStore } from '@/features/auth/use-auth-store';
 import { useCompanyActivity } from '@/features/company-admin/api/use-company-admin-queries';
+import { NotificationBell } from '@/features/notifications/notification-bell';
+import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
+import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
+import { notificationKeys } from '@/features/notifications/notifications-sheet';
 import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
+import { notificationApi } from '@/lib/api/notifications';
 
 function useResponsiveWidths() {
     const { width: SCREEN_WIDTH } = useWindowDimensions();
@@ -267,7 +273,7 @@ function ActivityTypeIcon({ type }: { type: string }) {
 
 // ============ SUB-COMPONENTS ============
 
-function HeaderSection({ stats }: { stats?: any }) {
+function HeaderSection({ stats, onBellPress, unreadCount }: { stats?: any; onBellPress: () => void; unreadCount: number }) {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const user = useAuthStore.use.user();
@@ -303,18 +309,7 @@ function HeaderSection({ stats }: { stats?: any }) {
                     </View>
 
                     {/* Notification Bell */}
-                    <Pressable style={styles.notificationBell}>
-                        <Svg width={24} height={24} viewBox="0 0 24 24">
-                            <Path
-                                d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0"
-                                stroke="#ffffff"
-                                strokeWidth="1.8"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </Svg>
-                    </Pressable>
+                    <NotificationBell onPress={onBellPress} unreadCount={unreadCount} />
                 </View>
 
                 {/* Company status bar */}
@@ -572,6 +567,15 @@ export function CompanyAdminDashboard() {
 
     const [refreshing, setRefreshing] = React.useState(false);
 
+    // Notification bell
+    const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
+    const { data: unreadData } = useQuery({
+        queryKey: notificationKeys.unreadCount(),
+        queryFn: () => notificationApi.getUnreadCount(),
+        refetchInterval: 30000,
+    });
+    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+
     const stats = statsResponse?.data ?? statsResponse;
 
     const kpiData: KPICardData[] = React.useMemo(() => [
@@ -620,7 +624,7 @@ export function CompanyAdminDashboard() {
     if (statsLoading) {
         return (
             <View style={styles.container}>
-                <HeaderSection stats={stats} />
+                <HeaderSection stats={stats} onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
                 <View style={styles.kpiGrid}>
                     <Skeleton
                         isLoading={true}
@@ -667,6 +671,7 @@ export function CompanyAdminDashboard() {
                         <View />
                     </Skeleton>
                 </View>
+                <NotificationsSheet ref={notifSheetRef} />
             </View>
         );
     }
@@ -711,7 +716,7 @@ export function CompanyAdminDashboard() {
                 }
             >
                 {/* Header */}
-                <HeaderSection stats={stats} />
+                <HeaderSection stats={stats} onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
 
                 {/* KPI Cards Grid */}
                 <View style={styles.kpiGrid}>
@@ -729,6 +734,9 @@ export function CompanyAdminDashboard() {
                 {/* Recent Activity */}
                 <RecentActivitySection items={activityItems} isLoading={activityLoading} />
             </ScrollView>
+
+            {/* Notifications Bottom Sheet */}
+            <NotificationsSheet ref={notifSheetRef} />
         </View>
     );
 }
@@ -781,14 +789,6 @@ const styles = StyleSheet.create({
     },
     headerTextContainer: {
         flex: 1,
-    },
-    notificationBell: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     healthBar: {
         marginTop: 18,

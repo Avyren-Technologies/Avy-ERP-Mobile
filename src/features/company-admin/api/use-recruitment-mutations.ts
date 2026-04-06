@@ -85,6 +85,50 @@ export function useUpdateInterview() {
   });
 }
 
+export function useCompleteInterview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { feedbackRating: number; feedbackNotes?: string } }) =>
+      recruitmentApi.completeInterview(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useCancelInterview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.cancelInterview(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Candidate Action Mutations ─────────────────────────────────
+
+export function useDeleteCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteCandidate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useAdvanceCandidateStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { stage: string; reason?: string; notes?: string } }) =>
+      recruitmentApi.advanceCandidateStage(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
 // ── Training Catalogue Mutations ────────────────────────────────
 
 export function useCreateTrainingCatalogue() {

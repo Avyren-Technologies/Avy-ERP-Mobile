@@ -140,6 +140,19 @@ export const recruitmentApi = {
   updateInterview: (id: string, data: Record<string, unknown>) =>
     client.patch(`/hr/interviews/${id}`, data),
 
+  completeInterview: (id: string, data: { feedbackRating: number; feedbackNotes?: string }) =>
+    client.patch(`/hr/interviews/${id}/complete`, data),
+
+  cancelInterview: (id: string) =>
+    client.patch(`/hr/interviews/${id}/cancel`),
+
+  // ── Candidates (actions) ────────────────────────────────────────
+  deleteCandidate: (id: string) =>
+    client.delete(`/hr/candidates/${id}`),
+
+  advanceCandidateStage: (id: string, data: { stage: string; reason?: string; notes?: string }) =>
+    client.patch(`/hr/candidates/${id}/stage`, data),
+
   // ── Recruitment Dashboard ─────────────────────────────────────
   getRecruitmentDashboard: () =>
     client.get('/hr/recruitment-dashboard'),

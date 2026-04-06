@@ -27,9 +27,12 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import {
+    useCancelInterview,
+    useCompleteInterview,
     useCreateCandidate,
     useCreateInterview,
     useCreateRequisition,
+    useDeleteCandidate,
     useDeleteRequisition,
     useUpdateCandidate,
     useUpdateRequisition,
@@ -116,6 +119,11 @@ const INTERVIEW_STATUS_COLORS: Record<InterviewStatus, { bg: string; text: strin
 };
 
 const CANDIDATE_SOURCES: CandidateSource[] = ['Portal', 'Referral', 'LinkedIn', 'Agency', 'Walk-in', 'Other'];
+
+const EMPLOYMENT_TYPE_MAP: Record<string, string> = { 'Full-Time': 'FULL_TIME', 'Part-Time': 'PART_TIME', 'Contract': 'CONTRACT', 'Intern': 'INTERNSHIP' };
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = { FULL_TIME: 'Full-Time', PART_TIME: 'Part-Time', CONTRACT: 'Contract', INTERNSHIP: 'Intern' };
+const PRIORITY_MAP: Record<string, string> = { Low: 'LOW', Medium: 'MEDIUM', High: 'HIGH', Urgent: 'URGENT' };
+const PRIORITY_LABELS: Record<string, string> = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High', URGENT: 'Urgent' };
 
 // ============ SHARED ATOMS ============
 
@@ -266,6 +274,12 @@ function RequisitionFormModal({
     const [openings, setOpenings] = React.useState('1');
     const [budgetMin, setBudgetMin] = React.useState('');
     const [budgetMax, setBudgetMax] = React.useState('');
+    const [employmentType, setEmploymentType] = React.useState('FULL_TIME');
+    const [priority, setPriority] = React.useState('MEDIUM');
+    const [location, setLocation] = React.useState('');
+    const [requirements, setRequirements] = React.useState('');
+    const [experienceMin, setExperienceMin] = React.useState('');
+    const [experienceMax, setExperienceMax] = React.useState('');
 
     React.useEffect(() => {
         if (visible) {
@@ -273,8 +287,16 @@ function RequisitionFormModal({
                 setTitle(initialData.title); setDepartment(initialData.department);
                 setOpenings(String(initialData.openings)); setBudgetMin(String(initialData.budgetMin || ''));
                 setBudgetMax(String(initialData.budgetMax || ''));
+                setEmploymentType((initialData as any).employmentType ?? 'FULL_TIME');
+                setPriority((initialData as any).priority ?? 'MEDIUM');
+                setLocation((initialData as any).location ?? '');
+                setRequirements((initialData as any).requirements ?? '');
+                setExperienceMin(String((initialData as any).experienceMin ?? ''));
+                setExperienceMax(String((initialData as any).experienceMax ?? ''));
             } else {
                 setTitle(''); setDepartment(''); setOpenings('1'); setBudgetMin(''); setBudgetMax('');
+                setEmploymentType('FULL_TIME'); setPriority('MEDIUM'); setLocation('');
+                setRequirements(''); setExperienceMin(''); setExperienceMax('');
             }
         }
     }, [visible, initialData]);
@@ -313,10 +335,32 @@ function RequisitionFormModal({
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={budgetMax} onChangeText={setBudgetMax} keyboardType="number-pad" /></View>
                             </View>
                         </View>
+                        <ChipSelector label="Employment Type" options={['Full-Time', 'Part-Time', 'Contract', 'Intern']} value={EMPLOYMENT_TYPE_LABELS[employmentType] ?? 'Full-Time'} onSelect={v => setEmploymentType(EMPLOYMENT_TYPE_MAP[v] ?? 'FULL_TIME')} />
+                        <ChipSelector label="Priority" options={['Low', 'Medium', 'High', 'Urgent']} value={PRIORITY_LABELS[priority] ?? 'Medium'} onSelect={v => setPriority(PRIORITY_MAP[v] ?? 'MEDIUM')} />
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Location</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Bangalore, Remote" placeholderTextColor={colors.neutral[400]} value={location} onChangeText={setLocation} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Requirements</Text>
+                            <View style={[styles.inputWrap, { height: 80, paddingVertical: 10 }]}>
+                                <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Skills, qualifications, etc." placeholderTextColor={colors.neutral[400]} value={requirements} onChangeText={setRequirements} multiline />
+                            </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={[styles.fieldWrap, { flex: 1 }]}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Experience Min (yrs)</Text>
+                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={experienceMin} onChangeText={setExperienceMin} keyboardType="number-pad" /></View>
+                            </View>
+                            <View style={[styles.fieldWrap, { flex: 1 }]}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Experience Max (yrs)</Text>
+                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={experienceMax} onChangeText={setExperienceMax} keyboardType="number-pad" /></View>
+                            </View>
+                        </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
-                        <Pressable onPress={() => onSave({ title: title.trim(), department: department.trim(), openings: Number(openings) || 1, budgetMin: Number(budgetMin) || 0, budgetMax: Number(budgetMax) || 0 })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                        <Pressable onPress={() => onSave({ title: title.trim(), department: department.trim(), openings: Number(openings) || 1, budgetMin: Number(budgetMin) || 0, budgetMax: Number(budgetMax) || 0, employmentType, priority, location: location.trim() || undefined, requirements: requirements.trim() || undefined, experienceMin: experienceMin ? Number(experienceMin) : undefined, experienceMax: experienceMax ? Number(experienceMax) : undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
                     </View>
@@ -431,6 +475,57 @@ function InterviewFormModal({
     );
 }
 
+// ============ COMPLETE INTERVIEW MODAL ============
+
+function CompleteInterviewModal({
+    visible, onClose, onSave, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (data: { feedbackRating: number; feedbackNotes?: string }) => void;
+    isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [rating, setRating] = React.useState('');
+    const [notes, setNotes] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) { setRating(''); setNotes(''); }
+    }, [visible]);
+
+    const ratingNum = Number(rating) || 0;
+    const isValid = ratingNum >= 1 && ratingNum <= 10;
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Complete Interview</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 300 }}>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Feedback Rating (1-10) <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 8" placeholderTextColor={colors.neutral[400]} value={rating} onChangeText={setRating} keyboardType="number-pad" /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Feedback Notes</Text>
+                            <View style={[styles.inputWrap, { height: 100, paddingVertical: 10 }]}>
+                                <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Optional notes about the interview..." placeholderTextColor={colors.neutral[400]} value={notes} onChangeText={setNotes} multiline />
+                            </View>
+                        </View>
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave({ feedbackRating: ratingNum, feedbackNotes: notes.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : 'Complete'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
 // ============ CARD COMPONENTS ============
 
 function RequisitionCard({ item, index, onPress, onStatusChange, onDelete }: {
@@ -485,9 +580,9 @@ function RequisitionCard({ item, index, onPress, onStatusChange, onDelete }: {
     );
 }
 
-function CandidateCard({ item, index, onAdvance, onReject }: {
+function CandidateCard({ item, index, onAdvance, onReject, onDelete }: {
     item: CandidateItem; index: number;
-    onAdvance: () => void; onReject: () => void;
+    onAdvance: () => void; onReject: () => void; onDelete: () => void;
 }) {
     const canAdvance = item.stage !== 'Hired' && item.stage !== 'Rejected';
     return (
@@ -507,24 +602,32 @@ function CandidateCard({ item, index, onAdvance, onReject }: {
                     <SourceBadge source={item.source} />
                     <RatingStars rating={item.rating} />
                 </View>
-                {canAdvance && (
-                    <View style={styles.actionRow}>
-                        <Pressable onPress={onAdvance} style={styles.approveBtn}>
-                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M13 17l5-5-5-5M6 17l5-5-5-5" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                            <Text className="font-inter text-xs font-bold text-white">Advance</Text>
-                        </Pressable>
-                        <Pressable onPress={onReject} style={styles.rejectActionBtn}>
-                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                            <Text className="font-inter text-xs font-bold text-danger-600">Reject</Text>
-                        </Pressable>
-                    </View>
-                )}
+                <View style={styles.actionRow}>
+                    {canAdvance && (
+                        <>
+                            <Pressable onPress={onAdvance} style={styles.approveBtn}>
+                                <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M13 17l5-5-5-5M6 17l5-5-5-5" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                <Text className="font-inter text-xs font-bold text-white">Advance</Text>
+                            </Pressable>
+                            <Pressable onPress={onReject} style={styles.rejectActionBtn}>
+                                <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                <Text className="font-inter text-xs font-bold text-danger-600">Reject</Text>
+                            </Pressable>
+                        </>
+                    )}
+                    <Pressable onPress={onDelete} style={[styles.actionBtn, { backgroundColor: colors.danger[50] }]}>
+                        <Text className="font-inter text-xs" style={{ color: colors.danger[700] }}>Delete</Text>
+                    </Pressable>
+                </View>
             </View>
         </Animated.View>
     );
 }
 
-function InterviewCard({ item, index }: { item: InterviewItem; index: number }) {
+function InterviewCard({ item, index, onComplete, onCancel }: {
+    item: InterviewItem; index: number;
+    onComplete: () => void; onCancel: () => void;
+}) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -543,6 +646,16 @@ function InterviewCard({ item, index }: { item: InterviewItem; index: number }) 
                         <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>Panel: {item.panelists.join(', ')}</Text>
                     )}
                 </View>
+                {item.status === 'Scheduled' && (
+                    <View style={styles.cardFooter}>
+                        <Pressable style={[styles.actionBtn, { backgroundColor: colors.success[50] }]} onPress={onComplete}>
+                            <Text className="font-inter text-xs" style={{ color: colors.success[700] }}>Complete</Text>
+                        </Pressable>
+                        <Pressable style={[styles.actionBtn, { backgroundColor: colors.danger[50] }]} onPress={onCancel}>
+                            <Text className="font-inter text-xs" style={{ color: colors.danger[700] }}>Cancel</Text>
+                        </Pressable>
+                    </View>
+                )}
             </View>
         </Animated.View>
     );
@@ -572,12 +685,17 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
     const createCand = useCreateCandidate();
     const updateCand = useUpdateCandidate();
     const createInt = useCreateInterview();
+    const completeInterview = useCompleteInterview();
+    const cancelInterview = useCancelInterview();
+    const deleteCandidateMut = useDeleteCandidate();
 
     // Modals
     const [reqFormVisible, setReqFormVisible] = React.useState(false);
     const [editingReq, setEditingReq] = React.useState<RequisitionItem | null>(null);
     const [candFormVisible, setCandFormVisible] = React.useState(false);
     const [intFormVisible, setIntFormVisible] = React.useState(false);
+    const [completeIntModalVisible, setCompleteIntModalVisible] = React.useState(false);
+    const [completeIntId, setCompleteIntId] = React.useState('');
 
     // Parse data
     const requisitions: RequisitionItem[] = React.useMemo(() => {
@@ -697,6 +815,33 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         createInt.mutate(data, { onSuccess: () => setIntFormVisible(false) });
     };
 
+    const handleCompleteInterview = (item: InterviewItem) => {
+        setCompleteIntId(item.id);
+        setCompleteIntModalVisible(true);
+    };
+
+    const handleSaveCompleteInterview = (data: { feedbackRating: number; feedbackNotes?: string }) => {
+        completeInterview.mutate({ id: completeIntId, data }, { onSuccess: () => setCompleteIntModalVisible(false) });
+    };
+
+    const handleCancelInterview = (item: InterviewItem) => {
+        showConfirm({
+            title: 'Cancel Interview',
+            message: 'Are you sure you want to cancel this interview?',
+            confirmText: 'Cancel Interview', variant: 'danger',
+            onConfirm: () => cancelInterview.mutate(item.id),
+        });
+    };
+
+    const handleDeleteCandidate = (item: CandidateItem) => {
+        showConfirm({
+            title: 'Delete Candidate',
+            message: `Delete ${item.name}? This cannot be undone.`,
+            confirmText: 'Delete', variant: 'danger',
+            onConfirm: () => deleteCandidateMut.mutate(item.id),
+        });
+    };
+
     const isLoading = activeSection === 'requisitions' ? reqLoading : activeSection === 'candidates' ? candLoading : intLoading;
     const isFetching2 = activeSection === 'requisitions' ? reqFetching : activeSection === 'candidates' ? candFetching : intFetching;
     const activeRefetch = activeSection === 'requisitions' ? reqRefetch : activeSection === 'candidates' ? candRefetch : intRefetch;
@@ -761,9 +906,9 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
             return <RequisitionCard item={item} index={index} onPress={() => handleSelectReq(item)} onStatusChange={s => handleReqStatusChange(item, s)} onDelete={() => handleDeleteReq(item)} />;
         }
         if (activeSection === 'candidates') {
-            return <CandidateCard item={item} index={index} onAdvance={() => handleAdvanceCandidate(item)} onReject={() => handleRejectCandidate(item)} />;
+            return <CandidateCard item={item} index={index} onAdvance={() => handleAdvanceCandidate(item)} onReject={() => handleRejectCandidate(item)} onDelete={() => handleDeleteCandidate(item)} />;
         }
-        return <InterviewCard item={item} index={index} />;
+        return <InterviewCard item={item} index={index} onComplete={() => handleCompleteInterview(item)} onCancel={() => handleCancelInterview(item)} />;
     };
 
     const activeData = activeSection === 'requisitions' ? filteredReqs : activeSection === 'candidates' ? filteredCandidates : filteredInterviews;
@@ -789,6 +934,7 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
             <RequisitionFormModal visible={reqFormVisible} onClose={() => setReqFormVisible(false)} onSave={handleSaveReq} initialData={editingReq} isSaving={createReq.isPending || updateReq.isPending} />
             <CandidateFormModal visible={candFormVisible} onClose={() => setCandFormVisible(false)} onSave={handleSaveCandidate} requisitionId={selectedReqId} isSaving={createCand.isPending} />
             <InterviewFormModal visible={intFormVisible} onClose={() => setIntFormVisible(false)} onSave={handleSaveInterview} candidateOptions={candidateOptions} isSaving={createInt.isPending} />
+            <CompleteInterviewModal visible={completeIntModalVisible} onClose={() => setCompleteIntModalVisible(false)} onSave={handleSaveCompleteInterview} isSaving={completeInterview.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );
@@ -831,6 +977,7 @@ const styles = StyleSheet.create({
     },
     chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
+    actionBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });

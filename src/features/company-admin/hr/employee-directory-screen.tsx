@@ -409,10 +409,30 @@ export function EmployeeDirectoryScreen() {
                         <Text className="font-inter text-lg font-bold text-white">
                             Employee Directory
                         </Text>
-                        <View style={styles.countBadge}>
-                            <Text className="font-inter text-xs font-bold text-white">
-                                {totalCount}
-                            </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Pressable
+                                onPress={() => router.push('/company/hr/bulk-employee-import' as any)}
+                                style={({ pressed }) => [
+                                    styles.headerActionBtn,
+                                    pressed && { opacity: 0.7 },
+                                ]}
+                            >
+                                <Svg width={18} height={18} viewBox="0 0 24 24">
+                                    <Path
+                                        d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                                        stroke={colors.white}
+                                        strokeWidth="2"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </Svg>
+                            </Pressable>
+                            <View style={styles.countBadge}>
+                                <Text className="font-inter text-xs font-bold text-white">
+                                    {totalCount}
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 </LinearGradient>
@@ -658,6 +678,14 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 12,
         backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerActionBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
     },

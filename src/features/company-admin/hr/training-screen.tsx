@@ -41,7 +41,7 @@ import { useTrainingCatalogue, useTrainingNominations } from '@/features/company
 
 type TrainingType = 'Technical' | 'Compliance' | 'Soft Skills' | 'Leadership' | 'Safety' | 'Product' | 'Other';
 type TrainingMode = 'Online' | 'Classroom' | 'Blended' | 'Self-paced';
-type NominationStatus = 'Nominated' | 'Enrolled' | 'Completed' | 'Cancelled';
+type NominationStatus = 'Nominated' | 'Approved' | 'In Progress' | 'Completed' | 'Cancelled';
 type Tab = 'catalogue' | 'nominations';
 
 interface CatalogueItem {
@@ -93,7 +93,8 @@ const MODE_COLORS: Record<TrainingMode, { bg: string; text: string }> = {
 
 const NOM_STATUS_COLORS: Record<NominationStatus, { bg: string; text: string; dot: string }> = {
     Nominated: { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] },
-    Enrolled: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
+    Approved: { bg: colors.primary[50], text: colors.primary[700], dot: colors.primary[500] },
+    'In Progress': { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
     Completed: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
     Cancelled: { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] },
 };
@@ -396,12 +397,14 @@ function NominationCard({ item, index, onComplete, onCancel }: {
                         </View>
                     )}
                 </View>
-                {(item.status === 'Nominated' || item.status === 'Enrolled') && (
+                {(item.status === 'Nominated' || item.status === 'Approved' || item.status === 'In Progress') && (
                     <View style={styles.actionRow}>
-                        <Pressable onPress={onComplete} style={styles.approveBtn}>
-                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                            <Text className="font-inter text-xs font-bold text-white">Complete</Text>
-                        </Pressable>
+                        {item.status === 'In Progress' && (
+                            <Pressable onPress={onComplete} style={styles.approveBtn}>
+                                <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                <Text className="font-inter text-xs font-bold text-white">Complete</Text>
+                            </Pressable>
+                        )}
                         <Pressable onPress={onCancel} style={styles.cancelActionBtn}>
                             <Text className="font-inter text-xs font-semibold text-neutral-500">Cancel</Text>
                         </Pressable>

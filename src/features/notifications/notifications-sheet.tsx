@@ -9,6 +9,7 @@ import { DateTime } from 'luxon';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import { notificationApi } from '@/lib/api/notifications';
 
 // ── Query key factory ──
@@ -131,11 +132,7 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
       queryFn: () => notificationApi.listNotifications({ limit: 30 }),
     });
 
-    const { data: unreadData } = useQuery({
-      queryKey: notificationKeys.unreadCount(),
-      queryFn: () => notificationApi.getUnreadCount(),
-      refetchInterval: 30000,
-    });
+    const { data: unreadData } = useUnreadNotificationCount();
 
     const markAsReadMutation = useMutation({
       mutationFn: (id: string) => notificationApi.markAsRead(id),
@@ -151,8 +148,8 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
       },
     });
 
-    const notifications: NotificationItemData[] = (notifData as any)?.data ?? [];
-    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+    const notifications: NotificationItemData[] = notifData?.data ?? [];
+    const unreadCount: number = unreadData?.data?.count ?? 0;
 
     const handleMarkRead = useCallback((id: string) => {
       markAsReadMutation.mutate(id);

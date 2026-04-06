@@ -43,7 +43,6 @@ import {
     useCandidateDocuments,
     useCandidateEducation,
     useCandidateExperience,
-    useInterviewEvaluations,
     useInterviews,
     useOffers,
 } from '@/features/company-admin/api/use-recruitment-queries';
@@ -53,6 +52,60 @@ import {
 type CandidateStage = 'Applied' | 'Screening' | 'Interview' | 'Offer' | 'Hired' | 'Rejected';
 type CandidateSource = 'Portal' | 'Referral' | 'LinkedIn' | 'Agency' | 'Walk-in' | 'Other';
 type DetailTab = 'education' | 'experience' | 'documents' | 'interviews' | 'offers' | 'history';
+
+interface EducationItem {
+    id: string;
+    degree?: string;
+    institution?: string;
+    fieldOfStudy?: string;
+    startYear?: string;
+    endYear?: string;
+    grade?: string;
+}
+
+interface ExperienceItem {
+    id: string;
+    jobTitle?: string;
+    company?: string;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+interface DocumentItem {
+    id: string;
+    title?: string;
+    type?: string;
+    fileUrl?: string;
+}
+
+interface InterviewItem {
+    id: string;
+    round?: number;
+    datetime?: string;
+    status?: string;
+    panelists?: string[];
+    feedbackRating?: number;
+    feedbackNotes?: string;
+}
+
+interface OfferItem {
+    id: string;
+    offeredCTC?: number;
+    joiningDate?: string;
+    status?: string;
+    validUntil?: string;
+}
+
+interface HistoryItem {
+    id: string;
+    stage?: string;
+    fromStage?: string;
+    toStage?: string;
+    notes?: string;
+    reason?: string;
+    createdAt?: string;
+}
 
 // ============ CONSTANTS ============
 
@@ -98,7 +151,7 @@ function StageBadge({ stage }: { stage: CandidateStage }) {
     const c = STAGE_COLORS[stage] ?? STAGE_COLORS.Applied;
     return (
         <View style={[styles.badge, { backgroundColor: c.bg }]}>
-            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{stage}</Text>
+            <Text className="font-inter text-[10px] font-bold" style={{ color: c.text }}>{stage}</Text>
         </View>
     );
 }
@@ -107,7 +160,7 @@ function SourceBadge({ source }: { source: CandidateSource }) {
     const c = SOURCE_COLORS[source] ?? SOURCE_COLORS.Other;
     return (
         <View style={[styles.badge, { backgroundColor: c.bg }]}>
-            <Text style={{ color: c.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{source}</Text>
+            <Text className="font-inter text-[10px] font-bold" style={{ color: c.text }}>{source}</Text>
         </View>
     );
 }
@@ -323,7 +376,7 @@ function DocumentFormModal({
 
 // ============ SECTION CARDS ============
 
-function EducationCard({ item, index, onDelete }: { item: any; index: number; onDelete: () => void }) {
+function EducationCard({ item, index, onDelete }: { item: EducationItem; index: number; onDelete: () => void }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -346,7 +399,7 @@ function EducationCard({ item, index, onDelete }: { item: any; index: number; on
     );
 }
 
-function ExperienceCard({ item, index, onDelete }: { item: any; index: number; onDelete: () => void }) {
+function ExperienceCard({ item, index, onDelete }: { item: ExperienceItem; index: number; onDelete: () => void }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -368,7 +421,7 @@ function ExperienceCard({ item, index, onDelete }: { item: any; index: number; o
     );
 }
 
-function DocumentCard({ item, index, onDelete }: { item: any; index: number; onDelete: () => void }) {
+function DocumentCard({ item, index, onDelete }: { item: DocumentItem; index: number; onDelete: () => void }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -391,14 +444,14 @@ function DocumentCard({ item, index, onDelete }: { item: any; index: number; onD
     );
 }
 
-function InterviewCard({ item, index }: { item: any; index: number }) {
+function InterviewCard({ item, index }: { item: InterviewItem; index: number }) {
     const statusColors: Record<string, { bg: string; text: string }> = {
         Scheduled: { bg: colors.info[50], text: colors.info[700] },
         Completed: { bg: colors.success[50], text: colors.success[700] },
         Cancelled: { bg: colors.neutral[100], text: colors.neutral[600] },
         'No Show': { bg: colors.danger[50], text: colors.danger[700] },
     };
-    const sc = statusColors[item.status] ?? statusColors.Scheduled;
+    const sc = statusColors[item.status ?? 'Scheduled'] ?? statusColors.Scheduled;
 
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
@@ -409,7 +462,7 @@ function InterviewCard({ item, index }: { item: any; index: number }) {
                         <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.datetime}</Text>
                     </View>
                     <View style={[styles.badge, { backgroundColor: sc.bg }]}>
-                        <Text style={{ color: sc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.status}</Text>
+                        <Text className="font-inter text-[10px] font-bold" style={{ color: sc.text }}>{item.status}</Text>
                     </View>
                 </View>
                 {item.panelists && item.panelists.length > 0 && (
@@ -426,8 +479,8 @@ function InterviewCard({ item, index }: { item: any; index: number }) {
     );
 }
 
-function OfferCard({ item, index }: { item: any; index: number }) {
-    const sc = OFFER_STATUS_COLORS[item.status] ?? OFFER_STATUS_COLORS.DRAFT;
+function OfferCard({ item, index }: { item: OfferItem; index: number }) {
+    const sc = OFFER_STATUS_COLORS[item.status ?? 'DRAFT'] ?? OFFER_STATUS_COLORS.DRAFT;
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={styles.card}>
@@ -439,7 +492,7 @@ function OfferCard({ item, index }: { item: any; index: number }) {
                         {item.joiningDate ? <Text className="mt-0.5 font-inter text-xs text-neutral-500">Joining: {item.joiningDate}</Text> : null}
                     </View>
                     <View style={[styles.badge, { backgroundColor: sc.bg }]}>
-                        <Text style={{ color: sc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.status}</Text>
+                        <Text className="font-inter text-[10px] font-bold" style={{ color: sc.text }}>{item.status}</Text>
                     </View>
                 </View>
                 {item.validUntil ? <Text className="mt-1 font-inter text-xs text-neutral-400">Valid until: {item.validUntil}</Text> : null}
@@ -448,7 +501,7 @@ function OfferCard({ item, index }: { item: any; index: number }) {
     );
 }
 
-function HistoryCard({ item, index }: { item: any; index: number }) {
+function HistoryCard({ item, index }: { item: HistoryItem; index: number }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
@@ -501,7 +554,7 @@ export function CandidateDetailScreen() {
 
     // Parse data
     const candidate = React.useMemo(() => {
-        const raw = (candidateResponse as any)?.data ?? candidateResponse;
+        const raw = candidateResponse?.data ?? candidateResponse;
         if (!raw) return null;
         return {
             id: raw.id ?? '', name: raw.name ?? '', email: raw.email ?? '', phone: raw.phone ?? '',
@@ -511,27 +564,27 @@ export function CandidateDetailScreen() {
     }, [candidateResponse]);
 
     const education = React.useMemo(() => {
-        const raw = (eduResponse as any)?.data ?? eduResponse ?? [];
+        const raw = eduResponse?.data ?? eduResponse ?? [];
         return Array.isArray(raw) ? raw : [];
     }, [eduResponse]);
 
     const experience = React.useMemo(() => {
-        const raw = (expResponse as any)?.data ?? expResponse ?? [];
+        const raw = expResponse?.data ?? expResponse ?? [];
         return Array.isArray(raw) ? raw : [];
     }, [expResponse]);
 
     const documents = React.useMemo(() => {
-        const raw = (docResponse as any)?.data ?? docResponse ?? [];
+        const raw = docResponse?.data ?? docResponse ?? [];
         return Array.isArray(raw) ? raw : [];
     }, [docResponse]);
 
     const interviews = React.useMemo(() => {
-        const raw = (intResponse as any)?.data ?? intResponse ?? [];
+        const raw = intResponse?.data ?? intResponse ?? [];
         return Array.isArray(raw) ? raw : [];
     }, [intResponse]);
 
     const offers = React.useMemo(() => {
-        const raw = (offerResponse as any)?.data ?? offerResponse ?? [];
+        const raw = offerResponse?.data ?? offerResponse ?? [];
         return Array.isArray(raw) ? raw : [];
     }, [offerResponse]);
 
@@ -699,20 +752,22 @@ export function CandidateDetailScreen() {
         return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title={m.title} message={m.msg} /></View>;
     };
 
-    const renderItem = ({ item, index }: { item: any; index: number }) => {
+    type CardItem = EducationItem | ExperienceItem | DocumentItem | InterviewItem | OfferItem | HistoryItem;
+
+    const renderItem = ({ item, index }: { item: CardItem; index: number }) => {
         switch (activeTab) {
             case 'education':
-                return <EducationCard item={item} index={index} onDelete={() => handleDeleteEducation(item.id)} />;
+                return <EducationCard item={item as EducationItem} index={index} onDelete={() => handleDeleteEducation(item.id)} />;
             case 'experience':
-                return <ExperienceCard item={item} index={index} onDelete={() => handleDeleteExperience(item.id)} />;
+                return <ExperienceCard item={item as ExperienceItem} index={index} onDelete={() => handleDeleteExperience(item.id)} />;
             case 'documents':
-                return <DocumentCard item={item} index={index} onDelete={() => handleDeleteDocument(item.id)} />;
+                return <DocumentCard item={item as DocumentItem} index={index} onDelete={() => handleDeleteDocument(item.id)} />;
             case 'interviews':
-                return <InterviewCard item={item} index={index} />;
+                return <InterviewCard item={item as InterviewItem} index={index} />;
             case 'offers':
-                return <OfferCard item={item} index={index} />;
+                return <OfferCard item={item as OfferItem} index={index} />;
             case 'history':
-                return <HistoryCard item={item} index={index} />;
+                return <HistoryCard item={item as HistoryItem} index={index} />;
         }
     };
 
@@ -721,7 +776,7 @@ export function CandidateDetailScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Candidate Profile" onMenuPress={toggle} />
             <FlatList
-                data={getActiveData()} renderItem={renderItem} keyExtractor={(item: any, idx) => item.id ?? String(idx)}
+                data={getActiveData()} renderItem={renderItem} keyExtractor={(item, idx) => item.id ?? String(idx)}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"

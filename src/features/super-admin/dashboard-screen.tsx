@@ -1,5 +1,4 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -32,9 +31,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { NotificationBell } from '@/features/notifications/notification-bell';
 import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
 import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
-import { notificationKeys } from '@/features/notifications/notifications-sheet';
+import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import { useSuperAdminStats, useRecentActivity } from '@/features/super-admin/api/use-dashboard-queries';
-import { notificationApi } from '@/lib/api/notifications';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 24 * 2 - 12) / 2;
@@ -633,12 +631,8 @@ export function SuperAdminDashboard() {
 
     // Notification bell
     const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
-    const { data: unreadData } = useQuery({
-        queryKey: notificationKeys.unreadCount(),
-        queryFn: () => notificationApi.getUnreadCount(),
-        refetchInterval: 30000,
-    });
-    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+    const { data: unreadData } = useUnreadNotificationCount();
+    const unreadCount: number = unreadData?.data?.count ?? 0;
 
     const stats = statsResponse?.data ?? statsResponse;
     const kpiData = buildKPIData(stats);

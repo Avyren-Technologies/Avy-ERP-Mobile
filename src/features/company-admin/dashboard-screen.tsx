@@ -2,7 +2,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
     Pressable,
     RefreshControl,
@@ -32,9 +31,8 @@ import { useCompanyActivity } from '@/features/company-admin/api/use-company-adm
 import { NotificationBell } from '@/features/notifications/notification-bell';
 import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
 import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
-import { notificationKeys } from '@/features/notifications/notifications-sheet';
+import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
-import { notificationApi } from '@/lib/api/notifications';
 
 function useResponsiveWidths() {
     const { width: SCREEN_WIDTH } = useWindowDimensions();
@@ -569,12 +567,8 @@ export function CompanyAdminDashboard() {
 
     // Notification bell
     const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
-    const { data: unreadData } = useQuery({
-        queryKey: notificationKeys.unreadCount(),
-        queryFn: () => notificationApi.getUnreadCount(),
-        refetchInterval: 30000,
-    });
-    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+    const { data: unreadData } = useUnreadNotificationCount();
+    const unreadCount: number = unreadData?.data?.count ?? 0;
 
     const stats = statsResponse?.data ?? statsResponse;
 

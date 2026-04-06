@@ -36,12 +36,11 @@ import { useAuthStore } from '@/features/auth/use-auth-store';
 import { NotificationBell } from '@/features/notifications/notification-bell';
 import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
 import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
-import { notificationKeys } from '@/features/notifications/notifications-sheet';
 import { useDashboard, essKeys } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { checkPermission } from '@/lib/api/auth';
 import { client } from '@/lib/api/client';
-import { notificationApi } from '@/lib/api/notifications';
+import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import type {
     DashboardAnnouncement,
     DashboardAttendanceDay,
@@ -56,7 +55,7 @@ import type {
     DashboardTeamSummary,
     DashboardWeeklyChartDay,
 } from '@/lib/api/ess';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TRACK_H = 64;
@@ -2161,12 +2160,8 @@ export function EmployeeDashboard() {
 
     // Notification bell
     const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
-    const { data: unreadData } = useQuery({
-        queryKey: notificationKeys.unreadCount(),
-        queryFn: () => notificationApi.getUnreadCount(),
-        refetchInterval: 30000,
-    });
-    const unreadCount: number = (unreadData as any)?.data?.count ?? 0;
+    const { data: unreadData } = useUnreadNotificationCount();
+    const unreadCount: number = unreadData?.data?.count ?? 0;
 
     const data: DashboardData | undefined = React.useMemo(() => {
         const raw = dashboardResponse as any;

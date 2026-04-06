@@ -220,4 +220,16 @@ export const hrApi = {
   // ── Org Chart ─────────────────────────────────────────────────────
   getOrgChart: () =>
     client.get('/hr/employees/org-chart'),
+
+  // ── Bulk Import ─────────────────────────────────────────────────────
+  bulkDownloadTemplate: () =>
+    client.get('/hr/employees/bulk/template', { responseType: 'arraybuffer' }),
+
+  bulkValidate: (formData: FormData) =>
+    client.post('/hr/employees/bulk/validate', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  bulkImport: (rows: Record<string, unknown>[], defaultPassword: string) =>
+    client.post('/hr/employees/bulk/import', { rows, defaultPassword }),
 };

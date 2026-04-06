@@ -4,6 +4,51 @@ import { showError } from '@/components/ui/utils';
 import { hrApi } from '@/lib/api/hr';
 import { hrKeys } from '@/features/company-admin/api/use-hr-queries';
 
+// ── Bulk Import ──────────────────────────────────────────────────────
+
+/** Validate an uploaded XLSX file before importing employees */
+export function useBulkValidateEmployees() {
+  return useMutation({
+    mutationFn: ({
+      fileUri,
+      fileName,
+      defaultPassword,
+    }: {
+      fileUri: string;
+      fileName: string;
+      defaultPassword: string;
+    }) => {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: fileUri,
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: fileName || 'employees.xlsx',
+      } as unknown as Blob);
+      formData.append('defaultPassword', defaultPassword);
+      return hrApi.bulkValidate(formData);
+    },
+    onError: showError,
+  });
+}
+
+/** Import validated employee rows in bulk */
+export function useBulkImportEmployees() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      rows,
+      defaultPassword,
+    }: {
+      rows: Record<string, unknown>[];
+      defaultPassword: string;
+    }) => hrApi.bulkImport(rows, defaultPassword),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: hrKeys.employees() });
+    },
+    onError: showError,
+  });
+}
+
 // ── Departments ───────────────────────────────────────────────────────
 
 /** Create a new department */

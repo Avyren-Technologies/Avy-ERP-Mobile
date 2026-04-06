@@ -1,3 +1,7 @@
+/* eslint-disable unicorn/prefer-node-protocol */
+import { Buffer } from 'buffer';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -241,5 +245,27 @@ export function useOrgChart() {
   return useQuery({
     queryKey: hrKeys.orgChart(),
     queryFn: () => hrApi.getOrgChart(),
+  });
+}
+
+// --- Bulk Import Helpers ---
+
+/** Download the bulk employee import XLSX template and share it via the OS share sheet */
+export async function downloadBulkEmployeeTemplate() {
+  const data = await hrApi.bulkDownloadTemplate();
+  const base64 = Buffer.from(data as unknown as ArrayBuffer).toString('base64');
+  const file = new File(Paths.document, 'Employee_Import_Template.xlsx');
+  file.create();
+  file.write(base64, { encoding: 'base64' });
+
+  const isAvailable = await Sharing.isAvailableAsync();
+  if (!isAvailable) {
+    throw new Error('Sharing is not available on this device');
+  }
+
+  await Sharing.shareAsync(file.uri, {
+    mimeType:
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    dialogTitle: 'Save Employee Import Template',
   });
 }

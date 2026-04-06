@@ -486,6 +486,7 @@ function OfferCard({ item, index }: { item: OfferItem; index: number }) {
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
+                        {/* Currency formatted for INR — will be made dynamic when multi-currency support is added */}
                         <Text className="font-inter text-sm font-bold text-primary-950">
                             {'\u20B9'}{(item.offeredCTC ?? 0).toLocaleString('en-IN')} CTC
                         </Text>

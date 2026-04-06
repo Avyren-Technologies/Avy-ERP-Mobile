@@ -9,7 +9,7 @@ import { getItem, setItem, removeItem } from '@/lib/storage';
 
 const logger = createLogger('PushNotifications');
 
-const FCM_TOKEN_KEY = 'push_fcm_token';
+const PUSH_TOKEN_KEY = 'push_token';
 
 // Configure how notifications are presented when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -75,7 +75,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     logger.info('Obtained push token', { platform });
 
     // Persist token locally so we can unregister on logout
-    await setItem(FCM_TOKEN_KEY, token);
+    await setItem(PUSH_TOKEN_KEY, token);
 
     // Register with backend
     try {
@@ -101,7 +101,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * Removes the token from the backend and clears local storage.
  */
 export async function unregisterPushNotifications(): Promise<void> {
-  const token = getItem<string>(FCM_TOKEN_KEY);
+  const token = getItem<string>(PUSH_TOKEN_KEY);
   if (!token) return;
 
   try {
@@ -113,14 +113,14 @@ export async function unregisterPushNotifications(): Promise<void> {
     logger.error('Failed to unregister device token', { error: err });
   }
 
-  removeItem(FCM_TOKEN_KEY);
+  removeItem(PUSH_TOKEN_KEY);
 }
 
 /**
  * Get the locally stored FCM token (if any).
  */
 export function getStoredPushToken(): string | null {
-  return getItem<string>(FCM_TOKEN_KEY);
+  return getItem<string>(PUSH_TOKEN_KEY);
 }
 
 /**

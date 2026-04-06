@@ -5,6 +5,8 @@ import * as React from 'react';
 import { useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
+import { DateTime } from 'luxon';
+
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { notificationApi } from '@/lib/api/notifications';
@@ -33,7 +35,7 @@ function formatTimeAgo(dateStr: string): string {
   if (diffHrs < 24) return `${diffHrs}h ago`;
   const diffDays = Math.floor(diffHrs / 24);
   if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(dateStr).toLocaleDateString();
+  return DateTime.fromISO(dateStr).toFormat('dd/MM/yyyy');
 }
 
 // ── Type badge colors ──

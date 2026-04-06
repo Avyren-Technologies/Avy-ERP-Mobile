@@ -25,7 +25,7 @@ export function TrainingDashboardScreen() {
 
   const handleDrilldown = useCallback(
     (type: string) => {
-      // Navigate to drilldown or handle in-screen
+      router.push(`/company/hr/analytics/training?drilldown=${type}`);
     },
     [router],
   );

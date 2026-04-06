@@ -29,26 +29,35 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
+    useAddProgramCourse,
+    useBulkMarkAttendance,
     useCreateTrainer,
     useCreateTrainingCatalogue,
     useCreateTrainingNomination,
+    useCreateTrainingProgram,
     useCreateTrainingSession,
     useDeleteTrainer,
     useDeleteTrainingCatalogue,
+    useDeleteTrainingProgram,
     useDeleteTrainingSession,
+    useEnrollInProgram,
     useRegisterSessionAttendees,
-    useBulkMarkAttendance,
+    useRemoveProgramCourse,
     useUpdateTrainer,
     useUpdateTrainingCatalogue,
     useUpdateTrainingNomination,
+    useUpdateTrainingProgram,
     useUpdateTrainingSession,
     useUpdateTrainingSessionStatus,
 } from '@/features/company-admin/api/use-recruitment-mutations';
 import {
+    useBudgetUtilization,
+    useProgramEnrollments,
     useSessionAttendance,
     useTrainers,
     useTrainingCatalogue,
     useTrainingNominations,
+    useTrainingPrograms,
     useTrainingSessions,
 } from '@/features/company-admin/api/use-recruitment-queries';
 
@@ -60,7 +69,7 @@ type NominationStatus = 'Nominated' | 'Approved' | 'In Progress' | 'Completed' |
 type SessionStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 type AttendanceStatus = 'REGISTERED' | 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
 type TrainerType = 'INTERNAL' | 'EXTERNAL';
-type Tab = 'catalogue' | 'nominations' | 'sessions' | 'trainers';
+type Tab = 'catalogue' | 'nominations' | 'sessions' | 'trainers' | 'programs';
 
 interface CatalogueItem {
     id: string;
@@ -125,6 +134,25 @@ interface AttendeeItem {
     status: AttendanceStatus;
 }
 
+type ProgramCategory = 'CERTIFICATION' | 'SKILL_DEVELOPMENT' | 'COMPLIANCE' | 'ONBOARDING';
+type ProgramLevel = 'Beginner' | 'Intermediate' | 'Advanced';
+type EnrollmentStatus = 'ENROLLED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABANDONED';
+
+interface ProgramItem {
+    id: string;
+    name: string;
+    description: string;
+    category: ProgramCategory;
+    level: ProgramLevel;
+    totalDuration: number;
+    isCompulsory: boolean;
+    isActive: boolean;
+    courseCount: number;
+    enrollmentCount: number;
+    courses: { id: string; trainingId: string; trainingName: string; sequence: number; isPrerequisite: boolean }[];
+    enrollments: { id: string; employeeId: string; employeeName: string; status: EnrollmentStatus; progress: number }[];
+}
+
 // ============ CONSTANTS ============
 
 const SESSION_STATUS_COLORS: Record<SessionStatus, { bg: string; text: string; dot: string }> = {
@@ -146,6 +174,24 @@ const TRAINER_TYPE_COLORS: Record<TrainerType, { bg: string; text: string }> = {
     INTERNAL: { bg: colors.primary[50], text: colors.primary[700] },
     EXTERNAL: { bg: colors.accent[50], text: colors.accent[700] },
 };
+
+const PROGRAM_CATEGORY_COLORS: Record<ProgramCategory, { bg: string; text: string }> = {
+    CERTIFICATION: { bg: colors.accent[50], text: colors.accent[700] },
+    SKILL_DEVELOPMENT: { bg: colors.primary[50], text: colors.primary[700] },
+    COMPLIANCE: { bg: colors.danger[50], text: colors.danger[700] },
+    ONBOARDING: { bg: colors.success[50], text: colors.success[700] },
+};
+
+const ENROLLMENT_STATUS_COLORS: Record<EnrollmentStatus, { bg: string; text: string }> = {
+    ENROLLED: { bg: colors.info[50], text: colors.info[700] },
+    IN_PROGRESS: { bg: colors.warning[50], text: colors.warning[700] },
+    COMPLETED: { bg: colors.success[50], text: colors.success[700] },
+    FAILED: { bg: colors.danger[50], text: colors.danger[700] },
+    ABANDONED: { bg: colors.neutral[100], text: colors.neutral[600] },
+};
+
+const PROGRAM_CATEGORIES: ProgramCategory[] = ['CERTIFICATION', 'SKILL_DEVELOPMENT', 'COMPLIANCE', 'ONBOARDING'];
+const PROGRAM_LEVELS: ProgramLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
 const TRAINING_TYPES: TrainingType[] = ['Technical', 'Compliance', 'Soft Skills', 'Leadership', 'Safety', 'Product', 'Other'];
 const TRAINING_MODES: TrainingMode[] = ['Online', 'Classroom', 'Blended', 'Self-paced'];
@@ -917,6 +963,400 @@ function AttendanceModal({
     );
 }
 
+// ============ PROGRAM FORM MODAL ============
+
+function ProgramFormModal({
+    visible, onClose, onSave, initialData, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (data: Record<string, unknown>) => void;
+    initialData?: ProgramItem | null; isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [name, setName] = React.useState('');
+    const [description, setDescription] = React.useState('');
+    const [category, setCategory] = React.useState<ProgramCategory>('SKILL_DEVELOPMENT');
+    const [level, setLevel] = React.useState<ProgramLevel>('Beginner');
+    const [totalDuration, setTotalDuration] = React.useState('');
+    const [isCompulsory, setIsCompulsory] = React.useState(false);
+
+    React.useEffect(() => {
+        if (visible) {
+            if (initialData) {
+                setName(initialData.name); setDescription(initialData.description);
+                setCategory(initialData.category); setLevel(initialData.level);
+                setTotalDuration(String(initialData.totalDuration || ''));
+                setIsCompulsory(initialData.isCompulsory);
+            } else {
+                setName(''); setDescription(''); setCategory('SKILL_DEVELOPMENT');
+                setLevel('Beginner'); setTotalDuration(''); setIsCompulsory(false);
+            }
+        }
+    }, [visible, initialData]);
+
+    const isValid = name.trim();
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                        {initialData ? 'Edit Program' : 'New Program'}
+                    </Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Program name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
+                        </View>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <View style={[styles.inputWrap, { height: 80 }]}>
+                                <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Program description..." placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline numberOfLines={3} />
+                            </View>
+                        </View>
+                        <ChipSelector label="Category" options={[...PROGRAM_CATEGORIES]} value={category} onSelect={v => setCategory(v as ProgramCategory)} />
+                        <ChipSelector label="Level" options={[...PROGRAM_LEVELS]} value={level} onSelect={v => setLevel(v as ProgramLevel)} />
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Total Duration (hrs)</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={totalDuration} onChangeText={setTotalDuration} keyboardType="number-pad" /></View>
+                        </View>
+                        <View style={styles.toggleRow}>
+                            <Text className="font-inter text-sm font-semibold text-primary-950">Compulsory</Text>
+                            <Switch value={isCompulsory} onValueChange={setIsCompulsory} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isCompulsory ? colors.primary[600] : colors.neutral[300]} />
+                        </View>
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave({ name: name.trim(), description: description.trim(), category, level, totalDuration: Number(totalDuration) || 0, isCompulsory })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ ADD COURSE MODAL ============
+
+function AddCourseModal({
+    visible, onClose, onSave, trainingOptions, isSaving,
+}: {
+    visible: boolean; onClose: () => void;
+    onSave: (data: Record<string, unknown>) => void;
+    trainingOptions: { id: string; label: string }[];
+    isSaving: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [trainingId, setTrainingId] = React.useState('');
+    const [sequence, setSequence] = React.useState('1');
+    const [isPrerequisite, setIsPrerequisite] = React.useState(false);
+
+    React.useEffect(() => {
+        if (visible) { setTrainingId(''); setSequence('1'); setIsPrerequisite(false); }
+    }, [visible]);
+
+    const isValid = trainingId;
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Add Course</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
+                        <Dropdown label="Training" value={trainingId} options={trainingOptions} onSelect={setTrainingId} placeholder="Select training..." required />
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Sequence</Text>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="1" placeholderTextColor={colors.neutral[400]} value={sequence} onChangeText={setSequence} keyboardType="number-pad" /></View>
+                        </View>
+                        <View style={styles.toggleRow}>
+                            <Text className="font-inter text-sm font-semibold text-primary-950">Is Prerequisite</Text>
+                            <Switch value={isPrerequisite} onValueChange={setIsPrerequisite} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isPrerequisite ? colors.primary[600] : colors.neutral[300]} />
+                        </View>
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={() => onSave({ trainingId, sequence: Number(sequence) || 1, isPrerequisite })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Adding...' : 'Add Course'}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ ENROLL MODAL ============
+
+function EnrollModal({
+    visible, onClose, onEnroll, employeeOptions, isEnrolling,
+}: {
+    visible: boolean; onClose: () => void;
+    onEnroll: (empIds: string[]) => void;
+    employeeOptions: { id: string; label: string }[];
+    isEnrolling: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [selectedEmpIds, setSelectedEmpIds] = React.useState<string[]>([]);
+    const [searchText, setSearchText] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) { setSelectedEmpIds([]); setSearchText(''); }
+    }, [visible]);
+
+    const filteredEmps = React.useMemo(() => {
+        if (!searchText.trim()) return employeeOptions;
+        const q = searchText.toLowerCase();
+        return employeeOptions.filter(e => e.label.toLowerCase().includes(q));
+    }, [employeeOptions, searchText]);
+
+    const toggleEmp = (empId: string) => {
+        setSelectedEmpIds(prev => prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]);
+    };
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '70%' }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Enroll Employees</Text>
+                    <View style={[styles.inputWrap, { marginBottom: 12 }]}>
+                        <TextInput style={styles.textInput} placeholder="Search employees..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
+                    </View>
+                    <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+                        {filteredEmps.map(emp => {
+                            const selected = selectedEmpIds.includes(emp.id);
+                            return (
+                                <Pressable key={emp.id} onPress={() => toggleEmp(emp.id)}
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
+                                    <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: selected ? colors.primary[600] : colors.neutral[300], backgroundColor: selected ? colors.primary[600] : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                                        {selected && <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
+                                    </View>
+                                    <Text className="font-inter text-sm text-primary-950">{emp.label}</Text>
+                                </Pressable>
+                            );
+                        })}
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text></Pressable>
+                        {selectedEmpIds.length > 0 && (
+                            <Pressable onPress={() => onEnroll(selectedEmpIds)} disabled={isEnrolling}
+                                style={[styles.saveBtn, isEnrolling && { opacity: 0.5 }]}>
+                                <Text className="font-inter text-sm font-bold text-white">{isEnrolling ? 'Enrolling...' : `Enroll (${selectedEmpIds.length})`}</Text>
+                            </Pressable>
+                        )}
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// ============ PROGRAM CARD ============
+
+function ProgramCard({ item, index, onEdit, onDelete, onViewDetail }: {
+    item: ProgramItem; index: number; onEdit: () => void; onDelete: () => void; onViewDetail: () => void;
+}) {
+    const catColor = PROGRAM_CATEGORY_COLORS[item.category] ?? PROGRAM_CATEGORY_COLORS.SKILL_DEVELOPMENT;
+    const levelColor = item.level === 'Advanced' ? { bg: colors.danger[50], text: colors.danger[700] } : item.level === 'Intermediate' ? { bg: colors.warning[50], text: colors.warning[700] } : { bg: colors.success[50], text: colors.success[700] };
+
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
+            <Pressable onPress={onViewDetail} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+                <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                        {!item.isActive && (
+                            <View style={[styles.typeBadge, { backgroundColor: colors.neutral[100] }]}>
+                                <Text style={{ color: colors.neutral[600], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Inactive</Text>
+                            </View>
+                        )}
+                        {item.isCompulsory && (
+                            <View style={[styles.typeBadge, { backgroundColor: colors.danger[50] }]}>
+                                <Text style={{ color: colors.danger[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Compulsory</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                    <TypeBadge label={item.category.replace('_', ' ')} colorMap={{ [item.category.replace('_', ' ')]: catColor }} />
+                    <TypeBadge label={item.level} colorMap={{ [item.level]: levelColor }} />
+                    <Text className="font-inter text-xs text-neutral-500">{item.courseCount} course{item.courseCount !== 1 ? 's' : ''}</Text>
+                    <Text className="font-inter text-xs text-neutral-400">{item.enrollmentCount} enrolled</Text>
+                </View>
+                {item.description ? <Text className="mt-2 font-inter text-xs text-neutral-600" numberOfLines={2}>{item.description}</Text> : null}
+                <View style={styles.cardFooter}>
+                    <Pressable onPress={onEdit} hitSlop={8}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke={colors.primary[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    </Pressable>
+                    <Pressable onPress={onDelete} hitSlop={8}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    </Pressable>
+                </View>
+            </Pressable>
+        </Animated.View>
+    );
+}
+
+// ============ PROGRAM DETAIL MODAL ============
+
+function ProgramDetailModal({
+    visible, onClose, program, trainingOptions, employeeOptions,
+    onAddCourse, onRemoveCourse, onEnroll,
+    isAddingCourse, isRemovingCourse, isEnrolling,
+}: {
+    visible: boolean; onClose: () => void; program: ProgramItem | null;
+    trainingOptions: { id: string; label: string }[];
+    employeeOptions: { id: string; label: string }[];
+    onAddCourse: (data: Record<string, unknown>) => void;
+    onRemoveCourse: (courseId: string) => void;
+    onEnroll: (empIds: string[]) => void;
+    isAddingCourse: boolean; isRemovingCourse: boolean; isEnrolling: boolean;
+}) {
+    const insets = useSafeAreaInsets();
+    const [showAddCourse, setShowAddCourse] = React.useState(false);
+    const [showEnroll, setShowEnroll] = React.useState(false);
+
+    if (!program) return null;
+
+    const catColor = PROGRAM_CATEGORY_COLORS[program.category] ?? PROGRAM_CATEGORY_COLORS.SKILL_DEVELOPMENT;
+    const sortedCourses = [...(program.courses ?? [])].sort((a, b) => a.sequence - b.sequence);
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
+                    <View style={styles.sheetHandle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">{program.name}</Text>
+                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+                        <TypeBadge label={program.category.replace('_', ' ')} colorMap={{ [program.category.replace('_', ' ')]: catColor }} />
+                        <TypeBadge label={program.level} colorMap={{ [program.level]: { bg: colors.primary[50], text: colors.primary[700] } }} />
+                        {program.isCompulsory && <TypeBadge label="Compulsory" colorMap={{ Compulsory: { bg: colors.danger[50], text: colors.danger[700] } }} />}
+                        {program.totalDuration > 0 && <Text className="font-inter text-xs text-neutral-500">{program.totalDuration}h total</Text>}
+                    </View>
+                    <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+                        {/* Courses Section */}
+                        <View style={{ marginBottom: 20 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <Text className="font-inter text-base font-bold text-primary-900">Courses ({sortedCourses.length})</Text>
+                                <Pressable onPress={() => setShowAddCourse(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[200] }}>
+                                    <Text className="font-inter text-xs font-bold text-primary-600">+ Add Course</Text>
+                                </Pressable>
+                            </View>
+                            {sortedCourses.length === 0 ? (
+                                <Text className="font-inter text-sm text-neutral-400 py-4 text-center">No courses added yet</Text>
+                            ) : (
+                                sortedCourses.map(course => (
+                                    <View key={course.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
+                                        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary[100], justifyContent: 'center', alignItems: 'center' }}>
+                                            <Text className="font-inter text-xs font-bold text-primary-700">{course.sequence}</Text>
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950">{course.trainingName}</Text>
+                                            {course.isPrerequisite && <Text className="font-inter text-[10px] text-warning-600">Prerequisite</Text>}
+                                        </View>
+                                        <Pressable onPress={() => onRemoveCourse(course.id)} hitSlop={8}>
+                                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" fill="none" strokeLinecap="round" /></Svg>
+                                        </Pressable>
+                                    </View>
+                                ))
+                            )}
+                        </View>
+
+                        {/* Enrollments Section */}
+                        <View style={{ marginBottom: 20 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <Text className="font-inter text-base font-bold text-primary-900">Enrollments ({program.enrollments?.length ?? 0})</Text>
+                                <Pressable onPress={() => setShowEnroll(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.success[50], borderWidth: 1, borderColor: colors.success[200] }}>
+                                    <Text className="font-inter text-xs font-bold text-success-600">+ Enroll</Text>
+                                </Pressable>
+                            </View>
+                            {(program.enrollments?.length ?? 0) === 0 ? (
+                                <Text className="font-inter text-sm text-neutral-400 py-4 text-center">No enrollments yet</Text>
+                            ) : (
+                                program.enrollments.map(enrollment => {
+                                    const statusColor = ENROLLMENT_STATUS_COLORS[enrollment.status] ?? ENROLLMENT_STATUS_COLORS.ENROLLED;
+                                    return (
+                                        <View key={enrollment.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Text className="font-inter text-sm font-semibold text-primary-950">{enrollment.employeeName}</Text>
+                                                <View style={[styles.typeBadge, { backgroundColor: statusColor.bg }]}>
+                                                    <Text style={{ color: statusColor.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{enrollment.status}</Text>
+                                                </View>
+                                            </View>
+                                            {enrollment.progress > 0 && (
+                                                <View style={{ marginTop: 6 }}>
+                                                    <View style={{ height: 6, backgroundColor: colors.neutral[100], borderRadius: 3, overflow: 'hidden' }}>
+                                                        <View style={{ height: 6, backgroundColor: enrollment.status === 'COMPLETED' ? colors.success[500] : colors.primary[500], borderRadius: 3, width: `${Math.min(enrollment.progress, 100)}%` }} />
+                                                    </View>
+                                                    <Text className="font-inter text-[10px] text-neutral-400 mt-1">{enrollment.progress}% complete</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                })
+                            )}
+                        </View>
+                    </ScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={[styles.cancelBtn, { flex: 0, paddingHorizontal: 24 }]}><Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text></Pressable>
+                    </View>
+                </View>
+            </View>
+            <AddCourseModal visible={showAddCourse} onClose={() => setShowAddCourse(false)} onSave={(data) => { onAddCourse(data); setShowAddCourse(false); }} trainingOptions={trainingOptions} isSaving={isAddingCourse} />
+            <EnrollModal visible={showEnroll} onClose={() => setShowEnroll(false)} onEnroll={(empIds) => { onEnroll(empIds); setShowEnroll(false); }} employeeOptions={employeeOptions} isEnrolling={isEnrolling} />
+        </Modal>
+    );
+}
+
+// ============ BUDGET INFO SECTION ============
+
+function BudgetInfoSection() {
+    const currentYear = new Date().getFullYear().toString();
+    const { data: budgetData } = useBudgetUtilization(currentYear);
+    const utilization = (budgetData as any)?.data;
+
+    if (!utilization) return null;
+
+    const totalAllocated = utilization.totalAllocated ?? 0;
+    const totalUsed = utilization.totalUsed ?? 0;
+    const remaining = totalAllocated - totalUsed;
+    const pct = totalAllocated > 0 ? Math.round((totalUsed / totalAllocated) * 100) : 0;
+
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(60)} style={{ marginBottom: 16 }}>
+            <View style={[styles.card, { backgroundColor: colors.primary[50], borderColor: colors.primary[100] }]}>
+                <Text className="font-inter text-xs font-bold text-primary-900 mb-2">Budget Utilization - FY {utilization.fiscalYear ?? currentYear}</Text>
+                <View style={{ height: 8, backgroundColor: colors.neutral[200], borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+                    <View style={{ height: 8, backgroundColor: pct > 90 ? colors.danger[500] : pct > 70 ? colors.warning[500] : colors.primary[500], borderRadius: 4, width: `${Math.min(pct, 100)}%` }} />
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <View>
+                        <Text className="font-inter text-[10px] text-neutral-500">Allocated</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{totalAllocated.toLocaleString('en-IN')}</Text>
+                    </View>
+                    <View style={{ alignItems: 'center' }}>
+                        <Text className="font-inter text-[10px] text-neutral-500">Used</Text>
+                        <Text className="font-inter text-sm font-bold text-warning-700">{'\u20B9'}{totalUsed.toLocaleString('en-IN')}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                        <Text className="font-inter text-[10px] text-neutral-500">Remaining</Text>
+                        <Text className="font-inter text-sm font-bold text-success-700">{'\u20B9'}{remaining.toLocaleString('en-IN')}</Text>
+                    </View>
+                </View>
+            </View>
+        </Animated.View>
+    );
+}
+
 // ============ MAIN COMPONENT ============
 
 export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab?: Tab } = {}) {
@@ -932,6 +1372,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     const { data: nomResponse, isLoading: nomLoading, error: nomError, refetch: nomRefetch, isFetching: nomFetching } = useTrainingNominations();
     const { data: sessResponse, isLoading: sessLoading, error: sessError, refetch: sessRefetch, isFetching: sessFetching } = useTrainingSessions();
     const { data: trainersResponse, isLoading: trainersLoading, error: trainersError, refetch: trainersRefetch, isFetching: trainersFetching } = useTrainers();
+    const { data: programsResponse, isLoading: progsLoading, error: progsError, refetch: progsRefetch, isFetching: progsFetching } = useTrainingPrograms();
     const { data: empResponse } = useEmployees();
 
     // Mutations
@@ -948,6 +1389,12 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     const createTrainer = useCreateTrainer();
     const updateTrainerMut = useUpdateTrainer();
     const deleteTrainerMut = useDeleteTrainer();
+    const createProg = useCreateTrainingProgram();
+    const updateProg = useUpdateTrainingProgram();
+    const deleteProg = useDeleteTrainingProgram();
+    const addCourse = useAddProgramCourse();
+    const removeCourse = useRemoveProgramCourse();
+    const enrollInProg = useEnrollInProgram();
 
     // Modals
     const [catFormVisible, setCatFormVisible] = React.useState(false);
@@ -957,6 +1404,9 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     const [trainerFormVisible, setTrainerFormVisible] = React.useState(false);
     const [editingTrainer, setEditingTrainer] = React.useState<TrainerItem | null>(null);
     const [attendanceSessionId, setAttendanceSessionId] = React.useState<string | null>(null);
+    const [progFormVisible, setProgFormVisible] = React.useState(false);
+    const [editingProg, setEditingProg] = React.useState<ProgramItem | null>(null);
+    const [detailProg, setDetailProg] = React.useState<ProgramItem | null>(null);
 
     // Parse data
     const catalogue: CatalogueItem[] = React.useMemo(() => {
@@ -1007,6 +1457,28 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         }));
     }, [trainersResponse]);
 
+    const programs: ProgramItem[] = React.useMemo(() => {
+        const raw = (programsResponse as any)?.data ?? programsResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((item: any) => ({
+            id: item.id ?? '', name: item.name ?? '', description: item.description ?? '',
+            category: item.category ?? 'SKILL_DEVELOPMENT', level: item.level ?? 'Beginner',
+            totalDuration: item.totalDuration ?? 0, isCompulsory: item.isCompulsory ?? false,
+            isActive: item.isActive ?? true,
+            courseCount: item.courseCount ?? item._count?.courses ?? item.courses?.length ?? 0,
+            enrollmentCount: item.enrollmentCount ?? item._count?.enrollments ?? item.enrollments?.length ?? 0,
+            courses: (item.courses ?? []).map((c: any) => ({
+                id: c.id ?? '', trainingId: c.trainingId ?? '', trainingName: c.trainingName ?? c.training?.name ?? '',
+                sequence: c.sequence ?? 0, isPrerequisite: c.isPrerequisite ?? false,
+            })),
+            enrollments: (item.enrollments ?? []).map((e: any) => ({
+                id: e.id ?? '', employeeId: e.employeeId ?? '',
+                employeeName: e.employeeName ?? (e.employee ? `${e.employee.firstName ?? ''} ${e.employee.lastName ?? ''}`.trim() : ''),
+                status: e.status ?? 'ENROLLED', progress: e.progress ?? 0,
+            })),
+        }));
+    }, [programsResponse]);
+
     const employeeOptions = React.useMemo(() => {
         const raw = (empResponse as any)?.data ?? empResponse ?? [];
         if (!Array.isArray(raw)) return [];
@@ -1039,6 +1511,12 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const q = search.toLowerCase();
         return trainers.filter(t => t.name.toLowerCase().includes(q) || t.employeeName.toLowerCase().includes(q) || t.specializations.some(s => s.toLowerCase().includes(q)));
     }, [trainers, search]);
+
+    const filteredPrograms = React.useMemo(() => {
+        if (!search.trim()) return programs;
+        const q = search.toLowerCase();
+        return programs.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.level.toLowerCase().includes(q));
+    }, [programs, search]);
 
     // Handlers
     const handleEditCatalogue = (item: CatalogueItem) => { setEditingCat(item); setCatFormVisible(true); };
@@ -1144,23 +1622,67 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         }
     };
 
-    const isLoading = activeTab === 'catalogue' ? catLoading : activeTab === 'nominations' ? nomLoading : activeTab === 'sessions' ? sessLoading : trainersLoading;
-    const isFetching = activeTab === 'catalogue' ? catFetching : activeTab === 'nominations' ? nomFetching : activeTab === 'sessions' ? sessFetching : trainersFetching;
-    const activeRefetch = activeTab === 'catalogue' ? catRefetch : activeTab === 'nominations' ? nomRefetch : activeTab === 'sessions' ? sessRefetch : trainersRefetch;
-    const error = activeTab === 'catalogue' ? catError : activeTab === 'nominations' ? nomError : activeTab === 'sessions' ? sessError : trainersError;
+    // Program handlers
+    const handleEditProgram = (item: ProgramItem) => { setEditingProg(item); setProgFormVisible(true); };
+
+    const handleDeleteProgram = (item: ProgramItem) => {
+        showConfirm({
+            title: 'Delete Program',
+            message: `Delete "${item.name}"? This cannot be undone.`,
+            confirmText: 'Delete', variant: 'danger',
+            onConfirm: () => deleteProg.mutate(item.id),
+        });
+    };
+
+    const handleSaveProgram = (data: Record<string, unknown>) => {
+        if (editingProg) {
+            updateProg.mutate({ id: editingProg.id, data }, { onSuccess: () => setProgFormVisible(false) });
+        } else {
+            createProg.mutate(data, { onSuccess: () => setProgFormVisible(false) });
+        }
+    };
+
+    const handleAddCourse = (data: Record<string, unknown>) => {
+        if (!detailProg) return;
+        addCourse.mutate({ programId: detailProg.id, data });
+    };
+
+    const handleRemoveCourse = (courseId: string) => {
+        if (!detailProg) return;
+        removeCourse.mutate({ programId: detailProg.id, courseId });
+    };
+
+    const handleEnrollInProgram = (empIds: string[]) => {
+        if (!detailProg) return;
+        enrollInProg.mutate({ programId: detailProg.id, data: { employeeIds: empIds } });
+    };
+
+    const isLoading = activeTab === 'catalogue' ? catLoading : activeTab === 'nominations' ? nomLoading : activeTab === 'sessions' ? sessLoading : activeTab === 'programs' ? progsLoading : trainersLoading;
+    const isFetching = activeTab === 'catalogue' ? catFetching : activeTab === 'nominations' ? nomFetching : activeTab === 'sessions' ? sessFetching : activeTab === 'programs' ? progsFetching : trainersFetching;
+    const activeRefetch = activeTab === 'catalogue' ? catRefetch : activeTab === 'nominations' ? nomRefetch : activeTab === 'sessions' ? sessRefetch : activeTab === 'programs' ? progsRefetch : trainersRefetch;
+    const error = activeTab === 'catalogue' ? catError : activeTab === 'nominations' ? nomError : activeTab === 'sessions' ? sessError : activeTab === 'programs' ? progsError : trainersError;
 
     const tabs: { key: Tab; label: string }[] = [
         { key: 'catalogue', label: 'Catalogue' },
         { key: 'nominations', label: 'Nominations' },
         { key: 'sessions', label: 'Sessions' },
         { key: 'trainers', label: 'Trainers' },
+        { key: 'programs', label: 'Programs' },
     ];
+
+    const subtitleMap: Record<Tab, string> = {
+        catalogue: `${catalogue.length} training${catalogue.length !== 1 ? 's' : ''}`,
+        nominations: `${nominations.length} nomination${nominations.length !== 1 ? 's' : ''}`,
+        sessions: `${sessions.length} session${sessions.length !== 1 ? 's' : ''}`,
+        trainers: `${trainers.length} trainer${trainers.length !== 1 ? 's' : ''}`,
+        programs: `${programs.length} program${programs.length !== 1 ? 's' : ''}`,
+    };
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <Text className="font-inter text-2xl font-bold text-primary-950">Training</Text>
             <Text className="mt-1 font-inter text-sm text-neutral-500">
-                {activeTab === 'catalogue' ? `${catalogue.length} training${catalogue.length !== 1 ? 's' : ''}` : activeTab === 'nominations' ? `${nominations.length} nomination${nominations.length !== 1 ? 's' : ''}` : activeTab === 'sessions' ? `${sessions.length} session${sessions.length !== 1 ? 's' : ''}` : `${trainers.length} trainer${trainers.length !== 1 ? 's' : ''}`}
+                {subtitleMap[activeTab]}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ gap: 8 }}>
                 {tabs.map(tab => {
@@ -1173,6 +1695,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
                 })}
             </ScrollView>
             <View style={{ marginTop: 12 }}><SearchBar value={search} onChangeText={setSearch} placeholder={`Search ${activeTab}...`} /></View>
+            {activeTab === 'programs' && <View style={{ marginTop: 12 }}><BudgetInfoSection /></View>}
         </Animated.View>
     );
 
@@ -1182,6 +1705,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         if (activeTab === 'catalogue') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No training courses" message="Create your first training programme." /></View>;
         if (activeTab === 'nominations') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No nominations" message="Nominate employees for training." /></View>;
         if (activeTab === 'sessions') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No sessions" message="Schedule a training session." /></View>;
+        if (activeTab === 'programs') return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No programs" message="Create your first training program." /></View>;
         return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No trainers" message="Add your first trainer." /></View>;
     };
 
@@ -1195,15 +1719,19 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         if (activeTab === 'sessions') {
             return <SessionCard item={item} index={index} onStart={() => handleStartSession(item)} onComplete={() => handleCompleteSession(item)} onDelete={() => handleDeleteSession(item)} onAttendance={() => setAttendanceSessionId(item.id)} />;
         }
+        if (activeTab === 'programs') {
+            return <ProgramCard item={item} index={index} onEdit={() => handleEditProgram(item)} onDelete={() => handleDeleteProgram(item)} onViewDetail={() => setDetailProg(item)} />;
+        }
         return <TrainerCard item={item} index={index} onEdit={() => handleEditTrainer(item)} onDelete={() => handleDeleteTrainer(item)} />;
     };
 
-    const activeData = activeTab === 'catalogue' ? filteredCatalogue : activeTab === 'nominations' ? filteredNominations : activeTab === 'sessions' ? filteredSessions : filteredTrainers;
+    const activeData = activeTab === 'catalogue' ? filteredCatalogue : activeTab === 'nominations' ? filteredNominations : activeTab === 'sessions' ? filteredSessions : activeTab === 'programs' ? filteredPrograms : filteredTrainers;
 
     const handleFAB = () => {
         if (activeTab === 'catalogue') { setEditingCat(null); setCatFormVisible(true); }
         else if (activeTab === 'nominations') { setNomFormVisible(true); }
         else if (activeTab === 'sessions') { setSessFormVisible(true); }
+        else if (activeTab === 'programs') { setEditingProg(null); setProgFormVisible(true); }
         else { setEditingTrainer(null); setTrainerFormVisible(true); }
     };
 
@@ -1226,6 +1754,8 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
             {attendanceSessionId && (
                 <AttendanceModal visible={!!attendanceSessionId} onClose={() => setAttendanceSessionId(null)} sessionId={attendanceSessionId} employeeOptions={employeeOptions} onRegister={handleRegisterAttendees} onBulkMark={handleBulkMark} isRegistering={registerAttendees.isPending} isMarking={bulkMark.isPending} />
             )}
+            <ProgramFormModal visible={progFormVisible} onClose={() => setProgFormVisible(false)} onSave={handleSaveProgram} initialData={editingProg} isSaving={createProg.isPending || updateProg.isPending} />
+            <ProgramDetailModal visible={!!detailProg} onClose={() => setDetailProg(null)} program={detailProg} trainingOptions={trainingOptions} employeeOptions={employeeOptions} onAddCourse={handleAddCourse} onRemoveCourse={handleRemoveCourse} onEnroll={handleEnrollInProgram} isAddingCourse={addCourse.isPending} isRemovingCourse={removeCourse.isPending} isEnrolling={enrollInProg.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );

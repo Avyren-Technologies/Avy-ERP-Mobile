@@ -469,4 +469,58 @@ export const recruitmentApi = {
   // ── Candidate Conversion ────────────────────────────────────────
   convertCandidateToEmployee: (candidateId: string) =>
     client.post(`/hr/candidates/${candidateId}/convert-to-employee`),
+
+  // ── Training Programs ──────────────────────────────────────────
+  listTrainingPrograms: (params?: Record<string, unknown>) =>
+    client.get('/hr/training-programs', { params }),
+
+  createTrainingProgram: (data: Record<string, unknown>) =>
+    client.post('/hr/training-programs', data),
+
+  getTrainingProgram: (id: string) =>
+    client.get(`/hr/training-programs/${id}`),
+
+  updateTrainingProgram: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/training-programs/${id}`, data),
+
+  deleteTrainingProgram: (id: string) =>
+    client.delete(`/hr/training-programs/${id}`),
+
+  addProgramCourse: (programId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/training-programs/${programId}/courses`, data),
+
+  removeProgramCourse: (programId: string, courseId: string) =>
+    client.delete(`/hr/training-programs/${programId}/courses/${courseId}`),
+
+  enrollInProgram: (programId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/training-programs/${programId}/enroll`, data),
+
+  listProgramEnrollments: (programId: string) =>
+    client.get(`/hr/training-programs/${programId}/enrollments`),
+
+  // ── Training Budgets ───────────────────────────────────────────
+  listTrainingBudgets: (params?: Record<string, unknown>) =>
+    client.get('/hr/training-budgets', { params }),
+
+  createTrainingBudget: (data: Record<string, unknown>) =>
+    client.post('/hr/training-budgets', data),
+
+  updateTrainingBudget: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/training-budgets/${id}`, data),
+
+  getBudgetUtilization: (fiscalYear: string) =>
+    client.get('/hr/training-budgets/utilization', { params: { fiscalYear } }),
+
+  // ── Training Materials ─────────────────────────────────────────
+  listTrainingMaterials: (trainingId: string) =>
+    client.get(`/hr/training-catalogues/${trainingId}/materials`),
+
+  createTrainingMaterial: (trainingId: string, data: Record<string, unknown>) =>
+    client.post(`/hr/training-catalogues/${trainingId}/materials`, data),
+
+  updateTrainingMaterial: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/training-materials/${id}`, data),
+
+  deleteTrainingMaterial: (id: string) =>
+    client.delete(`/hr/training-materials/${id}`),
 };

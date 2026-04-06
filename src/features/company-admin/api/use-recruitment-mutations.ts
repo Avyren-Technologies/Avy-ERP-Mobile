@@ -759,3 +759,128 @@ export function useConvertCandidateToEmployee() {
     },
   });
 }
+
+// ── Training Program Mutations ──────────────────────────────────
+
+export function useCreateTrainingProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      recruitmentApi.createTrainingProgram(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateTrainingProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateTrainingProgram(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteTrainingProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteTrainingProgram(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useAddProgramCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programId, data }: { programId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.addProgramCourse(programId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useRemoveProgramCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programId, courseId }: { programId: string; courseId: string }) =>
+      recruitmentApi.removeProgramCourse(programId, courseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useEnrollInProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ programId, data }: { programId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.enrollInProgram(programId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Training Budget Mutations ───────────────────────────────────
+
+export function useCreateTrainingBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      recruitmentApi.createTrainingBudget(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateTrainingBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateTrainingBudget(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+// ── Training Material Mutations ─────────────────────────────────
+
+export function useCreateTrainingMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ trainingId, data }: { trainingId: string; data: Record<string, unknown> }) =>
+      recruitmentApi.createTrainingMaterial(trainingId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useUpdateTrainingMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      recruitmentApi.updateTrainingMaterial(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}
+
+export function useDeleteTrainingMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => recruitmentApi.deleteTrainingMaterial(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recruitmentKeys.all });
+    },
+  });
+}

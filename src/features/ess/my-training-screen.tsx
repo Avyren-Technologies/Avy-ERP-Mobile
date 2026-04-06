@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
-import { FlatList, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -11,6 +11,7 @@ import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useMyTraining } from '@/features/company-admin/api/use-ess-queries';
 import { useSubmitEssFeedback } from '@/features/company-admin/api/use-recruitment-mutations';
+import { useTrainingMaterials } from '@/features/company-admin/api/use-recruitment-queries';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     NOMINATED: { bg: colors.info[50], text: colors.info[700] },
@@ -26,6 +27,15 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
     CLASSROOM: { bg: colors.primary[50], text: colors.primary[700] },
     HYBRID: { bg: colors.info[50], text: colors.info[700] },
     SELF_PACED: { bg: colors.warning[50], text: colors.warning[700] },
+};
+
+const MATERIAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+    DOCUMENT: { bg: colors.primary[50], text: colors.primary[700] },
+    VIDEO: { bg: colors.accent[50], text: colors.accent[700] },
+    LINK: { bg: colors.info[50], text: colors.info[700] },
+    PRESENTATION: { bg: colors.warning[50], text: colors.warning[700] },
+    WORKSHEET: { bg: colors.success[50], text: colors.success[700] },
+    OTHER: { bg: colors.neutral[100], text: colors.neutral[600] },
 };
 
 const RATING_LABELS = [
@@ -122,6 +132,48 @@ function FeedbackModal({
     );
 }
 
+function MaterialsSection({ trainingId }: { trainingId: string }) {
+    const { data: materialsResponse, isLoading } = useTrainingMaterials(trainingId);
+    const materials: any[] = (materialsResponse as any)?.data ?? [];
+
+    if (isLoading) {
+        return (
+            <View style={{ paddingVertical: 8 }}>
+                <Text className="font-inter text-xs text-neutral-400">Loading materials...</Text>
+            </View>
+        );
+    }
+
+    if (materials.length === 0) return null;
+
+    const handleOpen = (url: string) => {
+        if (url) Linking.openURL(url).catch(() => {});
+    };
+
+    return (
+        <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] }}>
+            <Text className="font-inter text-xs font-bold text-primary-900 mb-2">Materials</Text>
+            {materials.map((mat: any) => {
+                const typeColor = MATERIAL_TYPE_COLORS[mat.type] ?? MATERIAL_TYPE_COLORS.OTHER;
+                return (
+                    <View key={mat.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 }}>
+                        <View style={[styles.typeBadge, { backgroundColor: typeColor.bg }]}>
+                            <Text style={{ color: typeColor.text, fontFamily: 'Inter', fontSize: 9, fontWeight: '700' }}>{mat.type ?? 'OTHER'}</Text>
+                        </View>
+                        <Text className="font-inter text-xs text-primary-950 flex-1" numberOfLines={1}>{mat.name ?? mat.title ?? 'Untitled'}</Text>
+                        {(mat.url || mat.fileUrl) && (
+                            <Pressable onPress={() => handleOpen(mat.url || mat.fileUrl)} hitSlop={8}
+                                style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[200] }}>
+                                <Text className="font-inter text-[10px] font-bold text-primary-600">Open</Text>
+                            </Pressable>
+                        )}
+                    </View>
+                );
+            })}
+        </View>
+    );
+}
+
 export function MyTrainingScreen() {
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
@@ -130,6 +182,7 @@ export function MyTrainingScreen() {
     const submitFeedback = useSubmitEssFeedback();
 
     const [feedbackNomId, setFeedbackNomId] = React.useState<string | null>(null);
+    const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
     const handleSubmitFeedback = (feedbackData: Record<string, unknown>) => {
         if (!feedbackNomId) return;
@@ -138,39 +191,58 @@ export function MyTrainingScreen() {
         });
     };
 
+    const toggleExpand = (item: any) => {
+        const canExpand = item.status === 'COMPLETED' || item.status === 'IN_PROGRESS';
+        if (!canExpand) return;
+        setExpandedId(prev => prev === item.id ? null : item.id);
+    };
+
     const renderItem = ({ item, index }: { item: any; index: number }) => {
         const statusStyle = STATUS_COLORS[item.status] ?? STATUS_COLORS.NOMINATED;
         const typeStyle = TYPE_COLORS[item.type ?? item.trainingType] ?? TYPE_COLORS.ONLINE;
         const isCompleted = item.status === 'COMPLETED';
+        const isExpandable = item.status === 'COMPLETED' || item.status === 'IN_PROGRESS';
+        const isExpanded = expandedId === item.id;
+        const trainingId = item.trainingId ?? item.training?.id ?? '';
 
         return (
-            <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
-                <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-900" numberOfLines={2}>
-                            {item.courseName ?? item.course?.name ?? item.title ?? 'Untitled'}
-                        </Text>
-                        {item.trainerName && <Text className="font-inter text-xs text-neutral-500 mt-0.5">Trainer: {item.trainerName}</Text>}
+            <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+                <Pressable onPress={() => toggleExpand(item)} style={[styles.card, isExpanded && { borderColor: colors.primary[200] }]}>
+                    <View style={styles.cardHeader}>
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-sm font-bold text-primary-900" numberOfLines={2}>
+                                {item.courseName ?? item.course?.name ?? item.title ?? 'Untitled'}
+                            </Text>
+                            {item.trainerName && <Text className="font-inter text-xs text-neutral-500 mt-0.5">Trainer: {item.trainerName}</Text>}
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
+                                <Text className="font-inter text-[10px] font-bold" style={{ color: statusStyle.text }}>{item.status}</Text>
+                            </View>
+                            {isExpandable && (
+                                <Svg width={14} height={14} viewBox="0 0 24 24">
+                                    <Path d={isExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                            )}
+                        </View>
                     </View>
-                    <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
-                        <Text className="font-inter text-[10px] font-bold" style={{ color: statusStyle.text }}>{item.status}</Text>
+                    <View style={styles.meta}>
+                        <View style={[styles.typeBadge, { backgroundColor: typeStyle.bg }]}>
+                            <Text style={{ color: typeStyle.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.type ?? item.trainingType ?? '--'}</Text>
+                        </View>
+                        {item.startDate && <Text className="font-inter text-[10px] text-neutral-400">Starts: {item.startDate}</Text>}
+                        {item.endDate && <Text className="font-inter text-[10px] text-neutral-400">Ends: {item.endDate}</Text>}
                     </View>
-                </View>
-                <View style={styles.meta}>
-                    <View style={[styles.typeBadge, { backgroundColor: typeStyle.bg }]}>
-                        <Text style={{ color: typeStyle.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.type ?? item.trainingType ?? '--'}</Text>
-                    </View>
-                    {item.startDate && <Text className="font-inter text-[10px] text-neutral-400">Starts: {item.startDate}</Text>}
-                    {item.endDate && <Text className="font-inter text-[10px] text-neutral-400">Ends: {item.endDate}</Text>}
-                </View>
-                {item.description && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.description}</Text>}
-                {isCompleted && (
-                    <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] }}>
-                        <Pressable onPress={() => setFeedbackNomId(item.id)} style={styles.feedbackBtn}>
-                            <Text className="font-inter text-xs font-bold text-primary-600">Give Feedback</Text>
-                        </Pressable>
-                    </View>
-                )}
+                    {item.description && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={isExpanded ? undefined : 2}>{item.description}</Text>}
+                    {isExpanded && trainingId && <MaterialsSection trainingId={trainingId} />}
+                    {isCompleted && (
+                        <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] }}>
+                            <Pressable onPress={() => setFeedbackNomId(item.id)} style={styles.feedbackBtn}>
+                                <Text className="font-inter text-xs font-bold text-primary-600">Give Feedback</Text>
+                            </Pressable>
+                        </View>
+                    )}
+                </Pressable>
             </Animated.View>
         );
     };

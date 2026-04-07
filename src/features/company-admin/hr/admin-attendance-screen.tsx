@@ -246,8 +246,8 @@ export function AdminAttendanceScreen() {
   const fmt = useCompanyFormatter();
 
   // Permission-based mode detection
-  const canConfigure = useCanPerform('attendance:configure');
-  const canCreate = useCanPerform('attendance:create');
+  const canConfigure = useCanPerform('hr:create');
+  const canCreate = useCanPerform('attendance:mark');
 
   // State
   const [search, setSearch] = React.useState('');

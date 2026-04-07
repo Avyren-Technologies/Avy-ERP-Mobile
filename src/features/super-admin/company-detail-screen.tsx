@@ -651,6 +651,7 @@ export function CompanyDetailScreen() {
         Pilot: ['Active', 'Inactive'],
         Active: ['Inactive'],
         Inactive: ['Active'],
+        Suspended: ['Active', 'Inactive'],
     };
 
     const allowedTransitions = VALID_TRANSITIONS[company.status] ?? [];

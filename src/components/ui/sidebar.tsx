@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
     ActivityIndicator,
     Dimensions,
+    LayoutAnimation,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -269,6 +270,30 @@ export function Sidebar({
     const { isOpen, close, progress } = useSidebar();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
     const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
+    const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>(() => {
+        const initial: Record<string, boolean> = {};
+        const defaultExpanded = ['My Workspace', 'Team Management'];
+        sections.forEach((section) => {
+            const key = section.title ?? '';
+            if (!key || defaultExpanded.includes(key)) return;
+            // Skip sections whose items all have children (they're already self-collapsible)
+            if (section.items.every(item => item.children && item.children.length > 0)) return;
+            const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
+            if (!hasActive) initial[key] = true;
+        });
+        return initial;
+    });
+    // Module-level collapse (HRMS, Operations, etc.)
+    const [collapsedModules, setCollapsedModules] = React.useState<Record<string, boolean>>({});
+
+    // Build module→section mapping
+    const sectionModuleMap: Record<string, string> = {};
+    let _curMod = '';
+    for (const s of sections) {
+        if (s.moduleSeparator) _curMod = s.moduleSeparator;
+        if (_curMod && s.title) sectionModuleMap[s.title] = _curMod;
+    }
+
     const [searchText, setSearchText] = React.useState('');
     const searchInputRef = React.useRef<TextInput>(null);
 
@@ -294,6 +319,21 @@ export function Sidebar({
             });
         });
         setOpenGroups((prev) => ({ ...prev, ...next }));
+    }, [sections]);
+
+    // Auto-expand section containing active item
+    React.useEffect(() => {
+        sections.forEach((section) => {
+            const key = section.title ?? '';
+            if (!key) return;
+            const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
+            if (hasActive) {
+                setCollapsedSections(prev => {
+                    if (prev[key]) return { ...prev, [key]: false };
+                    return prev;
+                });
+            }
+        });
     }, [sections]);
 
     // Reset search when sidebar closes; auto-focus when it opens
@@ -548,27 +588,129 @@ export function Sidebar({
                         )
                     ) : (
                         /* Normal sections view */
-                        sections.map((section) => (
+                        sections.map((section) => {
+                            const sectionKey = section.title ?? '';
+                            const hasOnlyChildItems = section.items.every(item => item.children && item.children.length > 0);
+                            const isNonCollapsible = !sectionKey || hasOnlyChildItems;
+                            const isSectionCollapsed = !isNonCollapsible && !!collapsedSections[sectionKey];
+                            const moduleOfSection = sectionKey ? sectionModuleMap[sectionKey] : undefined;
+                            const isModuleCollapsed = !!moduleOfSection && !!collapsedModules[moduleOfSection];
+                            const sectionHasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
+
+                            return (
                             <View key={section.title ?? section.items[0]?.id ?? 'default'}>
-                                {/* Module separator */}
+                                {/* Module separator — pressable to collapse module */}
                                 {section.moduleSeparator && (
-                                    <View style={styles.moduleSeparator}>
+                                    <Pressable
+                                        onPress={() => {
+                                            LayoutAnimation.configureNext(LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+                                            setCollapsedModules(prev => ({ ...prev, [section.moduleSeparator!]: !prev[section.moduleSeparator!] }));
+                                        }}
+                                        style={styles.moduleSeparator}
+                                    >
                                         <View style={styles.moduleSeparatorLine} />
                                         <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
                                             {section.moduleSeparator}
                                         </Text>
+                                        <Svg width={11} height={11} viewBox="0 0 24 24">
+                                            <Path
+                                                d={isModuleCollapsed ? 'M9 18l6-6-6-6' : 'M18 15l-6-6-6 6'}
+                                                stroke={colors.primary[400]}
+                                                strokeWidth="2.4"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                fill="none"
+                                            />
+                                        </Svg>
                                         <View style={styles.moduleSeparatorLine} />
-                                    </View>
+                                    </Pressable>
                                 )}
+
+                                {/* Hide section content when module is collapsed */}
+                                {!isModuleCollapsed && (
                                 <View style={styles.navSection}>
-                                    {section.title && (
+                                    {/* Section header: static label for non-collapsible, nav-item style for collapsible */}
+                                    {section.title && (isNonCollapsible ? (
                                         <View style={styles.sectionTitleWrap}>
-                                            <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400">
+                                            <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-600">
                                                 {section.title}
                                             </Text>
                                         </View>
+                                    ) : (
+                                        <Pressable
+                                            onPress={() => {
+                                                LayoutAnimation.configureNext(LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+                                                setCollapsedSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
+                                            }}
+                                            style={[
+                                                styles.navItem,
+                                                sectionHasActive && styles.navItemActive,
+                                            ]}
+                                        >
+                                            <View style={[styles.navIconWrap, sectionHasActive && styles.navIconWrapActive]}>
+                                                <SidebarNavIcon
+                                                    type={section.items[0]?.icon ?? 'settings'}
+                                                    color={sectionHasActive ? colors.primary[600] : colors.neutral[500]}
+                                                    size={20}
+                                                />
+                                            </View>
+                                            <View style={styles.navLabelRow}>
+                                                <Text
+                                                    className={`font-inter text-sm font-semibold ${sectionHasActive ? 'text-primary-700' : 'text-neutral-600'}`}
+                                                    numberOfLines={1}
+                                                >
+                                                    {section.title}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.sectionChevronWrap}>
+                                                <Text className="font-inter text-[9px] font-semibold text-neutral-400">
+                                                    {section.items.length}
+                                                </Text>
+                                                <Svg width={13} height={13} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d={isSectionCollapsed ? 'M9 18l6-6-6-6' : 'M18 15l-6-6-6 6'}
+                                                        stroke={colors.neutral[500]}
+                                                        strokeWidth="2.2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        fill="none"
+                                                    />
+                                                </Svg>
+                                            </View>
+                                        </Pressable>
+                                    ))}
+
+                                    {/* Collapsible sections: child-style items with dotted connectors */}
+                                    {!isNonCollapsible && !isSectionCollapsed && (
+                                        <View style={styles.childContainer}>
+                                            <View style={styles.childDottedLine} />
+                                            {section.items.map((item) => (
+                                                <Pressable
+                                                    key={item.id}
+                                                    onPress={() => {
+                                                        item.onPress();
+                                                        close();
+                                                    }}
+                                                    style={({ pressed }) => [
+                                                        styles.childItem,
+                                                        item.isActive && styles.childItemActive,
+                                                        pressed && !item.isActive && styles.childItemPressed,
+                                                    ]}
+                                                >
+                                                    <View style={[styles.childBranch, item.isActive && styles.childBranchActive]} />
+                                                    <Text
+                                                        className={`font-inter text-xs font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-500'}`}
+                                                        numberOfLines={1}
+                                                    >
+                                                        {item.label}
+                                                    </Text>
+                                                </Pressable>
+                                            ))}
+                                        </View>
                                     )}
-                                    {section.items.map((item) => (
+
+                                    {/* Non-collapsible: full nav items */}
+                                    {isNonCollapsible && section.items.map((item) => (
                                         <View key={item.id}>
                                             <SidebarNavItem item={item} onClose={close} />
                                             {item.children && item.children.length > 0 && openGroups[item.id] && (
@@ -617,8 +759,10 @@ export function Sidebar({
                                         </View>
                                     ))}
                                 </View>
+                                )}
                             </View>
-                        ))
+                            );
+                        })
                     )}
                 </ScrollView>
 
@@ -805,9 +949,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     sectionTitleWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 8,
         marginBottom: 4,
         overflow: 'hidden',
+    },
+    sectionChevronWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     navItem: {
         flexDirection: 'row',

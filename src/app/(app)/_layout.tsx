@@ -462,7 +462,7 @@ function TabLayoutInner() {
 
     const hasPerm = (perm: string) => checkPermission(permissions, perm);
     const showCompanyTab = hasPerm('company:read') || hasPerm('platform:admin');
-    const showBillingTab = hasPerm('company:read') || hasPerm('platform:admin') || hasPerm('hr:read');
+    const showBillingTab = hasPerm('billing:read') || hasPerm('company:read') || hasPerm('platform:admin') || hasPerm('hr:read');
     const showSettingsTab = hasPerm('company:read') || hasPerm('platform:admin');
     const canViewOps = hasPerm('inventory:read') || hasPerm('production:read') || hasPerm('maintenance:read');
 

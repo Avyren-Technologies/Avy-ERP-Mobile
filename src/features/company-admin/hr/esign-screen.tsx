@@ -25,7 +25,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useDispatchESign } from '@/features/company-admin/api/use-recruitment-mutations';
-import { useESignStatus, usePendingESign } from '@/features/company-admin/api/use-recruitment-queries';
+import { usePendingESign } from '@/features/company-admin/api/use-recruitment-queries';
 import { useCanPerform } from '@/hooks/use-can-perform';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
@@ -139,24 +139,27 @@ export function ESignScreen() {
     const [statusFilter, setStatusFilter] = React.useState('All');
     const isHrAdmin = useCanPerform('hr:read');
 
-    const queryStatus = statusFilter === 'All' ? undefined : statusFilter;
     const { data: response, isLoading, error, refetch, isFetching } = usePendingESign();
-    const { data: statsData } = useESignStatus('__overview__');
     const dispatchMutation = useDispatchESign();
 
-    const stats: any = (statsData as any)?.data ?? { pending: 0, signedThisMonth: 0, declined: 0 };
+    const result = (response as any)?.data ?? {};
+    const stats: any = result?.stats ?? { pending: 0, signedThisMonth: 0, declined: 0 };
 
     const records: ESignRecord[] = React.useMemo(() => {
-        const raw = (response as any)?.data ?? response ?? [];
+        const raw = result?.data ?? [];
         if (!Array.isArray(raw)) return [];
         return raw;
-    }, [response]);
+    }, [result]);
 
     const filtered = React.useMemo(() => {
-        if (!search.trim()) return records;
+        let list = records;
+        if (statusFilter !== 'All') {
+            list = list.filter(r => r.status?.toUpperCase() === statusFilter);
+        }
+        if (!search.trim()) return list;
         const q = search.toLowerCase();
-        return records.filter(r => r.employeeName?.toLowerCase().includes(q) || r.letterType?.toLowerCase().includes(q));
-    }, [records, search]);
+        return list.filter(r => r.employeeName?.toLowerCase().includes(q) || r.letterType?.toLowerCase().includes(q));
+    }, [records, search, statusFilter]);
 
     const handleResend = (id: string) => {
         dispatchMutation.mutate({ id } as any);

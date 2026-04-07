@@ -137,6 +137,8 @@ function IdentityFields({
             <FormInput label="CIN" placeholder="e.g. U12345MH2020PTC123456" value={data.cin ?? ''} onChangeText={(v) => onChange('cin', v)} error={errors.cin} />
             <FormInput label="Website" placeholder="e.g. https://acme.com" value={data.website ?? ''} onChangeText={(v) => onChange('website', v)} keyboardType="url" autoCapitalize="none" error={errors.website} />
             <FormInput label="Email Domain" placeholder="e.g. acme.com" value={data.emailDomain ?? ''} onChangeText={(v) => onChange('emailDomain', v)} autoCapitalize="none" error={errors.emailDomain} />
+            <FormInput label="Incorporation Date" placeholder="e.g. 2020-01-15" value={data.incorporationDate ?? ''} onChangeText={(v) => onChange('incorporationDate', v)} error={errors.incorporationDate} />
+            <FormInput label="Logo URL" placeholder="e.g. https://cdn.example.com/logo.png" value={data.logoUrl ?? ''} onChangeText={(v) => onChange('logoUrl', v)} keyboardType="url" autoCapitalize="none" error={errors.logoUrl} />
         </>
     );
 }

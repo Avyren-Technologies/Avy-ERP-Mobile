@@ -3,16 +3,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
-    ScrollView,
     StyleSheet,
     Switch,
     TextInput,
     View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { showMessage } from 'react-native-flash-message';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -137,11 +140,14 @@ function CloneModal({
     const [toYear, setToYear] = React.useState(2026);
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+            <KeyboardAvoidingView 
+                style={{ flex: 1, justifyContent: Platform.OS === 'ios' ? 'center' : 'flex-start', paddingTop: Platform.OS === 'ios' ? 0 : '15%', backgroundColor: 'rgba(8, 15, 40, 0.32)', paddingHorizontal: 20 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+            >
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
+                <View style={styles.modalPopup}>
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Clone Holidays</Text>
                     <Text className="font-inter text-sm text-neutral-500 mb-4">Copy all holidays from one year to another.</Text>
                     <ChipSelector label="From Year" options={YEARS.map(String)} value={String(fromYear)} onSelect={v => setFromYear(Number(v))} />
@@ -160,7 +166,7 @@ function CloneModal({
                         </Pressable>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
@@ -223,15 +229,17 @@ function HolidayFormModal({
     const isValid = name.trim() && date.trim();
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+            <KeyboardAvoidingView 
+                style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(8, 15, 40, 0.32)', paddingHorizontal: 20 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
+                <View style={styles.modalPopup}>
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
                         {initialData ? 'Edit Holiday' : 'Add Holiday'}
                     </Text>
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
+                    <KeyboardAwareScrollView bottomOffset={20} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }} contentContainerStyle={{ paddingBottom: 20 }}>
                         {/* Name */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
@@ -262,7 +270,7 @@ function HolidayFormModal({
                             </View>
                             <Switch value={isOptional} onValueChange={setIsOptional} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isOptional ? colors.primary[600] : colors.neutral[300]} />
                         </View>
-                    </ScrollView>
+                    </KeyboardAwareScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
@@ -270,7 +278,7 @@ function HolidayFormModal({
                         </Pressable>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
@@ -374,9 +382,19 @@ export function HolidayScreen() {
     const handleSave = (data: Omit<HolidayItem, 'id' | 'year'>) => {
         const payload = { ...data, type: data.type.toUpperCase() };
         if (editingItem) {
-            updateMutation.mutate({ id: editingItem.id, data: { ...payload, year: selectedYear } as unknown as Record<string, unknown> }, { onSuccess: () => setFormVisible(false) });
+            updateMutation.mutate({ id: editingItem.id, data: { ...payload, year: selectedYear } as unknown as Record<string, unknown> }, { 
+                onSuccess: () => {
+                    setFormVisible(false);
+                    showMessage({ message: 'Holiday updated successfully', type: 'success' });
+                } 
+            });
         } else {
-            createMutation.mutate({ ...payload, year: selectedYear } as unknown as Record<string, unknown>, { onSuccess: () => setFormVisible(false) });
+            createMutation.mutate({ ...payload, year: selectedYear } as unknown as Record<string, unknown>, { 
+                onSuccess: () => {
+                    setFormVisible(false);
+                    showMessage({ message: 'Holiday saved successfully', type: 'success' });
+                } 
+            });
         }
     };
 
@@ -458,8 +476,7 @@ const styles = StyleSheet.create({
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
-    sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
+    modalPopup: { backgroundColor: colors.white, borderRadius: 24, paddingHorizontal: 24, paddingVertical: 24, maxHeight: '85%' },
     fieldWrap: { marginBottom: 14 },
     inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },

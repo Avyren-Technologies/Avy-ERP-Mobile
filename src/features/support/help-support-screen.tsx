@@ -325,7 +325,7 @@ function CreateTicketSheet({
     const [message, setMessage] = React.useState('');
     const createMutation = useCreateSupportTicket();
 
-    const snapPoints = React.useMemo(() => ['75%'], []);
+    const snapPoints = React.useMemo(() => ['85%'], []);
 
     const renderBackdrop = React.useCallback(
         (props: any) => (
@@ -365,6 +365,9 @@ function CreateTicketSheet({
             backdropComponent={renderBackdrop}
             backgroundStyle={s.sheetBg}
             handleIndicatorStyle={s.sheetHandle}
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+            android_keyboardInputMode="adjustResize"
         >
             <BottomSheetScrollView
                 contentContainerStyle={s.sheetContent}

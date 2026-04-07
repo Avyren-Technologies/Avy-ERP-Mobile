@@ -3,7 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -12,6 +14,7 @@ import {
     View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -164,24 +167,27 @@ function Dropdown({
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
-            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+            <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)} statusBarTranslucent>
+                <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(8, 15, 40, 0.45)', paddingHorizontal: 20 }}>
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
-                    <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
-                        <View style={styles.sheetHandle} />
+                    <View style={{ backgroundColor: colors.white, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 20, maxHeight: '70%' }}>
                         <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
                         <View style={[styles.inputWrap, { marginBottom: 12 }]}>
-                            <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
+                            <TextInput style={styles.textInput} placeholder="Search employees..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" autoFocus />
                         </View>
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             {filteredOptions.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
-                                    style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
+                                    style={{ paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                    {opt.id === value && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary[600] }} />}
                                 </Pressable>
                             ))}
-                            {filteredOptions.length === 0 && <Text className="py-4 text-center font-inter text-sm text-neutral-400">No options found</Text>}
+                            {filteredOptions.length === 0 && <Text className="py-6 text-center font-inter text-sm text-neutral-400">No employees found</Text>}
                         </ScrollView>
+                        <Pressable onPress={() => setOpen(false)} style={{ marginTop: 16, height: 44, borderRadius: 12, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center' }}>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                        </Pressable>
                     </View>
                 </View>
             </Modal>
@@ -199,7 +205,6 @@ function ActionFormModal({
     employeeOptions: { id: string; label: string }[];
     isSaving: boolean;
 }) {
-    const insets = useSafeAreaInsets();
     const [employeeId, setEmployeeId] = React.useState('');
     const [type, setType] = React.useState<ActionType>('Verbal Warning');
     const [charges, setCharges] = React.useState('');
@@ -218,19 +223,28 @@ function ActionFormModal({
     const showPipDuration = type === 'PIP';
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+            <KeyboardAvoidingView
+                style={{ flex: 1, justifyContent: Platform.OS === 'ios' ? 'center' : 'flex-start', paddingTop: Platform.OS === 'ios' ? 0 : '10%', backgroundColor: 'rgba(8, 15, 40, 0.32)', paddingHorizontal: 20 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+            >
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
+                <View style={styles.modalPopup}>
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-4">New Disciplinary Action</Text>
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
+                    <KeyboardAwareScrollView
+                        bottomOffset={20}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        style={{ flexGrow: 0, flexShrink: 1 }}
+                        contentContainerStyle={{ paddingBottom: 8 }}
+                    >
                         <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Select employee..." required />
                         <ChipSelector label="Type" options={[...ACTION_TYPES]} value={type} onSelect={v => setType(v as ActionType)} />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Charges <Text className="text-danger-500">*</Text></Text>
-                            <View style={[styles.inputWrap, { height: 100 }]}>
-                                <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Describe charges..." placeholderTextColor={colors.neutral[400]} value={charges} onChangeText={setCharges} multiline numberOfLines={4} />
+                            <View style={[styles.inputWrap, { height: 100, alignItems: 'flex-start', paddingVertical: 10 }]}>
+                                <TextInput style={[styles.textInput, { textAlignVertical: 'top', width: '100%' }]} placeholder="Describe charges..." placeholderTextColor={colors.neutral[400]} value={charges} onChangeText={setCharges} multiline numberOfLines={4} />
                             </View>
                         </View>
                         {showReplyDue && (
@@ -245,8 +259,8 @@ function ActionFormModal({
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 90" placeholderTextColor={colors.neutral[400]} value={pipDuration} onChangeText={setPipDuration} keyboardType="number-pad" /></View>
                             </View>
                         )}
-                    </ScrollView>
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                    </KeyboardAwareScrollView>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[100] }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({
                             employeeId, employeeName: employeeOptions.find(e => e.id === employeeId)?.label ?? '',
@@ -258,7 +272,7 @@ function ActionFormModal({
                         </Pressable>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
@@ -429,8 +443,7 @@ const styles = StyleSheet.create({
     avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     actionRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     transitionBtn: { flex: 1, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
-    sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
+    modalPopup: { backgroundColor: colors.white, borderRadius: 24, paddingHorizontal: 24, paddingVertical: 24, maxHeight: '88%' },
     fieldWrap: { marginBottom: 14 },
     inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },

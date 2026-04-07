@@ -2,11 +2,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-<<<<<<< HEAD
-=======
     ActivityIndicator,
     KeyboardAvoidingView,
->>>>>>> 2c5026d (feat: standardize leave type data mapping, update query keys, enforce light UI mode, and add DatePicker component)
     Modal,
     Platform,
     Pressable,
@@ -661,7 +658,6 @@ export function MyLeaveScreen() {
                             <LeaveRequestCard key={req.id} req={req} index={i} onCancel={handleCancelLeave} />
                         ))
                     )}
-<<<<<<< HEAD
                 </View>
             </Animated.View>
         );
@@ -686,9 +682,7 @@ export function MyLeaveScreen() {
                     showsVerticalScrollIndicator={false}
                     refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
                 />
-=======
                 </ScrollView>
->>>>>>> 2c5026d (feat: standardize leave type data mapping, update query keys, enforce light UI mode, and add DatePicker component)
             )}
 
             <ApplyLeaveModal

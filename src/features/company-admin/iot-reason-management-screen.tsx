@@ -114,45 +114,63 @@ function IOTReasonFormModal({
     const isValid = reason.trim();
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            {/* Backdrop — sits behind everything, never moves with keyboard */}
-            <Pressable
-                style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(8, 15, 40, 0.32)' }]}
-                onPress={onClose}
-            />
-            {/* KAV wraps only the sheet so only the sheet lifts with the keyboard */}
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1, justifyContent: 'flex-end' }}
-                keyboardVerticalOffset={0}
-            >
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
+        <Modal 
+            visible={visible} 
+            transparent={false}
+            animationType="slide" 
+            presentationStyle="fullScreen" 
+            onRequestClose={onClose}
+        >
+            <View style={{ flex: 1, backgroundColor: colors.white }}>
+                <LinearGradient
+                    colors={[colors.gradient.surface, colors.white]}
+                    style={StyleSheet.absoluteFill}
+                />
+                
+                {/* Fixed Full-Screen Header */}
+                <View style={[styles.headerBar, { paddingTop: insets.top + 10, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }]}>
+                    <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
+                        <Svg width={20} height={20} viewBox="0 0 24 24">
+                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </Pressable>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                        <Text className="font-inter text-lg font-bold text-primary-950">
+                            {initialData ? 'Edit IOT Reason' : 'Add IOT Reason'}
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                            Create or update your machine downtime categories
+                        </Text>
+                    </View>
+                </View>
 
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
-                        {initialData ? 'Edit IOT Reason' : 'Add IOT Reason'}
-                    </Text>
-
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                >
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         keyboardDismissMode="on-drag"
-                        style={{ flexGrow: 0 }}
-                        contentContainerStyle={{ paddingBottom: 8 }}
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ 
+                            paddingHorizontal: 24, 
+                            paddingTop: 24, 
+                            paddingBottom: insets.bottom + 120 // Extra room for keyboard
+                        }}
                     >
-                        {/* Reason Type Chips */}
+                        {/* Reason Type Selection */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Reason Type <Text className="text-danger-500">*</Text>
-                            </Text>
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Reason Type</Text>
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
                                 {REASON_TYPES.map(t => (
                                     <Pressable
                                         key={t}
                                         onPress={() => setReasonType(t)}
-                                        style={[styles.chip, reasonType === t && (t === 'Machine Idle' ? styles.chipWarning : styles.chipDanger)]}
+                                        style={[styles.chip, { flex: 1 }, reasonType === t && (t === 'Machine Idle' ? styles.chipWarning : styles.chipDanger)]}
                                     >
-                                        <Text className={`font-inter text-xs font-semibold ${reasonType === t ? 'text-white' : 'text-neutral-600'}`}>
+                                        <Text className={`font-inter text-center text-xs font-semibold ${reasonType === t ? 'text-white' : 'text-neutral-600'}`}>
                                             {t}
                                         </Text>
                                     </Pressable>
@@ -160,152 +178,123 @@ function IOTReasonFormModal({
                             </View>
                         </View>
 
-                        {/* Reason */}
+                        {/* Reason Input */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Reason <Text className="text-danger-500">*</Text>
-                            </Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Reason Label <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
-                                    placeholder="e.g. Tool Breakage, Power Failure"
+                                    placeholder="e.g. MAINTENANCE"
                                     placeholderTextColor={colors.neutral[400]}
                                     value={reason}
                                     onChangeText={v => setReason(v.toUpperCase())}
                                     autoCapitalize="characters"
                                 />
                             </View>
-                            <Text className="mt-1 font-inter text-[10px] text-neutral-400">
-                                This label appears in Andon board, reports, and OEE Dashboard
-                            </Text>
                         </View>
 
-                        {/* Description */}
+                        {/* Description Input */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
-                            <View style={[styles.inputWrap, styles.multilineWrap]}>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Description</Text>
+                            <View style={[styles.inputWrap, styles.multilineWrap, { height: 100 }]}>
                                 <TextInput
                                     style={[styles.textInput, styles.multilineInput]}
-                                    placeholder="Optional detailed description..."
+                                    placeholder="Enter additional details..."
                                     placeholderTextColor={colors.neutral[400]}
                                     value={description}
                                     onChangeText={setDescription}
                                     multiline
-                                    numberOfLines={3}
+                                    numberOfLines={4}
                                     textAlignVertical="top"
-                                    scrollEnabled={false}
                                 />
                             </View>
                         </View>
 
-                        {/* Department Dropdown */}
+                        {/* Department Picker */}
                         <View style={[styles.fieldWrap, { zIndex: deptDropOpen ? 1200 : 1, position: 'relative' }]}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Department</Text>
                             <Pressable
                                 onPress={() => setDeptDropOpen(v => !v)}
-                                style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, deptDropOpen && { borderColor: colors.primary[400] }]}
+                                style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
                             >
                                 <Text className={`flex-1 font-inter text-sm ${department ? 'text-primary-950' : 'text-neutral-400'}`}>
-                                    {department || 'Select...'}
+                                    {department || 'Select Department'}
                                 </Text>
-                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                <Svg width={14} height={14} viewBox="0 0 24 24">
                                     <Path d={deptDropOpen ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                 </Svg>
                             </Pressable>
                             {deptDropOpen && (
-                                <>
-                                    <Pressable onPress={() => setDeptDropOpen(false)} style={{ position: 'absolute', top: -3000, left: -3000, right: -3000, bottom: -3000, zIndex: 1199 }} />
-                                    <View style={styles.dropdownList}>
-                                        <ScrollView showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-                                            {DEPARTMENTS.map((item, idx) => (
-                                                <Pressable
-                                                    key={item}
-                                                    onPress={() => { setDepartment(item); setDeptDropOpen(false); }}
-                                                    style={{ paddingHorizontal: 14, paddingVertical: 11, backgroundColor: item === department ? colors.primary[50] : '#fff', borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.neutral[100] }}
-                                                >
-                                                    <Text className={`font-inter text-sm ${item === department ? 'font-semibold text-primary-700' : 'text-primary-950'}`}>
-                                                        {item}
-                                                    </Text>
-                                                </Pressable>
-                                            ))}
-                                        </ScrollView>
-                                    </View>
-                                </>
+                                <View style={[styles.dropdownList, { position: 'absolute', top: 70, left: 0, right: 0, zIndex: 1210 }]}>
+                                    <ScrollView showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled style={{ maxHeight: 200 }}>
+                                        {DEPARTMENTS.map((item, idx) => (
+                                            <Pressable
+                                                key={item}
+                                                onPress={() => { setDepartment(item); setDeptDropOpen(false); }}
+                                                style={{ padding: 15, backgroundColor: item === department ? colors.primary[50] : '#fff', borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.neutral[50] }}
+                                            >
+                                                <Text className={`font-inter text-sm ${item === department ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                                    {item}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
+                                </View>
                             )}
                         </View>
 
-                        {/* Planned (only for Machine Idle) */}
+                        {/* Optional Planned Toggle */}
                         {reasonType === 'Machine Idle' && (
-                            <>
-                                <View style={styles.toggleRow}>
-                                    <View style={{ flex: 1, marginRight: 12 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">Planned Downtime</Text>
-                                        <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>
-                                            Planned losses don't count against OEE Availability
-                                        </Text>
-                                    </View>
-                                    <Switch
-                                        value={planned}
-                                        onValueChange={setPlanned}
-                                        trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
-                                        thumbColor={planned ? colors.primary[600] : colors.neutral[300]}
-                                    />
+                            <View style={[styles.toggleRow, { marginTop: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.neutral[50] }]}>
+                                <View style={{ flex: 1 }}>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950">Planned Event</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500">Scheduled downtime activities</Text>
                                 </View>
-
-                                {planned && (
-                                    <Animated.View entering={FadeIn.duration(200)} style={styles.fieldWrap}>
-                                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Duration (minutes)</Text>
-                                        <View style={styles.inputWrap}>
-                                            <TextInput
-                                                style={styles.textInput}
-                                                placeholder="e.g. 30"
-                                                placeholderTextColor={colors.neutral[400]}
-                                                value={duration}
-                                                onChangeText={setDuration}
-                                                keyboardType="number-pad"
-                                            />
-                                        </View>
-                                    </Animated.View>
-                                )}
-                            </>
+                                <Switch
+                                    value={planned}
+                                    onValueChange={setPlanned}
+                                    trackColor={{ false: colors.neutral[100], true: colors.primary[600] }}
+                                />
+                            </View>
                         )}
 
-                        {/* Duration threshold (always) */}
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Threshold Duration (min)</Text>
+                        {/* Duration Setting */}
+                        <View style={[styles.fieldWrap, { marginTop: 10 }]}>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">
+                                {planned ? 'Default Time (min)' : 'Threshold Time (min)'}
+                            </Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
-                                    placeholder="15"
+                                    placeholder="5"
                                     placeholderTextColor={colors.neutral[400]}
                                     value={duration}
                                     onChangeText={setDuration}
-                                    keyboardType="number-pad"
+                                    keyboardType="numeric"
                                 />
                             </View>
-                            <Text className="mt-1 font-inter text-[10px] text-neutral-400">
-                                Minimum downtime duration before this reason must be logged
-                            </Text>
+                        </View>
+
+                        <View style={{ height: 30 }} />
+
+                        {/* Form Buttons */}
+                        <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20 }}>
+                            <Pressable onPress={onClose} style={[styles.cancelBtn, { height: 56 }]}>
+                                <Text className="font-inter text-sm font-bold text-neutral-600">DISCARD</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleSave}
+                                disabled={!isValid || isSaving}
+                                style={[styles.saveBtn, { height: 56 }, (!isValid || isSaving) && { opacity: 0.5 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">
+                                    {isSaving ? 'Saving...' : initialData ? 'SAVE CHANGES' : 'CREATE REASON'}
+                                </Text>
+                            </Pressable>
                         </View>
                     </ScrollView>
-
-                    {/* Actions */}
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
-                        </Pressable>
-                        <Pressable
-                            onPress={handleSave}
-                            disabled={!isValid || isSaving}
-                            style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}
-                        >
-                            <Text className="font-inter text-sm font-bold text-white">
-                                {isSaving ? 'Saving...' : initialData ? 'Update Reason' : 'Add Reason'}
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </KeyboardAvoidingView>
+                </KeyboardAvoidingView>
+            </View>
         </Modal>
     );
 }

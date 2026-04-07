@@ -3,7 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+    FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -65,13 +68,11 @@ function generateCode(name: string): string {
     return `${abbr}-001`;
 }
 
-// ============ JOB LEVELS ============
-
 const JOB_LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'];
 
-// ============ SHARED ATOMS ============
+// ============ ATOMS ============
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { readonly status: string }) {
     const isActive = status === 'Active';
     return (
         <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.success[50] : colors.neutral[100] }]}>
@@ -84,13 +85,13 @@ function StatusBadge({ status }: { status: string }) {
 function Dropdown({
     label, value, options, onSelect, placeholder, required,
 }: {
-    label: string; value: string; options: { id: string; label: string }[];
-    onSelect: (id: string) => void; placeholder?: string; required?: boolean;
+    readonly label: string; readonly value: string; readonly options: { readonly id: string; readonly label: string }[];
+    readonly onSelect: (id: string) => void; readonly placeholder?: string; readonly required?: boolean;
 }) {
     const [open, setOpen] = React.useState(false);
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable onPress={() => setOpen(true)} style={styles.dropdownBtn}>
@@ -123,10 +124,10 @@ function Dropdown({
     );
 }
 
-function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
+function ChipSelector({ label, options, value, onSelect }: { readonly label: string; readonly options: string[]; readonly value: string; readonly onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
@@ -150,11 +151,11 @@ function SearchableDesignationPicker({
     designations,
     excludeId,
 }: {
-    label: string;
-    value: string;
-    onSelect: (designationName: string) => void;
-    designations: { id: string; name: string; code: string }[];
-    excludeId?: string;
+    readonly label: string;
+    readonly value: string;
+    readonly onSelect: (designationName: string) => void;
+    readonly designations: { readonly id: string; readonly name: string; readonly code: string }[];
+    readonly excludeId?: string;
 }) {
     const [open, setOpen] = React.useState(false);
     const [searchText, setSearchText] = React.useState('');
@@ -171,7 +172,7 @@ function SearchableDesignationPicker({
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">{label}</Text>
             <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
                 <Text
                     className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}
@@ -248,12 +249,12 @@ function DesignationFormModal({
     visible, onClose, onSave, initialData, isSaving,
     departmentOptions, gradeOptions, allDesignations,
 }: {
-    visible: boolean; onClose: () => void;
-    onSave: (data: Omit<DesignationItem, 'id'>) => void;
-    initialData?: DesignationItem | null; isSaving: boolean;
-    departmentOptions: { id: string; label: string }[];
-    gradeOptions: { id: string; label: string }[];
-    allDesignations: { id: string; name: string; code: string }[];
+    readonly visible: boolean; readonly onClose: () => void;
+    readonly onSave: (data: Omit<DesignationItem, 'id'>) => void;
+    readonly initialData?: DesignationItem | null; readonly isSaving: boolean;
+    readonly departmentOptions: { readonly id: string; readonly label: string }[];
+    readonly gradeOptions: { readonly id: string; readonly label: string }[];
+    readonly allDesignations: { readonly id: string; readonly name: string; readonly code: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
@@ -267,8 +268,12 @@ function DesignationFormModal({
     const [probationDays, setProbationDays] = React.useState('');
     const [status, setStatus] = React.useState<'Active' | 'Inactive'>('Active');
 
+    // Validation state
+    const [errors, setErrors] = React.useState<Record<string, string>>({});
+
     React.useEffect(() => {
         if (visible) {
+            setErrors({});
             if (initialData) {
                 setName(initialData.name);
                 setCode(initialData.code);
@@ -289,38 +294,109 @@ function DesignationFormModal({
         }
     }, [visible, initialData]);
 
-    const handleSave = () => {
-        if (!name.trim() || !code.trim()) return;
-        onSave({
-            name: name.trim(), code: code.trim().toUpperCase(),
-            departmentId, departmentName: departmentOptions.find(d => d.id === departmentId)?.label ?? '',
-            gradeId, gradeName: gradeOptions.find(g => g.id === gradeId)?.label ?? '',
-            jobLevel, isManagerial, reportsTo: reportsTo.trim(),
-            probationDays: Number.parseInt(probationDays, 10) || 0, status,
-        });
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+        if (!name.trim()) newErrors.name = 'Designation Name is required';
+        if (!code.trim()) newErrors.code = 'Designation Code is required';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
-    const isValid = name.trim() && code.trim();
+    const handleSave = () => {
+        if (!validate()) return;
+
+        const payload: Record<string, unknown> = {
+            name: name.trim(),
+            code: code.trim().toUpperCase(),
+            departmentId: departmentId || undefined,
+            gradeId: gradeId || undefined,
+            jobLevel,
+            managerialFlag: isManagerial,
+            reportsTo: reportsTo.trim() || undefined,
+            status,
+        };
+
+        const pDays = Number.parseInt(probationDays, 10);
+        if (!Number.isNaN(pDays) && pDays > 0) {
+            payload.probationDays = pDays;
+        }
+
+        onSave(payload as unknown as Omit<DesignationItem, 'id'>);
+    };
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
-                        {initialData ? 'Edit Designation' : 'Add Designation'}
-                    </Text>
+        <Modal 
+            visible={visible} 
+            transparent={false}
+            animationType="slide" 
+            presentationStyle="fullScreen"
+            onRequestClose={onClose}
+        >
+            <View style={{ flex: 1, backgroundColor: colors.white }}>
+                <LinearGradient colors={[colors.gradient.surface, colors.white]} style={StyleSheet.absoluteFill} />
+                
+                {/* Full Page Header */}
+                <View style={[styles.modalHeader, { paddingTop: insets.top + 10 }]}>
+                    <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
+                        <Svg width={20} height={20} viewBox="0 0 24 24">
+                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </Pressable>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                        <Text className="font-inter text-lg font-bold text-primary-950">
+                            {initialData ? 'Edit Designation' : 'New Designation'}
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">Define job role and hierarchy</Text>
+                    </View>
+                </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false} 
+                        keyboardShouldPersistTaps="handled" 
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: insets.bottom + 120 }}
+                    >
+                        {/* Name */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Senior Engineer"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={(val) => { setName(val); if (!codeManuallyEdited) { setCode(generateCode(val)); } }} autoCapitalize="words" /></View>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Designation Name <Text className="text-danger-500">*</Text></Text>
+                            <View style={[styles.inputWrap, !!errors.name && { borderColor: colors.danger[300] }]}>
+                                <TextInput 
+                                    style={styles.textInput} 
+                                    placeholder='e.g. "Senior Engineer"' 
+                                    placeholderTextColor={colors.neutral[400]} 
+                                    value={name} 
+                                    onChangeText={(val) => { 
+                                        setName(val); 
+                                        if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+                                        if (!codeManuallyEdited) { setCode(generateCode(val)); } 
+                                    }} 
+                                    autoCapitalize="words" 
+                                />
+                            </View>
+                            {!!errors.name && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.name}</Text>}
                         </View>
+
+                        {/* Code */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Code <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "SR-ENG"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={(val) => { setCode(val); setCodeManuallyEdited(true); }} autoCapitalize="characters" /></View>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Designation Code <Text className="text-danger-500">*</Text></Text>
+                            <View style={[styles.inputWrap, !!errors.code && { borderColor: colors.danger[300] }]}>
+                                <TextInput 
+                                    style={styles.textInput} 
+                                    placeholder='e.g. "SR-ENG"' 
+                                    placeholderTextColor={colors.neutral[400]} 
+                                    value={code} 
+                                    onChangeText={(val) => { 
+                                        setCode(val); 
+                                        if (errors.code) setErrors(prev => ({ ...prev, code: '' }));
+                                        setCodeManuallyEdited(true); 
+                                    }} 
+                                    autoCapitalize="characters" 
+                                />
+                            </View>
+                            {!!errors.code && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.code}</Text>}
                         </View>
+
                         <Dropdown label="Department" value={departmentId} options={departmentOptions} onSelect={setDepartmentId} placeholder="Select department..." />
                         <Dropdown label="Grade" value={gradeId} options={gradeOptions} onSelect={setGradeId} placeholder="Select grade..." />
                         <ChipSelector label="Job Level" options={JOB_LEVELS} value={jobLevel} onSelect={setJobLevel} />
@@ -341,20 +417,43 @@ function DesignationFormModal({
                             designations={allDesignations}
                             excludeId={initialData?.id}
                         />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Probation Days</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 90" placeholderTextColor={colors.neutral[400]} value={probationDays} onChangeText={setProbationDays} keyboardType="number-pad" /></View>
-                        </View>
-                        <ChipSelector label="Status" options={['Active', 'Inactive']} value={status} onSelect={v => setStatus(v as 'Active' | 'Inactive')} />
-                    </ScrollView>
 
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
-                        <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
-                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Add Designation'}</Text>
-                        </Pressable>
-                    </View>
-                </View>
+                        {/* Probation Days */}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Probation Days</Text>
+                            <View style={styles.inputWrap}>
+                                <TextInput 
+                                    style={styles.textInput} 
+                                    placeholder="e.g. 90" 
+                                    placeholderTextColor={colors.neutral[400]} 
+                                    value={probationDays} 
+                                    onChangeText={setProbationDays} 
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                        </View>
+
+                        <ChipSelector label="Operational Status" options={['Active', 'Inactive']} value={status} onSelect={v => setStatus(v as 'Active' | 'Inactive')} />
+
+                        <View style={{ height: 24 }} />
+
+                        {/* Actions */}
+                        <View style={{ flexDirection: 'row', gap: 16 }}>
+                            <Pressable onPress={onClose} style={styles.cancelBtn}>
+                                <Text className="font-inter text-sm font-bold text-neutral-600">DISCARD</Text>
+                            </Pressable>
+                            <Pressable 
+                                onPress={handleSave} 
+                                disabled={isSaving} 
+                                style={[styles.saveBtn, isSaving && { opacity: 0.5 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">
+                                    {isSaving ? 'Placing...' : initialData ? 'UPDATE' : 'CREATE'}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -362,7 +461,7 @@ function DesignationFormModal({
 
 // ============ DESIGNATION CARD ============
 
-function DesignationCard({ item, index, onEdit, onDelete }: { item: DesignationItem; index: number; onEdit: () => void; onDelete: () => void }) {
+function DesignationCard({ item, index, onEdit, onDelete }: { readonly item: DesignationItem; readonly index: number; readonly onEdit: () => void; readonly onDelete: () => void }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
@@ -422,6 +521,12 @@ export function DesignationScreen() {
     const [formVisible, setFormVisible] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<DesignationItem | null>(null);
     const [search, setSearch] = React.useState('');
+    const [showToast, setShowToast] = React.useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
+
+    const triggerToast = (message: string) => {
+        setShowToast({ visible: true, message });
+        setTimeout(() => setShowToast({ visible: false, message: '' }), 3000);
+    };
 
     const designations: DesignationItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -472,13 +577,29 @@ export function DesignationScreen() {
 
     const handleSave = (data: Omit<DesignationItem, 'id'>) => {
         if (editingItem) {
-            updateMutation.mutate({ id: editingItem.id, data: data as unknown as Record<string, unknown> }, { onSuccess: () => setFormVisible(false) });
+            updateMutation.mutate(
+                { id: editingItem.id, data: data as unknown as Record<string, unknown> },
+                { 
+                    onSuccess: () => {
+                        setFormVisible(false);
+                        triggerToast('Designation updated successfully');
+                    } 
+                },
+            );
         } else {
-            createMutation.mutate(data as unknown as Record<string, unknown>, { onSuccess: () => setFormVisible(false) });
+            createMutation.mutate(
+                data as unknown as Record<string, unknown>,
+                { 
+                    onSuccess: () => {
+                        setFormVisible(false);
+                        triggerToast('Designation created successfully');
+                    } 
+                },
+            );
         }
     };
 
-    const renderItem = ({ item, index }: { item: DesignationItem; index: number }) => (
+    const renderItem = ({ item, index }: { readonly item: DesignationItem; readonly index: number }) => (
         <DesignationCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
     );
 
@@ -510,6 +631,18 @@ export function DesignationScreen() {
                 initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending}
                 departmentOptions={departmentOptions} gradeOptions={gradeOptions} allDesignations={allDesignationsList} />
             <ConfirmModal {...confirmModalProps} />
+
+            {showToast.visible && (
+                <Animated.View 
+                    entering={FadeInDown.duration(300)} 
+                    style={[styles.toast, { top: insets.top + 70 }]}
+                >
+                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                        <Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                    <Text className="font-inter text-sm font-semibold text-success-700">{showToast.message}</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -519,6 +652,7 @@ export function DesignationScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
@@ -536,13 +670,20 @@ const styles = StyleSheet.create({
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    fieldWrap: { marginBottom: 16 },
+    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    dropdownBtn: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    dropdownBtn: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 14 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
-    saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 16 },
+    cancelBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    saveBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    toast: {
+        position: 'absolute', left: 20, right: 20, backgroundColor: colors.success[50], borderRadius: 12,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
+        borderWidth: 1, borderColor: colors.success[200],
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+        zIndex: 9999,
+    },
 });

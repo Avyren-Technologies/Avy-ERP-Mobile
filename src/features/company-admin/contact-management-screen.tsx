@@ -1,17 +1,14 @@
-import BottomSheet, {
-    BottomSheetBackdrop,
-    BottomSheetScrollView,
-    BottomSheetTextInput,
-} from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
     Modal,
     FlatList,
+    Modal,
     Pressable,
     RefreshControl,
     StyleSheet,
+    TextInput,
     View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -92,20 +89,20 @@ function ContactTypeChips({
     );
 }
 
-// ============ CONTACT FORM SHEET ============
+// ============ CONTACT FORM MODAL ============
 
-function ContactFormSheet({
-    sheetRef,
+function ContactFormModal({
+    visible,
+    onClose,
     onSave,
     initialData,
     isSaving,
-    isOpenSignal,
 }: {
-    sheetRef: React.RefObject<BottomSheet | null>;
+    visible: boolean;
+    onClose: () => void;
     onSave: (data: Omit<ContactItem, 'id'>) => void;
     initialData?: ContactItem | null;
     isSaving: boolean;
-    isOpenSignal: number;
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
@@ -117,10 +114,8 @@ function ContactFormSheet({
     const [mobile, setMobile] = React.useState('');
     const [linkedin, setLinkedin] = React.useState('');
 
-    const snapPoints = React.useMemo(() => ['85%'], []);
-
     React.useEffect(() => {
-        if (isOpenSignal > 0) {
+        if (visible) {
             if (initialData) {
                 setName(initialData.name);
                 setDesignation(initialData.designation);
@@ -141,116 +136,129 @@ function ContactFormSheet({
                 setLinkedin('');
             }
         }
-    }, [isOpenSignal, initialData]);
+    }, [visible, initialData]);
 
     const handleSave = () => {
         if (!name.trim() || !email.trim() || !mobile.trim()) return;
         onSave({ name: name.trim(), designation, department, type, email: email.trim(), countryCode, mobile: mobile.trim(), linkedin });
     };
 
-    const renderBackdrop = React.useCallback(
-        (props: any) => (
-            <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
-        ),
-        [],
-    );
-
     const isValid = name.trim() && email.trim() && mobile.trim();
 
     return (
-        <BottomSheet
-            ref={sheetRef}
-            index={-1}
-            snapPoints={snapPoints}
-            enablePanDownToClose
-            backdropComponent={renderBackdrop}
-            backgroundStyle={styles.sheetBg}
-            handleIndicatorStyle={styles.sheetHandle}
-        >
-            <BottomSheetScrollView 
-                contentContainerStyle={[styles.formSheet, { paddingBottom: insets.bottom + 80 }]}
-                showsVerticalScrollIndicator={false} 
-                keyboardShouldPersistTaps="handled" 
-                keyboardDismissMode="interactive"
-            >
-                <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
-                    {initialData ? 'Edit Contact' : 'Add Contact'}
-                </Text>
-
-                {/* Name */}
-                <View style={styles.fieldWrap}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                        Name <Text className="text-danger-500">*</Text>
-                    </Text>
-                    <View style={styles.inputWrap}>
-                        <BottomSheetTextInput style={styles.textInput} placeholder="Full name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" />
-                    </View>
-                </View>
-
-                {/* Designation + Department */}
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={[styles.fieldWrap, { flex: 1 }]}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Designation</Text>
-                        <View style={styles.inputWrap}>
-                            <BottomSheetTextInput style={styles.textInput} placeholder="CEO, CHRO" placeholderTextColor={colors.neutral[400]} value={designation} onChangeText={setDesignation} autoCapitalize="words" />
-                        </View>
-                    </View>
-                    <View style={[styles.fieldWrap, { flex: 1 }]}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
-                        <View style={styles.inputWrap}>
-                            <BottomSheetTextInput style={styles.textInput} placeholder="HR, IT" placeholderTextColor={colors.neutral[400]} value={department} onChangeText={setDepartment} autoCapitalize="words" />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Contact Type */}
-                <ContactTypeChips value={type} onSelect={setType} />
-
-                {/* Email */}
-                <View style={styles.fieldWrap}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                        Email <Text className="text-danger-500">*</Text>
-                    </Text>
-                    <View style={styles.inputWrap}>
-                        <BottomSheetTextInput style={styles.textInput} placeholder="contact@company.com" placeholderTextColor={colors.neutral[400]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-                    </View>
-                </View>
-
-                {/* Phone */}
-                <View style={styles.fieldWrap}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Phone <Text className="text-danger-500">*</Text></Text>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <View style={[styles.inputWrap, { width: 80 }]}>
-                            <BottomSheetTextInput style={styles.textInput} placeholder="+91" placeholderTextColor={colors.neutral[400]} value={countryCode} onChangeText={setCountryCode} keyboardType="phone-pad" />
-                        </View>
-                        <View style={[styles.inputWrap, { flex: 1 }]}>
-                            <BottomSheetTextInput style={styles.textInput} placeholder="98765 43210" placeholderTextColor={colors.neutral[400]} value={mobile} onChangeText={setMobile} keyboardType="phone-pad" />
-                        </View>
-                    </View>
-                </View>
-
-                {/* LinkedIn */}
-                <View style={styles.fieldWrap}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">LinkedIn</Text>
-                    <View style={styles.inputWrap}>
-                        <BottomSheetTextInput style={styles.textInput} placeholder="https://linkedin.com/in/username" placeholderTextColor={colors.neutral[400]} value={linkedin} onChangeText={setLinkedin} keyboardType="url" autoCapitalize="none" />
-                    </View>
-                </View>
-
-                {/* Actions */}
-                <Pressable
-                    onPress={handleSave}
-                    disabled={!isValid || isSaving}
-                    style={[styles.saveBtn, { marginTop: 16 }, (!isValid || isSaving) && { opacity: 0.5 }]}
-                >
-                    <Text className="font-inter text-sm font-bold text-white">
-                        {isSaving ? 'Saving...' : initialData ? 'Update Contact' : 'Add Contact'}
-                    </Text>
-                </Pressable>
+        <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+            <View style={{ flex: 1, backgroundColor: colors.white }}>
+                <LinearGradient
+                    colors={[colors.gradient.surface, colors.white]}
+                    style={StyleSheet.absoluteFill}
+                />
                 
-                <View style={{ height: 40 }} />
-            </BottomSheetScrollView>
-        </BottomSheet>
+                {/* Header Bar */}
+                <View style={[styles.headerBar, { paddingTop: insets.top + 10, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }]}>
+                    <Pressable onPress={onClose} style={styles.backBtn}>
+                        <Svg width={20} height={20} viewBox="0 0 24 24">
+                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </Pressable>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                        <Text className="font-inter text-lg font-bold text-primary-950">
+                            {initialData ? 'Edit Contact' : 'Add Contact'}
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                            {initialData ? 'Update existing contact details' : 'Create new business contact'}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Main Content */}
+                <View style={{ flex: 1 }}>
+                    <GHScrollView
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: insets.bottom + 40 }}
+                    >
+                        {/* Name */}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                                Name <Text className="text-danger-500">*</Text>
+                            </Text>
+                            <View style={styles.inputWrap}>
+                                <TextInput style={styles.textInput} placeholder="Full name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" />
+                            </View>
+                        </View>
+
+                        {/* Designation + Department */}
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={[styles.fieldWrap, { flex: 1 }]}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Designation</Text>
+                                <View style={styles.inputWrap}>
+                                    <TextInput style={styles.textInput} placeholder="CEO, CHRO" placeholderTextColor={colors.neutral[400]} value={designation} onChangeText={setDesignation} autoCapitalize="words" />
+                                </View>
+                            </View>
+                            <View style={[styles.fieldWrap, { flex: 1 }]}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
+                                <View style={styles.inputWrap}>
+                                    <TextInput style={styles.textInput} placeholder="HR, IT" placeholderTextColor={colors.neutral[400]} value={department} onChangeText={setDepartment} autoCapitalize="words" />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Contact Type */}
+                        <ContactTypeChips value={type} onSelect={setType} />
+
+                        {/* Email */}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                                Email <Text className="text-danger-500">*</Text>
+                            </Text>
+                            <View style={styles.inputWrap}>
+                                <TextInput style={styles.textInput} placeholder="contact@company.com" placeholderTextColor={colors.neutral[400]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+                            </View>
+                        </View>
+
+                        {/* Phone */}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Phone <Text className="text-danger-500">*</Text></Text>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <View style={[styles.inputWrap, { width: 80 }]}>
+                                    <TextInput style={styles.textInput} placeholder="+91" placeholderTextColor={colors.neutral[400]} value={countryCode} onChangeText={setCountryCode} keyboardType="phone-pad" />
+                                </View>
+                                <View style={[styles.inputWrap, { flex: 1 }]}>
+                                    <TextInput style={styles.textInput} placeholder="98765 43210" placeholderTextColor={colors.neutral[400]} value={mobile} onChangeText={setMobile} keyboardType="phone-pad" />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* LinkedIn */}
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">LinkedIn</Text>
+                            <View style={styles.inputWrap}>
+                                <TextInput style={styles.textInput} placeholder="https://linkedin.com/in/username" placeholderTextColor={colors.neutral[400]} value={linkedin} onChangeText={setLinkedin} keyboardType="url" autoCapitalize="none" />
+                            </View>
+                        </View>
+
+                        <View style={{ height: 20 }} />
+
+                        {/* Actions */}
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <Pressable onPress={onClose} style={styles.cancelBtn}>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleSave}
+                                disabled={!isValid || isSaving}
+                                style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">
+                                    {isSaving ? 'Saving...' : initialData ? 'Update Contact' : 'Add Contact'}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </GHScrollView>
+                </View>
+            </View>
+        </Modal>
     );
 }
 
@@ -338,9 +346,8 @@ export function ContactManagementScreen() {
     const updateMutation = useUpdateContact();
     const deleteMutation = useDeleteContact();
 
-    const sheetRef = React.useRef<BottomSheet>(null);
+    const [formVisible, setFormVisible] = React.useState(false);
     const [editingContact, setEditingContact] = React.useState<ContactItem | null>(null);
-    const [openSignal, setOpenSignal] = React.useState(0);
 
     const contacts: ContactItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -360,14 +367,12 @@ export function ContactManagementScreen() {
 
     const handleAdd = () => {
         setEditingContact(null);
-        setOpenSignal((n) => n + 1);
-        sheetRef.current?.snapToIndex(0);
+        setFormVisible(true);
     };
 
     const handleEdit = (contact: ContactItem) => {
         setEditingContact(contact);
-        setOpenSignal((n) => n + 1);
-        sheetRef.current?.snapToIndex(0);
+        setFormVisible(true);
     };
 
     const handleDelete = (contact: ContactItem) => {
@@ -386,12 +391,12 @@ export function ContactManagementScreen() {
         if (editingContact) {
             updateMutation.mutate(
                 { id: editingContact.id, data: data as unknown as Record<string, unknown> },
-                { onSuccess: () => sheetRef.current?.close() },
+                { onSuccess: () => setFormVisible(false) },
             );
         } else {
             createMutation.mutate(
                 data as unknown as Record<string, unknown>,
-                { onSuccess: () => sheetRef.current?.close() },
+                { onSuccess: () => setFormVisible(false) },
             );
         }
     };
@@ -470,12 +475,12 @@ export function ContactManagementScreen() {
 
             <FAB onPress={handleAdd} />
 
-            <ContactFormSheet
-                sheetRef={sheetRef}
+            <ContactFormModal
+                visible={formVisible}
+                onClose={() => setFormVisible(false)}
                 onSave={handleSave}
                 initialData={editingContact}
                 isSaving={createMutation.isPending || updateMutation.isPending}
-                isOpenSignal={openSignal}
             />
 
             <ConfirmModal {...confirmModalProps} />

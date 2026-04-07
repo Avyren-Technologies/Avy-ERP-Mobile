@@ -3,7 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+    FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -54,8 +57,9 @@ interface DepartmentItem {
     name: string;
     code: string;
     parentDepartment: string;
-    parentDepartmentId: string;
+    parentId: string;
     headEmployee: string;
+    headEmployeeId: string;
     costCentreCode: string;
     status: 'Active' | 'Inactive';
     employeeCount: number;
@@ -63,7 +67,7 @@ interface DepartmentItem {
 
 // ============ STATUS BADGE ============
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { readonly status: string }) {
     const isActive = status === 'Active';
     return (
         <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.success[50] : colors.neutral[100] }]}>
@@ -85,18 +89,18 @@ function Dropdown({
     placeholder,
     required,
 }: {
-    label: string;
-    value: string;
-    options: { id: string; label: string }[];
-    onSelect: (id: string) => void;
-    placeholder?: string;
-    required?: boolean;
+    readonly label: string;
+    readonly value: string;
+    readonly options: { readonly id: string; readonly label: string }[];
+    readonly onSelect: (id: string) => void;
+    readonly placeholder?: string;
+    readonly required?: boolean;
 }) {
     const [open, setOpen] = React.useState(false);
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable
@@ -161,14 +165,14 @@ function ChipSelector({
     value,
     onSelect,
 }: {
-    label: string;
-    options: string[];
-    value: string;
-    onSelect: (v: string) => void;
+    readonly label: string;
+    readonly options: string[];
+    readonly value: string;
+    readonly onSelect: (v: string) => void;
 }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">{label}</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
@@ -198,11 +202,11 @@ function SearchableEmployeePicker({
     onSelect,
     employees,
 }: {
-    label: string;
-    value: string;
-    displayValue: string;
-    onSelect: (id: string, name: string) => void;
-    employees: { id: string; name: string; code: string }[];
+    readonly label: string;
+    readonly value: string;
+    readonly displayValue: string;
+    readonly onSelect: (id: string, name: string) => void;
+    readonly employees: { readonly id: string; readonly name: string; readonly code: string }[];
 }) {
     const [open, setOpen] = React.useState(false);
     const [searchText, setSearchText] = React.useState('');
@@ -217,7 +221,7 @@ function SearchableEmployeePicker({
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">{label}</Text>
             <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
                 <Text
                     className={`font-inter text-sm ${displayValue ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}
@@ -299,32 +303,36 @@ function DepartmentFormModal({
     departments,
     employeeList,
 }: {
-    visible: boolean;
-    onClose: () => void;
-    onSave: (data: Omit<DepartmentItem, 'id' | 'employeeCount'>) => void;
-    initialData?: DepartmentItem | null;
-    isSaving: boolean;
-    departments: DepartmentItem[];
-    employeeList: { id: string; name: string; code: string }[];
+    readonly visible: boolean;
+    readonly onClose: () => void;
+    readonly onSave: (data: Omit<DepartmentItem, 'id' | 'employeeCount'>) => void;
+    readonly initialData?: DepartmentItem | null;
+    readonly isSaving: boolean;
+    readonly departments: DepartmentItem[];
+    readonly employeeList: { readonly id: string; readonly name: string; readonly code: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [code, setCode] = React.useState('');
     const [codeManuallyEdited, setCodeManuallyEdited] = React.useState(false);
-    const [parentDepartmentId, setParentDepartmentId] = React.useState('');
-    const [headEmployee, setHeadEmployee] = React.useState('');
+    const [parentId, setParentId] = React.useState('');
+    const [headEmployeeId, setHeadEmployeeId] = React.useState('');
     const [headEmployeeDisplay, setHeadEmployeeDisplay] = React.useState('');
     const [costCentreCode, setCostCentreCode] = React.useState('');
     const [status, setStatus] = React.useState<'Active' | 'Inactive'>('Active');
 
+    // Validation state
+    const [errors, setErrors] = React.useState<Record<string, string>>({});
+
     React.useEffect(() => {
         if (visible) {
+            setErrors({});
             if (initialData) {
                 setName(initialData.name);
                 setCode(initialData.code);
                 setCodeManuallyEdited(true);
-                setParentDepartmentId(initialData.parentDepartmentId);
-                setHeadEmployee(initialData.headEmployee);
+                setParentId(initialData.parentId);
+                setHeadEmployeeId(initialData.headEmployeeId);
                 setHeadEmployeeDisplay(initialData.headEmployee);
                 setCostCentreCode(initialData.costCentreCode);
                 setStatus(initialData.status);
@@ -332,8 +340,8 @@ function DepartmentFormModal({
                 setName('');
                 setCode('');
                 setCodeManuallyEdited(false);
-                setParentDepartmentId('');
-                setHeadEmployee('');
+                setParentId('');
+                setHeadEmployeeId('');
                 setHeadEmployeeDisplay('');
                 setCostCentreCode('');
                 setStatus('Active');
@@ -348,46 +356,84 @@ function DepartmentFormModal({
         [departments, initialData],
     );
 
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+        if (!name.trim()) newErrors.name = 'Department Name is required';
+        if (!code.trim()) newErrors.code = 'Department Code is required';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSave = () => {
-        if (!name.trim() || !code.trim()) return;
-        const parentDept = departments.find(d => d.id === parentDepartmentId);
+        if (!validate()) return;
+        const parentDept = departments.find(d => d.id === parentId);
         onSave({
             name: name.trim(),
             code: code.trim().toUpperCase(),
-            parentDepartmentId,
+            parentId,
             parentDepartment: parentDept?.name ?? '',
-            headEmployee: headEmployeeDisplay.trim() || headEmployee.trim(),
+            headEmployeeId,
+            headEmployee: headEmployeeDisplay.trim(),
             costCentreCode: costCentreCode.trim(),
             status,
         });
     };
 
-    const isValid = name.trim() && code.trim();
-
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
-                        {initialData ? 'Edit Department' : 'Add Department'}
-                    </Text>
+        <Modal 
+            visible={visible} 
+            transparent={false}
+            animationType="slide" 
+            presentationStyle="fullScreen"
+            onRequestClose={onClose}
+        >
+            <View style={{ flex: 1, backgroundColor: colors.white }}>
+                <LinearGradient
+                    colors={[colors.gradient.surface, colors.white]}
+                    style={StyleSheet.absoluteFill}
+                />
+                
+                {/* Full Page Header */}
+                <View style={[styles.modalHeader, { paddingTop: insets.top + 10 }]}>
+                    <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
+                        <Svg width={20} height={20} viewBox="0 0 24 24">
+                            <Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </Pressable>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                        <Text className="font-inter text-lg font-bold text-primary-950">
+                            {initialData ? 'Edit Department' : 'New Department'}
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                            Configure administrative unit details
+                        </Text>
+                    </View>
+                </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false} 
+                        keyboardShouldPersistTaps="handled" 
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: insets.bottom + 100 }}
+                    >
                         {/* Name */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Name <Text className="text-danger-500">*</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+                                Department Name <Text className="text-danger-500">*</Text>
                             </Text>
-                            <View style={styles.inputWrap}>
+                            <View style={[styles.inputWrap, !!errors.name && { borderColor: colors.danger[300] }]}>
                                 <TextInput
                                     style={styles.textInput}
-                                    placeholder='e.g. "Engineering"'
+                                    placeholder='e.g. "ENGINEERING"'
                                     placeholderTextColor={colors.neutral[400]}
                                     value={name}
                                     onChangeText={(val) => {
                                         setName(val);
+                                        if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
                                         if (!codeManuallyEdited) {
                                             setCode(generateCode(val));
                                         }
@@ -395,56 +441,62 @@ function DepartmentFormModal({
                                     autoCapitalize="words"
                                 />
                             </View>
+                            {!!errors.name && (
+                                <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.name}</Text>
+                            )}
                         </View>
 
                         {/* Code */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Code <Text className="text-danger-500">*</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+                                Department Code <Text className="text-danger-500">*</Text>
                             </Text>
-                            <View style={styles.inputWrap}>
+                            <View style={[styles.inputWrap, !!errors.code && { borderColor: colors.danger[300] }]}>
                                 <TextInput
                                     style={styles.textInput}
-                                    placeholder='e.g. "ENG"'
+                                    placeholder='e.g. "ENG-01"'
                                     placeholderTextColor={colors.neutral[400]}
                                     value={code}
                                     onChangeText={(val) => {
                                         setCode(val);
+                                        if (errors.code) setErrors(prev => ({ ...prev, code: '' }));
                                         setCodeManuallyEdited(true);
                                     }}
                                     autoCapitalize="characters"
                                 />
                             </View>
+                            {!!errors.code && (
+                                <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.code}</Text>
+                            )}
                         </View>
 
                         {/* Parent Department */}
                         <Dropdown
                             label="Parent Department"
-                            value={parentDepartmentId}
+                            value={parentId}
                             options={parentOptions}
-                            onSelect={setParentDepartmentId}
-                            placeholder="None (top-level)"
+                            onSelect={setParentId}
+                            placeholder="Select parent department..."
                         />
-
-                        {/* Head Employee */}
+                        
                         <SearchableEmployeePicker
-                            label="Head Employee"
-                            value={headEmployee}
+                            label="Department Head"
+                            value={headEmployeeId}
                             displayValue={headEmployeeDisplay}
-                            onSelect={(id, empName) => {
-                                setHeadEmployee(id || empName);
-                                setHeadEmployeeDisplay(empName);
+                            onSelect={(id, name) => {
+                                setHeadEmployeeId(id);
+                                setHeadEmployeeDisplay(name);
                             }}
                             employees={employeeList}
                         />
 
                         {/* Cost Centre Code */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Cost Centre Code</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Cost Centre Code</Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
-                                    placeholder='e.g. "CC-ENG-01"'
+                                    placeholder='e.g. "CC-ENG"'
                                     placeholderTextColor={colors.neutral[400]}
                                     value={costCentreCode}
                                     onChangeText={setCostCentreCode}
@@ -455,29 +507,31 @@ function DepartmentFormModal({
 
                         {/* Status */}
                         <ChipSelector
-                            label="Status"
+                            label="Operational Status"
                             options={['Active', 'Inactive']}
                             value={status}
                             onSelect={v => setStatus(v as 'Active' | 'Inactive')}
                         />
-                    </ScrollView>
 
-                    {/* Actions */}
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
-                        </Pressable>
-                        <Pressable
-                            onPress={handleSave}
-                            disabled={!isValid || isSaving}
-                            style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}
-                        >
-                            <Text className="font-inter text-sm font-bold text-white">
-                                {isSaving ? 'Saving...' : initialData ? 'Update' : 'Add Department'}
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
+                        <View style={{ height: 24 }} />
+
+                        {/* Footer Actions */}
+                        <View style={{ flexDirection: 'row', gap: 16 }}>
+                            <Pressable onPress={onClose} style={styles.cancelBtn}>
+                                <Text className="font-inter text-sm font-bold text-neutral-600">DISCARD</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleSave}
+                                disabled={isSaving}
+                                style={[styles.saveBtn, isSaving && { opacity: 0.5 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">
+                                    {isSaving ? 'Placing...' : initialData ? 'UPDATE' : 'CREATE'}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -491,10 +545,10 @@ function DepartmentCard({
     onEdit,
     onDelete,
 }: {
-    item: DepartmentItem;
-    index: number;
-    onEdit: () => void;
-    onDelete: () => void;
+    readonly item: DepartmentItem;
+    readonly index: number;
+    readonly onEdit: () => void;
+    readonly onDelete: () => void;
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
@@ -566,6 +620,12 @@ export function DepartmentScreen() {
     const [formVisible, setFormVisible] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<DepartmentItem | null>(null);
     const [search, setSearch] = React.useState('');
+    const [showToast, setShowToast] = React.useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
+
+    const triggerToast = (message: string) => {
+        setShowToast({ visible: true, message });
+        setTimeout(() => setShowToast({ visible: false, message: '' }), 3000);
+    };
 
     const employeeList = React.useMemo(() => {
         const raw = (empResponse as any)?.data ?? empResponse ?? [];
@@ -584,12 +644,13 @@ export function DepartmentScreen() {
             id: item.id ?? '',
             name: item.name ?? '',
             code: item.code ?? '',
-            parentDepartment: item.parentDepartment ?? item.parentDepartmentName ?? '',
-            parentDepartmentId: item.parentDepartmentId ?? '',
-            headEmployee: item.headEmployee ?? item.headEmployeeName ?? '',
+            parentId: item.parentId ?? '',
+            parentDepartment: item.parent?.name ?? '',
+            headEmployeeId: item.headEmployeeId ?? '',
+            headEmployee: item.headEmployee?.name ?? '',
             costCentreCode: item.costCentreCode ?? '',
             status: item.status ?? 'Active',
-            employeeCount: item.employeeCount ?? 0,
+            employeeCount: item._count?.employees ?? 0,
         }));
     }, [response]);
 
@@ -625,20 +686,37 @@ export function DepartmentScreen() {
     };
 
     const handleSave = (data: Omit<DepartmentItem, 'id' | 'employeeCount'>) => {
+        const sanitizedData = {
+            ...data,
+            parentId: data.parentId || undefined,
+            headEmployeeId: data.headEmployeeId || undefined,
+            costCentreCode: data.costCentreCode || undefined,
+        };
+
         if (editingItem) {
             updateMutation.mutate(
-                { id: editingItem.id, data: data as unknown as Record<string, unknown> },
-                { onSuccess: () => setFormVisible(false) },
+                { id: editingItem.id, data: sanitizedData as unknown as Record<string, unknown> },
+                { 
+                    onSuccess: () => {
+                        setFormVisible(false);
+                        triggerToast('Department updated successfully');
+                    }
+                },
             );
         } else {
             createMutation.mutate(
-                data as unknown as Record<string, unknown>,
-                { onSuccess: () => setFormVisible(false) },
+                sanitizedData as unknown as Record<string, unknown>,
+                { 
+                    onSuccess: () => {
+                        setFormVisible(false);
+                        triggerToast('Department created successfully');
+                    }
+                },
             );
         }
     };
 
-    const renderItem = ({ item, index }: { item: DepartmentItem; index: number }) => (
+    const renderItem = ({ item, index }: { readonly item: DepartmentItem; readonly index: number }) => (
         <DepartmentCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
     );
 
@@ -694,6 +772,18 @@ export function DepartmentScreen() {
             />
 
             <ConfirmModal {...confirmModalProps} />
+
+            {showToast.visible && (
+                <Animated.View 
+                    entering={FadeInDown.duration(300)} 
+                    style={[styles.toast, { top: insets.top + 70 }]}
+                >
+                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                        <Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                    <Text className="font-inter text-sm font-semibold text-success-700">{showToast.message}</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -703,6 +793,7 @@ export function DepartmentScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
@@ -720,18 +811,25 @@ const styles = StyleSheet.create({
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    fieldWrap: { marginBottom: 16 },
+    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
-        paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200],
+        paddingHorizontal: 14, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
     saveBtn: {
-        flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center',
+        flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center',
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    toast: {
+        position: 'absolute', left: 20, right: 20, backgroundColor: colors.success[50], borderRadius: 12,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
+        borderWidth: 1, borderColor: colors.success[200],
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+        zIndex: 9999,
     },
 });

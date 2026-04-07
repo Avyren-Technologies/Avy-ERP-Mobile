@@ -118,13 +118,17 @@ function SuccessOverlay({ message }: { message: string }) {
 function EmployeeInfoCard({
   employee,
   todayRecord,
-  attendancePolicy,
+  resolvedPolicy,
+  shift,
+  location,
   status,
   fmt,
 }: {
   employee: any;
   todayRecord: any;
-  attendancePolicy: any;
+  resolvedPolicy: any;
+  shift: any;
+  location: any;
   status: AttStatus;
   fmt: any;
 }) {
@@ -153,37 +157,37 @@ function EmployeeInfoCard({
 
       {/* Department & Designation */}
       <View style={$.empDetails}>
-        {employee?.department?.name && (
+        {employee?.departmentName && (
           <View style={$.detailPill}>
-            <Text className="font-inter text-xs" style={{ color: colors.primary[700] }}>{employee.department.name}</Text>
+            <Text className="font-inter text-xs" style={{ color: colors.primary[700] }}>{employee.departmentName}</Text>
           </View>
         )}
-        {employee?.designation?.name && (
+        {employee?.designationName && (
           <View style={$.detailPill}>
-            <Text className="font-inter text-xs" style={{ color: colors.primary[700] }}>{employee.designation.name}</Text>
+            <Text className="font-inter text-xs" style={{ color: colors.primary[700] }}>{employee.designationName}</Text>
           </View>
         )}
       </View>
 
       {/* Shift Info */}
-      {employee?.shift && (
+      {shift && (
         <View style={$.shiftRow}>
           <ClockIcon s={14} c={colors.primary[500]} />
           <Text className="font-inter text-xs font-semibold" style={{ color: colors.primary[700] }}>
-            {employee.shift.name}
+            {shift.name}
           </Text>
           <Text className="font-inter text-xs" style={{ color: colors.neutral[500] }}>
-            {employee.shift.startTime ? fmt.shiftTime(employee.shift.startTime) : '--'} - {employee.shift.endTime ? fmt.shiftTime(employee.shift.endTime) : '--'}
+            {shift.startTime ? fmt.shiftTime(shift.startTime) : '--'} - {shift.endTime ? fmt.shiftTime(shift.endTime) : '--'}
           </Text>
         </View>
       )}
 
       {/* Location & Geofence */}
-      {employee?.location && (
+      {location && (
         <View style={$.shiftRow}>
           <MapPinIcon s={14} c={colors.accent[600]} />
-          <Text className="font-inter text-xs font-semibold" style={{ color: colors.accent[700] }}>{employee.location.name}</Text>
-          {employee.location.geofenceEnabled && (
+          <Text className="font-inter text-xs font-semibold" style={{ color: colors.accent[700] }}>{location.name}</Text>
+          {location.geoEnabled && (
             <View style={$.geoPill}>
               <ShieldIcon s={10} c={colors.success[600]} />
               <Text className="font-inter text-xs" style={{ color: colors.success[700] }}>Geofence</Text>
@@ -193,14 +197,14 @@ function EmployeeInfoCard({
       )}
 
       {/* Policy pills */}
-      {attendancePolicy && (
+      {resolvedPolicy && (
         <View style={$.policyRow}>
-          {attendancePolicy.gpsRequired && (
+          {resolvedPolicy.gpsRequired && (
             <View style={[$.policyPill, { backgroundColor: colors.primary[50] }]}>
               <Text className="font-inter text-xs" style={{ color: colors.primary[700] }}>GPS Required</Text>
             </View>
           )}
-          {attendancePolicy.selfieRequired && (
+          {resolvedPolicy.selfieRequired && (
             <View style={[$.policyPill, { backgroundColor: colors.accent[50] }]}>
               <Text className="font-inter text-xs" style={{ color: colors.accent[700] }}>Selfie Required</Text>
             </View>
@@ -299,7 +303,9 @@ export function AdminAttendanceScreen() {
   const empStatus = (empStatusData as any)?.data;
   const employee = empStatus?.employee;
   const todayRecord = empStatus?.todayRecord;
-  const attendancePolicy = empStatus?.attendancePolicy;
+  const resolvedPolicy = empStatus?.resolvedPolicy;
+  const empShift = empStatus?.shift;
+  const empLocation = empStatus?.location;
   const attStatus: AttStatus = empStatus?.status ?? 'NOT_CHECKED_IN';
   const nextAction: 'CHECK_IN' | 'CHECK_OUT' = attStatus === 'CHECKED_IN' ? 'CHECK_OUT' : 'CHECK_IN';
 
@@ -546,7 +552,9 @@ export function AdminAttendanceScreen() {
                   <EmployeeInfoCard
                     employee={employee}
                     todayRecord={todayRecord}
-                    attendancePolicy={attendancePolicy}
+                    resolvedPolicy={resolvedPolicy}
+                    shift={empShift}
+                    location={empLocation}
                     status={attStatus}
                     fmt={fmt}
                   />

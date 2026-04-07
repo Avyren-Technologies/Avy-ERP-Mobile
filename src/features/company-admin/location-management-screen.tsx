@@ -39,6 +39,10 @@ import {
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import {
+    useGeofences,
+    useDeleteGeofence,
+} from '@/features/company-admin/api/use-geofence-queries';
+import {
     FormInput,
     FormSelect,
     ToggleRow,
@@ -296,6 +300,200 @@ function LocationCard({
     );
 }
 
+// ============ GEOFENCES SECTION ============
+
+interface GeofenceItem {
+    id: string;
+    name: string;
+    address?: string | null;
+    lat: number;
+    lng: number;
+    radius: number;
+    isDefault: boolean;
+    _count?: { employees?: number };
+}
+
+function GeofencesSection({
+    location,
+}: {
+    location: PlantBranch;
+}) {
+    const router = useRouter();
+    const { data: gfResponse, isLoading: gfLoading } = useGeofences(location.id);
+    const deleteMutation = useDeleteGeofence();
+    const { show: showDeleteConfirm, modalProps: deleteConfirmProps } = useConfirmModal();
+
+    const geofences: GeofenceItem[] = React.useMemo(() => {
+        const raw = (gfResponse as any)?.data ?? gfResponse ?? [];
+        return Array.isArray(raw) ? raw : [];
+    }, [gfResponse]);
+
+    const handleAddGeofence = () => {
+        router.push({
+            pathname: '/company/geofence-editor' as any,
+            params: {
+                locationId: location.id,
+                companyId: (location as any).companyId ?? '',
+                initialLat: location.geoLat ?? '',
+                initialLng: location.geoLng ?? '',
+            },
+        });
+    };
+
+    const handleEditGeofence = (gf: GeofenceItem) => {
+        router.push({
+            pathname: '/company/geofence-editor' as any,
+            params: {
+                locationId: location.id,
+                companyId: (location as any).companyId ?? '',
+                geofenceId: gf.id,
+                initialLat: String(gf.lat),
+                initialLng: String(gf.lng),
+                geofenceName: gf.name,
+                geofenceRadius: String(gf.radius),
+                geofenceAddress: gf.address ?? '',
+                geofenceIsDefault: String(gf.isDefault),
+            },
+        });
+    };
+
+    const handleDeleteGeofence = (gf: GeofenceItem) => {
+        showDeleteConfirm({
+            title: 'Delete Geofence',
+            message: `Are you sure you want to delete "${gf.name}"? Employees assigned to this geofence will be unassigned.`,
+            variant: 'danger',
+            confirmText: 'Delete',
+            onConfirm: () => {
+                deleteMutation.mutate({ locationId: location.id, id: gf.id });
+            },
+        });
+    };
+
+    return (
+        <>
+            {/* Header */}
+            <View style={gfStyles.header}>
+                <View style={gfStyles.headerLeft}>
+                    <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
+                        Geofences
+                    </Text>
+                    {geofences.length > 0 && (
+                        <View style={gfStyles.countBadge}>
+                            <Text className="font-inter text-[10px] font-bold text-primary-700">
+                                {geofences.length}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+                <Pressable
+                    onPress={handleAddGeofence}
+                    hitSlop={8}
+                    style={({ pressed }) => [gfStyles.addBtn, pressed && { opacity: 0.7 }]}
+                >
+                    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                        <Path
+                            d="M12 5v14M5 12h14"
+                            stroke={colors.primary[600]}
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                        />
+                    </Svg>
+                    <Text className="font-inter text-[11px] font-bold text-primary-600">
+                        Add
+                    </Text>
+                </Pressable>
+            </View>
+
+            {/* List */}
+            {gfLoading ? (
+                <View style={gfStyles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary[400]} />
+                </View>
+            ) : geofences.length === 0 ? (
+                <View style={gfStyles.emptyContainer}>
+                    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+                        <Path
+                            d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+                            stroke={colors.neutral[300]}
+                            strokeWidth="1.5"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                        <Circle cx="12" cy="10" r="3" stroke={colors.neutral[300]} strokeWidth="1.5" fill="none" />
+                    </Svg>
+                    <Text className="font-inter mt-2 text-xs text-neutral-400">
+                        No geofences configured
+                    </Text>
+                    <Pressable onPress={handleAddGeofence} style={({ pressed }) => [gfStyles.emptyAddBtn, pressed && { opacity: 0.7 }]}>
+                        <Text className="font-inter text-xs font-semibold text-primary-600">
+                            + Add first geofence
+                        </Text>
+                    </Pressable>
+                </View>
+            ) : (
+                geofences.map((gf) => {
+                    const empCount = gf._count?.employees ?? 0;
+                    return (
+                        <Pressable
+                            key={gf.id}
+                            onPress={() => handleEditGeofence(gf)}
+                            onLongPress={() => handleDeleteGeofence(gf)}
+                            style={({ pressed }) => [gfStyles.card, pressed && { opacity: 0.85 }]}
+                        >
+                            <View style={gfStyles.cardTop}>
+                                <View style={gfStyles.cardNameRow}>
+                                    <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1} style={{ flexShrink: 1 }}>
+                                        {gf.name}
+                                    </Text>
+                                    {gf.isDefault && (
+                                        <View style={gfStyles.defaultBadge}>
+                                            <Text className="font-inter text-[9px] font-bold text-success-700">
+                                                Default
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={gfStyles.badges}>
+                                    <View style={gfStyles.radiusBadge}>
+                                        <Text className="font-inter text-[10px] font-semibold text-accent-700">
+                                            {gf.radius}m
+                                        </Text>
+                                    </View>
+                                    {empCount > 0 && (
+                                        <View style={gfStyles.empBadge}>
+                                            <Svg width={10} height={10} viewBox="0 0 24 24" fill="none">
+                                                <Path
+                                                    d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
+                                                    stroke={colors.neutral[500]}
+                                                    strokeWidth="2"
+                                                    fill="none"
+                                                    strokeLinecap="round"
+                                                />
+                                                <Circle cx="12" cy="7" r="4" stroke={colors.neutral[500]} strokeWidth="2" fill="none" />
+                                            </Svg>
+                                            <Text className="font-inter text-[10px] font-semibold text-neutral-600">
+                                                {empCount}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                            {gf.address ? (
+                                <Text className="font-inter mt-1 text-[11px] text-neutral-500" numberOfLines={1}>
+                                    {gf.address}
+                                </Text>
+                            ) : null}
+                        </Pressable>
+                    );
+                })
+            )}
+
+            <ConfirmModal {...deleteConfirmProps} />
+        </>
+    );
+}
+
 // ============ EDIT BOTTOM SHEET ============
 
 function EditLocationSheet({
@@ -519,6 +717,11 @@ function EditLocationSheet({
                         />
                     </Animated.View>
                 )}
+
+                {/* Geofences Section */}
+                <View style={{ marginTop: 16 }}>
+                    <GeofencesSection location={form} />
+                </View>
 
                 {/* Save Button */}
                 <Pressable
@@ -904,5 +1107,97 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 8,
         elevation: 4,
+    },
+});
+
+const gfStyles = StyleSheet.create({
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    countBadge: {
+        backgroundColor: colors.primary[50],
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: colors.primary[200],
+    },
+    addBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    loadingContainer: {
+        paddingVertical: 20,
+        alignItems: 'center',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        paddingVertical: 16,
+    },
+    emptyAddBtn: {
+        marginTop: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: colors.primary[50],
+        borderWidth: 1,
+        borderColor: colors.primary[200],
+    },
+    card: {
+        backgroundColor: colors.neutral[50],
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    cardTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    cardNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
+        marginRight: 8,
+    },
+    defaultBadge: {
+        backgroundColor: colors.success[50],
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.success[200],
+    },
+    badges: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    radiusBadge: {
+        backgroundColor: colors.accent[50],
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    empBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: colors.neutral[100],
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
     },
 });

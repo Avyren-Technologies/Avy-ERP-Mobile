@@ -52,6 +52,7 @@ import {
     useGrades,
 } from '@/features/company-admin/api/use-hr-queries';
 import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
+import { useGeofencesForDropdown } from '@/features/company-admin/api/use-geofence-queries';
 import { useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
 
 // ============ TYPES ============
@@ -105,6 +106,7 @@ interface ProfessionalForm {
     workType: string;
     shiftId: string;
     locationId: string;
+    geofenceId: string;
     costCentreId: string;
     noticePeriodDays: string;
     probationEndDate: string;
@@ -166,7 +168,7 @@ const INITIAL_PERSONAL: PersonalForm = {
 const INITIAL_PROFESSIONAL: ProfessionalForm = {
     joiningDate: '', employeeTypeId: '', departmentId: '', designationId: '',
     gradeId: '', reportingManagerId: '', functionalManagerId: '', workType: '',
-    shiftId: '', locationId: '', costCentreId: '', noticePeriodDays: '',
+    shiftId: '', locationId: '', geofenceId: '', costCentreId: '', noticePeriodDays: '',
     probationEndDate: '',
 };
 
@@ -738,6 +740,7 @@ function ProfessionalTab({
     employees,
     locations,
     shifts,
+    geofenceOptions,
 }: {
     form: ProfessionalForm;
     onChange: (updates: Partial<ProfessionalForm>) => void;
@@ -749,6 +752,7 @@ function ProfessionalTab({
     employees: { id: string; name: string }[];
     locations?: { id: string; name: string }[];
     shifts?: { id: string; name: string }[];
+    geofenceOptions?: { id: string; name: string }[];
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
@@ -764,7 +768,17 @@ function ProfessionalTab({
             <DropdownField label="Functional Manager" options={employees} selected={form.functionalManagerId} onSelect={(v) => onChange({ functionalManagerId: v })} placeholder="Search manager..." />
 
             <SectionTitle title="Work Setup" />
-            <DropdownField label="Location" options={locations || []} selected={form.locationId} onSelect={(v) => onChange({ locationId: v })} placeholder="Select location..." createRoute={{ route: '/company/locations', label: 'Create Location' }} />
+            <DropdownField label="Location" options={locations || []} selected={form.locationId} onSelect={(v) => onChange({ locationId: v, geofenceId: '' })} placeholder="Select location..." createRoute={{ route: '/company/locations', label: 'Create Location' }} />
+            <DropdownField label="Geofence" options={geofenceOptions || []} selected={form.geofenceId} onSelect={(v) => onChange({ geofenceId: v })} placeholder={!form.locationId ? 'Select a location first' : 'No specific geofence'} />
+            {!form.locationId ? (
+                <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-400">
+                    Select a location first to see available geofences.
+                </Text>
+            ) : (
+                <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500">
+                    Attendance check-in zone for this employee.
+                </Text>
+            )}
             <DropdownField label="Shift" options={shifts || []} selected={form.shiftId} onSelect={(v) => onChange({ shiftId: v })} placeholder="Select shift..." createRoute={{ route: '/company/shifts', label: 'Create Shift' }} />
             <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} />
             <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} />
@@ -1159,6 +1173,7 @@ export function EmployeeDetailScreen() {
     const { data: rbacRolesResponse, isError: rolesError, isLoading: rolesLoading } = useRbacRoles();
     const { data: locationResponse } = useCompanyLocations();
     const { data: shiftResponse } = useCompanyShifts();
+    const { data: geofenceDropdownResponse } = useGeofencesForDropdown(professional.locationId || undefined);
     const { data: empListResponse } = useEmployees({ limit: 100 });
     const { data: docsResponse } = useEmployeeDocuments(employeeId);
     const { data: timelineResponse, isLoading: timelineLoading } = useEmployeeTimeline(employeeId);
@@ -1398,6 +1413,30 @@ export function EmployeeDetailScreen() {
         return Array.isArray(raw) ? raw.map((l: any) => ({ id: l.id ?? '', name: l.name ?? '' })) : [];
     }, [locationResponse]);
 
+    const geofenceOptions = React.useMemo(() => {
+        const raw = (geofenceDropdownResponse as any)?.data ?? geofenceDropdownResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((gf: any) => ({
+            id: gf.id ?? '',
+            name: `${gf.name ?? ''}${gf.radius ? ` (${gf.radius}m)` : ''}${gf.isDefault ? ' \u2014 Default' : ''}`,
+        }));
+    }, [geofenceDropdownResponse]);
+
+    // Auto-select default geofence when location changes
+    React.useEffect(() => {
+        if (!professional.locationId) return;
+        const raw = (geofenceDropdownResponse as any)?.data ?? geofenceDropdownResponse ?? [];
+        if (!Array.isArray(raw) || raw.length === 0) return;
+        // Only auto-select if no geofence is currently selected or the selected one isn't in the list
+        const currentInList = raw.some((gf: any) => gf.id === professional.geofenceId);
+        if (!professional.geofenceId || !currentInList) {
+            const defaultGf = raw.find((gf: any) => gf.isDefault);
+            if (defaultGf) {
+                setProfessional((p) => ({ ...p, geofenceId: defaultGf.id }));
+            }
+        }
+    }, [professional.locationId, geofenceDropdownResponse]);
+
     const shiftOptions = React.useMemo(() => {
         const raw = (shiftResponse as any)?.data ?? shiftResponse ?? [];
         return Array.isArray(raw) ? raw.map((s: any) => ({ id: s.id ?? '', name: s.name ?? '' })) : [];
@@ -1517,6 +1556,7 @@ export function EmployeeDetailScreen() {
             functionalManagerId: d.functionalManagerId ?? d.functionalManager?.id ?? '',
             workType: d.workType ?? '', shiftId: d.shiftId ?? '',
             locationId: d.locationId ?? d.location?.id ?? '',
+            geofenceId: d.geofenceId ?? d.geofence?.id ?? '',
             costCentreId: d.costCentreId ?? d.costCentre?.id ?? '',
             noticePeriodDays: d.noticePeriodDays?.toString() ?? '',
             probationEndDate: d.probationEndDate ? String(d.probationEndDate).slice(0, 10) : '',
@@ -1649,6 +1689,7 @@ export function EmployeeDetailScreen() {
         functionalManagerId: professional.functionalManagerId || undefined,
         workType: professional.workType, shiftId: professional.shiftId || undefined,
         locationId: professional.locationId || undefined,
+        geofenceId: professional.geofenceId || undefined,
         costCentreId: professional.costCentreId || undefined,
         noticePeriodDays: professional.noticePeriodDays ? parseInt(professional.noticePeriodDays, 10) : undefined,
         probationEndDate: professional.probationEndDate?.trim() || undefined,
@@ -1944,6 +1985,7 @@ export function EmployeeDetailScreen() {
                         employees={employeeOptions}
                         locations={locationOptions}
                         shifts={shiftOptions}
+                        geofenceOptions={geofenceOptions}
                     />
                 )}
                 {activeTab === 'salary' && (

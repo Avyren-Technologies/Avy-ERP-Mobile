@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -252,7 +252,7 @@ function SearchableEmployeePicker({
                         >
                             <Text className="font-inter text-sm text-neutral-400">None</Text>
                         </Pressable>
-                        <FlatList
+                        <FlashList
                             data={filtered}
                             keyExtractor={item => item.id}
                             keyboardShouldPersistTaps="handled"
@@ -667,7 +667,7 @@ export function DepartmentScreen() {
 
             <AppTopHeader title="Department Management" onMenuPress={toggle} />
 
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

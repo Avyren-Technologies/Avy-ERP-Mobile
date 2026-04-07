@@ -48,7 +48,7 @@ function StatusBadge({ status }: { status: string }) {
 function formatCurrency(amount: number | string): string {
     const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
     if (Number.isNaN(num)) return '\u20B90';
-    return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 function calculateEMI(principal: number, annualRate: number, tenureMonths: number): number {
@@ -150,7 +150,7 @@ function ApplyLoanModal({
                         {/* Amount */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                Amount ({'\u20B9'}) <Text className="text-danger-500">*</Text>
+                                Amount ({'₹'}) <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
                                 <TextInput

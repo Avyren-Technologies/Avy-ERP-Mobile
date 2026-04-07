@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Image,
     Modal,
     Pressable,
@@ -15,6 +14,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -118,7 +118,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 function formatCurrency(amount: number | string): string {
     const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
     if (Number.isNaN(num)) return '\u20B90';
-    return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // formatDate removed — use fmt.date() from useCompanyFormatter inside components
@@ -1030,7 +1030,7 @@ export function ExpensesScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Expenses" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={({ item, index }) => <ClaimCard item={item} index={index} onApprove={() => handleApprove(item)} onReject={() => handleReject(item)} />}
                 keyExtractor={item => item.id}

@@ -310,8 +310,8 @@ function LWFFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean
                     <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Add LWF Config</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <StateDropdown value={state} onSelect={setState} />
-                        <NumberField label="Employee Amount" value={empAmount} onChange={setEmpAmount} placeholder="0" suffix="\u20B9" />
-                        <NumberField label="Employer Amount" value={erAmount} onChange={setErAmount} placeholder="0" suffix="\u20B9" />
+                        <NumberField label="Employee Amount" value={empAmount} onChange={setEmpAmount} placeholder="0" suffix="₹" />
+                        <NumberField label="Employer Amount" value={erAmount} onChange={setErAmount} placeholder="0" suffix="₹" />
                         <ChipSelector label="Frequency" options={LWF_FREQUENCIES} value={frequency} onSelect={setFrequency} />
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
@@ -522,7 +522,7 @@ export function StatutoryConfigScreen() {
                         <NumberField label="EPS Rate" value={pfForm.epsRate} onChange={v => { setPFForm(p => ({ ...p, epsRate: v })); setPFDirty(true); }} placeholder="8.33" suffix="%" />
                         <NumberField label="EDLI Rate" value={pfForm.edliRate} onChange={v => { setPFForm(p => ({ ...p, edliRate: v })); setPFDirty(true); }} placeholder="0.5" suffix="%" />
                         <NumberField label="Admin Charge Rate" value={pfForm.adminChargeRate} onChange={v => { setPFForm(p => ({ ...p, adminChargeRate: v })); setPFDirty(true); }} placeholder="0.5" suffix="%" />
-                        <NumberField label="Wage Ceiling" value={pfForm.wageCeiling} onChange={v => { setPFForm(p => ({ ...p, wageCeiling: v })); setPFDirty(true); }} placeholder="15000" suffix="\u20B9" />
+                        <NumberField label="Wage Ceiling" value={pfForm.wageCeiling} onChange={v => { setPFForm(p => ({ ...p, wageCeiling: v })); setPFDirty(true); }} placeholder="15000" suffix="₹" />
                         <ToggleRow label="VPF Enabled" subtitle="Allow Voluntary Provident Fund" value={pfForm.vpfEnabled} onToggle={v => { setPFForm(p => ({ ...p, vpfEnabled: v })); setPFDirty(true); }} />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Excluded Components</Text>
@@ -535,7 +535,7 @@ export function StatutoryConfigScreen() {
                     <SectionCard title="ESI Configuration" subtitle="Employee State Insurance rates" collapsed={collapsed.esi} onToggle={() => toggleSection('esi')}>
                         <NumberField label="Employee Rate" value={esiForm.employeeRate} onChange={v => { setESIForm(p => ({ ...p, employeeRate: v })); setESIDirty(true); }} placeholder="0.75" suffix="%" />
                         <NumberField label="Employer Rate" value={esiForm.employerRate} onChange={v => { setESIForm(p => ({ ...p, employerRate: v })); setESIDirty(true); }} placeholder="3.25" suffix="%" />
-                        <NumberField label="Wage Ceiling" value={esiForm.wageCeiling} onChange={v => { setESIForm(p => ({ ...p, wageCeiling: v })); setESIDirty(true); }} placeholder="21000" suffix="\u20B9" />
+                        <NumberField label="Wage Ceiling" value={esiForm.wageCeiling} onChange={v => { setESIForm(p => ({ ...p, wageCeiling: v })); setESIDirty(true); }} placeholder="21000" suffix="₹" />
                         <SaveSectionBtn onPress={handleSaveESI} isPending={updateESI.isPending} hasChanges={esiDirty} />
                     </SectionCard>
 
@@ -565,7 +565,7 @@ export function StatutoryConfigScreen() {
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="(Basic * 15 * Years) / 26" placeholderTextColor={colors.neutral[400]} value={gratuityForm.formula} onChangeText={v => { setGratuityForm(p => ({ ...p, formula: v })); setGratuityDirty(true); }} /></View>
                         </View>
                         <ChipSelector label="Base Salary" options={['Basic', 'Basic+DA']} value={gratuityForm.baseSalary} onSelect={v => { setGratuityForm(p => ({ ...p, baseSalary: v })); setGratuityDirty(true); }} />
-                        <NumberField label="Max Amount" value={gratuityForm.maxAmount} onChange={v => { setGratuityForm(p => ({ ...p, maxAmount: v })); setGratuityDirty(true); }} placeholder="2000000" suffix="\u20B9" />
+                        <NumberField label="Max Amount" value={gratuityForm.maxAmount} onChange={v => { setGratuityForm(p => ({ ...p, maxAmount: v })); setGratuityDirty(true); }} placeholder="2000000" suffix="₹" />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Provision Method</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Monthly" placeholderTextColor={colors.neutral[400]} value={gratuityForm.provisionMethod} onChangeText={v => { setGratuityForm(p => ({ ...p, provisionMethod: v })); setGratuityDirty(true); }} /></View>
@@ -576,7 +576,7 @@ export function StatutoryConfigScreen() {
 
                     {/* Bonus */}
                     <SectionCard title="Bonus" subtitle="Statutory bonus calculation" collapsed={collapsed.bonus} onToggle={() => toggleSection('bonus')}>
-                        <NumberField label="Wage Ceiling" value={bonusForm.wageCeiling} onChange={v => { setBonusForm(p => ({ ...p, wageCeiling: v })); setBonusDirty(true); }} placeholder="21000" suffix="\u20B9" />
+                        <NumberField label="Wage Ceiling" value={bonusForm.wageCeiling} onChange={v => { setBonusForm(p => ({ ...p, wageCeiling: v })); setBonusDirty(true); }} placeholder="21000" suffix="₹" />
                         <NumberField label="Min Bonus %" value={bonusForm.minBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, minBonusPercent: v })); setBonusDirty(true); }} placeholder="8.33" suffix="%" />
                         <NumberField label="Max Bonus %" value={bonusForm.maxBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, maxBonusPercent: v })); setBonusDirty(true); }} placeholder="20" suffix="%" />
                         <NumberField label="Eligibility Days" value={bonusForm.eligibilityDays} onChange={v => { setBonusForm(p => ({ ...p, eligibilityDays: v })); setBonusDirty(true); }} placeholder="30" />
@@ -593,7 +593,7 @@ export function StatutoryConfigScreen() {
                             <View key={lwf.id} style={styles.listItem}>
                                 <View style={{ flex: 1 }}>
                                     <Text className="font-inter text-sm font-semibold text-primary-950">{lwf.state}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">Emp: \u20B9{lwf.employeeAmount}  {'\u00B7'}  Er: \u20B9{lwf.employerAmount}  {'\u00B7'}  {lwf.frequency}</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500">Emp: ₹{lwf.employeeAmount}  {'\u00B7'}  Er: ₹{lwf.employerAmount}  {'\u00B7'}  {lwf.frequency}</Text>
                                 </View>
                                 <Pressable onPress={() => handleDeleteLWF(lwf)} hitSlop={8}>
                                     <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>

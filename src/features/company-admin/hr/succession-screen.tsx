@@ -2,7 +2,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -11,6 +10,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -560,7 +560,7 @@ export function SuccessionScreen() {
                     <Text className="font-inter text-white text-lg font-bold ml-3">Succession Planning</Text>
                 </View>
             </LinearGradient>
-            <FlatList
+            <FlashList
                 data={filtered} renderItem={renderItem} keyExtractor={item => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

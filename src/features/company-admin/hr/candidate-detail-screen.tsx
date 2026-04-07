@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -488,7 +488,7 @@ function OfferCard({ item, index }: { item: OfferItem; index: number }) {
                     <View style={{ flex: 1 }}>
                         {/* Currency formatted for INR — will be made dynamic when multi-currency support is added */}
                         <Text className="font-inter text-sm font-bold text-primary-950">
-                            {'\u20B9'}{(item.offeredCTC ?? 0).toLocaleString('en-IN')} CTC
+                            {'₹'}{(item.offeredCTC ?? 0).toLocaleString('en-IN')} CTC
                         </Text>
                         {item.joiningDate ? <Text className="mt-0.5 font-inter text-xs text-neutral-500">Joining: {item.joiningDate}</Text> : null}
                     </View>
@@ -776,7 +776,7 @@ export function CandidateDetailScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Candidate Profile" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={getActiveData()} renderItem={renderItem} keyExtractor={(item, idx) => item.id ?? String(idx)}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

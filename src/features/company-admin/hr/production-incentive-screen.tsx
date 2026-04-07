@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -292,7 +292,7 @@ function RecordCard({ item, index }: { item: IncentiveRecord; index: number }) {
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">Output: {item.outputUnits ?? 0}</Text></View>
                     <View style={[styles.metaChip, { backgroundColor: colors.success[50] }]}>
-                        <Text className="font-inter text-[10px] font-bold text-success-700">{'\u20B9'}{Number(item.amount ?? 0).toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-[10px] font-bold text-success-700">{'₹'}{Number(item.amount ?? 0).toLocaleString('en-IN')}</Text>
                     </View>
                 </View>
             </View>
@@ -417,7 +417,8 @@ export function ProductionIncentiveScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Production Incentives" onMenuPress={toggle} />
             {tab === 'configs' ? (
-                <FlatList<IncentiveConfig>
+                <FlashList<IncentiveConfig>
+                   
                     data={filteredConfigs}
                     renderItem={renderConfigItem}
                     keyExtractor={(item) => item.id ?? String(Math.random())}
@@ -427,7 +428,8 @@ export function ProductionIncentiveScreen() {
                     refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => doRefetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
                 />
             ) : (
-                <FlatList<IncentiveRecord>
+                <FlashList<IncentiveRecord>
+                   
                     data={filteredRecords}
                     renderItem={renderRecordItem}
                     keyExtractor={(item) => item.id ?? String(Math.random())}

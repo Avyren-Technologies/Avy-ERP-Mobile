@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -218,7 +218,7 @@ export function Form16Screen() {
                 {form24QFilings.length > 0 && (
                     <>
                         <InfoRow label="Deductees" value={String(form24QFilings[0]?.deducteeCount ?? '—')} />
-                        <InfoRow label="Total TDS" value={form24QFilings[0]?.totalTds ? `\u20B9${Number(form24QFilings[0].totalTds).toLocaleString('en-IN')}` : '—'} />
+                        <InfoRow label="Total TDS" value={form24QFilings[0]?.totalTds ? `₹${Number(form24QFilings[0].totalTds).toLocaleString('en-IN')}` : '—'} />
                     </>
                 )}
                 <Pressable onPress={handleGenerateForm24Q} disabled={generateForm24Q.isPending} style={[styles.accentBtn, generateForm24Q.isPending && { opacity: 0.5 }]}>
@@ -243,7 +243,7 @@ export function Form16Screen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Form 16 / 24Q" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filings}
                 renderItem={({ item, index }) => <FilingCard item={item} index={index} />}
                 keyExtractor={item => item.id}

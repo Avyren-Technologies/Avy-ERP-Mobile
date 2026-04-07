@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -125,7 +125,7 @@ function EmployeePickerModal({
                             autoFocus
                         />
                     </View>
-                    <FlatList
+                    <FlashList
                         data={filtered}
                         keyExtractor={item => item.id}
                         keyboardShouldPersistTaps="handled"
@@ -281,7 +281,7 @@ function CreateFormModal({
                         <ChipSelector label="Travel Mode" options={TRAVEL_MODES} value={travelMode} onSelect={setTravelMode} />
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Amount ({'\u20B9'}) <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Amount ({'₹'}) <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="10000" placeholderTextColor={colors.neutral[400]} value={amount} onChangeText={setAmount} keyboardType="numeric" /></View>
                         </View>
 
@@ -319,7 +319,7 @@ function CreateFormModal({
                                 </View>
                                 <View style={{ borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
                                     <Text className="font-inter text-[10px] font-bold text-neutral-500 uppercase">Estimated Total</Text>
-                                    <Text className="font-inter text-sm font-bold text-primary-700">{'\u20B9'}{breakdownTotal.toLocaleString('en-IN')}</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-700">{'₹'}{breakdownTotal.toLocaleString('en-IN')}</Text>
                                 </View>
                             </View>
                         )}
@@ -373,7 +373,7 @@ function SettleModal({
                         <Text className="font-inter text-xs text-neutral-500 mb-1">Employee</Text>
                         <Text className="font-inter text-sm font-bold text-primary-950">{advance.employeeName ?? advance.employeeId}</Text>
                         <Text className="font-inter text-xs text-neutral-500 mt-3 mb-1">Advance Amount</Text>
-                        <Text className="font-inter text-lg font-bold text-primary-600">{'\u20B9'}{Number(advance.amount ?? 0).toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-lg font-bold text-primary-600">{'₹'}{Number(advance.amount ?? 0).toLocaleString('en-IN')}</Text>
                         {advance.tripPurpose ? (
                             <>
                                 <Text className="font-inter text-xs text-neutral-500 mt-3 mb-1">Trip Purpose</Text>
@@ -410,9 +410,9 @@ function SettlementResultModal({
     const getOutcome = () => {
         const o = result.outcome?.toUpperCase();
         if (o === 'EMPLOYEE_OWES' || result.difference > 0)
-            return { text: `Employee Owes \u20B9${Math.abs(result.difference).toLocaleString('en-IN')}`, color: 'text-warning-700' };
+            return { text: `Employee Owes ₹${Math.abs(result.difference).toLocaleString('en-IN')}`, color: 'text-warning-700' };
         if (o === 'COMPANY_OWES' || result.difference < 0)
-            return { text: `Company Owes \u20B9${Math.abs(result.difference).toLocaleString('en-IN')}`, color: 'text-info-700' };
+            return { text: `Company Owes ₹${Math.abs(result.difference).toLocaleString('en-IN')}`, color: 'text-info-700' };
         return { text: 'Exact Match', color: 'text-success-700' };
     };
 
@@ -429,15 +429,15 @@ function SettlementResultModal({
                     <View style={{ backgroundColor: colors.neutral[50], borderRadius: 14, padding: 16, width: '100%', marginBottom: 16 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                             <Text className="font-inter text-xs text-neutral-500">Original Advance</Text>
-                            <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{Number(result.advanceAmount).toLocaleString('en-IN')}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{Number(result.advanceAmount).toLocaleString('en-IN')}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                             <Text className="font-inter text-xs text-neutral-500">Expense Claim</Text>
-                            <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{Number(result.claimAmount).toLocaleString('en-IN')}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{Number(result.claimAmount).toLocaleString('en-IN')}</Text>
                         </View>
                         <View style={{ borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text className="font-inter text-xs text-neutral-500">Difference</Text>
-                            <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{Math.abs(result.difference).toLocaleString('en-IN')}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{Math.abs(result.difference).toLocaleString('en-IN')}</Text>
                         </View>
                     </View>
                     <Text className={`font-inter text-lg font-bold ${outcome.color} mb-4`}>{outcome.text}</Text>
@@ -464,7 +464,7 @@ function AdvanceCard({ item, index, onSettle }: { item: TravelAdvance; index: nu
                         <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName ?? item.employeeId}</Text>
                         <Text className="mt-1 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.tripPurpose || 'No purpose specified'}</Text>
                     </View>
-                    <Text className="font-inter text-base font-bold text-primary-700">{'\u20B9'}{Number(item.amount ?? 0).toLocaleString('en-IN')}</Text>
+                    <Text className="font-inter text-base font-bold text-primary-700">{'₹'}{Number(item.amount ?? 0).toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={styles.cardMeta}>
                     <StatusBadge status={item.status ?? 'PENDING'} />
@@ -579,7 +579,7 @@ export function TravelAdvanceScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Travel Advances" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered} renderItem={renderItem} keyExtractor={item => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

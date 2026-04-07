@@ -11,12 +11,12 @@ import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInUp,
@@ -903,7 +903,7 @@ export function LocationManagementScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={renderLocation}
                 keyExtractor={(item) => item.id}

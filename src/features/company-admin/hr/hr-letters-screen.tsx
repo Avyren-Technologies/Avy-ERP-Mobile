@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -492,7 +492,7 @@ export function HRLettersScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="HR Letters" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={activeData} renderItem={renderItem} keyExtractor={(item: any) => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

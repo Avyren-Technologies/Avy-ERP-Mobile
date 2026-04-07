@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -605,7 +605,7 @@ export function EmployeeDirectoryScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={employees}
                 renderItem={renderEmployee}
                 keyExtractor={(item) => item.id}

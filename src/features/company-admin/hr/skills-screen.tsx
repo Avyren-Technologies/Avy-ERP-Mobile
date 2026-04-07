@@ -2,7 +2,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -11,6 +10,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -573,7 +573,7 @@ export function SkillsScreen() {
                 </View>
             </LinearGradient>
             {activeTab === 'library' ? (
-                <FlatList
+                <FlashList
                     data={filteredSkills}
                     renderItem={renderSkillItem}
                     keyExtractor={item => item.id}
@@ -585,7 +585,7 @@ export function SkillsScreen() {
                     refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
                 />
             ) : (
-                <FlatList
+                <FlashList
                     data={filteredMappings}
                     renderItem={renderMappingItem}
                     keyExtractor={item => item.id}

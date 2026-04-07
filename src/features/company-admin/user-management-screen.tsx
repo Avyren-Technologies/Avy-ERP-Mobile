@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Pressable,
     RefreshControl,
     Modal as RNModal,
@@ -14,6 +13,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -835,7 +835,7 @@ export function UserManagementScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={users}
                 renderItem={renderUser}
                 keyExtractor={(item) => item.id}

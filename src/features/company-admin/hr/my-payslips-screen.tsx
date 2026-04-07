@@ -8,7 +8,6 @@ import * as Sharing from 'expo-sharing';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -16,6 +15,7 @@ import {
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -46,7 +46,7 @@ interface PayslipItem {
 // ============ HELPERS ============
 
 function formatCurrency(n: number): string {
-    return `\u20B9${  n.toLocaleString('en-IN')}`;
+    return `₹${  n.toLocaleString('en-IN')}`;
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -246,7 +246,7 @@ export function MyPayslipsScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="My Payslips" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -320,7 +320,7 @@ export function ProbationReviewScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Probation Reviews" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -694,7 +694,7 @@ function RequisitionCard({ item, index, onPress, onStatusChange, onDelete }: {
                         <Text className="font-inter text-xs text-neutral-500">{item.candidateCount} candidate{item.candidateCount !== 1 ? 's' : ''}</Text>
                     </View>
                     {(item.budgetMin > 0 || item.budgetMax > 0) && (
-                        <Text className="font-inter text-xs text-neutral-400">{'\u20B9'}{item.budgetMin.toLocaleString('en-IN')}-{item.budgetMax.toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-xs text-neutral-400">{'₹'}{item.budgetMin.toLocaleString('en-IN')}-{item.budgetMax.toLocaleString('en-IN')}</Text>
                     )}
                 </View>
                 <View style={styles.cardFooter}>
@@ -811,7 +811,7 @@ function OfferCard({ item, index, onSend, onAccept, onReject, onWithdraw, onEdit
                     <View style={{ flex: 1 }}>
                         <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.candidateName}</Text>
                         <Text className="mt-0.5 font-inter text-xs text-neutral-500">
-                            {'\u20B9'}{item.offeredCTC.toLocaleString('en-IN')} CTC
+                            {'₹'}{item.offeredCTC.toLocaleString('en-IN')} CTC
                         </Text>
                     </View>
                     <OfferStatusBadge status={item.status} />
@@ -1222,7 +1222,7 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Recruitment" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={activeData} renderItem={renderItem} keyExtractor={(item: any) => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

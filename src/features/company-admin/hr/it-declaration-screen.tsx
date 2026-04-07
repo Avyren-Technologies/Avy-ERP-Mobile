@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -104,7 +104,7 @@ const DEFAULT_FORM: DeclarationForm = {
 function num(v: string): number { return Number(v) || 0; }
 
 function formatCurrency(n: number): string {
-    return `\u20B9${  n.toLocaleString('en-IN')}`;
+    return `₹${  n.toLocaleString('en-IN')}`;
 }
 
 function normalizeDeclarationStatus(value: unknown): DeclarationStatus {
@@ -169,7 +169,7 @@ function AmountField({ label, value, onChange, placeholder }: { label: string; v
         <View style={styles.fieldWrap}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
             <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
-                <Text className="mr-2 font-inter text-sm text-neutral-400">{'\u20B9'}</Text>
+                <Text className="mr-2 font-inter text-sm text-neutral-400">{'₹'}</Text>
                 <TextInput style={[styles.textInput, { flex: 1 }]} placeholder={placeholder ?? '0'} placeholderTextColor={colors.neutral[400]} value={value} onChangeText={onChange} keyboardType="number-pad" />
             </View>
         </View>
@@ -519,7 +519,7 @@ export function ITDeclarationScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="IT Declarations" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

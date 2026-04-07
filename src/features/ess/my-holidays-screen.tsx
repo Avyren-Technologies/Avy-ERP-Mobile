@@ -1,12 +1,12 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -87,7 +87,7 @@ export function MyHolidaysScreen() {
                 ))}
             </View>
 
-            <FlatList
+            <FlashList
                 data={holidays}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}

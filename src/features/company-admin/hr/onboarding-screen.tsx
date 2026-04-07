@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -419,7 +419,7 @@ export function OnboardingScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Onboarding" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered as any[]}
                 renderItem={activeTab === 'templates' ? renderTemplateItem : renderTaskItem}
                 keyExtractor={item => item.id}

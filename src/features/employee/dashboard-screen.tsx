@@ -624,7 +624,7 @@ function WelcomeHeader({ firstName, onBellPress, unreadCount }: { firstName: str
 // FIX 6: Announcements — Marquee Ticker + View All
 // ================================================================
 
-function AnnouncementsTicker({ announcements }: { announcements: DashboardAnnouncement[] }) {
+const AnnouncementsTicker = React.memo(function AnnouncementsTicker({ announcements }: { announcements: DashboardAnnouncement[] }) {
     const router = useRouter();
     const scrollX = React.useRef(new Animated.Value(0)).current;
     const [isPaused, setIsPaused] = React.useState(false);
@@ -702,7 +702,7 @@ function AnnouncementsTicker({ announcements }: { announcements: DashboardAnnoun
             </Pressable>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // FIX 2: Shift Check-In Hero — Fixed Clock Display
@@ -713,14 +713,15 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
     const isNarrowScreen = SCREEN_WIDTH < 380;
     const fmt = useCompanyFormatter();
 
-    // Live clock
+    // Live clock — update every 10s (seconds are cosmetic, not critical)
     const [clockStr, setClockStr] = React.useState(() =>
         fmt.timeWithSeconds(new Date().toISOString())
     );
     React.useEffect(() => {
+        // Update immediately, then every 10 seconds
         const id = setInterval(() => {
             setClockStr(fmt.timeWithSeconds(new Date().toISOString()));
-        }, 1000);
+        }, 10_000);
         return () => clearInterval(id);
     }, [fmt]);
 
@@ -757,9 +758,11 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
         if (status !== 'CHECKED_IN' || !shift?.punchIn) return;
         startRef.current = Date.now();
         baseRef.current = shift.elapsedSeconds ?? 0;
+        // Update elapsed every 30s — HH:MM display doesn't need per-second updates
+        setElapsed(baseRef.current);
         const id = setInterval(() => {
             setElapsed(baseRef.current + Math.floor((Date.now() - startRef.current) / 1000));
-        }, 1000);
+        }, 30_000);
         return () => clearInterval(id);
     }, [status, shift?.punchIn, shift?.elapsedSeconds]);
 
@@ -964,7 +967,7 @@ function getShiftDotColor(shiftType: string | null): string {
     return colors.primary[500];
 }
 
-function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[] | null }) {
+const ShiftMonthCalendar = React.memo(function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[] | null }) {
     const { width } = useWindowDimensions();
     const fmt = useCompanyFormatter();
     const today = new Date();
@@ -1222,7 +1225,7 @@ function ShiftMonthCalendar({ calendar }: { calendar: DashboardShiftCalendarDay[
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // SECTION 4: Quick Stats (2x2 grid)
@@ -1323,7 +1326,7 @@ function QuickStatsRow({ data }: { data: DashboardData }) {
 // FIX 4 + FIX 5: Weekly Attendance Bar Chart with Dynamic Axis + Tooltips
 // ================================================================
 
-function WeeklyAttendanceChart({ weeklyChart }: { weeklyChart: DashboardWeeklyChartDay[] | null }) {
+const WeeklyAttendanceChart = React.memo(function WeeklyAttendanceChart({ weeklyChart }: { weeklyChart: DashboardWeeklyChartDay[] | null }) {
     const { width } = useWindowDimensions();
     const fmt = useCompanyFormatter();
     const chartW = width - 96;
@@ -1474,13 +1477,13 @@ function WeeklyAttendanceChart({ weeklyChart }: { weeklyChart: DashboardWeeklyCh
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // FIX 5: Leave Donut Chart with Tooltip
 // ================================================================
 
-function LeaveDonutChart({ leaveDonut }: { leaveDonut: DashboardLeaveDonutItem[] | null }) {
+const LeaveDonutChart = React.memo(function LeaveDonutChart({ leaveDonut }: { leaveDonut: DashboardLeaveDonutItem[] | null }) {
     const [selectedSegment, setSelectedSegment] = React.useState<number | null>(null);
 
     if (!leaveDonut || leaveDonut.length === 0) {
@@ -1598,7 +1601,7 @@ function LeaveDonutChart({ leaveDonut }: { leaveDonut: DashboardLeaveDonutItem[]
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // SECTION 7: Quick Actions (2-column grid with gradient left border)
@@ -1770,7 +1773,7 @@ function RecentAttendanceSection({ records }: { records: DashboardAttendanceDay[
 // FIX 5: Monthly Trend Area Chart with Tooltip
 // ================================================================
 
-function MonthlyTrendChart({ monthlyTrend }: { monthlyTrend: DashboardMonthlyTrendItem[] | null }) {
+const MonthlyTrendChart = React.memo(function MonthlyTrendChart({ monthlyTrend }: { monthlyTrend: DashboardMonthlyTrendItem[] | null }) {
     const { width } = useWindowDimensions();
     const chartW = width - 96;
     const chartH = 200;
@@ -1892,13 +1895,13 @@ function MonthlyTrendChart({ monthlyTrend }: { monthlyTrend: DashboardMonthlyTre
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // SECTION 10: Manager Section (Team Summary + Pending Approvals)
 // ================================================================
 
-function TeamSummaryCard({ summary }: { summary: DashboardTeamSummary }) {
+const TeamSummaryCard = React.memo(function TeamSummaryCard({ summary }: { summary: DashboardTeamSummary }) {
     const items = [
         { label: 'Present', value: summary.present, color: colors.success[500], bgColor: colors.success[100], icon: <UserCheckIcon s={14} c={colors.success[600]} /> },
         { label: 'Absent', value: summary.absent, color: colors.danger[500], bgColor: colors.danger[100], icon: <UserXIcon s={14} c={colors.danger[600]} /> },
@@ -1948,9 +1951,9 @@ function TeamSummaryCard({ summary }: { summary: DashboardTeamSummary }) {
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
-function PendingApprovalsCard({ approvals }: { approvals: DashboardPendingApproval[] }) {
+const PendingApprovalsCard = React.memo(function PendingApprovalsCard({ approvals }: { approvals: DashboardPendingApproval[] }) {
     const router = useRouter();
     const top3 = approvals.slice(0, 3);
 
@@ -2018,13 +2021,13 @@ function PendingApprovalsCard({ approvals }: { approvals: DashboardPendingApprov
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // FIX 7: Upcoming Holidays — Vertical List with Date Badge
 // ================================================================
 
-function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
+const UpcomingHolidaysList = React.memo(function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
     const fmt = useCompanyFormatter();
     const next8 = holidays.slice(0, 8);
 
@@ -2127,7 +2130,7 @@ function UpcomingHolidaysList({ holidays }: { holidays: DashboardHoliday[] }) {
             </PremiumCard>
         </AnimatedRN.View>
     );
-}
+});
 
 // ================================================================
 // Loading Skeleton — FIX 8: Better visual

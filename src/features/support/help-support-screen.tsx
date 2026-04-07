@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -16,6 +15,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp, LayoutAnimationConfig } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -603,7 +603,7 @@ export function HelpSupportScreen() {
                         />
                     ) : (
                         <LayoutAnimationConfig skipEntering>
-                            <FlatList
+                            <FlashList
                                 data={tickets}
                                 keyExtractor={(item) => item.id}
                                 renderItem={renderTicket}

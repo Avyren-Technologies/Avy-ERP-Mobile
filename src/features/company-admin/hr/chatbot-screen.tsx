@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -11,6 +10,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -263,7 +263,7 @@ function QuickActions({ onSelect, disabled }: { onSelect: (label: string) => voi
 export function ChatbotScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
-    const flatListRef = React.useRef<FlatList>(null);
+    const flatListRef = React.useRef<FlashListRef<any>>(null);
 
     const [input, setInput] = React.useState('');
     const [conversationId, setConversationId] = React.useState<string | null>(null);
@@ -364,7 +364,7 @@ export function ChatbotScreen() {
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
                 {/* Messages */}
-                <FlatList
+                <FlashList
                     ref={flatListRef}
                     data={messages}
                     renderItem={renderItem}

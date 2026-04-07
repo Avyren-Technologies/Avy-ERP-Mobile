@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -160,7 +160,7 @@ function SearchableSelectModal({
                             autoFocus
                         />
                     </View>
-                    <FlatList
+                    <FlashList
                         data={filtered}
                         keyExtractor={item => item.value}
                         keyboardShouldPersistTaps="handled"
@@ -253,9 +253,9 @@ function DetailModal({
                                         {item.remarks ? <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">{item.remarks}</Text> : null}
                                     </View>
                                     <View style={{ alignItems: 'flex-end' }}>
-                                        <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{(item.amount ?? 0).toLocaleString('en-IN')}</Text>
-                                        {item.tds ? <Text className="font-inter text-[10px] text-danger-500">TDS: {'\u20B9'}{item.tds.toLocaleString('en-IN')}</Text> : null}
-                                        <Text className="font-inter text-[10px] font-bold text-success-600">Net: {'\u20B9'}{(item.netAmount ?? item.amount ?? 0).toLocaleString('en-IN')}</Text>
+                                        <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{(item.amount ?? 0).toLocaleString('en-IN')}</Text>
+                                        {item.tds ? <Text className="font-inter text-[10px] text-danger-500">TDS: {'₹'}{item.tds.toLocaleString('en-IN')}</Text> : null}
+                                        <Text className="font-inter text-[10px] font-bold text-success-600">Net: {'₹'}{(item.netAmount ?? item.amount ?? 0).toLocaleString('en-IN')}</Text>
                                     </View>
                                 </View>
                             ))}
@@ -571,13 +571,13 @@ function CreateModal({
                                             </View>
                                             <View style={[styles.infoBanner, { flex: 1, backgroundColor: colors.success[50] }]}>
                                                 <Text className="font-inter text-[10px] text-neutral-500 uppercase">Total</Text>
-                                                <Text className="font-inter text-base font-bold text-success-700">{'\u20B9'}{totalAmount.toLocaleString('en-IN')}</Text>
+                                                <Text className="font-inter text-base font-bold text-success-700">{'₹'}{totalAmount.toLocaleString('en-IN')}</Text>
                                             </View>
                                         </View>
                                         {previewItems.slice(0, 10).map(item => (
                                             <View key={item.employeeId} style={styles.itemRow}>
                                                 <Text className="font-inter text-xs font-semibold text-primary-950" style={{ flex: 1 }}>{item.employeeName}</Text>
-                                                <Text className="font-inter text-xs font-bold text-primary-700">{'\u20B9'}{item.amount.toLocaleString('en-IN')}</Text>
+                                                <Text className="font-inter text-xs font-bold text-primary-700">{'₹'}{item.amount.toLocaleString('en-IN')}</Text>
                                             </View>
                                         ))}
                                         {previewItems.length > 10 && (
@@ -691,7 +691,7 @@ function BatchCard({ item, index, onPress }: { item: BonusBatchItem; index: numb
                         <Text className="font-inter text-[10px] text-neutral-500">{item.employeeCount ?? 0} employees</Text>
                     </View>
                     <View style={[styles.metaChip, { backgroundColor: colors.success[50] }]}>
-                        <Text className="font-inter text-[10px] font-bold text-success-700">{'\u20B9'}{(item.totalAmount ?? 0).toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-[10px] font-bold text-success-700">{'₹'}{(item.totalAmount ?? 0).toLocaleString('en-IN')}</Text>
                     </View>
                 </View>
             </Pressable>
@@ -784,7 +784,7 @@ export function BonusBatchScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Bonus Batches" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -57,10 +57,10 @@ const PF_TIERS = ['Applicable', 'Not Applicable', 'Optional'];
 
 function formatCurrency(n: number): string {
     if (!n) return '-';
-    if (n >= 10000000) return `\u20B9${(n / 10000000).toFixed(1)}Cr`;
-    if (n >= 100000) return `\u20B9${(n / 100000).toFixed(1)}L`;
-    if (n >= 1000) return `\u20B9${(n / 1000).toFixed(1)}K`;
-    return `\u20B9${n}`;
+    if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
+    if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+    if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
+    return `₹${n}`;
 }
 
 // ============ SHARED ATOMS ============
@@ -169,14 +169,14 @@ function GradeFormModal({
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">CTC Min</Text>
                                 <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
-                                    <Text className="font-inter text-sm font-bold text-neutral-400 mr-1">{'\u20B9'}</Text>
+                                    <Text className="font-inter text-sm font-bold text-neutral-400 mr-1">{'₹'}</Text>
                                     <TextInput style={[styles.textInput, { flex: 1 }]} placeholder="0" placeholderTextColor={colors.neutral[400]} value={ctcMin} onChangeText={setCtcMin} keyboardType="numeric" />
                                 </View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">CTC Max</Text>
                                 <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
-                                    <Text className="font-inter text-sm font-bold text-neutral-400 mr-1">{'\u20B9'}</Text>
+                                    <Text className="font-inter text-sm font-bold text-neutral-400 mr-1">{'₹'}</Text>
                                     <TextInput style={[styles.textInput, { flex: 1 }]} placeholder="0" placeholderTextColor={colors.neutral[400]} value={ctcMax} onChangeText={setCtcMax} keyboardType="numeric" />
                                 </View>
                             </View>
@@ -350,7 +350,7 @@ export function GradeScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Grade Management" onMenuPress={toggle} />
-            <FlatList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
+            <FlashList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />

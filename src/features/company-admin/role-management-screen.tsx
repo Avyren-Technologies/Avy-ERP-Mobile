@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -872,7 +872,7 @@ export function RoleManagementScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={roles}
                 renderItem={renderRole}
                 keyExtractor={(item) => item.id}

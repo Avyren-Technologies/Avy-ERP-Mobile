@@ -2,7 +2,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-  FlatList,
   Modal,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -324,7 +324,7 @@ export function FnFSettlementScreen() {
       ) : filtered.length === 0 ? (
         <EmptyState title="No F&F settlements" message="Settlements will appear here once exit requests are processed" />
       ) : (
-        <FlatList
+        <FlashList
           data={filtered}
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => (

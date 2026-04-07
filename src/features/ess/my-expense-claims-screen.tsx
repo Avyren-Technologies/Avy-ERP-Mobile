@@ -4,7 +4,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Image,
     Modal,
     Pressable,
@@ -14,6 +13,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -106,7 +106,7 @@ function CategoryBadge({ category }: { category: string }) {
 function formatCurrency(amount: number | string): string {
     const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
     if (Number.isNaN(num)) return '\u20B90';
-    return `\u20B9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // formatDate removed — use fmt.date() from useCompanyFormatter inside components
@@ -1011,7 +1011,7 @@ export function MyExpenseClaimsScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
             <AppTopHeader title="Expense Claims" onMenuPress={open} />
-            <FlatList
+            <FlashList
                 data={claims}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}

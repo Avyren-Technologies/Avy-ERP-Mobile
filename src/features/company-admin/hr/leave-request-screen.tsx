@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -545,7 +545,7 @@ export function LeaveRequestScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Leave Requests" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={listData.length > 2 ? listData : []} // Only show sections if we have data beyond headers
                 renderItem={renderSectionItem}
                 keyExtractor={item => item.key}

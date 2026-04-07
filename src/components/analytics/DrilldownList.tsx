@@ -2,12 +2,12 @@ import { ChevronDown, ChevronUp, Search } from 'lucide-react-native';
 import * as React from 'react';
 import { useCallback, useState } from 'react';
 import {
-  FlatList,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import colors from '@/components/ui/colors';
@@ -160,7 +160,7 @@ export function DrilldownList({
       {/* Table */}
       <View style={styles.tableContainer}>
         {renderHeader()}
-        <FlatList
+        <FlashList
           data={data}
           renderItem={renderItem}
           keyExtractor={(item, i) => String(item.id ?? i)}

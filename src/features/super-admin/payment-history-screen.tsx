@@ -2,7 +2,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -11,6 +10,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -472,7 +472,7 @@ export function PaymentHistoryScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={payments}
                 renderItem={renderPayment}
                 keyExtractor={(item) => item.id}

@@ -1,6 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -45,7 +46,7 @@ export function MyGoalsScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
             <AppTopHeader title="My Goals" onMenuPress={open} />
-            <FlatList
+            <FlashList
                 data={goals}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}

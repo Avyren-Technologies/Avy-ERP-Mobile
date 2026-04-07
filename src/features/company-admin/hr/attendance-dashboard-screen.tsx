@@ -3,13 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -381,7 +381,7 @@ export function AttendanceDashboardScreen() {
 
             <AppTopHeader title="Attendance Dashboard" onMenuPress={toggle} />
 
-            <FlatList
+            <FlashList
                 data={records}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

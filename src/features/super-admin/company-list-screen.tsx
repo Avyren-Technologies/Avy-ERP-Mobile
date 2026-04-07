@@ -5,12 +5,12 @@ import * as React from 'react';
 import {
     ActivityIndicator,
     Dimensions,
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -458,7 +458,7 @@ export function CompanyListScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={companies}
                 renderItem={renderCompany}
                 keyExtractor={(item) => item.id}

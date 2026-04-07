@@ -5,13 +5,13 @@ import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -516,7 +516,7 @@ export function BulkEmployeeImportScreen() {
 
   const renderStep2 = () => (
     <View style={{ flex: 1 }}>
-      <FlatList
+      <FlashList
         data={validationResult?.rows ?? []}
         keyExtractor={(item) => String(item.rowNum)}
         renderItem={({ item, index }) => (
@@ -776,7 +776,7 @@ export function BulkEmployeeImportScreen() {
 
   const renderStep3 = () => (
     <View style={{ flex: 1 }}>
-      <FlatList
+      <FlashList
         data={importResult?.results ?? []}
         keyExtractor={(item) => String(item.rowNum)}
         renderItem={({ item, index }) => (

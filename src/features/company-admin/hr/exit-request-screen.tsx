@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-  FlatList,
   Modal,
   Pressable,
   RefreshControl,
@@ -13,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -377,7 +377,7 @@ export function ExitRequestScreen() {
       ) : filtered.length === 0 ? (
         <EmptyState title="No exit requests" message="Tap + to initiate an exit" />
       ) : (
-        <FlatList
+        <FlashList
           data={filtered}
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => (

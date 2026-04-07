@@ -675,7 +675,7 @@ export function CompanyProfileScreen() {
         const depMsg = depNames.length > 0 ? `\n\nAuto-includes dependencies: ${depNames.join(', ')}` : '';
         showConfirm({
             title: `Add ${mod.name}?`,
-            message: `This will add ${mod.name} (Rs ${mod.price}/mo).${depMsg}\n\nEstimated additional: Rs ${totalPrice}/mo`,
+            message: `This will add ${mod.name}.${depMsg}`,
             variant: 'primary',
             confirmText: 'Add Module',
             onConfirm: () => {
@@ -1067,9 +1067,11 @@ export function CompanyProfileScreen() {
                                                                 {mod.name}
                                                             </Text>
                                                         </View>
+                                                        {/* Pricing hidden — uncomment when pricing is finalized
                                                         <Text className="font-inter text-[10px] text-neutral-500 mb-1">
                                                             Rs {mod.price}/mo
                                                         </Text>
+                                                        */}
                                                         {/* Action */}
                                                         {isMasters ? (
                                                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>

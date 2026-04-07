@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -149,7 +149,7 @@ function ShiftPickerModal({ visible, onClose, onSelect, availableShifts, searchT
                             onChangeText={setSearchText}
                         />
                     </View>
-                    <FlatList
+                    <FlashList
                         data={filtered}
                         keyExtractor={item => item.id}
                         renderItem={({ item }) => (
@@ -374,7 +374,7 @@ function AssignModal({ visible, onClose, onAssign, isAssigning, allEmployees }: 
                             onChangeText={setSearchText}
                         />
                     </View>
-                    <FlatList
+                    <FlashList
                         data={filtered}
                         keyExtractor={item => item.id}
                         renderItem={({ item }) => {
@@ -611,7 +611,7 @@ export function ShiftRotationScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Shift Rotations" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={filtered} renderItem={renderItem} keyExtractor={item => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

@@ -55,7 +55,7 @@ const REPORTS: ReportCardData[] = [
 
 // ============ HELPERS ============
 
-const formatCurrency = (n: number) => `\u20B9${n.toLocaleString('en-IN')}`;
+const formatCurrency = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
 // ============ ATOMS ============
 

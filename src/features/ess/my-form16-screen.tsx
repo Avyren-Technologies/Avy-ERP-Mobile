@@ -1,6 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -52,7 +53,7 @@ export function MyForm16Screen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
             <AppTopHeader title="My Form-16" onMenuPress={open} />
-            <FlatList
+            <FlashList
                 data={records}
                 keyExtractor={(item) => item.id ?? item.financialYear ?? String(item.year)}
                 renderItem={renderItem}

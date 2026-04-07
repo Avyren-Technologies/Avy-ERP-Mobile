@@ -4,13 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -221,7 +221,7 @@ export function AnnouncementsScreen() {
             </Animated.View>
 
             {/* Announcement list */}
-            <FlatList
+            <FlashList
                 data={filteredAnnouncements}
                 renderItem={({ item, index }) => <AnnouncementCard item={item} index={index} />}
                 keyExtractor={(item) => item.id}

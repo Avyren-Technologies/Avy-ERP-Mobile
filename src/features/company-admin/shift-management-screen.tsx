@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Modal,
     Pressable,
     ScrollView,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -348,7 +348,7 @@ export function ShiftManagementScreen() {
             ) : filtered.length === 0 ? (
                 <View style={{ paddingTop: 60, alignItems: 'center' }}><EmptyState icon="list" title="No shifts found" message="Add your first shift to get started." /></View>
             ) : (
-                <FlatList
+                <FlashList
                     data={filtered}
                     keyExtractor={(item) => item.id}
                     renderItem={renderShiftCard}

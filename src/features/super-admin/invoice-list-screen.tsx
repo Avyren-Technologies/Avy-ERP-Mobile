@@ -3,13 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -327,7 +327,7 @@ export function InvoiceListScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <FlatList
+            <FlashList
                 data={invoices}
                 renderItem={renderInvoice}
                 keyExtractor={(item) => item.id}

@@ -1,7 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -10,6 +9,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -224,7 +224,7 @@ export function ShiftSwapScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
             <AppTopHeader title="Shift Swap Requests" onMenuPress={open} />
-            <FlatList
+            <FlashList
                 data={swaps}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}

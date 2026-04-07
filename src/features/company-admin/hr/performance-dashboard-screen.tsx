@@ -2,12 +2,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -290,7 +290,7 @@ export function PerformanceDashboardScreen() {
                     <Text className="font-inter text-white text-lg font-bold ml-3">Performance Dashboard</Text>
                 </View>
             </LinearGradient>
-            <FlatList
+            <FlashList
                 data={[]}
                 renderItem={() => null}
                 ListHeaderComponent={renderContent}

@@ -2,12 +2,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
@@ -181,6 +181,7 @@ function ModuleCard({
                 {item.description}
             </Text>
 
+            {/* Pricing hidden — uncomment when pricing is finalized
             <View style={styles.cardFooter}>
                 <Text className="font-inter text-lg font-bold text-primary-700">
                     {formatPrice(item.price, item.currency)}
@@ -189,6 +190,7 @@ function ModuleCard({
                     /{item.billingCycle || 'month'}
                 </Text>
             </View>
+            */}
 
             {/* Module Actions */}
             {locationModules.length > 0 && (
@@ -362,7 +364,7 @@ export function ModuleCatalogueScreen() {
                     icon="list"
                 />
             ) : (
-                <FlatList
+                <FlashList
                     data={modules}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item, index }) => (

@@ -107,8 +107,8 @@ function SlabTable({ slabs, onUpdate, onAdd, onRemove }: {
         <View>
             {/* Header */}
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
-                <Text className="flex-1 font-inter text-[10px] font-bold text-neutral-400">From (\u20B9)</Text>
-                <Text className="flex-1 font-inter text-[10px] font-bold text-neutral-400">To (\u20B9)</Text>
+                <Text className="flex-1 font-inter text-[10px] font-bold text-neutral-400">From (₹)</Text>
+                <Text className="flex-1 font-inter text-[10px] font-bold text-neutral-400">To (₹)</Text>
                 <Text style={{ width: 60 }}><Text className="font-inter text-[10px] font-bold text-neutral-400">Rate %</Text></Text>
                 <View style={{ width: 24 }} />
             </View>
@@ -263,7 +263,7 @@ export function TaxConfigScreen() {
                         {form.surchargeRates.length > 0 ? (
                             <>
                                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
-                                    <Text className="flex-1 font-inter text-[10px] font-bold text-neutral-400">Threshold (\u20B9)</Text>
+                                    <Text className="flex-1 font-inter text-[10px] font-bold text-neutral-400">Threshold (₹)</Text>
                                     <Text style={{ width: 80 }}><Text className="font-inter text-[10px] font-bold text-neutral-400">Rate %</Text></Text>
                                     <View style={{ width: 24 }} />
                                 </View>

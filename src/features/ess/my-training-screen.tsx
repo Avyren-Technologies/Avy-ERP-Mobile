@@ -1,6 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
-import { FlatList, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -250,7 +251,7 @@ export function MyTrainingScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
             <AppTopHeader title="My Training" onMenuPress={open} />
-            <FlatList
+            <FlashList
                 data={trainings}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}

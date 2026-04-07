@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -269,7 +269,7 @@ export function SupportTicketDetailScreen() {
     const [messageText, setMessageText] = React.useState('');
     const [showRejectInput, setShowRejectInput] = React.useState(false);
     const [rejectReason, setRejectReason] = React.useState('');
-    const flatListRef = React.useRef<FlatList>(null);
+    const flatListRef = React.useRef<FlashListRef<any>>(null);
 
     const ticket = ticketQuery.data?.data ?? ticketQuery.data ?? null;
     const messages = ticket?.messages ?? ticket?.conversation ?? [];
@@ -421,7 +421,7 @@ export function SupportTicketDetailScreen() {
             )}
 
             {/* Chat messages */}
-            <FlatList
+            <FlashList
                 ref={flatListRef}
                 data={messageList}
                 keyExtractor={(item, i) => item.id ?? String(i)}

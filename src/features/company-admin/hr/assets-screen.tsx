@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -399,7 +399,7 @@ function AssetCard({ item, index, onEdit }: {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                     <ConditionBadge condition={item.condition} />
                     {item.serialNumber ? <Text className="font-inter text-xs text-neutral-400">S/N: {item.serialNumber}</Text> : null}
-                    {item.purchaseCost > 0 && <Text className="font-inter text-xs text-neutral-400">{'\u20B9'}{item.purchaseCost.toLocaleString('en-IN')}</Text>}
+                    {item.purchaseCost > 0 && <Text className="font-inter text-xs text-neutral-400">{'₹'}{item.purchaseCost.toLocaleString('en-IN')}</Text>}
                 </View>
             </Pressable>
         </Animated.View>
@@ -623,7 +623,7 @@ export function AssetsScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Assets" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={activeData} renderItem={renderItem} keyExtractor={(item: any) => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

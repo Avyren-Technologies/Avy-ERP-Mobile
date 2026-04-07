@@ -122,41 +122,49 @@ function AppSidebar() {
     usePermissionRefresh();
 
     /**
-     * Build sidebar sections entirely from the navigation manifest API.
-     * All roles (including super admin) are served by the manifest.
-     * Returns empty array while the manifest is loading (<200ms).
+     * Build sidebar sections from the navigation manifest API.
+     * Structure only rebuilds when manifestData changes (not on every navigation).
+     * Active state is computed separately via pathname to avoid full rebuild.
      */
-    const sections: SidebarSection[] = React.useMemo(() => {
+    const baseSections = React.useMemo(() => {
         const rawManifest = (manifestData as any)?.data ?? manifestData;
-        if (Array.isArray(rawManifest) && rawManifest.length > 0) {
-            return rawManifest.map((section: any) => ({
-                moduleSeparator: section.moduleSeparator,
-                title: section.group === 'Overview' ? undefined : section.group,
-                items: section.items.map((item: any) => ({
-                    id: item.id,
-                    label: item.label,
-                    icon: mapManifestIcon(item.icon),
-                    isActive: isPathActive(pathname, item.path) || (item.children ?? []).some((child: any) => isPathActive(pathname, child.path)),
-                    children: (item.children ?? []).map((child: any) => ({
-                        label: child.label,
-                        path: child.path,
-                        isActive: isPathActive(pathname, child.path),
-                        onPress: () => {
-                            const childMobilePath = toMobileRoutePath(child.path);
-                            router.push(childMobilePath as any);
-                        },
-                    })),
-                    onPress: () => {
-                        const mobilePath = toMobileRoutePath(item.path);
-                        router.push(mobilePath as any);
-                    },
+        if (!Array.isArray(rawManifest) || rawManifest.length === 0) return [];
+        return rawManifest.map((section: any) => ({
+            moduleSeparator: section.moduleSeparator,
+            title: section.group === 'Overview' ? undefined : section.group,
+            items: section.items.map((item: any) => ({
+                id: item.id,
+                label: item.label,
+                icon: mapManifestIcon(item.icon),
+                path: item.path,
+                childPaths: (item.children ?? []).map((c: any) => c.path),
+                children: (item.children ?? []).map((child: any) => ({
+                    label: child.label,
+                    path: child.path,
                 })),
-            })).filter((s: any) => s.items.length > 0);
-        }
+            })),
+        })).filter((s: any) => s.items.length > 0);
+    }, [manifestData]);
 
-        // Loading state — show empty sidebar while manifest fetches
-        return [];
-    }, [pathname, router, manifestData]);
+    // Compute active state + onPress separately — only pathname causes this to update
+    const sections: SidebarSection[] = React.useMemo(() => {
+        return baseSections.map((section: any) => ({
+            ...section,
+            items: section.items.map((item: any) => ({
+                id: item.id,
+                label: item.label,
+                icon: item.icon,
+                isActive: isPathActive(pathname, item.path) || item.childPaths.some((cp: string) => isPathActive(pathname, cp)),
+                children: item.children.map((child: any) => ({
+                    label: child.label,
+                    path: child.path,
+                    isActive: isPathActive(pathname, child.path),
+                    onPress: () => router.push(toMobileRoutePath(child.path) as any),
+                })),
+                onPress: () => router.push(toMobileRoutePath(item.path) as any),
+            })),
+        }));
+    }, [baseSections, pathname, router]);
 
     return (
         <Sidebar
@@ -354,17 +362,25 @@ function TabLayoutInner() {
             const isEnrolled = await LocalAuthentication.isEnrolledAsync();
             if (!hasHardware || !isEnrolled) return;
 
-            // Check company setting
-            try {
-                const response = await client.get('/auth/security-settings');
-                const data = response as any;
-                if (!data?.data?.biometricLoginEnabled) return;
-            } catch {
-                return;
+            // Check company setting — use cached value first, only fetch once
+            const cacheKey = 'biometric_company_setting';
+            const cached = getItem<boolean>(cacheKey);
+            if (cached === false) return; // Previously checked: not enabled
+            if (cached !== true) {
+                // Not cached yet — fetch from API once
+                try {
+                    const response = await client.get('/auth/security-settings');
+                    const data = response as any;
+                    const enabled = !!data?.data?.biometricLoginEnabled;
+                    setItem(cacheKey, enabled);
+                    if (!enabled) return;
+                } catch {
+                    return;
+                }
             }
 
             // Show prompt after a short delay
-            setTimeout(() => setShowBiometricPrompt(true), 1500);
+            setTimeout(() => setShowBiometricPrompt(true), 500);
         }
         checkBiometric();
     }, [status, isSuperAdmin]);

@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -499,7 +499,7 @@ export function IOTReasonManagementScreen() {
             {/* Header */}
             <AppTopHeader title="IOT Reason Management" onMenuPress={toggle} />
 
-            <FlatList
+            <FlashList
                 data={reasons}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

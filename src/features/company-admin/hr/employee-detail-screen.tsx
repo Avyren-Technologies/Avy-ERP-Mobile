@@ -869,20 +869,20 @@ function SalaryTab({
                         <View key={key} style={st.breakdownRow}>
                             <Text className="font-inter text-xs text-neutral-700" style={{ flex: 1 }} numberOfLines={1}>{key}</Text>
                             <Text className="font-inter text-xs font-semibold text-primary-950" style={{ width: 80, textAlign: 'right' }}>
-                                {typeof val === 'number' ? `\u20B9${Math.round(val / 12).toLocaleString('en-IN')}` : '\u2014'}
+                                {typeof val === 'number' ? `₹${Math.round(val / 12).toLocaleString('en-IN')}` : '\u2014'}
                             </Text>
                             <Text className="font-inter text-xs font-semibold text-primary-950" style={{ width: 80, textAlign: 'right' }}>
-                                {typeof val === 'number' ? `\u20B9${val.toLocaleString('en-IN')}` : String(val)}
+                                {typeof val === 'number' ? `₹${val.toLocaleString('en-IN')}` : String(val)}
                             </Text>
                         </View>
                     ))}
                     <View style={st.breakdownTotalRow}>
                         <Text className="font-inter text-xs font-bold text-primary-800" style={{ flex: 1 }}>Total</Text>
                         <Text className="font-inter text-xs font-bold text-primary-800" style={{ width: 80, textAlign: 'right' }}>
-                            {`\u20B9${Math.round(Object.values(form.salaryStructure).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0) / 12).toLocaleString('en-IN')}`}
+                            {`₹${Math.round(Object.values(form.salaryStructure).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0) / 12).toLocaleString('en-IN')}`}
                         </Text>
                         <Text className="font-inter text-xs font-bold text-primary-800" style={{ width: 80, textAlign: 'right' }}>
-                            {`\u20B9${Object.values(form.salaryStructure).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0).toLocaleString('en-IN')}`}
+                            {`₹${Object.values(form.salaryStructure).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0).toLocaleString('en-IN')}`}
                         </Text>
                     </View>
                 </View>

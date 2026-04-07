@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -432,7 +432,7 @@ export function ContactManagementScreen() {
             {/* Header */}
             <AppTopHeader title="Contact Management" onMenuPress={toggle} />
 
-            <FlatList
+            <FlashList
                 data={contacts}
                 renderItem={renderContact}
                 keyExtractor={item => item.id}

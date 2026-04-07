@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -13,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -477,7 +477,7 @@ function CatalogueCard({ item, index, onEdit, onDelete }: {
                         <Text className="font-inter text-xs text-neutral-500">{item.durationHours}h</Text>
                     )}
                     {item.cost > 0 && (
-                        <Text className="font-inter text-xs text-neutral-400">{'\u20B9'}{item.cost.toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-xs text-neutral-400">{'₹'}{item.cost.toLocaleString('en-IN')}</Text>
                     )}
                 </View>
                 <View style={styles.cardFooter}>
@@ -1341,15 +1341,15 @@ function BudgetInfoSection() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <View>
                         <Text className="font-inter text-[10px] text-neutral-500">Allocated</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{'\u20B9'}{totalAllocated.toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{totalAllocated.toLocaleString('en-IN')}</Text>
                     </View>
                     <View style={{ alignItems: 'center' }}>
                         <Text className="font-inter text-[10px] text-neutral-500">Used</Text>
-                        <Text className="font-inter text-sm font-bold text-warning-700">{'\u20B9'}{totalUsed.toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-sm font-bold text-warning-700">{'₹'}{totalUsed.toLocaleString('en-IN')}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                         <Text className="font-inter text-[10px] text-neutral-500">Remaining</Text>
-                        <Text className="font-inter text-sm font-bold text-success-700">{'\u20B9'}{remaining.toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-sm font-bold text-success-700">{'₹'}{remaining.toLocaleString('en-IN')}</Text>
                     </View>
                 </View>
             </View>
@@ -1739,7 +1739,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Training" onMenuPress={toggle} />
-            <FlatList
+            <FlashList
                 data={activeData} renderItem={renderItem} keyExtractor={(item: any) => item.id}
                 ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}

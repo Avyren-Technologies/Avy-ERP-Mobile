@@ -4,13 +4,13 @@ import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -368,7 +368,7 @@ export function SupportDashboardScreen() {
                 </View>
             </LinearGradient>
 
-            <FlatList
+            <FlashList
                 data={ticketList}
                 keyExtractor={(item) => item.id}
                 renderItem={renderTicket}

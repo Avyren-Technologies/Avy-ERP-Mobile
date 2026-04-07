@@ -38,10 +38,7 @@ export default function RootLayout() {
 
   React.useEffect(() => {
     if (status !== 'idle') {
-      const timer = setTimeout(async () => {
-        await SplashScreen.hideAsync();
-      }, 1000);
-      return () => clearTimeout(timer);
+      SplashScreen.hideAsync();
     }
   }, [status]);
 

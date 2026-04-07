@@ -3,13 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-  FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -213,7 +213,7 @@ export function ClearanceDashboardScreen() {
       ) : clearances.length === 0 ? (
         <EmptyState title="No clearances" message="Select an exit request to view clearance status" />
       ) : (
-        <FlatList
+        <FlashList
           data={clearances}
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => (

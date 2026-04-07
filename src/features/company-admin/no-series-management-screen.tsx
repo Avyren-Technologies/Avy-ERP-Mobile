@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    FlatList,
     Modal,
     Pressable,
     RefreshControl,
@@ -12,6 +11,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, {
     FadeInDown,
     FadeInUp,
@@ -519,7 +519,7 @@ export function NoSeriesManagementScreen() {
             {/* Header */}
             <AppTopHeader title="No. Series Management" onMenuPress={toggle} />
 
-            <FlatList
+            <FlashList
                 data={noSeries}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}

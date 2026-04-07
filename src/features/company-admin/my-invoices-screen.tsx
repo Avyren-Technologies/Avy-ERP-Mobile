@@ -2,13 +2,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -354,7 +354,7 @@ export function MyInvoicesScreen() {
                     icon="list"
                 />
             ) : (
-                <FlatList
+                <FlashList
                     data={invoices}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item, index }) => (

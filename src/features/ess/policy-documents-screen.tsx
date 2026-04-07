@@ -1,13 +1,13 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as React from 'react';
 import {
-    FlatList,
     Linking,
     Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -62,7 +62,7 @@ export function PolicyDocumentsScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.white }}>
             <AppTopHeader title="Policy Documents" onMenuPress={open} />
-            <FlatList
+            <FlashList
                 data={documents}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}

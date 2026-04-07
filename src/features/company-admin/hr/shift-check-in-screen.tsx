@@ -377,10 +377,25 @@ export function ShiftCheckInScreen() {
         else if (slideMode === 'checkout') checkOutMut.mutate();
     }, [slideMode]);
 
+    // Location & geofence info — available both before and after check-in
+    const locationInfo = record?.location ?? (statusData as any)?.location ?? null;
+    const assignedGeofence = (statusData as any)?.assignedGeofence ?? null;
+    const locationGeofences: any[] = (statusData as any)?.location?.geofences ?? [];
+
     // Geo status
-    const geoLabel = record?.geoStatus === 'INSIDE_GEOFENCE' ? 'Inside geofence' : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? 'Outside geofence' : geo ? 'Location acquired' : 'No location';
-    const geoColor = record?.geoStatus === 'INSIDE_GEOFENCE' ? colors.success[600] : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? colors.warning[600] : colors.neutral[500];
-    const geoBg = record?.geoStatus === 'INSIDE_GEOFENCE' ? colors.success[50] : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? colors.warning[50] : colors.neutral[100];
+    const geoLabel = record?.geoStatus === 'INSIDE_GEOFENCE' ? 'Inside geofence'
+        : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? 'Outside geofence'
+        : assignedGeofence ? `Geofence: ${assignedGeofence.name}`
+        : locationGeofences.length > 0 ? `${locationGeofences.length} geofence(s)`
+        : geo ? 'Location acquired' : 'No location';
+    const geoColor = record?.geoStatus === 'INSIDE_GEOFENCE' ? colors.success[600]
+        : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? colors.warning[600]
+        : (assignedGeofence || locationGeofences.length > 0) ? colors.primary[600]
+        : colors.neutral[500];
+    const geoBg = record?.geoStatus === 'INSIDE_GEOFENCE' ? colors.success[50]
+        : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? colors.warning[50]
+        : (assignedGeofence || locationGeofences.length > 0) ? colors.primary[50]
+        : colors.neutral[100];
 
     return (
         <View style={$.root}>
@@ -478,8 +493,8 @@ export function ShiftCheckInScreen() {
                     {/* Location */}
                     <Card icon={<MapPinIcon s={16} c={colors.accent[600]} />} title="Location" delay={400}>
                         <View style={{ gap: 8 }}>
-                            {record?.location && (
-                                <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{record.location.name}</Text>
+                            {locationInfo && (
+                                <Text className="font-inter text-sm font-semibold" style={{ color: colors.primary[950] }}>{locationInfo.name}</Text>
                             )}
                             <View style={[$.geoPill, { backgroundColor: geoBg }]}>
                                 {record?.geoStatus === 'INSIDE_GEOFENCE' ? <ShieldIcon /> : record?.geoStatus === 'OUTSIDE_GEOFENCE' ? <WarnIcon /> : <MapPinIcon s={14} c={geoColor} />}

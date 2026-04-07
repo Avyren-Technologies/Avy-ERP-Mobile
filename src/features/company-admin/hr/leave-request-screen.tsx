@@ -3,7 +3,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+<<<<<<< HEAD
+=======
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+>>>>>>> e62c336 (feat: redesign apply leave modal with full-screen layout, date pickers, and improved validation logic)
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -24,12 +32,14 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { DatePickerField } from '@/components/ui/date-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
+import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
     useApproveLeaveRequest,
@@ -169,15 +179,16 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 // ============ APPLY LEAVE MODAL ============
 
 function ApplyLeaveModal({
-    visible, onClose, onSave, isSaving, employeeOptions, leaveTypeOptions,
+    visible, onClose, onSave, isSaving, leaveTypeOptions, defaultEmployeeId,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     isSaving: boolean;
-    employeeOptions: { id: string; label: string }[];
     leaveTypeOptions: { id: string; label: string }[];
+    defaultEmployeeId: string;
 }) {
     const insets = useSafeAreaInsets();
+    const user = useAuthStore.use.user();
     const [employeeId, setEmployeeId] = React.useState('');
     const [leaveTypeId, setLeaveTypeId] = React.useState('');
     const [fromDate, setFromDate] = React.useState('');
@@ -188,25 +199,50 @@ function ApplyLeaveModal({
 
     React.useEffect(() => {
         if (visible) {
-            setEmployeeId(''); setLeaveTypeId(''); setFromDate(''); setToDate('');
+            setEmployeeId(defaultEmployeeId || ''); 
+            setLeaveTypeId(''); setFromDate(''); setToDate('');
             setHalfDay(false); setHalfDayType('First Half'); setReason('');
         }
-    }, [visible]);
+    }, [visible, defaultEmployeeId]);
+
+    // Ensure employeeId updates if the loading finished after modal opened
+    React.useEffect(() => {
+        if (defaultEmployeeId && !employeeId) {
+            setEmployeeId(defaultEmployeeId);
+        }
+    }, [defaultEmployeeId, employeeId]);
 
     const calcDays = React.useMemo(() => {
         if (!fromDate || !toDate) return 0;
         const from = new Date(fromDate);
         const to = new Date(toDate);
-        if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return 0;
+        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from) return 0;
         const diff = Math.floor((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         return halfDay ? 0.5 : diff;
     }, [fromDate, toDate, halfDay]);
 
     const handleSave = () => {
-        if (!employeeId || !leaveTypeId || !fromDate || !toDate || !reason.trim()) return;
+        const missing = [];
+        if (!employeeId) missing.push('Employee ID');
+        if (!leaveTypeId) missing.push('Leave Type');
+        if (!fromDate) missing.push('From Date');
+        if (!toDate) missing.push('To Date');
+        if (!reason.trim()) missing.push('Reason');
+        if (calcDays <= 0 && fromDate && toDate) missing.push('Valid duration');
+
+        if (missing.length > 0) {
+            Alert.alert('Missing Information', `Please fill in: ${missing.join(', ')}`);
+            return;
+        }
+        
+        // Map UI labels to backend enums
+        const mappedHalfDayType = halfDay 
+            ? (halfDayType === 'First Half' ? 'FIRST_HALF' : 'SECOND_HALF')
+            : 'FIRST_HALF';
+
         onSave({
             employeeId, leaveTypeId, fromDate, toDate,
-            halfDay, halfDayType: halfDay ? halfDayType : '',
+            halfDay, halfDayType: mappedHalfDayType,
             days: calcDays, reason: reason.trim(),
         });
     };
@@ -214,53 +250,76 @@ function ApplyLeaveModal({
     const isValid = employeeId && leaveTypeId && fromDate && toDate && reason.trim() && calcDays > 0;
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Apply Leave</Text>
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
-                        <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Select employee..." required />
-                        <Dropdown label="Leave Type" value={leaveTypeId} options={leaveTypeOptions} onSelect={setLeaveTypeId} placeholder="Select leave type..." required />
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
-                            <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">From Date <Text className="text-danger-500">*</Text></Text>
-                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={fromDate} onChangeText={setFromDate} /></View>
-                            </View>
-                            <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">To Date <Text className="text-danger-500">*</Text></Text>
-                                <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={toDate} onChangeText={setToDate} /></View>
+        <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
+            <View style={{ flex: 1, backgroundColor: colors.white }}>
+                <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
+                    <Pressable onPress={onClose} style={styles.backBtn}>
+                        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M15 18l-6-6 6-6" stroke={colors.primary[700]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    </Pressable>
+                    <Text className="font-inter text-lg font-bold text-primary-950 uppercase tracking-tighter">Apply Leave</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 60 }}>
+                        <View style={styles.fieldWrap}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 uppercase">EMPLOYEE NAME</Text>
+                            <View style={[styles.inputWrap, { backgroundColor: colors.neutral[100] }]}>
+                                <Text className="font-inter text-sm font-semibold text-primary-950">
+                                    {user?.firstName} {user?.lastName}
+                                </Text>
                             </View>
                         </View>
+                        
+                        <Dropdown label="LEAVE TYPE" value={leaveTypeId} options={leaveTypeOptions} onSelect={setLeaveTypeId} placeholder="SELECT LEAVE TYPE" required />
+                        
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={{ flex: 1 }}>
+                                <DatePickerField label="FROM DATE" value={fromDate} onChange={setFromDate} required />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <DatePickerField label="TO DATE" value={toDate} onChange={setToDate} required />
+                            </View>
+                        </View>
+
                         <View style={styles.toggleRow}>
-                            <View style={{ flex: 1, marginRight: 12 }}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950">Half Day</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-sm font-bold text-primary-950 uppercase">Half Day Application</Text>
+                                <Text className="font-inter text-[10px] text-neutral-400">APPLY FOR ONLY HALF THE DAY</Text>
                             </View>
                             <Switch value={halfDay} onValueChange={setHalfDay} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={halfDay ? colors.primary[600] : colors.neutral[300]} />
                         </View>
+
                         {halfDay && (
-                            <ChipSelector label="Half Day Type" options={['First Half', 'Second Half']} value={halfDayType} onSelect={v => setHalfDayType(v as HalfDayType)} />
+                            <ChipSelector label="HALF DAY TYPE" options={['First Half', 'Second Half']} value={halfDayType} onSelect={v => setHalfDayType(v as HalfDayType)} />
                         )}
-                        {calcDays > 0 && (
-                            <View style={styles.calcDaysBadge}>
-                                <Text className="font-inter text-sm font-bold text-primary-700">{calcDays} day{calcDays !== 1 ? 's' : ''}</Text>
-                            </View>
-                        )}
+
+                        <View style={styles.calcDaysBadge}>
+                            <Text className="font-inter text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">Total Duration</Text>
+                            <Text className="font-inter text-2xl font-bold text-primary-700">{calcDays} <Text className="text-sm">Days</Text></Text>
+                        </View>
+
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reason <Text className="text-danger-500">*</Text></Text>
-                            <View style={[styles.inputWrap, { height: 80 }]}>
-                                <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Reason for leave..." placeholderTextColor={colors.neutral[400]} value={reason} onChangeText={setReason} multiline numberOfLines={3} />
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-tighter">REASON FOR LEAVE <Text className="text-danger-500">*</Text></Text>
+                            <View style={[styles.inputWrap, { height: 100, borderRadius: 16 }]}>
+                                <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="DESCRIBE THE REASON..." placeholderTextColor={colors.neutral[400]} value={reason} onChangeText={setReason} multiline numberOfLines={4} />
                             </View>
                         </View>
+
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                            <Pressable onPress={onClose} style={styles.cancelBtn}>
+                                <Text className="font-inter text-sm font-bold text-neutral-500 uppercase">Discard</Text>
+                            </Pressable>
+                            <Pressable 
+                                onPress={handleSave} 
+                                style={[styles.saveBtn, isSaving && { opacity: 0.7 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white uppercase">
+                                    {isSaving ? 'Submitting...' : 'Submit Request'}
+                                </Text>
+                            </Pressable>
+                        </View>
                     </ScrollView>
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
-                        <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
-                            <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Submitting...' : 'Apply Leave'}</Text>
-                        </Pressable>
-                    </View>
-                </View>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -330,7 +389,7 @@ function RequestCard({
                 <View style={styles.dateRow}>
                     <View style={styles.dateChip}>
                         <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                        <Text className="font-inter text-xs text-neutral-600">{item.fromDate} to {item.toDate}</Text>
+                        <Text className="font-inter text-xs text-neutral-600">{item.fromDate.split('T')[0]} to {item.toDate.split('T')[0]}</Text>
                     </View>
                     <View style={styles.daysBadge}>
                         <Text className="font-inter text-xs font-bold text-primary-600">{item.days}d</Text>
@@ -401,11 +460,29 @@ export function LeaveRequestScreen() {
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<'All' | RequestStatus>('All');
 
+    const user = useAuthStore.use.user();
+    
     const mapOptions = (resp: any) => {
         const raw = (resp as any)?.data ?? resp ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
     };
+
+    const currentEmployeeId = React.useMemo(() => {
+        const raw = (empResponse as any)?.data ?? empResponse ?? [];
+        if (!Array.isArray(raw)) return '';
+        // 1. Try match by email
+        let match = raw.find((e: any) => e.email?.toLowerCase() === user?.email?.toLowerCase());
+        // 2. Try match by name
+        if (!match) {
+            const userName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim().toLowerCase();
+            match = raw.find((e: any) => `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim().toLowerCase() === userName);
+        }
+        // 3. Last fallback: if only 1 person, use them
+        if (!match && raw.length === 1) match = raw[0];
+        
+        return match?.id || '';
+    }, [empResponse, user]);
 
     const leaveTypeOptions = React.useMemo(() => mapOptions(ltResponse), [ltResponse]);
     const employeeOptions = React.useMemo(() => {
@@ -517,9 +594,7 @@ export function LeaveRequestScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Leave Requests</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{requests.length} request{requests.length !== 1 ? 's' : ''}</Text>
-            <View style={{ marginTop: 16 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by employee or leave type..." /></View>
+            <View style={{ marginTop: 0 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search requests..." /></View>
             {/* Status filter chips */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }} contentContainerStyle={{ gap: 8 }}>
                 {STATUS_FILTERS.map(s => {
@@ -556,7 +631,14 @@ export function LeaveRequestScreen() {
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
             <FAB onPress={() => setFormVisible(true)} />
-            <ApplyLeaveModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleApplyLeave} isSaving={createMutation.isPending} employeeOptions={employeeOptions} leaveTypeOptions={leaveTypeOptions} />
+            <ApplyLeaveModal 
+                visible={formVisible} 
+                onClose={() => setFormVisible(false)} 
+                onSave={handleApplyLeave} 
+                isSaving={createMutation.isPending} 
+                leaveTypeOptions={leaveTypeOptions} 
+                defaultEmployeeId={currentEmployeeId}
+            />
             <RejectionNoteModal visible={rejectionModalVisible} onClose={() => setRejectionModalVisible(false)} onSubmit={handleRejectSubmit} isSubmitting={rejectMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>
@@ -567,8 +649,9 @@ export function LeaveRequestScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.gradient.surface },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {

@@ -309,6 +309,25 @@ export const companyAdminApi = {
   removeLocationModule: (locationId: string, moduleId: string) =>
     client.delete(`/company/locations/${locationId}/modules/${moduleId}`),
 
+  // ── Geofences ─────────────────────────────────────────────────────
+  listGeofences: (locationId: string) =>
+    client.get(`/company/locations/${locationId}/geofences`),
+
+  listGeofencesForDropdown: (locationId: string) =>
+    client.get('/company/geofences', { params: { locationId } }),
+
+  createGeofence: (locationId: string, data: Record<string, unknown>) =>
+    client.post(`/company/locations/${locationId}/geofences`, data),
+
+  updateGeofence: (locationId: string, id: string, data: Record<string, unknown>) =>
+    client.patch(`/company/locations/${locationId}/geofences/${id}`, data),
+
+  deleteGeofence: (locationId: string, id: string) =>
+    client.delete(`/company/locations/${locationId}/geofences/${id}`),
+
+  setDefaultGeofence: (locationId: string, id: string) =>
+    client.patch(`/company/locations/${locationId}/geofences/${id}/default`),
+
   // ── Navigation Manifest ──
   getNavigationManifest: () => client.get('/rbac/navigation-manifest'),
 };

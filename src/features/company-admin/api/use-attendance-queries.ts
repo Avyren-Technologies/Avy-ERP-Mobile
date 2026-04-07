@@ -16,7 +16,7 @@ export const attendanceKeys = {
 
   // Attendance Records
   records: (params?: AttendanceListParams) =>
-    [...attendanceKeys.all, 'records', params] as const,
+    params ? [...attendanceKeys.all, 'records', params] as const : [...attendanceKeys.all, 'records'] as const,
   record: (id: string) => [...attendanceKeys.all, 'record', id] as const,
 
   // Summary / Dashboard
@@ -27,15 +27,15 @@ export const attendanceKeys = {
 
   // Overrides
   overrides: (params?: AttendanceOverrideListParams) =>
-    [...attendanceKeys.all, 'overrides', params] as const,
+    params ? [...attendanceKeys.all, 'overrides', params] as const : [...attendanceKeys.all, 'overrides'] as const,
 
   // Holidays
   holidays: (params?: HolidayListParams) =>
-    [...attendanceKeys.all, 'holidays', params] as const,
+    params ? [...attendanceKeys.all, 'holidays', params] as const : [...attendanceKeys.all, 'holidays'] as const,
 
   // Rosters
   rosters: (params?: RosterListParams) =>
-    [...attendanceKeys.all, 'rosters', params] as const,
+    params ? [...attendanceKeys.all, 'rosters', params] as const : [...attendanceKeys.all, 'rosters'] as const,
 
   // Overtime Rules
   overtimeRules: () => [...attendanceKeys.all, 'overtime-rules'] as const,

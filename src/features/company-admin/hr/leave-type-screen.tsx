@@ -386,33 +386,57 @@ export function LeaveTypeScreen() {
     const leaveTypes: LeaveTypeItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? '',
-            name: item.name ?? '',
-            code: item.code ?? '',
-            category: item.category ?? 'Paid',
-            annualEntitlement: item.annualEntitlement ?? 0,
-            accrualFrequency: item.accrualFrequency ?? 'Monthly',
-            accrualDay: item.accrualDay ?? 1,
-            carryForwardEnabled: item.carryForwardEnabled ?? false,
-            carryForwardMaxDays: item.carryForwardMaxDays ?? 0,
-            encashmentEnabled: item.encashmentEnabled ?? false,
-            encashmentMaxDays: item.encashmentMaxDays ?? 0,
-            encashmentRate: item.encashmentRate ?? 'Basic',
-            applicableEmployeeTypes: item.applicableEmployeeTypes ?? [],
-            genderApplicability: item.genderApplicability ?? 'All',
-            probationRestricted: item.probationRestricted ?? false,
-            minAdvanceNotice: item.minAdvanceNotice ?? 0,
-            minDays: item.minDays ?? 1,
-            maxDays: item.maxDays ?? 30,
-            allowHalfDay: item.allowHalfDay ?? true,
-            weekendSandwich: item.weekendSandwich ?? false,
-            holidaySandwich: item.holidaySandwich ?? false,
-            documentRequired: item.documentRequired ?? false,
-            documentAfterDays: item.documentAfterDays ?? 3,
-            lopOnExcess: item.lopOnExcess ?? true,
-            status: item.status ?? 'Active',
-        }));
+        return raw.map((item: any) => {
+            let cat = item.category ?? 'Paid';
+            if (cat === 'PAID') cat = 'Paid';
+            else if (cat === 'UNPAID') cat = 'Unpaid';
+            else if (cat === 'COMPENSATORY') cat = 'Compensatory';
+            else if (cat === 'STATUTORY') cat = 'Statutory';
+
+            let freq = item.accrualFrequency ?? 'Monthly';
+            if (freq === 'MONTHLY') freq = 'Monthly';
+            else if (freq === 'QUARTERLY') freq = 'Quarterly';
+            else if (freq === 'ANNUAL') freq = 'Annual';
+            else if (freq === 'PRO_RATA') freq = 'Pro-rata';
+            else if (freq === 'UPFRONT') freq = 'Upfront';
+
+            let encRate = item.encashmentRate ?? 'Basic';
+            if (encRate === 'BASIC') encRate = 'Basic';
+            else if (encRate === 'GROSS') encRate = 'Gross';
+
+            let gen = item.genderApplicability ?? 'All';
+            if (gen === 'ALL') gen = 'All';
+            else if (gen === 'MALE') gen = 'Male';
+            else if (gen === 'FEMALE') gen = 'Female';
+
+            return {
+                id: item.id ?? '',
+                name: item.name ?? '',
+                code: item.code ?? '',
+                category: cat,
+                annualEntitlement: item.annualEntitlement ?? 0,
+                accrualFrequency: freq,
+                accrualDay: item.accrualDay ?? 1,
+                carryForwardEnabled: item.carryForwardEnabled ?? item.carryForwardAllowed ?? false,
+                carryForwardMaxDays: item.carryForwardMaxDays ?? item.maxCarryForwardDays ?? 0,
+                encashmentEnabled: item.encashmentEnabled ?? item.encashmentAllowed ?? false,
+                encashmentMaxDays: item.encashmentMaxDays ?? item.maxEncashableDays ?? 0,
+                encashmentRate: encRate,
+                applicableEmployeeTypes: item.applicableEmployeeTypes ?? item.applicableTypeIds ?? [],
+                genderApplicability: gen,
+                probationRestricted: item.probationRestricted ?? false,
+                minAdvanceNotice: item.minAdvanceNotice ?? 0,
+                minDays: item.minDays ?? item.minDaysPerApplication ?? 1,
+                maxDays: item.maxDays ?? item.maxConsecutiveDays ?? 30,
+                allowHalfDay: item.allowHalfDay ?? true,
+                weekendSandwich: item.weekendSandwich ?? false,
+                holidaySandwich: item.holidaySandwich ?? false,
+                documentRequired: item.documentRequired ?? false,
+                documentAfterDays: item.documentAfterDays ?? 3,
+                lopOnExcess: item.lopOnExcess ?? true,
+                status: item.status ?? 'Active',
+            };
+        });
     }, [response]);
 
     const filtered = React.useMemo(() => {
@@ -435,10 +459,37 @@ export function LeaveTypeScreen() {
     };
 
     const handleSave = (data: Omit<LeaveTypeItem, 'id'>) => {
+        const payload = {
+            name: data.name,
+            code: data.code,
+            category: data.category.toUpperCase(),
+            annualEntitlement: data.annualEntitlement,
+            accrualFrequency: data.accrualFrequency === 'Pro-rata' ? 'PRO_RATA' : data.accrualFrequency.toUpperCase(),
+            accrualDay: data.accrualDay,
+            carryForwardAllowed: data.carryForwardEnabled,
+            maxCarryForwardDays: data.carryForwardMaxDays,
+            encashmentAllowed: data.encashmentEnabled,
+            maxEncashableDays: data.encashmentMaxDays,
+            encashmentRate: data.encashmentRate.toUpperCase(),
+            applicableTypeIds: data.applicableEmployeeTypes,
+            applicableGender: data.genderApplicability.toUpperCase(),
+            probationRestricted: data.probationRestricted,
+            minAdvanceNotice: data.minAdvanceNotice,
+            minDaysPerApplication: data.minDays,
+            maxConsecutiveDays: data.maxDays,
+            allowHalfDay: data.allowHalfDay,
+            weekendSandwich: data.weekendSandwich,
+            holidaySandwich: data.holidaySandwich,
+            documentRequired: data.documentRequired,
+            documentAfterDays: data.documentAfterDays,
+            lopOnExcess: data.lopOnExcess,
+            status: data.status,
+        };
+
         if (editingItem) {
-            updateMutation.mutate({ id: editingItem.id, data: data as unknown as Record<string, unknown> }, { onSuccess: () => setFormVisible(false) });
+            updateMutation.mutate({ id: editingItem.id, data: payload }, { onSuccess: () => setFormVisible(false) });
         } else {
-            createMutation.mutate(data as unknown as Record<string, unknown>, { onSuccess: () => setFormVisible(false) });
+            createMutation.mutate(payload, { onSuccess: () => setFormVisible(false) });
         }
     };
 

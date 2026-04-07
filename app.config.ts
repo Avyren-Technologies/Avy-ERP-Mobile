@@ -40,7 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'light',
   newArchEnabled: true,
   updates: {
     url: 'https://u.expo.dev/f53c2a58-f3c7-4947-8fb7-9820829c8b63',

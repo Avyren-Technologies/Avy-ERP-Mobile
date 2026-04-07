@@ -318,8 +318,12 @@ export function HolidayScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
-    const canCreate = useCanPerform('hr:create') || useCanPerform('company:configure');
-    const canUpdate = useCanPerform('hr:update') || useCanPerform('company:configure');
+    const canHrCreate = useCanPerform('hr:create');
+    const canHrUpdate = useCanPerform('hr:update');
+    const canCompanyConfigure = useCanPerform('company:configure');
+
+    const canCreate = canHrCreate || canCompanyConfigure;
+    const canUpdate = canHrUpdate || canCompanyConfigure;
 
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
     const [search, setSearch] = React.useState('');
@@ -340,7 +344,7 @@ export function HolidayScreen() {
             id: item.id ?? '',
             name: item.name ?? '',
             date: item.date ?? '',
-            type: item.type ?? 'National',
+            type: item.type ? (item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as HolidayType) : 'National',
             branchScope: item.branchScope ?? item.branches ?? ['All'],
             description: item.description ?? '',
             isOptional: item.isOptional ?? false,
@@ -368,10 +372,11 @@ export function HolidayScreen() {
     };
 
     const handleSave = (data: Omit<HolidayItem, 'id' | 'year'>) => {
+        const payload = { ...data, type: data.type.toUpperCase() };
         if (editingItem) {
-            updateMutation.mutate({ id: editingItem.id, data: { ...data, year: selectedYear } as unknown as Record<string, unknown> }, { onSuccess: () => setFormVisible(false) });
+            updateMutation.mutate({ id: editingItem.id, data: { ...payload, year: selectedYear } as unknown as Record<string, unknown> }, { onSuccess: () => setFormVisible(false) });
         } else {
-            createMutation.mutate({ ...data, year: selectedYear } as unknown as Record<string, unknown>, { onSuccess: () => setFormVisible(false) });
+            createMutation.mutate({ ...payload, year: selectedYear } as unknown as Record<string, unknown>, { onSuccess: () => setFormVisible(false) });
         }
     };
 

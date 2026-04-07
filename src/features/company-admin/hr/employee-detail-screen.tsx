@@ -1,6 +1,4 @@
-/* eslint-disable better-tailwindcss/no-unknown-classes */
 import * as DocumentPicker from 'expo-document-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
@@ -14,11 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import Animated, {
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -26,13 +20,10 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { DatePickerField } from '@/components/ui/date-picker';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
-import { storage } from '@/lib/storage';
-import { computeProbationEndIsoFromMasters } from '@/lib/probation-end-date';
-import { resolveCostCentreIdForDepartment } from '@/lib/employee-org-defaults';
-
 import {
     useCreateEmployee,
     useDeleteEmployee,
@@ -54,6 +45,9 @@ import {
 import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 import { useGeofencesForDropdown } from '@/features/company-admin/api/use-geofence-queries';
 import { useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
+import { resolveCostCentreIdForDepartment } from '@/lib/employee-org-defaults';
+import { computeProbationEndIsoFromMasters } from '@/lib/probation-end-date';
+import { storage } from '@/lib/storage';
 
 // ============ TYPES ============
 
@@ -212,15 +206,15 @@ function statusBadge(status: EmployeeStatus) {
 
 function maskAadhaar(value: string): string {
     if (!value) return '';
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replaceAll(/\D/g as any, '');
     if (digits.length <= 4) return digits;
-    return 'XXXX-XXXX-' + digits.slice(-4);
+    return `XXXX-XXXX-${digits.slice(-4)}`;
 }
 
 function formatCurrency(value: string): string {
     if (!value) return '';
-    const num = parseFloat(value.replace(/,/g, ''));
-    if (isNaN(num)) return value;
+    const num = Number.parseFloat(value.replaceAll(',', ''));
+    if (Number.isNaN(num)) return value;
     return num.toLocaleString('en-IN');
 }
 
@@ -582,15 +576,30 @@ function PersonalTab({
             <FormField label="First Name" value={form.firstName} onChangeText={(v) => onChange({ firstName: v })} placeholder="e.g. Rahul" required autoCapitalize="words" />
             <FormField label="Middle Name" value={form.middleName} onChangeText={(v) => onChange({ middleName: v })} placeholder="e.g. Kumar" autoCapitalize="words" />
             <FormField label="Last Name" value={form.lastName} onChangeText={(v) => onChange({ lastName: v })} placeholder="e.g. Sharma" required autoCapitalize="words" />
-            <FormField label="Date of Birth" value={form.dob} onChangeText={(v) => onChange({ dob: v })} placeholder="YYYY-MM-DD" />
+            <DatePickerField label="Date of Birth" value={form.dob} onChange={(v) => onChange({ dob: v })} required />
             <ChipSelect label="Gender" options={['Male', 'Female', 'Non-Binary', 'Prefer not to say']} selected={form.gender} onSelect={(v) => onChange({ gender: v })} />
             <ChipSelect label="Marital Status" options={['Single', 'Married', 'Divorced', 'Widowed']} selected={form.maritalStatus} onSelect={(v) => onChange({ maritalStatus: v })} />
-            <FormField label="Blood Group" value={form.bloodGroup} onChangeText={(v) => onChange({ bloodGroup: v })} placeholder="e.g. O+" />
+            <DropdownField
+                label="Blood Group"
+                options={[
+                    { id: 'A+', name: 'A+' },
+                    { id: 'A-', name: 'A-' },
+                    { id: 'B+', name: 'B+' },
+                    { id: 'B-', name: 'B-' },
+                    { id: 'AB+', name: 'AB+' },
+                    { id: 'AB-', name: 'AB-' },
+                    { id: 'O+', name: 'O+' },
+                    { id: 'O-', name: 'O-' },
+                ]}
+                selected={form.bloodGroup}
+                onSelect={(v) => onChange({ bloodGroup: v })}
+                placeholder="Select..."
+            />
             <FormField label="Father's Name" value={form.fatherName} onChangeText={(v) => onChange({ fatherName: v })} autoCapitalize="words" />
             <FormField label="Mother's Name" value={form.motherName} onChangeText={(v) => onChange({ motherName: v })} autoCapitalize="words" />
             <FormField label="Nationality" value={form.nationality} onChangeText={(v) => onChange({ nationality: v })} autoCapitalize="words" />
-            <FormField label="Religion" value={form.religion} onChangeText={(v) => onChange({ religion: v })} autoCapitalize="words" />
-            <FormField label="Category" value={form.category} onChangeText={(v) => onChange({ category: v })} autoCapitalize="words" />
+            <FormField label="Religion" value={form.religion} onChangeText={(v) => onChange({ religion: v })} placeholder="e.g. Hindu, Muslim, Christian" autoCapitalize="words" />
+            <FormField label="Category" value={form.category} onChangeText={(v) => onChange({ category: v })} placeholder="e.g. General, OBC, SC, ST" autoCapitalize="words" />
 
             <SectionTitle title="Contact" />
             <FormField label="Personal Mobile" value={form.personalMobile} onChangeText={(v) => onChange({ personalMobile: v })} placeholder="+91 98765 43210" keyboardType="phone-pad" required />
@@ -616,16 +625,12 @@ function PersonalTab({
                     thumbColor={form.sameAsCurrent ? colors.white : colors.neutral[100]}
                 />
             </View>
-            {!form.sameAsCurrent && (
-                <>
-                    <FormField label="Address Line 1" value={form.permanentLine1} onChangeText={(v) => onChange({ permanentLine1: v })} />
-                    <FormField label="Address Line 2" value={form.permanentLine2} onChangeText={(v) => onChange({ permanentLine2: v })} />
-                    <FormField label="City" value={form.permanentCity} onChangeText={(v) => onChange({ permanentCity: v })} autoCapitalize="words" />
-                    <FormField label="State" value={form.permanentState} onChangeText={(v) => onChange({ permanentState: v })} autoCapitalize="words" />
-                    <FormField label="PIN Code" value={form.permanentPin} onChangeText={(v) => onChange({ permanentPin: v })} keyboardType="number-pad" />
-                    <FormField label="Country" value={form.permanentCountry} onChangeText={(v) => onChange({ permanentCountry: v })} autoCapitalize="words" />
-                </>
-            )}
+            <FormField label="Address Line 1" value={form.sameAsCurrent ? form.currentLine1 : form.permanentLine1} onChangeText={(v) => onChange({ permanentLine1: v })} editable={!form.sameAsCurrent} />
+            <FormField label="Address Line 2" value={form.sameAsCurrent ? form.currentLine2 : form.permanentLine2} onChangeText={(v) => onChange({ permanentLine2: v })} editable={!form.sameAsCurrent} />
+            <FormField label="City" value={form.sameAsCurrent ? form.currentCity : form.permanentCity} onChangeText={(v) => onChange({ permanentCity: v })} autoCapitalize="words" editable={!form.sameAsCurrent} />
+            <FormField label="State" value={form.sameAsCurrent ? form.currentState : form.permanentState} onChangeText={(v) => onChange({ permanentState: v })} autoCapitalize="words" editable={!form.sameAsCurrent} />
+            <FormField label="PIN Code" value={form.sameAsCurrent ? form.currentPin : form.permanentPin} onChangeText={(v) => onChange({ permanentPin: v })} keyboardType="number-pad" editable={!form.sameAsCurrent} />
+            <FormField label="Country" value={form.sameAsCurrent ? form.currentCountry : form.permanentCountry} onChangeText={(v) => onChange({ permanentCountry: v })} autoCapitalize="words" editable={!form.sameAsCurrent} />
 
             <SectionTitle title="Emergency Contact" />
             <FormField label="Contact Name" value={form.emergencyName} onChangeText={(v) => onChange({ emergencyName: v })} autoCapitalize="words" required />
@@ -679,6 +684,9 @@ function PersonalTab({
                                         </Svg>
                                     </Pressable>
                                 </View>
+                                {(userPassword ?? '').length > 0 && (userPassword ?? '').length < 6 && (
+                                    <Text className="font-inter text-[10px] font-semibold text-danger-600 mb-2 ml-1">Password must be at least 6 characters.</Text>
+                                )}
                                 <View style={st.passwordFieldWrap}>
                                     <FormField
                                         label="Confirm Password"
@@ -703,6 +711,9 @@ function PersonalTab({
                                         </Svg>
                                     </Pressable>
                                 </View>
+                                {(confirmPassword ?? '').length > 0 && userPassword !== confirmPassword && (
+                                    <Text className="font-inter text-[10px] font-semibold text-danger-600 mb-2 ml-1">Passwords do not match.</Text>
+                                )}
                                 {rolesError ? (
                                     <Text className="font-inter text-[10px] font-semibold text-danger-600 mt-2">Failed to load roles. Check permissions or try again.</Text>
                                 ) : rolesLoading ? (
@@ -714,12 +725,7 @@ function PersonalTab({
                                         onUserRoleChange={onUserRoleChange}
                                     />
                                 )}
-                                {(confirmPassword ?? '').length > 0 && userPassword !== confirmPassword && (
-                                    <Text className="font-inter text-[10px] font-semibold text-danger-600">Passwords do not match.</Text>
-                                )}
-                                {(userPassword ?? '').length > 0 && (userPassword ?? '').length < 6 && (
-                                    <Text className="font-inter text-[10px] font-semibold text-danger-600">Password must be at least 6 characters.</Text>
-                                )}
+
                             </>
                         )}
                     </View>
@@ -757,7 +763,7 @@ function ProfessionalTab({
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Employment" />
-            <FormField label="Joining Date" value={form.joiningDate} onChangeText={(v) => onChange({ joiningDate: v })} placeholder="YYYY-MM-DD" required />
+            <DatePickerField label="Joining Date" value={form.joiningDate} onChange={(v) => onChange({ joiningDate: v })} required />
             <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required createRoute={{ route: '/company/hr/employee-types', label: 'Create Employee Type' }} />
             <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required createRoute={{ route: '/company/hr/designations', label: 'Create Designation' }} />
             <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required createRoute={{ route: '/company/hr/departments', label: 'Create Department' }} />
@@ -822,11 +828,11 @@ function SalaryTab({
                         placeholderTextColor={colors.neutral[400]}
                         value={form.annualCtc}
                         onChangeText={(v) => {
-                            const cleaned = v.replace(/[^0-9]/g, '');
+                            const cleaned = v.replaceAll(/[^0-9]/g as any, '');
                             onChange({ annualCtc: cleaned });
                             if (form.structureId && cleaned) {
                                 const structure = structuresData.find((s: any) => s.id === form.structureId);
-                                if (structure) onComputeBreakdown(structure, parseFloat(cleaned));
+                                if (structure) onComputeBreakdown(structure, Number.parseFloat(cleaned));
                             }
                         }}
                         keyboardType="number-pad"
@@ -1518,12 +1524,19 @@ export function EmployeeDetailScreen() {
         setEmployeeStatus(d.status ?? 'Active');
         setProfilePhotoUrl(d.profilePhotoUrl ?? null);
 
+        // --- ENUMS REVERSE MAPPING ---
+        const reverseGenderMap: Record<string, string> = { 'MALE': 'Male', 'FEMALE': 'Female', 'NON_BINARY': 'Non-Binary', 'PREFER_NOT_TO_SAY': 'Prefer not to say' };
+        const reverseMaritalMap: Record<string, string> = { 'SINGLE': 'Single', 'MARRIED': 'Married', 'DIVORCED': 'Divorced', 'WIDOWED': 'Widowed' };
+        const reverseWorkTypeMap: Record<string, string> = { 'ON_SITE': 'On-site', 'REMOTE': 'Remote', 'HYBRID': 'Hybrid' };
+        const [fName, mName] = (d.fatherMotherName || '').split(' / ');
+
         setPersonal({
             firstName: d.firstName ?? '', middleName: d.middleName ?? '',
-            lastName: d.lastName ?? '', dob: d.dob ?? d.dateOfBirth ?? '',
-            gender: d.gender ?? '', maritalStatus: d.maritalStatus ?? '',
-            bloodGroup: d.bloodGroup ?? '', fatherName: d.fatherName ?? '',
-            motherName: d.motherName ?? '', nationality: d.nationality ?? 'Indian',
+            lastName: d.lastName ?? '', dob: (d.dateOfBirth || d.dob || '').slice(0, 10),
+            gender: reverseGenderMap[d.gender] || d.gender || '',
+            maritalStatus: reverseMaritalMap[d.maritalStatus] || d.maritalStatus || '',
+            bloodGroup: d.bloodGroup ?? '', fatherName: fName ?? d.fatherMotherName ?? '',
+            motherName: mName ?? '', nationality: d.nationality ?? 'Indian',
             religion: d.religion ?? '', category: d.category ?? '',
             personalMobile: d.personalMobile ?? d.mobile ?? '',
             alternativeMobile: d.alternativeMobile ?? '',
@@ -1535,26 +1548,26 @@ export function EmployeeDetailScreen() {
             currentState: d.currentAddress?.state ?? d.currentState ?? '',
             currentPin: d.currentAddress?.pin ?? d.currentPin ?? '',
             currentCountry: d.currentAddress?.country ?? d.currentCountry ?? 'India',
-            sameAsCurrent: d.sameAsCurrent ?? d.permanentAddress?.sameAsCurrent ?? true,
+            sameAsCurrent: d.sameAsCurrent ?? true,
             permanentLine1: d.permanentAddress?.line1 ?? d.permanentLine1 ?? '',
             permanentLine2: d.permanentAddress?.line2 ?? d.permanentLine2 ?? '',
             permanentCity: d.permanentAddress?.city ?? d.permanentCity ?? '',
             permanentState: d.permanentAddress?.state ?? d.permanentState ?? '',
             permanentPin: d.permanentAddress?.pin ?? d.permanentPin ?? '',
             permanentCountry: d.permanentAddress?.country ?? d.permanentCountry ?? 'India',
-            emergencyName: d.emergencyContact?.name ?? d.emergencyName ?? '',
-            emergencyRelation: d.emergencyContact?.relation ?? d.emergencyRelation ?? '',
-            emergencyMobile: d.emergencyContact?.mobile ?? d.emergencyMobile ?? '',
+            emergencyName: d.emergencyContactName ?? d.emergencyContact?.name ?? '',
+            emergencyRelation: d.emergencyContactRelation ?? d.emergencyContact?.relation ?? '',
+            emergencyMobile: d.emergencyContactMobile ?? d.emergencyContact?.mobile ?? '',
         });
 
         setProfessional({
-            joiningDate: d.joiningDate ?? '', employeeTypeId: d.employeeTypeId ?? d.employeeType?.id ?? '',
+            joiningDate: (d.joiningDate ?? '').slice(0, 10), employeeTypeId: d.employeeTypeId ?? d.employeeType?.id ?? '',
             departmentId: d.departmentId ?? d.department?.id ?? '',
             designationId: d.designationId ?? d.designation?.id ?? '',
             gradeId: d.gradeId ?? d.grade?.id ?? '',
             reportingManagerId: d.reportingManagerId ?? d.reportingManager?.id ?? '',
             functionalManagerId: d.functionalManagerId ?? d.functionalManager?.id ?? '',
-            workType: d.workType ?? '', shiftId: d.shiftId ?? '',
+            workType: reverseWorkTypeMap[d.workType] || d.workType || '', shiftId: d.shiftId ?? '',
             locationId: d.locationId ?? d.location?.id ?? '',
             geofenceId: d.geofenceId ?? d.geofence?.id ?? '',
             costCentreId: d.costCentreId ?? d.costCentre?.id ?? '',
@@ -1565,31 +1578,61 @@ export function EmployeeDetailScreen() {
         prevGradeIdRef.current = d.gradeId ?? d.grade?.id ?? null;
 
         setSalary({
-            annualCtc: d.annualCtc?.toString() ?? d.salary?.annualCtc?.toString() ?? '',
-            paymentMode: d.paymentMode ?? d.salary?.paymentMode ?? '',
+            annualCtc: d.annualCtc?.toString() ?? '',
+            paymentMode: d.paymentMode ?? '',
             structureId: d.salaryStructureId ?? '',
             salaryStructure: d.salaryStructure ?? null,
         });
 
         setBank({
-            ifscCode: d.bankDetails?.ifscCode ?? d.ifscCode ?? '',
-            bankName: d.bankDetails?.bankName ?? d.bankName ?? '',
-            bankBranch: d.bankDetails?.bankBranch ?? d.bankBranch ?? '',
-            accountNumber: d.bankDetails?.accountNumber ?? d.accountNumber ?? '',
-            confirmAccountNumber: d.bankDetails?.accountNumber ?? d.accountNumber ?? '',
-            accountType: d.bankDetails?.accountType ?? d.accountType ?? '',
+            ifscCode: d.bankIfscCode ?? d.bankDetails?.ifscCode ?? '',
+            bankName: d.bankName ?? d.bankDetails?.bankName ?? '',
+            bankBranch: d.bankBranch ?? d.bankDetails?.bankBranch ?? '',
+            accountNumber: d.bankAccountNumber ?? d.bankDetails?.accountNumber ?? '',
+            confirmAccountNumber: d.bankAccountNumber ?? d.bankDetails?.accountNumber ?? '',
+            accountType: d.accountType?.charAt(0).toUpperCase() + d.accountType?.slice(1).toLowerCase() || '',
         });
 
         setDocuments({
-            pan: d.pan ?? d.statutory?.pan ?? '',
-            aadhaar: d.aadhaar ?? d.statutory?.aadhaar ?? '',
-            uan: d.uan ?? d.statutory?.uan ?? '',
-            esiIpNumber: d.esiIpNumber ?? d.statutory?.esiIpNumber ?? '',
-            passport: d.passport ?? d.statutory?.passport ?? '',
-            dl: d.dl ?? d.statutory?.dl ?? '',
-            voterId: d.voterId ?? d.statutory?.voterId ?? '',
+            pan: d.panNumber ?? d.pan ?? '',
+            aadhaar: d.aadhaarNumber ?? d.aadhaar ?? '',
+            uan: d.uan ?? '',
+            esiIpNumber: d.esiIpNumber ?? '',
+            passport: d.passportNumber ?? d.passport ?? '',
+            dl: d.drivingLicence ?? d.dl ?? '',
+            voterId: d.voterId ?? '',
         });
     }, [employeeData, isCreateMode]);
+
+    const handlePersonalChange = (u: Partial<PersonalForm>) => {
+        setPersonal((prev) => {
+            const same = u.sameAsCurrent !== undefined ? u.sameAsCurrent : prev.sameAsCurrent;
+            let next = { ...prev, ...u, sameAsCurrent: same };
+            if (u.sameAsCurrent === true) {
+                next = {
+                    ...next,
+                    permanentLine1: next.currentLine1, permanentLine2: next.currentLine2,
+                    permanentCity: next.currentCity, permanentState: next.currentState,
+                    permanentPin: next.currentPin, permanentCountry: next.currentCountry,
+                };
+            } else if (u.sameAsCurrent === false) {
+                next = {
+                    ...next,
+                    permanentLine1: '', permanentLine2: '',
+                    permanentCity: '', permanentState: '',
+                    permanentPin: '', permanentCountry: '',
+                };
+            } else if (same) {
+                if (u.currentLine1 !== undefined) next.permanentLine1 = u.currentLine1;
+                if (u.currentLine2 !== undefined) next.permanentLine2 = u.currentLine2;
+                if (u.currentCity !== undefined) next.permanentCity = u.currentCity;
+                if (u.currentState !== undefined) next.permanentState = u.currentState;
+                if (u.currentPin !== undefined) next.permanentPin = u.currentPin;
+                if (u.currentCountry !== undefined) next.permanentCountry = u.currentCountry;
+            }
+            return next;
+        });
+    };
 
     // Image picker handler
     const handlePickPhoto = async () => {
@@ -1709,27 +1752,112 @@ export function EmployeeDetailScreen() {
             uan: documents.uan, esiIpNumber: documents.esiIpNumber,
             passport: documents.passport, dl: documents.dl,
             voterId: documents.voterId,
-        },
-    });
+            
+            initialStatus: employeeStatus.toUpperCase().replaceAll(' ', '_') as any,
+        };
+    };
 
     const handleSave = () => {
         const data = collectFormData();
 
+        // --- Personal ---
         if (!personal.firstName.trim() || !personal.lastName.trim()) {
             showErrorMessage('First Name and Last Name are required.');
             setActiveTab('personal');
             return;
         }
+        if (!personal.fatherName.trim() || !personal.motherName.trim()) {
+            showErrorMessage("Father's and Mother's names are required.");
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.dob) {
+            showErrorMessage('Date of Birth is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.gender) {
+            showErrorMessage('Gender is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.maritalStatus) {
+            showErrorMessage('Marital Status is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.bloodGroup) {
+            showErrorMessage('Blood Group is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.nationality.trim()) {
+            showErrorMessage('Nationality is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.religion.trim()) {
+            showErrorMessage('Religion is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.category.trim()) {
+            showErrorMessage('Caste Category is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.personalMobile.trim()) {
+            showErrorMessage('Personal Mobile is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.personalEmail.trim()) {
+            showErrorMessage('Personal Email is required.');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.currentLine1.trim() || !personal.currentCity.trim() || !personal.currentState.trim() || !personal.currentCountry.trim()) {
+            showErrorMessage('Complete Current Address is required (Line 1, City, State, Country).');
+            setActiveTab('personal');
+            return;
+        }
+        if (!personal.emergencyName.trim() || !personal.emergencyRelation.trim() || !personal.emergencyMobile.trim()) {
+            showErrorMessage('Emergency Contact details are required.');
+            setActiveTab('personal');
+            return;
+        }
 
-        // Validate user account creation fields
+        // --- Professional ---
+        if (!professional.joiningDate) {
+            showErrorMessage('Joining Date is required.');
+            setActiveTab('professional');
+            return;
+        }
+        if (!professional.workType) {
+            showErrorMessage('Work Type is required.');
+            setActiveTab('professional');
+            return;
+        }
+        if (!professional.employeeTypeId || !professional.departmentId || !professional.designationId) {
+            showErrorMessage('Employment details (Type, Dept, Desig) are incomplete.');
+            setActiveTab('professional');
+            return;
+        }
+        if (!professional.locationId || !professional.shiftId) {
+            showErrorMessage('Work Setup (Location, Shift) is incomplete.');
+            setActiveTab('professional');
+            return;
+        }
+
+        // --- Account ---
         if (isCreateMode && createUserAccount) {
             if (!personal.officialEmail.trim()) {
-                showErrorMessage('Official Email is required when creating a login account.');
+                showErrorMessage('Official Email is required for login account.');
                 setActiveTab('personal');
                 return;
             }
             if (!userPassword || userPassword.length < 6) {
-                showErrorMessage('Password must be at least 6 characters.');
+                showErrorMessage('Password must be 6+ characters.');
                 setActiveTab('personal');
                 return;
             }
@@ -1747,7 +1875,7 @@ export function EmployeeDetailScreen() {
             createMutation.mutate(data, {
                 onSuccess: () => {
                     storage.remove(DRAFT_KEY);
-                    showSuccess('Employee Created', 'Employee has been added successfully.');
+                    showSuccess('Employee created successfully.');
                     router.back();
                 },
                 onError: (err: any) => {
@@ -1756,10 +1884,11 @@ export function EmployeeDetailScreen() {
             });
         } else {
             updateMutation.mutate(
-                { id: employeeId, data },
+                { id: employeeId as string, data },
                 {
                     onSuccess: () => {
-                        showSuccess('Employee Updated', 'Changes saved successfully.');
+                        storage.remove(DRAFT_KEY);
+                        showSuccess('Employee updated successfully.');
                     },
                     onError: (err: any) => {
                         showErrorMessage(err?.message ?? 'Failed to update employee.');
@@ -1958,7 +2087,7 @@ export function EmployeeDetailScreen() {
                 {activeTab === 'personal' && (
                     <PersonalTab
                         form={personal}
-                        onChange={(u) => setPersonal((p) => ({ ...p, ...u }))}
+                        onChange={handlePersonalChange}
                         isCreateMode={isCreateMode}
                         createUserAccount={createUserAccount}
                         onCreateUserAccountChange={setCreateUserAccount}

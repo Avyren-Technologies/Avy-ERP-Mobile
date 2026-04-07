@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { showError } from '@/components/ui/utils';
 import { hrApi } from '@/lib/api/hr';
 import { hrKeys } from '@/features/company-admin/api/use-hr-queries';
+import { essKeys } from '@/features/company-admin/api/use-ess-queries';
 
 // ── Bulk Import ──────────────────────────────────────────────────────
 
@@ -286,9 +287,9 @@ export function useUpdateEmployee() {
       hrApi.updateEmployee(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: hrKeys.employees() });
-      queryClient.invalidateQueries({
-        queryKey: hrKeys.employee(variables.id),
-      });
+      queryClient.invalidateQueries({ queryKey: hrKeys.employee(variables.id) });
+      // Sync: if the admin updated their own employee record, refresh the ESS profile
+      queryClient.invalidateQueries({ queryKey: essKeys.myProfile() });
     },
     onError: showError,
   });

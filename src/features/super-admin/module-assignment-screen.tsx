@@ -171,9 +171,11 @@ export function ModuleAssignmentScreen() {
                                 </View>
 
                                 <View style={styles.moduleCardRight}>
+                                    {/* Pricing hidden — uncomment when pricing is finalized
                                     <Text className={`font-inter text-xs font-bold ${isActive ? 'text-success-600' : 'text-neutral-400'}`}>
                                         {mod.price}
                                     </Text>
+                                    */}
                                     {isRequired ? (
                                         <View style={styles.requiredBadge}>
                                             <Text className="font-inter text-[9px] font-bold text-primary-600">REQUIRED</Text>

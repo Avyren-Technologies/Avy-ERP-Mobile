@@ -71,7 +71,7 @@ function amcStatusColor(status: AmcStatus): { bg: string; text: string } {
 
 function formatCurrency(amount?: number): string {
     if (amount == null) return '--';
-    return `\u20B9${amount.toLocaleString('en-IN')}`;
+    return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 // formatDate removed — use fmt.date() from useCompanyFormatter inside components
@@ -154,7 +154,7 @@ function LocationCard({ location, index }: { location: LocationCostBreakdown; in
                 )}
             </View>
 
-            {/* Cost section */}
+            {/* Pricing hidden — uncomment when pricing is finalized
             <View style={styles.costSection}>
                 {location.billingType === 'MONTHLY' && (
                     <View style={styles.costRow}>
@@ -191,6 +191,7 @@ function LocationCard({ location, index }: { location: LocationCostBreakdown; in
                     </>
                 )}
             </View>
+            */}
 
             {/* Dates */}
             <View style={styles.datesRow}>
@@ -284,7 +285,10 @@ function TierSelector({
                             {tier.label}
                         </Text>
                         <Text className="font-inter text-xs text-neutral-400">
-                            Up to {tier.maxUsers} users &middot; {formatCurrency(tier.basePrice)}/mo
+                            Up to {tier.maxUsers} users
+                            {/* Pricing hidden — uncomment when pricing is finalized
+                            &middot; {formatCurrency(tier.basePrice)}/mo
+                            */}
                         </Text>
                     </View>
                 </Pressable>

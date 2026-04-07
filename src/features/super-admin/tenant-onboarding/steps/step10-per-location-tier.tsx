@@ -289,6 +289,7 @@ export function Step10PerLocationTier({
                                 </View>
                             </View>
 
+                            {/* Pricing hidden — uncomment when pricing is finalized
                             {tier.key !== 'custom' ? (
                                 <Text className="mt-2 font-inter text-xs font-semibold text-primary-700">
                                     ₹{tier.basePrice.toLocaleString('en-IN')}/month base + ₹
@@ -299,6 +300,7 @@ export function Step10PerLocationTier({
                                     Negotiated enterprise pricing
                                 </Text>
                             )}
+                            */}
                         </Pressable>
                     );
                 })}
@@ -400,9 +402,11 @@ export function Step10PerLocationTier({
                                 <Text className="font-inter text-xs text-primary-600">
                                     Calculated: Monthly Total x 24
                                 </Text>
+                                {/* Pricing hidden — uncomment when pricing is finalized
                                 <Text className="mt-1 font-inter text-lg font-bold text-primary-900">
                                     ₹{calculatedOneTimeFee.toLocaleString('en-IN')}
                                 </Text>
+                                */}
                             </View>
 
                             <ToggleRow
@@ -447,9 +451,11 @@ export function Step10PerLocationTier({
                                     <Text className="font-inter text-xs text-accent-600">
                                         AMC: 18% of one-time fee per year
                                     </Text>
+                                    {/* Pricing hidden — uncomment when pricing is finalized
                                     <Text className="mt-1 font-inter text-lg font-bold text-accent-900">
                                         ₹{calculatedAmc.toLocaleString('en-IN')}/year
                                     </Text>
+                                    */}
                                 </View>
 
                                 <ToggleRow
@@ -528,7 +534,7 @@ export function Step10PerLocationTier({
                 </View>
             </SectionCard>
 
-            {/* Location Pricing Summary */}
+            {/* Pricing hidden — uncomment when pricing is finalized
             <SectionCard
                 title={`${activeLoc?.name || 'Location'} — Pricing Summary`}
             >
@@ -613,9 +619,11 @@ export function Step10PerLocationTier({
                         </View>
                     )}
                 </View>
-            </SectionCard>
 
-            {/* Grand Totals Panel */}
+            </SectionCard>
+            */}
+
+            {/* Pricing hidden — uncomment when pricing is finalized
             {locations.length > 1 && (
                 <Animated.View entering={FadeIn.duration(250)}>
                     <View
@@ -723,6 +731,7 @@ export function Step10PerLocationTier({
                     </View>
                 </Animated.View>
             )}
+            */}
         </Animated.View>
     );
 }

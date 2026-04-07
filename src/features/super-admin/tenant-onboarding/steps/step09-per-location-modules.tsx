@@ -228,9 +228,11 @@ export function Step9PerLocationModules({
                 <Text className="mt-0.5 font-inter text-xs text-primary-200">
                     {activeLoc?.name || 'Location'} — module subscription subtotal
                 </Text>
+                {/* Pricing hidden — uncomment when pricing is finalized
                 <Text className="mt-2 font-inter text-xl font-bold text-white">
                     ₹{monthlyTotal.toLocaleString('en-IN')}/month
                 </Text>
+                */}
             </View>
 
             {/* Module Cards */}
@@ -330,9 +332,11 @@ export function Step9PerLocationModules({
                                     justifyContent: 'space-between',
                                 }}
                             >
+                                {/* Pricing hidden — uncomment when pricing is finalized
                                 <Text className="font-inter text-sm font-bold text-primary-700">
                                     ₹{(customPrice ?? moduleItem.price).toLocaleString('en-IN')}/mo
                                 </Text>
+                                */}
                                 {isAuto ? (
                                     <View
                                         style={{
@@ -477,9 +481,11 @@ export function Step9PerLocationModules({
                             {resolvedModuleIds.length} module
                             {resolvedModuleIds.length > 1 ? 's' : ''}
                         </Text>
+                        {/* Pricing hidden — uncomment when pricing is finalized
                         <Text className="font-inter text-sm font-bold text-primary-700">
                             ₹{monthlyTotal.toLocaleString('en-IN')}/mo
                         </Text>
+                        */}
                     </View>
                 </Animated.View>
             )}

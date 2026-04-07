@@ -1404,12 +1404,14 @@ export function CompanyDetailScreen() {
                                         {company.billingCycle === 'annual' ? 'Annual (2 months free)' : 'Monthly'}
                                     </Text>
                                 </View>
+                                {/* Pricing hidden — uncomment when pricing is finalized
                                 <View style={styles.billingItem}>
                                     <Text className="font-inter text-xs text-neutral-500">Amount</Text>
                                     <Text className="font-inter text-sm font-bold text-success-600">
                                         {company.monthlyAmount}/mo
                                     </Text>
                                 </View>
+                                */}
                                 <View style={styles.billingItem}>
                                     <Text className="font-inter text-xs text-neutral-500">Next Renewal</Text>
                                     <Text className="font-inter text-sm font-bold text-primary-950">

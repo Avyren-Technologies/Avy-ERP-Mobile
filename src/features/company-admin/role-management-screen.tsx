@@ -259,12 +259,14 @@ function RoleFormScreen({
     role,
     onSubmit,
     isSubmitting,
+    error,
 }: {
     visible: boolean;
     onClose: () => void;
     role?: RoleData | null;
     onSubmit: (data: Record<string, unknown>) => void;
     isSubmitting: boolean;
+    error?: string | null;
 }) {
     const insets = useSafeAreaInsets();
     const isEdit = !!role;
@@ -292,10 +294,28 @@ function RoleFormScreen({
         return catalogue.modules.filter((m) => m.module !== 'platform');
     }, [catalogueRaw]);
 
-    const referenceRoles: ReferenceRole[] = React.useMemo(() => {
-        const data = (refRolesRaw as any)?.data ?? refRolesRaw ?? [];
-        if (!Array.isArray(data)) return [];
-        return data.map(mapReferenceRole);
+    const referenceRoles: RoleData[] = React.useMemo(() => {
+        const raw = (refRolesRaw as any)?.data ?? refRolesRaw;
+        if (!raw) return [];
+        
+        // Handle array format
+        if (Array.isArray(raw)) {
+            return raw.map(mapApiRole);
+        }
+        
+        // Handle object format { roleName: { permissions: [], description: '' } }
+        if (typeof raw === 'object') {
+            return Object.entries(raw).map(([name, value]: [string, any]) => ({
+                id: name,
+                name: name,
+                description: value.description || '',
+                permissions: Array.isArray(value.permissions) ? value.permissions : [],
+                isSystem: true,
+                userCount: 0,
+            }));
+        }
+        
+        return [];
     }, [refRolesRaw]);
 
     React.useEffect(() => {
@@ -314,6 +334,37 @@ function RoleFormScreen({
             setErrors({});
         }
     }, [visible, role]);
+
+    // Auto-template logic: If typing a role that matches a reference role name, auto-apply it
+    React.useEffect(() => {
+        if (!visible || isEdit || !name || name.length < 2 || referenceRoles.length === 0) return;
+        
+        const timer = setTimeout(() => {
+            const lowerName = name.toLowerCase();
+            const match = referenceRoles.find(r => 
+                r.name.toLowerCase() === lowerName || 
+                (lowerName.includes('hr') && r.name.toLowerCase().includes('hr')) ||
+                (lowerName.includes('plant') && r.name.toLowerCase().includes('plant')) ||
+                (lowerName.includes('manager') && r.name.toLowerCase().includes('manager'))
+            );
+            
+            // Only auto-apply if permissions are currently empty or only has 1-2 default ones
+            // to avoid overwriting a user's intentional setup.
+            if (match && (permissions.length === 0)) {
+                setPermissions([...match.permissions]);
+                if (!description) setDescription(match.description);
+                // Also expand modules that now have permissions
+                const modulesToExpand = new Set<string>();
+                match.permissions.forEach(p => {
+                    const [mod] = p.split(':');
+                    if (mod) modulesToExpand.add(mod);
+                });
+                setExpandedModules(Array.from(modulesToExpand));
+            }
+        }, 500);
+        
+        return () => clearTimeout(timer);
+    }, [name, visible, isEdit, referenceRoles, description, permissions.length]);
 
     const togglePermission = (perm: string) => {
         setPermissions((prev) =>
@@ -372,16 +423,18 @@ function RoleFormScreen({
     if (!visible) return null;
 
     return (
-        <View style={[formStyles.container, { paddingTop: insets.top }]}>
-            <LinearGradient
-                colors={[colors.gradient.surface, colors.white]}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            />
+        <View style={formStyles.container}>
+            <View style={StyleSheet.absoluteFill}>
+                <LinearGradient
+                    colors={[colors.gradient.surface, colors.white]}
+                    style={StyleSheet.absoluteFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                />
+            </View>
 
             {/* Header */}
-            <Animated.View entering={FadeInDown.duration(300)} style={formStyles.header}>
+            <Animated.View entering={FadeInDown.duration(300)} style={[formStyles.header, { paddingTop: insets.top + 8 }]}>
                 <Pressable onPress={onClose} style={formStyles.backBtn}>
                     <Svg width={20} height={20} viewBox="0 0 24 24">
                         <Path
@@ -406,6 +459,7 @@ function RoleFormScreen({
                 ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
             >
                 {/* Role Name */}
                 <View style={formStyles.field}>
@@ -643,7 +697,8 @@ function RoleFormScreen({
                                         <View style={formStyles.permGrid}>
                                             {mod.actions.map((action) => {
                                                 const perm = `${mod.module}:${action}`;
-                                                const isSelected = permissions.includes(perm);
+                                                // Case-insensitive check to be safe
+                                                const isSelected = permissions.some(p => p.toLowerCase() === perm.toLowerCase());
                                                 return (
                                                     <Pressable
                                                         key={action}
@@ -698,10 +753,17 @@ function RoleFormScreen({
                         {permissions.length} permission{permissions.length !== 1 ? 's' : ''} selected
                     </Text>
                 </View>
-            </ScrollView>
 
-            {/* Submit Button */}
-            <View style={[formStyles.submitContainer, { paddingBottom: insets.bottom + 16 }]}>
+                {/* Error Banner */}
+                {error ? (
+                    <Animated.View entering={FadeIn.duration(200)} style={formStyles.errorBanner}>
+                        <Text className="font-inter text-xs font-semibold text-danger-600 text-center">
+                            {error}
+                        </Text>
+                    </Animated.View>
+                ) : null}
+
+                {/* Save Button */}
                 <Pressable
                     style={({ pressed }) => [
                         formStyles.submitBtn,
@@ -715,11 +777,11 @@ function RoleFormScreen({
                         <ActivityIndicator color="#fff" size="small" />
                     ) : (
                         <Text className="font-inter text-base font-bold text-white">
-                            {isEdit ? 'Update Role' : 'Create Role'}
+                            {isEdit ? 'Save Changes' : 'Save Role'}
                         </Text>
                     )}
                 </Pressable>
-            </View>
+            </ScrollView>
         </View>
     );
 }
@@ -859,6 +921,10 @@ export function RoleManagementScreen() {
                 role={editingRole}
                 onSubmit={handleSubmit}
                 isSubmitting={createRole.isPending || updateRole.isPending}
+                error={
+                    ((createRole.error as any)?.response?.data?.message || createRole.error?.message) ||
+                    ((updateRole.error as any)?.response?.data?.message || updateRole.error?.message)
+                }
             />
         );
     }
@@ -1092,10 +1158,8 @@ const formStyles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.neutral[200],
     },
-    permChipActive: {
-        backgroundColor: colors.primary[50],
-        borderColor: colors.primary[200],
-    },
+    permChipActive: { backgroundColor: colors.primary[50], borderColor: colors.primary[200] },
+    errorBanner: { backgroundColor: colors.danger[50], paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.danger[100] },
     permCountBadge: {
         backgroundColor: colors.primary[50],
         paddingHorizontal: 6,
@@ -1132,6 +1196,10 @@ const formStyles = StyleSheet.create({
         marginBottom: 20,
     },
     submitContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         paddingHorizontal: 24,
         paddingTop: 12,
         borderTopWidth: 1,

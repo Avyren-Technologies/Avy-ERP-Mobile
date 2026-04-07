@@ -84,8 +84,11 @@ function formatLastLogin(dateStr: string | undefined, fmtDate: (iso: string) => 
 }
 
 function mapApiUser(item: any): UserData {
-    const fullName = item.fullName ?? item.name ??
-        [item.firstName, item.lastName].filter(Boolean).join(' ') ?? '';
+    // Backend returns firstName + lastName separately; prefer those over fullName
+    const fullName =
+        (item.firstName || item.lastName)
+            ? [item.firstName, item.lastName].filter(Boolean).join(' ')
+            : (item.fullName ?? item.name ?? '');
     return {
         id: item.id ?? '',
         fullName,
@@ -93,8 +96,8 @@ function mapApiUser(item: any): UserData {
         phone: item.phone ?? item.mobile ?? '',
         role: item.roleName ?? item.role ?? '',
         roleName: item.roleName ?? item.role ?? '',
-        roleId: item.roleId ?? '',
-        isActive: item.isActive ?? (item.status === 'active'),
+        roleId: item.roleId ?? item.role?.id ?? '',
+        isActive: item.isActive ?? (item.status === 'active') ?? true,
         lastLogin: item.lastLogin ?? item.lastLoginAt ?? undefined,
         createdAt: item.createdAt ?? undefined,
     };
@@ -282,22 +285,24 @@ function UserFormSheet({
     const [showRoleDropdown, setShowRoleDropdown] = React.useState(false);
     const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+    // Populate all fields when form opens, always reset password for security
     React.useEffect(() => {
         if (visible) {
             if (user) {
-                setFullName(user.fullName);
-                setEmail(user.email);
+                setFullName(user.fullName ?? '');
+                setEmail(user.email ?? '');
                 setPhone(user.phone ?? '');
                 setRoleId(user.roleId ?? '');
-                setIsActive(user.isActive);
+                setIsActive(user.isActive ?? true);
             } else {
                 setFullName('');
                 setEmail('');
                 setPhone('');
                 setRoleId('');
-                setPassword('');
                 setIsActive(true);
             }
+            // Always reset these regardless of add/edit
+            setPassword('');
             setPasswordVisible(false);
             setErrors({});
             setShowRoleDropdown(false);
@@ -305,6 +310,17 @@ function UserFormSheet({
     }, [visible, user]);
 
     const selectedRole = roles.find((r) => r.id === roleId);
+
+    // Clear a specific field error as soon as the user edits that field
+    const clearError = (field: string) => {
+        if (errors[field]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[field];
+                return next;
+            });
+        }
+    };
 
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -315,13 +331,13 @@ function UserFormSheet({
         if (!isEdit && !password.trim()) newErrors.password = 'Password is required';
         if (password) {
             if (password.length < 8)
-                newErrors.password = 'Min 8 characters';
+                newErrors.password = 'Minimum 8 characters required';
             else if (!/[A-Z]/.test(password))
-                newErrors.password = 'Must include an uppercase letter';
+                newErrors.password = 'Must include at least one uppercase letter';
             else if (!/[a-z]/.test(password))
-                newErrors.password = 'Must include a lowercase letter';
+                newErrors.password = 'Must include at least one lowercase letter';
             else if (!/\d/.test(password))
-                newErrors.password = 'Must include a number';
+                newErrors.password = 'Must include at least one number';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -378,19 +394,19 @@ function UserFormSheet({
                         <TextInput
                             style={[
                                 sheetStyles.input,
-                                errors.fullName && sheetStyles.inputError,
+                                errors.fullName ? sheetStyles.inputError : undefined,
                             ]}
                             placeholder="Enter full name"
                             placeholderTextColor={colors.neutral[400]}
                             value={fullName}
-                            onChangeText={setFullName}
+                            onChangeText={(v) => { setFullName(v); clearError('fullName'); }}
                             autoCapitalize="words"
                         />
-                        {errors.fullName && (
+                        {errors.fullName ? (
                             <Text className="mt-1 font-inter text-[10px] text-danger-600">
                                 {errors.fullName}
                             </Text>
-                        )}
+                        ) : null}
                     </View>
 
                     {/* Email */}
@@ -401,21 +417,27 @@ function UserFormSheet({
                         <TextInput
                             style={[
                                 sheetStyles.input,
-                                errors.email && sheetStyles.inputError,
+                                errors.email ? sheetStyles.inputError : undefined,
                             ]}
                             placeholder="user@company.com"
                             placeholderTextColor={colors.neutral[400]}
                             value={email}
-                            onChangeText={setEmail}
+                            onChangeText={(v) => { setEmail(v); clearError('email'); }}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             autoCorrect={false}
+                            editable={!isEdit}
                         />
-                        {errors.email && (
+                        {errors.email ? (
                             <Text className="mt-1 font-inter text-[10px] text-danger-600">
                                 {errors.email}
                             </Text>
-                        )}
+                        ) : null}
+                        {isEdit ? (
+                            <Text className="mt-1 font-inter text-[10px] text-neutral-400">
+                                Email cannot be changed after account creation
+                            </Text>
+                        ) : null}
                     </View>
 
                     {/* Phone */}
@@ -521,7 +543,7 @@ function UserFormSheet({
                         )}
                     </View>
 
-                    {/* Password (SecretInput style) */}
+                    {/* Password */}
                     <View style={sheetStyles.field}>
                         <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
                             Password{' '}
@@ -535,7 +557,7 @@ function UserFormSheet({
                                     alignItems: 'center',
                                     paddingRight: 4,
                                 },
-                                errors.password && sheetStyles.inputError,
+                                errors.password ? sheetStyles.inputError : undefined,
                             ]}
                         >
                             <TextInput
@@ -543,7 +565,7 @@ function UserFormSheet({
                                 placeholder={isEdit ? 'Leave blank to keep current' : 'Set password'}
                                 placeholderTextColor={colors.neutral[400]}
                                 value={password}
-                                onChangeText={setPassword}
+                                onChangeText={(v) => { setPassword(v); clearError('password'); }}
                                 secureTextEntry={!passwordVisible}
                                 autoCapitalize="none"
                                 autoCorrect={false}
@@ -573,26 +595,27 @@ function UserFormSheet({
                                 </Svg>
                             </Pressable>
                         </View>
-                        {errors.password && (
+                        {errors.password ? (
                             <Text className="mt-1 font-inter text-[10px] text-danger-600">
                                 {errors.password}
                             </Text>
-                        )}
-                        {isEdit && (
+                        ) : isEdit ? (
                             <Text className="mt-1 font-inter text-[10px] text-neutral-400">
                                 Leave blank to keep the current password
                             </Text>
-                        )}
+                        ) : null}
                     </View>
 
                     {/* Status Toggle */}
                     <View style={sheetStyles.toggleRow}>
                         <View style={{ flex: 1 }}>
                             <Text className="font-inter text-sm font-semibold text-primary-950">
-                                Active
+                                {isActive ? 'Active' : 'Inactive'}
                             </Text>
                             <Text className="font-inter text-xs text-neutral-500">
-                                User can log in and access the system
+                                {isActive
+                                    ? 'User can log in and access the system'
+                                    : 'User is disabled and cannot log in'}
                             </Text>
                         </View>
                         <Switch
@@ -731,6 +754,7 @@ export function UserManagementScreen() {
         const nameParts = fullName.trim().split(/\s+/);
         const firstName = nameParts[0] ?? '';
         const lastName = nameParts.slice(1).join(' ') || firstName;
+        const newIsActive = data.isActive as boolean;
 
         const payload: Record<string, unknown> = {
             ...data,
@@ -742,14 +766,29 @@ export function UserManagementScreen() {
         // Remove fields the backend doesn't expect
         delete payload.fullName;
         delete payload.roleId;
+        // isActive is handled separately via updateUserStatus
+        delete payload.isActive;
 
         if (editingUser) {
             updateUser.mutate(
                 { id: editingUser.id, data: payload },
                 {
                     onSuccess: () => {
-                        setSheetVisible(false);
-                        refetch();
+                        // If isActive changed, update status separately
+                        if (newIsActive !== editingUser.isActive) {
+                            updateUserStatus.mutate(
+                                { id: editingUser.id, data: { isActive: newIsActive } },
+                                {
+                                    onSuccess: () => {
+                                        setSheetVisible(false);
+                                        refetch();
+                                    },
+                                }
+                            );
+                        } else {
+                            setSheetVisible(false);
+                            refetch();
+                        }
                     },
                 }
             );
@@ -866,7 +905,7 @@ export function UserManagementScreen() {
                 roles={roles}
                 rolesLoading={rolesLoading}
                 onSubmit={handleSubmit}
-                isSubmitting={createUser.isPending || updateUser.isPending}
+                isSubmitting={createUser.isPending || updateUser.isPending || updateUserStatus.isPending}
             />
 
             <ConfirmModal {...confirmModal.modalProps} />

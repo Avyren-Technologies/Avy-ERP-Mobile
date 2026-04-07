@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { showError } from '@/components/ui/utils';
+import { showError, showSuccess } from '@/components/ui/utils';
 import { companyAdminApi, type CompanySettings, type SystemControls, type CreateShiftPayload, type CreateShiftBreakPayload } from '@/lib/api/company-admin';
 import { companyAdminKeys } from '@/features/company-admin/api/use-company-admin-queries';
 import { platformSupportKeys } from '@/features/super-admin/api/use-support-queries';
@@ -149,6 +149,7 @@ export function useCreateContact() {
       companyAdminApi.createContact(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.contacts() });
+      showSuccess('Contact saved', 'New contact has been added successfully');
     },
     onError: showError,
   });
@@ -162,6 +163,7 @@ export function useUpdateContact() {
       companyAdminApi.updateContact(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.contacts() });
+      showSuccess('Contact updated', 'Changes have been saved successfully');
     },
     onError: showError,
   });
@@ -174,6 +176,7 @@ export function useDeleteContact() {
     mutationFn: (id: string) => companyAdminApi.deleteContact(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.contacts() });
+      showSuccess('Contact deleted');
     },
     onError: showError,
   });
@@ -231,6 +234,7 @@ export function useCreateIOTReason() {
       queryClient.invalidateQueries({
         queryKey: companyAdminKeys.iotReasons(),
       });
+      showSuccess('IOT reason added', 'The new reason has been saved successfully');
     },
     onError: showError,
   });
@@ -246,6 +250,7 @@ export function useUpdateIOTReason() {
       queryClient.invalidateQueries({
         queryKey: companyAdminKeys.iotReasons(),
       });
+      showSuccess('IOT reason updated', 'Changes have been saved successfully');
     },
     onError: showError,
   });
@@ -260,6 +265,7 @@ export function useDeleteIOTReason() {
       queryClient.invalidateQueries({
         queryKey: companyAdminKeys.iotReasons(),
       });
+      showSuccess('IOT reason deleted');
     },
     onError: showError,
   });
@@ -309,6 +315,7 @@ export function useCreateUser() {
       companyAdminApi.createUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.users() });
+      showSuccess('User created', 'The new user has been added successfully');
     },
     onError: showError,
   });
@@ -325,6 +332,7 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({
         queryKey: companyAdminKeys.user(variables.id),
       });
+      showSuccess('User updated', 'Changes have been saved successfully');
     },
     onError: showError,
   });
@@ -341,6 +349,12 @@ export function useUpdateUserStatus() {
       queryClient.invalidateQueries({
         queryKey: companyAdminKeys.user(variables.id),
       });
+      showSuccess(
+        variables.data.isActive ? 'User activated' : 'User deactivated',
+        variables.data.isActive
+          ? 'User can now log in to the app'
+          : 'User has been disabled and cannot log in',
+      );
     },
     onError: showError,
   });
@@ -356,6 +370,7 @@ export function useCreateRole() {
       companyAdminApi.createRole(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
+      showSuccess('Role created', 'New role has been saved successfully');
     },
     onError: showError,
   });
@@ -369,6 +384,7 @@ export function useUpdateRole() {
       companyAdminApi.updateRole(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
+      showSuccess('Role updated', 'Changes have been saved successfully');
     },
     onError: showError,
   });
@@ -381,6 +397,7 @@ export function useDeleteRole() {
     mutationFn: (id: string) => companyAdminApi.deleteRole(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyAdminKeys.rbacRoles() });
+      showSuccess('Role deleted');
     },
     onError: showError,
   });

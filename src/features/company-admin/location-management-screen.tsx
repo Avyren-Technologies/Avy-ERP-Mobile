@@ -507,6 +507,7 @@ function EditLocationSheet({
     onSave: (data: Partial<PlantBranch>) => void;
     isSaving: boolean;
 }) {
+    const insets = useSafeAreaInsets();
     const [form, setForm] = React.useState<PlantBranch | null>(null);
     const snapPoints = React.useMemo(() => ['85%'], []);
 
@@ -555,8 +556,13 @@ function EditLocationSheet({
             handleIndicatorStyle={styles.sheetHandle}
         >
             <BottomSheetScrollView
-                contentContainerStyle={styles.sheetContent}
+                contentContainerStyle={[
+                    styles.sheetContent,
+                    { paddingBottom: insets.bottom + 80 }
+                ]}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
             >
                 {/* Sheet Header */}
                 <Text className="mb-1 font-inter text-lg font-bold text-primary-950">
@@ -742,7 +748,7 @@ function EditLocationSheet({
                     )}
                 </Pressable>
 
-                {/* Bottom spacing */}
+                {/* Bottom spacing fallback */}
                 <View style={{ height: 40 }} />
             </BottomSheetScrollView>
         </BottomSheet>

@@ -5,11 +5,16 @@ import * as React from 'react';
 import {
     ActivityIndicator,
     Image,
+    Keyboard,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Switch,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -18,22 +23,21 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showSuccess, showErrorMessage } from '@/components/ui/utils';
+import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
-import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
-
+import { useAddLocationModules, useRemoveLocationModule, useUpdateProfileSection } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyProfile } from '@/features/company-admin/api/use-company-admin-queries';
-import { useUpdateProfileSection, useAddLocationModules, useRemoveLocationModule } from '@/features/company-admin/api/use-company-admin-mutations';
 
-import { MODULE_CATALOGUE, USER_TIERS, FY_OPTIONS, MONTHS } from '@/features/super-admin/tenant-onboarding/constants';
 import type { UserTierKey } from '@/features/super-admin/tenant-onboarding/types';
 import { FormInput } from '@/features/super-admin/tenant-onboarding/atoms';
+import { FY_OPTIONS, MODULE_CATALOGUE, MONTHS, USER_TIERS } from '@/features/super-admin/tenant-onboarding/constants';
 
 // ============ TYPES ============
 
-type EditableSectionKey = 'basicInfo' | 'registeredAddress' | 'corporateAddress';
+type EditableSectionKey = 'basicInfo' | 'registeredAddress' | 'corporateAddress' | 'identity' | 'statutory' | 'fiscal' | 'preferences';
 
 interface CompanyProfileData {
     // Identity (read-only)
@@ -120,7 +124,6 @@ function mapApiToProfile(raw: any): CompanyProfileData {
     const statutory = raw.statutory ?? raw;
     const regAddr = raw.registeredAddress ?? raw.address?.registered ?? raw;
     const corpAddr = raw.corporateAddress ?? raw.address?.corporate ?? {};
-    const billing = raw.commercial ?? raw.billing ?? {};
     const sub = raw.tenant?.subscriptions?.[0] ?? {};
     const fiscal = raw.fiscal ?? raw.fiscalConfig ?? {};
     const prefs = raw.preferences ?? {};
@@ -139,12 +142,12 @@ function mapApiToProfile(raw: any): CompanyProfileData {
         cin: identity.cin ?? raw.cin ?? '',
         incorporationDate: identity.incorporationDate ?? raw.incorporationDate ?? '',
         size: identity.size ?? raw.size ?? '',
-        employeeCount: identity.employeeCount ?? raw.employeeCount ?? '',
-        pan: statutory.pan ?? '',
-        tan: statutory.tan ?? '',
-        gstin: statutory.gstin ?? '',
-        pfRegNo: statutory.pfRegNo ?? '',
-        esiCode: statutory.esiCode ?? '',
+        employeeCount: identity.employeeCount ?? raw.employeeCount ?? 0,
+        pan: statutory.pan ?? raw.pan ?? '',
+        tan: statutory.tan ?? raw.tan ?? '',
+        gstin: statutory.gstin ?? raw.gstin ?? '',
+        pfRegNo: statutory.pfRegNo ?? raw.pfRegNo ?? '',
+        esiCode: statutory.esiCode ?? raw.esiCode ?? '',
         ptReg: statutory.ptReg ?? '',
         rocState: statutory.rocState ?? '',
         lwfrNo: statutory.lwfrNo ?? '',
@@ -406,6 +409,10 @@ const SECTION_TITLES: Record<EditableSectionKey, string> = {
     basicInfo: 'Basic Info',
     registeredAddress: 'Registered Address',
     corporateAddress: 'Corporate Address',
+    identity: 'Company Identity',
+    statutory: 'Statutory Info',
+    fiscal: 'Fiscal Configuration',
+    preferences: 'Preferences',
 };
 
 function EditBottomSheet({
@@ -429,10 +436,78 @@ function EditBottomSheet({
 
     React.useEffect(() => {
         if (visible && currentData) {
-            setFormData({ ...currentData });
+            setFormData(() => ({ ...currentData }));
             setSaveError('');
         }
     }, [visible, currentData]);
+
+    const validate = (): boolean => {
+        const errors: string[] = [];
+
+        if (sectionKey === 'basicInfo') {
+            if (!formData.displayName || formData.displayName.length < 2) errors.push('Display name is required (min 2 characters)');
+            if (!formData.legalName || formData.legalName.length < 2) errors.push('Legal name is required (min 2 characters)');
+            if (formData.emailDomain && !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/.test(formData.emailDomain)) {
+                errors.push('Invalid domain format (e.g. company.com)');
+            }
+            if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
+                errors.push('Website must start with http:// or https://');
+            }
+        }
+
+        if (sectionKey === 'identity') {
+            if (!formData.name || formData.name.length < 2) errors.push('Company name is required');
+            if (formData.companyCode && !/^[A-Z\d_-]+$/.test(formData.companyCode)) {
+                errors.push('Company code: uppercase letters, numbers, hyphens only');
+            }
+            if (formData.cin && !/^[A-Z]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(formData.cin)) {
+                errors.push('Invalid CIN format (e.g. U12345MH2023PTC123456)');
+            }
+        }
+
+        if (sectionKey === 'statutory') {
+            if (formData.pan && !/^[A-Z]{5}\d{4}[A-Z]$/.test(formData.pan)) {
+                errors.push('Invalid PAN format (e.g. ABCDE1234F)');
+            }
+            if (formData.tan && !/^[A-Z]{4}\d{5}[A-Z]$/.test(formData.tan)) {
+                errors.push('Invalid TAN format (e.g. ABCD12345E)');
+            }
+            if (formData.gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[\dA-Z]$/.test(formData.gstin)) {
+                errors.push('Invalid GSTIN format (15 characters)');
+            }
+            if (formData.esiCode && !/^\d{2}-\d{2}-\d{6}-\d{3}-\d{4}$/.test(formData.esiCode) && !/^[0-9-]+$/.test(formData.esiCode)) {
+                errors.push('Invalid ESI code format');
+            }
+        }
+
+        if (sectionKey === 'registeredAddress' || sectionKey === 'corporateAddress') {
+            const isReg = sectionKey === 'registeredAddress';
+            const line1 = isReg ? formData.regLine1 : formData.corpLine1;
+            const city = isReg ? formData.regCity : formData.corpCity;
+            const pin = isReg ? formData.regPin : formData.corpPin;
+            const same = formData.sameAsRegistered;
+
+            if (isReg || (!isReg && !same)) {
+                if (!line1 || line1.length < 5) errors.push('Address line 1 must be at least 5 characters');
+                if (!city || city.length < 2) errors.push('City is required');
+                if (pin && !/^\d{6}$/.test(String(pin))) errors.push('PIN code must be exactly 6 digits');
+            }
+        }
+
+        if (sectionKey === 'fiscal') {
+            const cutoff = Number(formData.cutoffDay);
+            const disburse = Number(formData.disbursementDay);
+            if (formData.cutoffDay && (Number.isNaN(cutoff) || cutoff < 1 || cutoff > 31)) errors.push('Cutoff day must be between 1 and 31');
+            if (formData.disbursementDay && (Number.isNaN(disburse) || disburse < 1 || disburse > 31)) errors.push('Disbursement day must be between 1 and 31');
+        }
+
+        if (errors.length > 0) {
+            setSaveError(errors[0]);
+            return false;
+        }
+
+        return true;
+    };
 
     const handleChange = (key: string, value: any) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
@@ -440,17 +515,51 @@ function EditBottomSheet({
     };
 
     const handleSave = () => {
+        if (!validate()) return;
         setSaveError('');
+        
+        // Final sanitization of numeric fields
+        const sanitized = { ...formData };
+        ['employeeCount', 'cutoffDay', 'disbursementDay', 'regPin', 'corpPin'].forEach(key => {
+            if (sanitized[key] !== undefined && sanitized[key] !== null && sanitized[key] !== '') {
+                const num = Number(sanitized[key]);
+                if (!Number.isNaN(num)) sanitized[key] = num;
+            }
+        });
+
+        // Remap keys for address sections if they are prefixed
+        let finalData = sanitized;
+        if (sectionKey === 'registeredAddress') {
+            finalData = {
+                line1: sanitized.regLine1 || sanitized.line1,
+                line2: sanitized.regLine2 || sanitized.line2,
+                city: sanitized.regCity || sanitized.city,
+                state: sanitized.regState || sanitized.state,
+                pin: sanitized.regPin || sanitized.pin,
+                country: sanitized.regCountry || sanitized.country,
+            };
+        } else if (sectionKey === 'corporateAddress') {
+            finalData = {
+                sameAsRegistered: sanitized.sameAsRegistered,
+                line1: sanitized.corpLine1 || sanitized.line1,
+                line2: sanitized.corpLine2 || sanitized.line2,
+                city: sanitized.corpCity || sanitized.city,
+                state: sanitized.corpState || sanitized.state,
+                pin: sanitized.corpPin || sanitized.pin,
+                country: sanitized.corpCountry || sanitized.country,
+            };
+        }
+
         mutation.mutate(
-            { sectionKey, data: formData },
+            { sectionKey, data: finalData },
             {
-                onSuccess: () => {
-                    showSuccess('Saved', 'Profile section updated successfully.');
-                    onSaved();
+                onSuccess: async () => {
+                    showSuccess('Success', 'Profile updated effectively.');
+                    if (onSaved) await onSaved();
                     onClose();
                 },
                 onError: (err: any) => {
-                    const msg = err?.message ?? 'Failed to save changes. Please try again.';
+                    const msg = err?.response?.data?.message || err?.message || 'Update failed.';
                     setSaveError(msg);
                     showErrorMessage(msg);
                 },
@@ -471,6 +580,32 @@ function EditBottomSheet({
                         <FormInput label="Logo URL" placeholder="https://..." value={formData.logoUrl ?? ''} onChangeText={(v) => handleChange('logoUrl', v)} keyboardType="url" autoCapitalize="none" />
                         <FormInput label="Corporate Email Domain" placeholder="e.g. acme.com" value={formData.emailDomain ?? ''} onChangeText={(v) => handleChange('emailDomain', v)} autoCapitalize="none" />
                         <FormInput label="Website" placeholder="https://acme.com" value={formData.website ?? ''} onChangeText={(v) => handleChange('website', v)} keyboardType="url" autoCapitalize="none" />
+                    </>
+                );
+            case 'identity':
+                return (
+                    <>
+                        <FormInput label="Company Name" placeholder="e.g. Acme Corp" value={formData.name ?? ''} onChangeText={(v) => handleChange('name', v)} required />
+                        <FormInput label="Company Code" placeholder="e.g. ACME01" value={formData.companyCode ?? ''} onChangeText={(v) => handleChange('companyCode', v)} required />
+                        <FormInput label="Business Type" placeholder="e.g. Private Limited" value={formData.businessType ?? ''} onChangeText={(v) => handleChange('businessType', v)} />
+                        <FormInput label="Industry" placeholder="e.g. Manufacturing" value={formData.industry ?? ''} onChangeText={(v) => handleChange('industry', v)} />
+                        <FormInput label="Company Size" placeholder="e.g. 50-100" value={formData.size ?? ''} onChangeText={(v) => handleChange('size', v)} />
+                        <FormInput label="Employee Count" placeholder="e.g. 75" value={String(formData.employeeCount ?? '')} onChangeText={(v) => handleChange('employeeCount', v)} keyboardType="number-pad" />
+                        <FormInput label="CIN" placeholder="U12345MH2023PTC123456" value={formData.cin ?? ''} onChangeText={(v) => handleChange('cin', v)} />
+                        <FormInput label="Incorporation Date" placeholder="YYYY-MM-DD" value={formData.incorporationDate ?? ''} onChangeText={(v) => handleChange('incorporationDate', v)} />
+                    </>
+                );
+            case 'statutory':
+                return (
+                    <>
+                        <FormInput label="PAN" placeholder="ABCDE1234F" value={formData.pan ?? ''} onChangeText={(v) => handleChange('pan', v)} />
+                        <FormInput label="TAN" placeholder="ABCD12345E" value={formData.tan ?? ''} onChangeText={(v) => handleChange('tan', v)} />
+                        <FormInput label="GSTIN" placeholder="27ABCDE1234F1Z5" value={formData.gstin ?? ''} onChangeText={(v) => handleChange('gstin', v)} />
+                        <FormInput label="PF Reg No" placeholder="MH/12345/678" value={formData.pfRegNo ?? ''} onChangeText={(v) => handleChange('pfRegNo', v)} />
+                        <FormInput label="ESI Code" placeholder="31-00-123456-000-1234" value={formData.esiCode ?? ''} onChangeText={(v) => handleChange('esiCode', v)} />
+                        <FormInput label="PT Registration" placeholder="123456789" value={formData.ptReg ?? ''} onChangeText={(v) => handleChange('ptReg', v)} />
+                        <FormInput label="LWF Reg No" placeholder="LW123456" value={formData.lwfrNo ?? ''} onChangeText={(v) => handleChange('lwfrNo', v)} />
+                        <FormInput label="ROC State" placeholder="e.g. Maharashtra" value={formData.rocState ?? ''} onChangeText={(v) => handleChange('rocState', v)} />
                     </>
                 );
             case 'registeredAddress':
@@ -508,6 +643,33 @@ function EditBottomSheet({
                         )}
                     </>
                 );
+            case 'fiscal':
+                return (
+                    <>
+                        <FormInput label="Payroll Frequency" placeholder="e.g. Monthly" value={formData.payrollFreq ?? ''} onChangeText={(v) => handleChange('payrollFreq', v)} />
+                        <FormInput label="Cutoff Day" placeholder="e.g. 25" value={String(formData.cutoffDay ?? '')} onChangeText={(v) => handleChange('cutoffDay', v)} keyboardType="number-pad" />
+                        <FormInput label="Disbursement Day" placeholder="e.g. 30" value={String(formData.disbursementDay ?? '')} onChangeText={(v) => handleChange('disbursementDay', v)} keyboardType="number-pad" />
+                        <FormInput label="Week Start" placeholder="e.g. Monday" value={formData.weekStart ?? ''} onChangeText={(v) => handleChange('weekStart', v)} />
+                        <FormInput label="Timezone" placeholder="e.g. Asia/Kolkata" value={formData.timezone ?? ''} onChangeText={(v) => handleChange('timezone', v)} />
+                    </>
+                );
+            case 'preferences':
+                return (
+                    <>
+                        <FormInput label="Currency" placeholder="e.g. INR" value={formData.currency ?? ''} onChangeText={(v) => handleChange('currency', v)} />
+                        <FormInput label="Language" placeholder="e.g. English" value={formData.language ?? ''} onChangeText={(v) => handleChange('language', v)} />
+                        <FormInput label="Date Format" placeholder="e.g. DD-MM-YYYY" value={formData.dateFormat ?? ''} onChangeText={(v) => handleChange('dateFormat', v)} />
+                        <FormInput label="Time Format" placeholder="e.g. HH:mm" value={formData.timeFormat ?? ''} onChangeText={(v) => handleChange('timeFormat', v)} />
+                        <View style={bs.toggleRow}>
+                            <Text className="font-inter text-sm font-medium text-primary-900">ESS Portal Enabled</Text>
+                            <Switch value={formData.essEnabled ?? false} onValueChange={(v) => handleChange('essEnabled', v)} />
+                        </View>
+                        <View style={bs.toggleRow}>
+                            <Text className="font-inter text-sm font-medium text-primary-900">Mobile App Enabled</Text>
+                            <Switch value={formData.mobileEnabled ?? false} onValueChange={(v) => handleChange('mobileEnabled', v)} />
+                        </View>
+                    </>
+                );
             default:
                 return null;
         }
@@ -515,58 +677,66 @@ function EditBottomSheet({
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-            <View style={bs.backdrop}>
-                <Pressable style={bs.backdropPress} onPress={onClose} />
-                <View style={[bs.sheet, { paddingBottom: insets.bottom + 16 }]}>
-                    {/* Handle bar */}
-                    <View style={bs.handleBar} />
-
-                    {/* Header */}
-                    <View style={bs.header}>
-                        <Text className="font-inter text-base font-bold text-primary-950">{title}</Text>
-                        <Pressable onPress={onClose} style={bs.closeButton}>
-                            <Svg width={20} height={20} viewBox="0 0 24 24">
-                                <Path d="M18 6L6 18M6 6l12 12" stroke={colors.neutral[500]} strokeWidth="2" strokeLinecap="round" />
-                            </Svg>
-                        </Pressable>
-                    </View>
-
-                    {/* Scrollable form */}
-                    <ScrollView
-                        style={bs.scrollView}
-                        contentContainerStyle={bs.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={bs.backdrop}>
+                    <Pressable style={bs.backdropPress} onPress={onClose} />
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+                        style={{ width: '100%' }}
                     >
-                        {renderFields()}
-                    </ScrollView>
+                        <View style={[bs.sheet, { paddingBottom: insets.bottom + 16 }]}>
+                            {/* Handle bar */}
+                            <View style={bs.handleBar} />
 
-                    {/* Error message */}
-                    {saveError ? (
-                        <View style={bs.errorContainer}>
-                            <Text className="font-inter text-xs font-medium text-danger-600">{saveError}</Text>
+                            {/* Header */}
+                            <View style={bs.header}>
+                                <Text className="font-inter text-base font-bold text-primary-950">{title}</Text>
+                                <Pressable onPress={onClose} style={bs.closeButton}>
+                                    <Svg width={20} height={20} viewBox="0 0 24 24">
+                                        <Path d="M18 6L6 18M6 6l12 12" stroke={colors.neutral[500]} strokeWidth="2" strokeLinecap="round" />
+                                    </Svg>
+                                </Pressable>
+                            </View>
+
+                            {/* Scrollable form */}
+                            <ScrollView
+                                style={bs.scrollView}
+                                contentContainerStyle={bs.scrollContent}
+                                showsVerticalScrollIndicator={false}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                {renderFields()}
+                            </ScrollView>
+
+                            {/* Error message */}
+                            {saveError ? (
+                                <View style={bs.errorContainer}>
+                                    <Text className="font-inter text-xs font-medium text-danger-600 text-center">{saveError}</Text>
+                                </View>
+                            ) : null}
+
+                            {/* Actions */}
+                            <View style={bs.actions}>
+                                <Pressable onPress={onClose} style={bs.cancelButton}>
+                                    <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                </Pressable>
+                                <Pressable
+                                    onPress={handleSave}
+                                    style={[bs.saveButton, mutation.isPending && bs.saveButtonDisabled]}
+                                    disabled={mutation.isPending}
+                                >
+                                    {mutation.isPending ? (
+                                        <ActivityIndicator size="small" color={colors.white} />
+                                    ) : (
+                                        <Text className="font-inter text-sm font-bold text-white">Save Changes</Text>
+                                    )}
+                                </Pressable>
+                            </View>
                         </View>
-                    ) : null}
-
-                    {/* Actions */}
-                    <View style={bs.actions}>
-                        <Pressable onPress={onClose} style={bs.cancelButton}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
-                        </Pressable>
-                        <Pressable
-                            onPress={handleSave}
-                            style={[bs.saveButton, mutation.isPending && bs.saveButtonDisabled]}
-                            disabled={mutation.isPending}
-                        >
-                            {mutation.isPending ? (
-                                <ActivityIndicator size="small" color={colors.white} />
-                            ) : (
-                                <Text className="font-inter text-sm font-bold text-white">Save Changes</Text>
-                            )}
-                        </Pressable>
-                    </View>
+                    </KeyboardAvoidingView>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </Modal>
     );
 }
@@ -578,13 +748,13 @@ export function CompanyProfileScreen() {
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
 
-    const { data: profileResponse, isLoading, error, refetch } = useCompanyProfile();
+    const { data: profileResponse, isLoading, error, refetch, isFetching } = useCompanyProfile();
     const rawData = profileResponse?.data ?? profileResponse;
     const profile: CompanyProfileData | null = rawData ? mapApiToProfile(rawData) : null;
     const [logoFailed, setLogoFailed] = React.useState(false);
 
     React.useEffect(() => {
-        setLogoFailed(false);
+        setLogoFailed(() => false);
     }, [profile?.logoUrl]);
 
     // Edit sheet state
@@ -624,6 +794,50 @@ export function CompanyProfileScreen() {
                     corpState: profile.corpState,
                     corpPin: profile.corpPin,
                     corpCountry: profile.corpCountry,
+                };
+                break;
+            case 'identity':
+                data = {
+                    name: profile.name,
+                    companyCode: profile.companyCode,
+                    businessType: profile.businessType,
+                    industry: profile.industry,
+                    size: profile.size,
+                    employeeCount: profile.employeeCount,
+                    cin: profile.cin,
+                    incorporationDate: profile.incorporationDate,
+                };
+                break;
+            case 'statutory':
+                data = {
+                    pan: profile.pan,
+                    tan: profile.tan,
+                    gstin: profile.gstin,
+                    pfRegNo: profile.pfRegNo,
+                    esiCode: profile.esiCode,
+                    ptReg: profile.ptReg,
+                    lwfrNo: profile.lwfrNo,
+                    rocState: profile.rocState,
+                };
+                break;
+            case 'fiscal':
+                data = {
+                    payrollFreq: profile.payrollFreq,
+                    cutoffDay: profile.cutoffDay,
+                    disbursementDay: profile.disbursementDay,
+                    weekStart: profile.weekStart,
+                    timezone: profile.timezone,
+                    workingDays: profile.workingDays,
+                };
+                break;
+            case 'preferences':
+                data = {
+                    currency: profile.currency,
+                    language: profile.language,
+                    dateFormat: profile.dateFormat,
+                    timeFormat: profile.timeFormat,
+                    essEnabled: profile.essEnabled,
+                    mobileEnabled: profile.mobileEnabled,
                 };
                 break;
         }
@@ -798,7 +1012,15 @@ export function CompanyProfileScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-                bounces={false}
+                bounces={true}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isFetching}
+                        onRefresh={() => refetch()}
+                        colors={[colors.primary[500]]}
+                        tintColor={colors.primary[500]}
+                    />
+                }
             >
                 {/* ---- Header ---- */}
                 <Animated.View entering={FadeInDown.duration(400)}>
@@ -813,9 +1035,14 @@ export function CompanyProfileScreen() {
 
                         <View style={s.headerTop}>
                             <HamburgerButton onPress={toggle} />
-                            <Text className="font-inter text-base font-semibold text-white">
-                                Company Profile
-                            </Text>
+                            <View style={{ alignItems: 'center' }}>
+                                <Text className="font-inter text-base font-semibold text-white">
+                                    Company Profile
+                                </Text>
+                                {isFetching && (
+                                    <ActivityIndicator size="small" color="rgba(255,255,255,0.7)" style={{ marginTop: 2 }} />
+                                )}
+                            </View>
                             <View style={{ width: 36 }} />
                         </View>
 
@@ -869,9 +1096,9 @@ export function CompanyProfileScreen() {
                 </Animated.View>
 
                 <View style={s.body}>
-                    {/* ---- Company Identity (read-only) ---- */}
+                    {/* ---- Company Identity ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(100)} style={s.section}>
-                        <SectionHeader title="Company Identity" iconType="identity" readOnly />
+                        <SectionHeader title="Company Identity" iconType="identity" onEdit={() => openEdit('identity')} />
                         <View style={s.sectionCard}>
                             <InfoRow label="Company Name" value={profile.name} />
                             <InfoRow label="Company Code" value={profile.companyCode} />
@@ -884,9 +1111,9 @@ export function CompanyProfileScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* ---- Statutory Info (read-only) ---- */}
+                    {/* ---- Statutory Info ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(200)} style={s.section}>
-                        <SectionHeader title="Statutory Info" iconType="statutory" readOnly />
+                        <SectionHeader title="Statutory Info" iconType="statutory" onEdit={() => openEdit('statutory')} />
                         <View style={s.sectionCard}>
                             <InfoRow label="PAN" value={profile.pan} />
                             <InfoRow label="TAN" value={profile.tan} />
@@ -964,9 +1191,9 @@ export function CompanyProfileScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* ---- Fiscal Config (read-only) ---- */}
+                    {/* ---- Fiscal Config ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(700)} style={s.section}>
-                        <SectionHeader title="Fiscal Configuration" iconType="fiscal" readOnly />
+                        <SectionHeader title="Fiscal Configuration" iconType="fiscal" onEdit={() => openEdit('fiscal')} />
                         <View style={s.sectionCard}>
                             <InfoRow label="Financial Year" value={(() => {
                                 const fyOpt = FY_OPTIONS.find((o) => o.key === profile.fyType);
@@ -993,9 +1220,9 @@ export function CompanyProfileScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* ---- Preferences (read-only) ---- */}
+                    {/* ---- Preferences ---- */}
                     <Animated.View entering={FadeInUp.duration(400).delay(800)} style={s.section}>
-                        <SectionHeader title="Preferences" iconType="preferences" readOnly />
+                        <SectionHeader title="Preferences" iconType="preferences" onEdit={() => openEdit('preferences')} />
                         <View style={s.sectionCard}>
                             <InfoRow label="Currency" value={profile.currency} />
                             <InfoRow label="Language" value={profile.language} />
@@ -1016,7 +1243,11 @@ export function CompanyProfileScreen() {
                     </Animated.View>
 
                     {/* ---- Module Management (per location) ---- */}
-                    {profile.locations.length > 0 && (
+                    {profile.locations.length === 0 ? (
+                        <View style={s.emptyContainer}>
+                            <Text style={s.emptyText}>No locations found. Modules cannot be managed without locations.</Text>
+                        </View>
+                    ) : (
                         <Animated.View entering={FadeInUp.duration(400).delay(850)} style={s.section}>
                             <SectionHeader title="Module Management" iconType="modules" readOnly />
                             {profile.locations.map((loc) => {
@@ -1372,23 +1603,64 @@ const s = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 12,
         alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: colors.primary[900],
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: colors.neutral[50],
+    },
+    hqText: {
+        fontSize: 10,
+        fontFamily: 'Inter-Bold',
+        color: colors.success[700],
+    },
+    modulesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    moduleTag: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+        backgroundColor: colors.neutral[50],
+        borderWidth: 1,
+        borderColor: colors.neutral[100],
+    },
+    moduleTagActive: {
+        backgroundColor: colors.primary[50],
+        borderColor: colors.primary[200],
+    },
+    moduleTagText: {
+        fontSize: 13,
+        fontFamily: 'Inter-Medium',
+        color: colors.neutral[600],
+    },
+    moduleTagTextActive: {
+        color: colors.primary[700],
+        fontFamily: 'Inter-SemiBold',
+    },
+    emptyContainer: {
+        padding: 24,
+        backgroundColor: colors.primary[50],
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 16,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: colors.primary[100],
+        borderStyle: 'dashed',
+    },
+    emptyText: {
+        fontFamily: 'Inter-Medium',
+        fontSize: 14,
+        color: colors.primary[600],
+        textAlign: 'center',
     },
 });
-
-// ---- Bottom Sheet Styles ----
 
 const bs = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     backdropPress: {
@@ -1396,57 +1668,69 @@ const bs = StyleSheet.create({
     },
     sheet: {
         backgroundColor: colors.white,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderRadius: 36,
         maxHeight: '88%',
-        paddingTop: 8,
+        marginHorizontal: 12,
+        marginBottom: 12,
+        elevation: 20,
+        shadowColor: colors.primary[950],
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        overflow: 'hidden',
     },
     handleBar: {
+        width: 44,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: colors.neutral[200],
         alignSelf: 'center',
-        width: 40,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: colors.neutral[300],
-        marginBottom: 8,
+        marginTop: 10,
     },
     header: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
+        alignItems: 'center',
         paddingHorizontal: 24,
-        paddingVertical: 12,
+        paddingVertical: 20,
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
+    title: {
+        fontSize: 17,
+        fontFamily: 'Inter-Bold',
+        color: colors.primary[950],
+    },
     closeButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: colors.neutral[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
     scrollView: {
-        flexGrow: 0,
+        maxHeight: '100%',
     },
     scrollContent: {
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-        gap: 4,
+        padding: 24,
     },
     errorContainer: {
-        marginHorizontal: 24,
-        marginBottom: 8,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         backgroundColor: colors.danger[50],
+        padding: 12,
+        borderRadius: 12,
+        marginHorizontal: 24,
+        marginBottom: 20,
         borderWidth: 1,
         borderColor: colors.danger[200],
     },
     actions: {
         flexDirection: 'row',
         paddingHorizontal: 24,
+        paddingBottom: 40,
         paddingTop: 12,
         gap: 12,
         borderTopWidth: 1,

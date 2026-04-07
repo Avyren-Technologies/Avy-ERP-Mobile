@@ -3,7 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+    FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -112,8 +115,17 @@ function IOTReasonFormModal({
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+            {/* Backdrop — sits behind everything, never moves with keyboard */}
+            <Pressable
+                style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(8, 15, 40, 0.32)' }]}
+                onPress={onClose}
+            />
+            {/* KAV wraps only the sheet so only the sheet lifts with the keyboard */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1, justifyContent: 'flex-end' }}
+                keyboardVerticalOffset={0}
+            >
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
 
@@ -121,7 +133,13 @@ function IOTReasonFormModal({
                         {initialData ? 'Edit IOT Reason' : 'Add IOT Reason'}
                     </Text>
 
-                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="on-drag"
+                        style={{ flexGrow: 0 }}
+                        contentContainerStyle={{ paddingBottom: 8 }}
+                    >
                         {/* Reason Type Chips */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
@@ -165,14 +183,17 @@ function IOTReasonFormModal({
                         {/* Description */}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
-                            <View style={[styles.inputWrap, { height: 80, alignItems: 'flex-start' }]}>
+                            <View style={[styles.inputWrap, styles.multilineWrap]}>
                                 <TextInput
-                                    style={[styles.textInput, { height: 70, textAlignVertical: 'top' }]}
+                                    style={[styles.textInput, styles.multilineInput]}
                                     placeholder="Optional detailed description..."
                                     placeholderTextColor={colors.neutral[400]}
                                     value={description}
                                     onChangeText={setDescription}
                                     multiline
+                                    numberOfLines={3}
+                                    textAlignVertical="top"
+                                    scrollEnabled={false}
                                 />
                             </View>
                         </View>
@@ -284,7 +305,7 @@ function IOTReasonFormModal({
                         </Pressable>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
@@ -640,6 +661,20 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter',
         fontSize: 14,
         color: colors.primary[950],
+    },
+    multilineWrap: {
+        height: undefined,
+        minHeight: 86,
+        alignItems: 'flex-start',
+        paddingTop: 12,
+        paddingBottom: 12,
+        justifyContent: 'flex-start',
+    },
+    multilineInput: {
+        height: undefined,
+        minHeight: 62,
+        width: '100%',
+        lineHeight: 20,
     },
     chip: {
         paddingHorizontal: 14,

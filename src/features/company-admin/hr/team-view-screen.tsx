@@ -26,6 +26,7 @@ import {
     useTeamAttendance,
     useTeamLeaveCalendar,
     useTeamMembers,
+    useApprovalRequests,
 } from '@/features/company-admin/api/use-ess-queries';
 
 // ============ TYPES ============
@@ -101,8 +102,11 @@ export function TeamViewScreen() {
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
+    const [approvalTab, setApprovalTab] = React.useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+
     const { data: membersResponse, isLoading: membersLoading, refetch: membersRefetch, isFetching: membersFetching } = useTeamMembers();
-    const { data: approvalsResponse } = usePendingMssApprovals();
+    const { data: pendingApprovalsResponse, isFetching: pendingFetching } = usePendingMssApprovals();
+    const { data: historyResponse, isFetching: historyFetching } = useApprovalRequests({ status: approvalTab });
     const { data: attendanceResponse } = useTeamAttendance();
     const { data: calendarResponse } = useTeamLeaveCalendar();
     const approveMutation = useApproveRequest();
@@ -116,23 +120,44 @@ export function TeamViewScreen() {
         const raw = (membersResponse as any)?.data ?? membersResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((m: any) => ({
-            id: m.id ?? '', name: m.name ?? `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim(),
-            designation: m.designation ?? '', status: m.status ?? 'Active',
+            id: m.id ?? '',
+            name: m.name ?? `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim(),
+            designation: typeof m.designation === 'object' && m.designation !== null
+                ? (m.designation.name ?? m.designation.title ?? '')
+                : (m.designation ?? m.jobTitle ?? m.position ?? ''),
+            status: m.status ?? 'Active',
         }));
     }, [membersResponse]);
 
-    // Parse pending approvals
-    const pendingApprovals: MSSApproval[] = React.useMemo(() => {
-        const raw = (approvalsResponse as any)?.data ?? approvalsResponse ?? [];
+    // Parse approvals based on current tab
+    const approvals: MSSApproval[] = React.useMemo(() => {
+        let raw: any[];
+        if (approvalTab === 'PENDING') {
+            raw = (pendingApprovalsResponse as any)?.data ?? pendingApprovalsResponse ?? [];
+        } else {
+            raw = (historyResponse as any)?.data ?? historyResponse ?? [];
+            if (!Array.isArray(raw) && (historyResponse as any)?.data?.items) {
+                raw = (historyResponse as any).data.items;
+            }
+        }
+        
         if (!Array.isArray(raw)) return [];
         return raw.map((a: any) => ({
-            id: a.id ?? '', employeeName: a.employeeName ?? a.requesterName ?? '',
-            type: a.type ?? a.entityType ?? '', summary: a.summary ?? a.description ?? '',
+            id: a.id ?? '', 
+            employeeName: a.employeeName ?? a.requesterName ?? a.employee?.name ?? 'Unknown',
+            type: a.type ?? a.entityType ?? 'Request', 
+            summary: a.summary ?? a.description ?? a.reason ?? '',
             submittedDate: a.submittedDate ?? a.createdAt ?? '',
         }));
-    }, [approvalsResponse]);
+    }, [pendingApprovalsResponse, historyResponse, approvalTab]);
 
-    // Parse team attendance
+    // Parse team attendance — only show if data actually came back
+    const hasAttendanceData = React.useMemo(() => {
+        const raw: any = (attendanceResponse as any)?.data ?? attendanceResponse;
+        return raw && typeof raw === 'object' && !Array.isArray(raw) &&
+            (raw.present !== undefined || raw.total !== undefined);
+    }, [attendanceResponse]);
+
     const teamAttendance: TeamAttendanceData = React.useMemo(() => {
         const raw: any = (attendanceResponse as any)?.data ?? attendanceResponse ?? {};
         return {
@@ -186,9 +211,10 @@ export function TeamViewScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
-                refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => membersRefetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                refreshControl={<RefreshControl refreshing={(isFetching || pendingFetching || historyFetching) && !isLoading} onRefresh={() => membersRefetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             >
-                {/* Team Attendance Summary */}
+                {/* Team Attendance Summary — only show if data available */}
+                {hasAttendanceData ? (
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     <SectionCard title="Today's Team Attendance">
                         <View style={styles.kpiGrid}>
@@ -217,14 +243,32 @@ export function TeamViewScreen() {
                         </View>
                     </SectionCard>
                 </Animated.View>
+                ) : null}
 
-                {/* Pending Approvals */}
+                {/* Approvals Section */}
                 <Animated.View entering={FadeInUp.duration(350).delay(200)}>
-                    <SectionCard title="Pending Approvals" count={pendingApprovals.length}>
-                        {pendingApprovals.length === 0 ? (
-                            <Text className="py-4 text-center font-inter text-xs text-neutral-400">No pending approvals</Text>
+                    <SectionCard title="Approvals Queue" count={approvals.length}>
+                        {/* Tab Selector */}
+                        <View style={styles.tabContainer}>
+                            {(['PENDING', 'APPROVED', 'REJECTED'] as const).map((tab) => (
+                                <Pressable
+                                    key={tab}
+                                    onPress={() => setApprovalTab(tab)}
+                                    style={[styles.tabButton, approvalTab === tab && styles.tabButtonActive]}
+                                >
+                                    <Text className={`font-inter text-[10px] font-bold ${approvalTab === tab ? 'text-white' : 'text-primary-700'}`}>
+                                        {tab}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </View>
+
+                        {approvals.length === 0 ? (
+                            <Text className="py-6 text-center font-inter text-xs text-neutral-400">
+                                No {approvalTab.toLowerCase()} requests
+                            </Text>
                         ) : (
-                            pendingApprovals.map(a => (
+                            approvals.map(a => (
                                 <View key={a.id} style={styles.approvalItem}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                                         <AvatarCircle name={a.employeeName} />
@@ -232,19 +276,21 @@ export function TeamViewScreen() {
                                             <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>{a.employeeName}</Text>
                                             <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', marginTop: 2 }}>
                                                 <View style={styles.typeBadge}><Text className="font-inter text-[10px] font-bold text-info-700">{a.type}</Text></View>
-                                                <Text className="font-inter text-[10px] text-neutral-400">{a.submittedDate}</Text>
+                                                <Text className="font-inter text-[10px] text-neutral-400">{new Date(a.submittedDate).toLocaleDateString()}</Text>
                                             </View>
                                             {a.summary ? <Text className="mt-1 font-inter text-xs text-neutral-500" numberOfLines={1}>{a.summary}</Text> : null}
                                         </View>
                                     </View>
-                                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
-                                        <Pressable onPress={() => handleApprove(a)} style={styles.approveBtn}>
-                                            <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                        </Pressable>
-                                        <Pressable onPress={() => handleReject(a)} style={styles.rejectActionBtn}>
-                                            <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                        </Pressable>
-                                    </View>
+                                    {approvalTab === 'PENDING' && (
+                                        <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+                                            <Pressable onPress={() => handleApprove(a)} style={styles.approveBtn}>
+                                                <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                            </Pressable>
+                                            <Pressable onPress={() => handleReject(a)} style={styles.rejectActionBtn}>
+                                                <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                            </Pressable>
+                                        </View>
+                                    )}
                                 </View>
                             ))
                         )}
@@ -331,4 +377,7 @@ const styles = StyleSheet.create({
     memberStatusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     leaveRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     daysBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    tabContainer: { flexDirection: 'row', backgroundColor: colors.primary[50], borderRadius: 12, padding: 4, marginBottom: 16 },
+    tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+    tabButtonActive: { backgroundColor: colors.primary[600] },
 });

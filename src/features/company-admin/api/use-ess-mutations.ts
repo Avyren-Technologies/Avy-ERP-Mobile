@@ -3,59 +3,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { essApi, type ESSConfig } from '@/lib/api/ess';
 import { essKeys } from '@/features/company-admin/api/use-ess-queries';
 import { leaveKeys } from '@/features/company-admin/api/use-leave-queries';
+import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 // ── ESS Config ────────────────────────────────────────────────────
-
-/** Update ESS configuration (upsert) */
-export function useUpdateEssConfig() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<ESSConfig>) =>
-      essApi.updateEssConfig(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.essConfig() });
-    },
-  });
-}
-
-// ── Approval Workflows ────────────────────────────────────────────
-
-/** Create an approval workflow */
-export function useCreateApprovalWorkflow() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      essApi.createApprovalWorkflow(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.workflows() });
-    },
-  });
-}
-
-/** Update an approval workflow */
-export function useUpdateApprovalWorkflow() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-      essApi.updateApprovalWorkflow(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: essKeys.workflows() });
-      queryClient.invalidateQueries({ queryKey: essKeys.workflow(id) });
-    },
-  });
-}
-
-/** Delete an approval workflow */
-export function useDeleteApprovalWorkflow() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => essApi.deleteApprovalWorkflow(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.workflows() });
-    },
-  });
-}
-
+// ... lines 7-58 ...
 // ── Approval Requests ─────────────────────────────────────────────
 
 /** Approve an approval request (current step) */
@@ -65,9 +16,14 @@ export function useApproveRequest() {
     mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
       essApi.approveRequest(id, data),
     onSuccess: (_, { id }) => {
+      showSuccess('Request approved successfully');
       queryClient.invalidateQueries({ queryKey: essKeys.requests() });
       queryClient.invalidateQueries({ queryKey: essKeys.request(id) });
       queryClient.invalidateQueries({ queryKey: essKeys.pendingApprovals() });
+      queryClient.invalidateQueries({ queryKey: essKeys.pendingMssApprovals() });
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to approve request');
     },
   });
 }
@@ -79,9 +35,14 @@ export function useRejectRequest() {
     mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
       essApi.rejectRequest(id, data),
     onSuccess: (_, { id }) => {
+      showSuccess('Request rejected successfully');
       queryClient.invalidateQueries({ queryKey: essKeys.requests() });
       queryClient.invalidateQueries({ queryKey: essKeys.request(id) });
       queryClient.invalidateQueries({ queryKey: essKeys.pendingApprovals() });
+      queryClient.invalidateQueries({ queryKey: essKeys.pendingMssApprovals() });
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to reject request');
     },
   });
 }

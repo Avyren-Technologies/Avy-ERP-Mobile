@@ -1,4 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
@@ -45,6 +46,8 @@ import {
 import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 import { useGeofencesForDropdown } from '@/features/company-admin/api/use-geofence-queries';
 import { useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
+import { useFileUpload } from '@/hooks/use-file-upload';
+import { useFileUrl } from '@/hooks/use-file-url';
 import { resolveCostCentreIdForDepartment } from '@/lib/employee-org-defaults';
 import { computeProbationEndIsoFromMasters } from '@/lib/probation-end-date';
 import { storage } from '@/lib/storage';
@@ -1196,6 +1199,19 @@ export function EmployeeDetailScreen() {
     const deactivateModal = useConfirmModal();
     const [draftRestored, setDraftRestored] = React.useState(false);
 
+    // R2 file upload hooks for profile photo
+    const { upload: uploadPhoto, isUploading: isPhotoUploading } = useFileUpload({
+        category: 'employee-photo',
+        entityId: employeeId || 'new',
+        onSuccess: (key) => {
+            setProfilePhotoUrl(key);
+        },
+    });
+
+    const { url: photoDisplayUrl } = useFileUrl({
+        key: profilePhotoUrl,
+    });
+
     // Exit form state (for deactivate flow)
     const [showExitForm, setShowExitForm] = React.useState(false);
     const [exitReason, setExitReason] = React.useState('');
@@ -1646,13 +1662,17 @@ export function EmployeeDetailScreen() {
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
-            base64: true,
         });
         if (!result.canceled && result.assets[0]) {
             const asset = result.assets[0];
-            if (asset.base64) {
-                const mimeType = asset.mimeType ?? 'image/jpeg';
-                setProfilePhotoUrl(`data:${mimeType};base64,${asset.base64}`);
+            const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+            if (fileInfo.exists) {
+                await uploadPhoto({
+                    uri: asset.uri,
+                    name: 'profile-photo.jpg',
+                    type: asset.mimeType || 'image/jpeg',
+                    size: fileInfo.size ?? 0,
+                });
             }
         }
     };
@@ -2050,8 +2070,12 @@ export function EmployeeDetailScreen() {
             <Animated.View entering={FadeIn.duration(400).delay(50)}>
                 <View style={st.photoSection}>
                     <Pressable onPress={handlePickPhoto} style={st.avatarContainer}>
-                        {profilePhotoUrl ? (
-                            <Image source={{ uri: profilePhotoUrl }} style={st.avatarImage} />
+                        {isPhotoUploading ? (
+                            <View style={st.avatarPlaceholder}>
+                                <ActivityIndicator size="small" color={colors.primary[500]} />
+                            </View>
+                        ) : photoDisplayUrl ? (
+                            <Image source={{ uri: photoDisplayUrl }} style={st.avatarImage} />
                         ) : (
                             <View style={st.avatarPlaceholder}>
                                 <Text className="font-inter text-lg font-bold text-accent-700">
@@ -2067,7 +2091,7 @@ export function EmployeeDetailScreen() {
                         </View>
                     </Pressable>
                     <Text className="mt-1 font-inter text-[10px] text-neutral-400">
-                        Tap to {profilePhotoUrl ? 'change' : 'add'} photo
+                        {isPhotoUploading ? 'Uploading...' : `Tap to ${profilePhotoUrl ? 'change' : 'add'} photo`}
                     </Text>
                 </View>
             </Animated.View>

@@ -10,7 +10,7 @@ const RESERVED_SLUGS = new Set([
 
 export const step1Schema = z.object({
     logoUri: z.string().optional(),
-    logoBase64: z.string().optional(),
+    logoR2Key: z.string().optional(),
     displayName: z.string().min(2, 'Display name is required (min 2 characters)'),
     slug: z
         .string()

@@ -95,7 +95,7 @@ export function TenantOnboardingScreen() {
     // ---- Step form states ----
     const [step1, setStep1] = React.useState<Step1Form>({
         logoUri: '',
-        logoBase64: '',
+        logoR2Key: '',
         displayName: '', slug: '', legalName: '', businessType: '', industry: '',
         companyCode: '', shortName: '', incorporationDate: '', employees: '',
         cin: '', website: '', emailDomain: '', status: 'Draft',
@@ -286,7 +286,7 @@ export function TenantOnboardingScreen() {
                 try {
                     const payload = {
                         identity: {
-                            logoUrl: step1.logoBase64 || step1.logoUri,
+                            logoUrl: step1.logoR2Key || step1.logoUri,
                             displayName: step1.displayName,
                             slug: step1.slug,
                             legalName: step1.legalName,

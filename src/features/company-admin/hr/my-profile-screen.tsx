@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -30,6 +31,8 @@ import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useUpdateMyProfile } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyProfile } from '@/features/company-admin/api/use-ess-queries';
 import { useAuthStore } from '@/features/auth/use-auth-store';
+import { useFileUpload } from '@/hooks/use-file-upload';
+import { useFileUrl } from '@/hooks/use-file-url';
 
 // ============ TYPES ============
 
@@ -490,6 +493,29 @@ export function MyProfileScreen() {
         };
     }, [response]);
 
+    const { upload: uploadPhoto, isUploading: isPhotoR2Uploading } = useFileUpload({
+        category: 'employee-photo',
+        entityId: user?.id || 'me',
+        onSuccess: (key) => {
+            updateProfile.mutate({ profilePhotoUrl: key }, {
+                onSuccess: () => {
+                    setIsUploadingPhoto(false);
+                    showSuccess('Profile photo updated');
+                },
+                onError: () => {
+                    setIsUploadingPhoto(false);
+                    setLocalPhotoUri(null);
+                    showErrorMessage('Failed to update photo. Please try again.');
+                },
+            });
+        },
+        onError: () => {
+            setIsUploadingPhoto(false);
+            setLocalPhotoUri(null);
+            showErrorMessage('Failed to upload photo. Please try again.');
+        },
+    });
+
     const handlePickPhoto = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
@@ -501,29 +527,18 @@ export function MyProfileScreen() {
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
-            base64: true,
         });
         if (!result.canceled && result.assets[0]) {
             const asset = result.assets[0];
-            if (asset.base64) {
-                const mimeType = asset.mimeType ?? 'image/jpeg';
-                const photoUrl = `data:${mimeType};base64,${asset.base64}`;
-                // Show immediately in UI without waiting for server round-trip
-                setLocalPhotoUri(photoUrl);
-                setIsUploadingPhoto(true);
-                updateProfile.mutate({ profilePhotoUrl: photoUrl }, {
-                    onSuccess: () => {
-                        setIsUploadingPhoto(false);
-                        showSuccess('Profile photo updated');
-                    },
-                    onError: () => {
-                        setIsUploadingPhoto(false);
-                        // Revert local preview on failure
-                        setLocalPhotoUri(null);
-                        showErrorMessage('Failed to update photo. Please try again.');
-                    },
-                });
-            }
+            setLocalPhotoUri(asset.uri);
+            setIsUploadingPhoto(true);
+            const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+            await uploadPhoto({
+                uri: asset.uri,
+                name: 'photo.jpg',
+                type: asset.mimeType || 'image/jpeg',
+                size: fileInfo.exists ? (fileInfo.size ?? 0) : 0,
+            });
         }
     };
 
@@ -586,8 +601,9 @@ export function MyProfileScreen() {
     const incomplete = isProfileIncomplete(profile);
     const userEmail = user?.email ?? '';
     const displayName = profile?.name || user?.email || 'You';
-    // localPhotoUri gives instant feedback; falls back to server URL once refetched
-    const photoUrl = localPhotoUri || profile?.profilePhotoUrl || undefined;
+    // localPhotoUri gives instant feedback during upload; resolved R2 URL for saved photo
+    const { url: resolvedPhotoUrl } = useFileUrl({ key: profile?.profilePhotoUrl });
+    const photoUrl = localPhotoUri || resolvedPhotoUrl || undefined;
 
     return (
         <View style={styles.container}>

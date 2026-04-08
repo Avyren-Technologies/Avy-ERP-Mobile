@@ -16,6 +16,7 @@ export * from './list';
 export * from './modal';
 export * from './no-permission-screen';
 export * from './progress-bar';
+export * from './r2-image';
 export * from './select';
 export * from './sidebar';
 export * from './skeleton';

@@ -22,6 +22,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { R2Image } from '@/components/ui/r2-image';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { showSuccess } from '@/components/ui/utils';
@@ -778,22 +779,22 @@ export function CompanyDetailScreen() {
                         </View>
 
                         <View style={styles.companyHeaderInfo}>
-                            {company.logoUrl ? (
-                                <Image
-                                    source={{ uri: company.logoUrl }}
-                                    style={styles.companyLargeAvatar}
-                                    contentFit="cover"
-                                />
-                            ) : (
-                                <LinearGradient
-                                    colors={[colors.accent[300], colors.primary[400]]}
-                                    style={styles.companyLargeAvatar}
-                                >
-                                    <Text className="font-inter text-xl font-bold text-white">
-                                        {company.displayName.substring(0, 2).toUpperCase()}
-                                    </Text>
-                                </LinearGradient>
-                            )}
+                            <R2Image
+                                fileKey={company.logoUrl}
+                                platform
+                                style={styles.companyLargeAvatar}
+                                contentFit="cover"
+                                fallback={
+                                    <LinearGradient
+                                        colors={[colors.accent[300], colors.primary[400]]}
+                                        style={styles.companyLargeAvatar}
+                                    >
+                                        <Text className="font-inter text-xl font-bold text-white">
+                                            {company.displayName.substring(0, 2).toUpperCase()}
+                                        </Text>
+                                    </LinearGradient>
+                                }
+                            />
 
                             <Text className="mt-3 font-inter text-xl font-bold text-white">
                                 {company.displayName}

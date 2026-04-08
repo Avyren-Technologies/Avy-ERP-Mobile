@@ -23,6 +23,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { R2Image } from '@/components/ui/r2-image';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1048,23 +1049,21 @@ export function CompanyProfileScreen() {
 
                         {/* Company avatar + name */}
                         <View style={s.companyHeaderInfo}>
-                            {hasLogo ? (
-                                <Image
-                                    source={{ uri: profile.logoUrl }}
-                                    style={{ width: 72, height: 72, borderRadius: 16 }}
-                                    resizeMode="contain"
-                                    onError={() => setLogoFailed(true)}
-                                />
-                            ) : (
-                                <LinearGradient
-                                    colors={[colors.accent[300], colors.primary[400]]}
-                                    style={s.companyAvatar}
-                                >
-                                    <Text className="font-inter text-xl font-bold text-white">
-                                        {profile.displayName.substring(0, 2).toUpperCase()}
-                                    </Text>
-                                </LinearGradient>
-                            )}
+                            <R2Image
+                                fileKey={profile.logoUrl}
+                                style={{ width: 72, height: 72, borderRadius: 16 }}
+                                contentFit="contain"
+                                fallback={
+                                    <LinearGradient
+                                        colors={[colors.accent[300], colors.primary[400]]}
+                                        style={s.companyAvatar}
+                                    >
+                                        <Text className="font-inter text-xl font-bold text-white">
+                                            {profile.displayName.substring(0, 2).toUpperCase()}
+                                        </Text>
+                                    </LinearGradient>
+                                }
+                            />
 
                             <Text className="mt-3 font-inter text-xl font-bold text-white">
                                 {profile.displayName}

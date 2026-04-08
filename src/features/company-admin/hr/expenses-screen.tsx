@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Image,
     Modal,
     Pressable,
@@ -40,6 +41,7 @@ import {
     useRejectExpenseClaim,
 } from '@/features/company-admin/api/use-recruitment-mutations';
 import { useExpenseClaims } from '@/features/company-admin/api/use-recruitment-queries';
+import { useFileUrl } from '@/hooks/use-file-url';
 
 // ============ TYPES ============
 
@@ -58,6 +60,24 @@ interface ReceiptItem {
     fileName: string;
     fileUrl: string;
     fileSize?: number;
+}
+
+// ============ RECEIPT THUMBNAIL (resolves R2 keys) ============
+
+function ReceiptThumb({ fileUrl, style }: { fileUrl: string; style: any }) {
+    const isLocal = fileUrl.startsWith('file://') || fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+    const { url, isLoading } = useFileUrl({ key: fileUrl, enabled: !isLocal });
+    const resolvedUri = isLocal ? fileUrl : url;
+
+    if (isLoading) {
+        return (
+            <View style={[style, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" />
+            </View>
+        );
+    }
+    if (!resolvedUri) return null;
+    return <Image source={{ uri: resolvedUri }} style={style} />;
 }
 
 // ============ CONSTANTS ============
@@ -742,7 +762,7 @@ function ClaimFormModal({
                                 style={styles.receiptCard}
                             >
                                 {r.fileUrl.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) || r.fileUrl.startsWith('file://') ? (
-                                    <Image source={{ uri: r.fileUrl }} style={styles.receiptThumb} />
+                                    <ReceiptThumb fileUrl={r.fileUrl} style={styles.receiptThumb} />
                                 ) : (
                                     <View style={styles.receiptFileIcon}>
                                         <Svg width={16} height={16} viewBox="0 0 24 24">

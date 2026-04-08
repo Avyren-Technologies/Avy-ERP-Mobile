@@ -1,13 +1,16 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { Image } from 'expo-image';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { useFileUpload } from '@/hooks/use-file-upload';
+import { useFileUrl } from '@/hooks/use-file-url';
 
 import { FormDatePicker, FormInput, FormSelect, RadioOption, SectionCard } from '../atoms';
 import type { Step1Form } from '../types';
@@ -73,6 +76,21 @@ export function Step1Identity({
     const manualSlugOverrideRef = React.useRef(false);
     const [slugError, setSlugError] = React.useState<string | undefined>(undefined);
 
+    const { upload: uploadLogo, isUploading: isLogoUploading } = useFileUpload({
+        category: 'company-logo',
+        entityId: 'onboarding',
+        platform: true,
+        companyId: 'onboarding',
+        onSuccess: (key) => {
+            setForm({ logoR2Key: key });
+        },
+    });
+
+    const { url: logoDisplayUrl } = useFileUrl({
+        key: form.logoR2Key,
+        platform: true,
+    });
+
     React.useEffect(() => {
         const generatedCode = generateCompanyCode(form.displayName ?? '');
         if (!generatedCode) {
@@ -117,12 +135,19 @@ export function Step1Identity({
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
-            base64: true,
         });
         if (!result.canceled) {
             const asset = result.assets[0];
-            const base64 = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : '';
-            setForm({ logoUri: asset.uri, logoBase64: base64 || asset.uri });
+            const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+            if (fileInfo.exists) {
+                setForm({ logoUri: asset.uri });
+                await uploadLogo({
+                    uri: asset.uri,
+                    name: 'logo.jpg',
+                    type: asset.mimeType || 'image/jpeg',
+                    size: fileInfo.size ?? 0,
+                });
+            }
         }
     };
 
@@ -138,17 +163,24 @@ export function Step1Identity({
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
-            base64: true,
         });
         if (!result.canceled) {
             const asset = result.assets[0];
-            const base64 = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : '';
-            setForm({ logoUri: asset.uri, logoBase64: base64 || asset.uri });
+            const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+            if (fileInfo.exists) {
+                setForm({ logoUri: asset.uri });
+                await uploadLogo({
+                    uri: asset.uri,
+                    name: 'logo.jpg',
+                    type: asset.mimeType || 'image/jpeg',
+                    size: fileInfo.size ?? 0,
+                });
+            }
         }
     };
 
     const removeLogo = () => {
-        setForm({ logoUri: '', logoBase64: '' });
+        setForm({ logoUri: '', logoR2Key: '' });
         setShowOptions(false);
     };
 
@@ -163,9 +195,11 @@ export function Step1Identity({
                     onPress={() => setShowOptions((v) => !v)}
                 >
                     <View style={S.logoPlaceholder}>
-                        {form.logoUri ? (
+                        {isLogoUploading ? (
+                            <ActivityIndicator size="small" color={colors.primary[500]} />
+                        ) : (logoDisplayUrl || form.logoUri) ? (
                             <Image
-                                source={{ uri: form.logoUri }}
+                                source={{ uri: logoDisplayUrl || form.logoUri }}
                                 style={ls.logoThumb}
                                 contentFit="cover"
                             />
@@ -183,7 +217,16 @@ export function Step1Identity({
                         )}
                     </View>
                     <View style={S.logoUploadText}>
-                        {form.logoUri ? (
+                        {isLogoUploading ? (
+                            <>
+                                <Text className="font-inter text-sm font-semibold text-primary-600">
+                                    Uploading...
+                                </Text>
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-400">
+                                    Please wait while the logo is uploaded
+                                </Text>
+                            </>
+                        ) : (form.logoUri || form.logoR2Key) ? (
                             <>
                                 <Text className="font-inter text-sm font-semibold text-success-600">
                                     Logo Uploaded
@@ -258,7 +301,7 @@ export function Step1Identity({
                             </Text>
                         </Pressable>
 
-                        {form.logoUri && (
+                        {(form.logoUri || form.logoR2Key) && (
                             <>
                                 <View style={ls.divider} />
                                 <Pressable style={ls.optionRow} onPress={removeLogo}>

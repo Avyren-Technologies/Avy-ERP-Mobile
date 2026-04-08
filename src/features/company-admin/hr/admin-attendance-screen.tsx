@@ -18,6 +18,7 @@ import Svg, { Circle, Path, Line } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { R2Image } from '@/components/ui/r2-image';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
@@ -139,13 +140,15 @@ function EmployeeInfoCard({
   return (
     <AnimatedRN.View entering={FadeInDown.duration(400).delay(100)} style={$.card}>
       <View style={$.empHeader}>
-        {photoUrl ? (
-          <Image source={{ uri: photoUrl }} style={$.empPhoto} />
-        ) : (
-          <View style={$.empPhotoPlaceholder}>
-            <Text className="font-inter text-base font-bold" style={{ color: colors.primary[600] }}>{initials}</Text>
-          </View>
-        )}
+        <R2Image
+          fileKey={photoUrl}
+          style={$.empPhoto}
+          fallback={
+            <View style={$.empPhotoPlaceholder}>
+              <Text className="font-inter text-base font-bold" style={{ color: colors.primary[600] }}>{initials}</Text>
+            </View>
+          }
+        />
         <View style={{ flex: 1 }}>
           <Text className="font-inter text-base font-bold" style={{ color: colors.primary[950] }}>{name}</Text>
           {employee?.employeeCode && (

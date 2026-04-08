@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Image,
     Modal,
     Pressable,
@@ -29,6 +30,31 @@ import { showErrorMessage } from '@/components/ui/utils';
 import { useCancelMyExpenseClaim, useCreateMyExpenseClaim, useSubmitMyExpenseClaim } from '@/features/company-admin/api/use-ess-mutations';
 import { useExpenseCategories, useExpenseClaimsSummary, useMyExpenseClaims } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useFileUrl } from '@/hooks/use-file-url';
+
+// ── Receipt Thumbnail (resolves R2 keys) ────────────────────────
+
+function ReceiptThumb({ fileUrl, style }: { fileUrl: string; style: any }) {
+    const isLocal = fileUrl.startsWith('file://') || fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+    const { url, isLoading } = useFileUrl({ key: fileUrl, enabled: !isLocal });
+    const resolvedUri = isLocal ? fileUrl : url;
+
+    if (isLoading) {
+        return (
+            <View style={[style, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" />
+            </View>
+        );
+    }
+    if (!resolvedUri) {
+        return (
+            <View style={[style, { justifyContent: 'center', alignItems: 'center' }]}>
+                <FileIcon />
+            </View>
+        );
+    }
+    return <Image source={{ uri: resolvedUri }} style={style} resizeMode="cover" />;
+}
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -756,7 +782,7 @@ function CreateExpenseClaimModal({
                                 style={styles.receiptCard}
                             >
                                 {isImageUri(r.fileUrl) ? (
-                                    <Image source={{ uri: r.fileUrl }} style={styles.receiptThumb} resizeMode="cover" />
+                                    <ReceiptThumb fileUrl={r.fileUrl} style={styles.receiptThumb} />
                                 ) : (
                                     <View style={[styles.receiptThumb, { justifyContent: 'center', alignItems: 'center' }]}>
                                         <FileIcon />

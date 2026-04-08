@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     FlatList,
     Modal,
@@ -15,6 +16,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Image } from '@/components/ui/image';
 import { Text } from '@/components/ui/text';
 import colors from '@/components/ui/colors';
+import { useFileUrl } from '@/hooks/use-file-url';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -33,6 +35,38 @@ export interface ImageViewerProps {
 // ── Constants ────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// ── Resolved Image Item (resolves R2 keys to presigned URLs) ────
+
+function ResolvedImageItem({ item }: { item: ImageViewerImage }) {
+    const isLocalOrHttp = item.fileUrl.startsWith('file://') || item.fileUrl.startsWith('http://') || item.fileUrl.startsWith('https://');
+    const { url, isLoading } = useFileUrl({ key: item.fileUrl, enabled: !isLocalOrHttp });
+    const resolvedUri = isLocalOrHttp ? item.fileUrl : url;
+
+    return (
+        <View style={viewerStyles.imageContainer}>
+            <ScrollView
+                contentContainerStyle={viewerStyles.scrollContent}
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                bouncesZoom
+                centerContent
+            >
+                {isLoading ? (
+                    <ActivityIndicator size="large" color={colors.white} />
+                ) : resolvedUri ? (
+                    <Image
+                        source={{ uri: resolvedUri }}
+                        style={viewerStyles.fullImage}
+                        contentFit="contain"
+                    />
+                ) : null}
+            </ScrollView>
+        </View>
+    );
+}
 
 // ── Component ────────────────────────────────────────────────────
 
@@ -82,23 +116,7 @@ export function ImageViewer({ images, initialIndex = 0, visible, onClose }: Imag
     const hasMultiple = images.length > 1;
 
     const renderImageItem = React.useCallback(({ item }: { item: ImageViewerImage }) => (
-        <View style={viewerStyles.imageContainer}>
-            <ScrollView
-                contentContainerStyle={viewerStyles.scrollContent}
-                maximumZoomScale={4}
-                minimumZoomScale={1}
-                showsHorizontalScrollIndicator={false}
-                showsVerticalScrollIndicator={false}
-                bouncesZoom
-                centerContent
-            >
-                <Image
-                    source={{ uri: item.fileUrl }}
-                    style={viewerStyles.fullImage}
-                    contentFit="contain"
-                />
-            </ScrollView>
-        </View>
+        <ResolvedImageItem item={item} />
     ), []);
 
     if (!visible || images.length === 0) return null;
@@ -208,14 +226,14 @@ export function ImageViewer({ images, initialIndex = 0, visible, onClose }: Imag
 
 // ── Helper ───────────────────────────────────────────────────────
 
-/** Check if a URI points to an image (by extension or data URI prefix) */
+/** Check if a URI points to an image (by extension, R2 presigned URL, or local file) */
 export function isImageFile(uri: string): boolean {
     if (!uri) return false;
     const lower = uri.toLowerCase();
-    // Base64 data URI
-    if (lower.startsWith('data:image/')) return true;
     // Local file picked from camera/gallery
     if (lower.startsWith('file://')) return true;
+    // HTTP(S) URLs (R2 presigned URLs)
+    if (lower.startsWith('http://') || lower.startsWith('https://')) return true;
     // Common image extensions
     return /\.(jpg|jpeg|png|gif|bmp|webp|svg|heic|heif|avif)(\?.*)?$/i.test(lower);
 }

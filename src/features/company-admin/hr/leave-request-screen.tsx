@@ -13,7 +13,7 @@ import {
     StyleSheet,
     Switch,
     TextInput,
-    View,r
+    View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Animated, {

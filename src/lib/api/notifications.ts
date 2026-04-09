@@ -23,6 +23,28 @@ export interface NotificationPreferencesResponse {
   };
 }
 
+export interface NotificationListItem {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  entityType: string | null;
+  entityId: string | null;
+  data: Record<string, unknown> | null;
+  actionUrl: string | null;
+  status: 'UNREAD' | 'READ' | 'ARCHIVED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  isRead: boolean;
+  createdAt: string;
+}
+
+/**
+ * The mobile axios client strips the outer AxiosResponse wrapper in a response
+ * interceptor (see src/lib/api/client.tsx), so callers receive the API
+ * envelope `{ success, data, meta? }` directly. Methods here return `Promise<any>`
+ * to match the existing client pattern; strongly-typed shapes are exposed via
+ * the interfaces above so consumers can annotate their own usage site.
+ */
 export const notificationApi = {
   listNotifications: (params?: { page?: number; limit?: number }) =>
     client.get('/notifications', { params }),

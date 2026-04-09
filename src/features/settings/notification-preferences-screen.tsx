@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Lock } from 'lucide-react-native';
 
 import { Text } from '@/components/ui';
 import { showSuccess, showErrorMessage, showError } from '@/components/ui/utils';
@@ -20,8 +20,19 @@ import {
     notificationApi,
     type NotificationPreferenceData,
     type NotificationPreferencesResponse,
+    type NotificationCategoryPreference,
+    type NotificationChannel,
 } from '@/lib/api/notifications';
 import colors from '@/components/ui/colors';
+
+// Channels displayed in the category matrix header (IN_APP omitted —
+// in-app delivery is always the system of record).
+const CATEGORY_MATRIX_CHANNELS: Array<{ key: NotificationChannel; label: string }> = [
+    { key: 'PUSH', label: 'Push' },
+    { key: 'EMAIL', label: 'Email' },
+    { key: 'SMS', label: 'SMS' },
+    { key: 'WHATSAPP', label: 'WhatsApp' },
+];
 
 /** Separate root key — notification list/unread invalidations should NOT refetch preferences. */
 export const notificationPreferencesKey = ['notification-preferences'] as const;
@@ -161,6 +172,54 @@ export function NotificationPreferencesScreen() {
             }
         },
     });
+
+    // Single-cell mutation for the category × channel matrix. Optimistic
+    // update with rollback, matching the main preferences mutation pattern.
+    const categoryMutation = useMutation({
+        mutationFn: (entry: NotificationCategoryPreference) =>
+            notificationApi.updateCategoryPreferences([entry]),
+        onMutate: async (entry) => {
+            await queryClient.cancelQueries({ queryKey: notificationPreferencesKey });
+            const previous = queryClient.getQueryData<EnvelopeShape>(notificationPreferencesKey);
+            if (previous?.data) {
+                const prefs = previous.data.categoryPreferences ?? [];
+                const existingIdx = prefs.findIndex(
+                    (p) => p.category === entry.category && p.channel === entry.channel,
+                );
+                const nextPrefs =
+                    existingIdx >= 0
+                        ? prefs.map((p, i) => (i === existingIdx ? entry : p))
+                        : [...prefs, entry];
+                queryClient.setQueryData<EnvelopeShape>(notificationPreferencesKey, {
+                    ...previous,
+                    data: { ...previous.data, categoryPreferences: nextPrefs },
+                });
+            }
+            return { previous };
+        },
+        onError: (err, _entry, ctx) => {
+            if (ctx?.previous) {
+                queryClient.setQueryData(notificationPreferencesKey, ctx.previous);
+            }
+            const axiosErr = err as { isAxiosError?: boolean };
+            if (axiosErr?.isAxiosError) {
+                showError(err as any);
+            } else {
+                showErrorMessage('Could not update category preference');
+            }
+        },
+    });
+
+    /** Look up the current enabled state for a (category, channel) cell. */
+    const getCategoryCell = (category: string, channel: NotificationChannel): boolean => {
+        const prefs = envelope?.data?.categoryPreferences;
+        const entry = prefs?.find((p) => p.category === category && p.channel === channel);
+        return entry?.enabled ?? true; // default when no row exists
+    };
+
+    const toggleCategoryCell = (category: string, channel: NotificationChannel, enabled: boolean) => {
+        categoryMutation.mutate({ category, channel, enabled });
+    };
 
     const testMutation = useMutation({
         mutationFn: () => notificationApi.sendTestNotification(),
@@ -382,6 +441,69 @@ export function NotificationPreferencesScreen() {
                 </View>
 
                 <Text className="font-inter" style={styles.sectionTitle}>
+                    Fine-tune by Category
+                </Text>
+                <View style={styles.card}>
+                    <Text className="font-inter" style={styles.categoryHelper}>
+                        Mute individual notification categories per channel. Locked categories (security &amp; billing) cannot be disabled.
+                    </Text>
+                    <View style={styles.matrixHeader}>
+                        <View style={styles.matrixCategoryCol} />
+                        {CATEGORY_MATRIX_CHANNELS.map((c) => (
+                            <Text
+                                key={c.key}
+                                className="font-inter"
+                                style={styles.matrixHeaderLabel}
+                            >
+                                {c.label}
+                            </Text>
+                        ))}
+                    </View>
+                    {(envelope?.data?.categoryCatalogue ?? []).map((cat, idx, arr) => (
+                        <View
+                            key={cat.code}
+                            style={[styles.matrixRow, idx === arr.length - 1 && styles.matrixRowLast]}
+                        >
+                            <View style={styles.matrixCategoryCol}>
+                                <View style={styles.matrixCategoryLabelRow}>
+                                    {cat.locked ? (
+                                        <Lock size={12} color="#F59E0B" style={styles.lockIcon} />
+                                    ) : null}
+                                    <Text
+                                        className="font-inter"
+                                        style={[
+                                            styles.matrixCategoryLabel,
+                                            cat.locked && styles.matrixCategoryLabelLocked,
+                                        ]}
+                                    >
+                                        {cat.label}
+                                    </Text>
+                                </View>
+                                <Text className="font-inter" style={styles.matrixCategoryDesc}>
+                                    {cat.description}
+                                </Text>
+                            </View>
+                            {CATEGORY_MATRIX_CHANNELS.map((c) => {
+                                const checked = getCategoryCell(cat.code, c.key);
+                                const disabled = !!cat.locked;
+                                return (
+                                    <View key={c.key} style={styles.matrixCell}>
+                                        <Switch
+                                            value={checked}
+                                            onValueChange={(v) => toggleCategoryCell(cat.code, c.key, v)}
+                                            disabled={disabled}
+                                            trackColor={{ true: colors.primary[500], false: '#CBD5E1' }}
+                                            thumbColor="#FFFFFF"
+                                            style={styles.matrixSwitch}
+                                        />
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    ))}
+                </View>
+
+                <Text className="font-inter" style={styles.sectionTitle}>
                     Test Notification
                 </Text>
                 <View style={styles.card}>
@@ -486,6 +608,64 @@ const styles = StyleSheet.create({
     timeInputError: {
         borderColor: '#DC2626',
         borderWidth: 2,
+    },
+    // Category matrix
+    categoryHelper: {
+        fontSize: 12,
+        color: '#64748B',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+    },
+    matrixHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0',
+        backgroundColor: '#F8FAFC',
+    },
+    matrixHeaderLabel: {
+        width: 56,
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#475569',
+        textAlign: 'center',
+    },
+    matrixRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    matrixRowLast: { borderBottomWidth: 0 },
+    matrixCategoryCol: { flex: 1, marginRight: 8 },
+    matrixCategoryLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    lockIcon: { marginRight: 2 },
+    matrixCategoryLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#0F172A',
+    },
+    matrixCategoryLabelLocked: { color: '#94A3B8' },
+    matrixCategoryDesc: {
+        fontSize: 11,
+        color: '#64748B',
+        marginTop: 2,
+    },
+    matrixCell: {
+        width: 56,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    matrixSwitch: {
+        transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
     },
     testDesc: { fontSize: 13, color: '#64748B', padding: 14, paddingBottom: 8 },
     testBtn: {

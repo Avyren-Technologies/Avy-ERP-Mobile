@@ -52,7 +52,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  // Android: set up notification channels
+  // Android: set up notification channels.
+  //
+  // Channels are idempotent — repeat calls with the same id overwrite settings.
+  // We do NOT set bypassDnd because it requires the user to grant
+  // ACCESS_NOTIFICATION_POLICY, which Expo managed workflow can't request
+  // automatically. Expo would silently drop the flag anyway.
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Default',
@@ -60,17 +65,22 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#4F46E5',
       sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
     });
 
     // Dedicated high-importance channel for CRITICAL notifications
-    // (security alerts, salary credited, password reset, etc.)
+    // (security alerts, salary credited, password reset, etc.).
+    // Backend must set android.notification.channel_id='critical' on the
+    // FCM push payload to route notifications to this channel.
     await Notifications.setNotificationChannelAsync('critical', {
       name: 'Critical',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 250, 500],
       lightColor: '#DC2626',
       sound: 'default',
-      bypassDnd: true,
+      enableVibrate: true,
+      enableLights: true,
     });
   }
 
@@ -92,8 +102,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     await setItem(PUSH_TOKEN_KEY, token);
 
-    // Register with backend (extended payload with device metadata)
+    // Register with backend (extended payload with device metadata).
+    // Locale/timezone come from the device — these are device metadata, not
+    // formatting values (company timezone is used for formatting per CLAUDE.md).
     try {
+      const resolvedOptions = Intl.DateTimeFormat().resolvedOptions();
       await client.post('/notifications/register-device', {
         fcmToken: token,
         tokenType: 'EXPO',
@@ -102,8 +115,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
         deviceModel: Device.modelName ?? undefined,
         osVersion: Device.osVersion ?? undefined,
         appVersion: Application.nativeApplicationVersion ?? undefined,
-        locale: (Intl as any).DateTimeFormat?.().resolvedOptions?.().locale,
-        timezone: (Intl as any).DateTimeFormat?.().resolvedOptions?.().timeZone,
+        locale: resolvedOptions.locale,
+        timezone: resolvedOptions.timeZone,
       });
       logger.info('Device token registered with backend');
     } catch (err) {
@@ -116,10 +129,13 @@ export async function registerForPushNotifications(): Promise<string | null> {
     // on SDK 53+, or a local dev build without the EAS FCM V1 service account).
     // Don't crash — warn with a docs pointer and continue.
     const msg = (err as Error)?.message ?? String(err);
-    if (msg.includes('FirebaseApp is not initialized')) {
+    // Tolerant match: Expo has used several error strings across SDK versions.
+    // We match case-insensitively on 'firebase' + 'initial' as a sentinel.
+    const isFirebaseInitError = /firebase/i.test(msg) && /initial/i.test(msg);
+    if (isFirebaseInitError) {
       logger.warn(
-        'FCM not configured on this build. Push notifications are disabled ' +
-          'for this session. If this is a dev/Expo Go build that\'s expected. ' +
+        "FCM not configured on this build. Push notifications are disabled " +
+          "for this session. If this is a dev/Expo Go build that's expected. " +
           'See https://docs.expo.dev/push-notifications/fcm-credentials/',
       );
     } else {

@@ -425,6 +425,9 @@ function TabLayoutInner() {
             const data = response.notification.request.content.data as Record<string, string> | undefined;
             if (!data?.entityType) return;
 
+            // Map notification entityType → existing mobile routes.
+            // Every path here must exist under src/app/(app)/ — if a mapping
+            // is missing, we fall through to the dashboard (safe default).
             switch (data.entityType) {
                 case 'Interview':
                     router.push('/company/hr/requisitions' as any);
@@ -440,20 +443,24 @@ function TabLayoutInner() {
                     router.push('/company/hr/my-attendance' as any);
                     break;
                 case 'Reimbursement':
-                    router.push('/company/hr/my-reimbursement' as any);
+                case 'ExpenseClaim':
+                    router.push('/company/hr/my-expense-claims' as any);
                     break;
                 case 'LoanApplication':
-                    router.push('/company/hr/my-loan' as any);
+                    router.push('/company/hr/my-loans' as any);
                     break;
                 case 'PayslipBatch':
+                case 'SalaryCredited':
                     router.push('/company/hr/my-payslips' as any);
                     break;
                 case 'ShiftChange':
+                    router.push('/company/hr/shift-swap' as any);
+                    break;
                 case 'WfhRequest':
-                    router.push('/company/hr/my-shifts' as any);
+                    router.push('/company/hr/wfh-requests' as any);
                     break;
                 case 'Resignation':
-                    router.push('/company/hr/my-exit' as any);
+                    router.push('/company/hr/exit-requests' as any);
                     break;
                 case 'Grievance':
                     router.push('/company/hr/my-grievances' as any);
@@ -462,7 +469,9 @@ function TabLayoutInner() {
                     router.push('/company/support/tickets' as any);
                     break;
                 default:
-                    router.push('/notifications' as any);
+                    // Safe fallback — land on dashboard. The bell icon on
+                    // the dashboard header opens the notifications bottom sheet.
+                    router.push('/' as any);
                     break;
             }
         });

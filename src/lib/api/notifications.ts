@@ -1,5 +1,7 @@
 import { client } from '@/lib/api/client';
 
+export type NotificationChannel = 'IN_APP' | 'PUSH' | 'EMAIL' | 'SMS' | 'WHATSAPP';
+
 export interface NotificationPreferenceData {
   inAppEnabled: boolean;
   pushEnabled: boolean;
@@ -12,6 +14,19 @@ export interface NotificationPreferenceData {
   quietHoursEnd: string | null;
 }
 
+export interface NotificationCategoryPreference {
+  category: string;
+  channel: NotificationChannel;
+  enabled: boolean;
+}
+
+export interface NotificationCategoryDef {
+  code: string;
+  label: string;
+  description: string;
+  locked?: boolean;
+}
+
 export interface NotificationPreferencesResponse {
   preference: NotificationPreferenceData;
   companyMasters: {
@@ -21,6 +36,8 @@ export interface NotificationPreferencesResponse {
     sms: boolean;
     whatsapp: boolean;
   };
+  categoryPreferences: NotificationCategoryPreference[];
+  categoryCatalogue: NotificationCategoryDef[];
 }
 
 export interface NotificationListItem {
@@ -61,6 +78,9 @@ export const notificationApi = {
 
   updatePreferences: (data: Partial<NotificationPreferenceData>) =>
     client.patch('/notifications/preferences', data),
+
+  updateCategoryPreferences: (categoryPreferences: NotificationCategoryPreference[]) =>
+    client.patch('/notifications/preferences/categories', { categoryPreferences }),
 
   getDeliveryEvents: (id: string) => client.get(`/notifications/${id}/events`),
 

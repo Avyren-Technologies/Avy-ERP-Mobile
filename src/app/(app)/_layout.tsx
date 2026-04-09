@@ -6,6 +6,7 @@ import {
     addNotificationResponseListener,
     addForegroundNotificationListener,
 } from '@/lib/notifications';
+import { useNotificationSocket } from '@/features/notifications/use-notification-socket';
 import {
     Building,
     Building2,
@@ -410,6 +411,9 @@ function TabLayoutInner() {
         setShowBiometricPrompt(false);
     }, []);
 
+    // ── Real-time notification socket subscription ──
+    useNotificationSocket();
+
     // ── Push notification registration + deep-linking ──
     useEffect(() => {
         if (status !== 'signIn') return;
@@ -432,13 +436,33 @@ function TabLayoutInner() {
                     router.push('/company/hr/my-leave' as any);
                     break;
                 case 'AttendanceRegularization':
+                case 'OvertimeClaim':
                     router.push('/company/hr/my-attendance' as any);
+                    break;
+                case 'Reimbursement':
+                    router.push('/company/hr/my-reimbursement' as any);
+                    break;
+                case 'LoanApplication':
+                    router.push('/company/hr/my-loan' as any);
+                    break;
+                case 'PayslipBatch':
+                    router.push('/company/hr/my-payslips' as any);
+                    break;
+                case 'ShiftChange':
+                case 'WfhRequest':
+                    router.push('/company/hr/my-shifts' as any);
+                    break;
+                case 'Resignation':
+                    router.push('/company/hr/my-exit' as any);
+                    break;
+                case 'Grievance':
+                    router.push('/company/hr/my-grievances' as any);
                     break;
                 case 'SupportTicket':
                     router.push('/company/support/tickets' as any);
                     break;
                 default:
-                    // For unknown entity types, navigate to dashboard
+                    router.push('/notifications' as any);
                     break;
             }
         });

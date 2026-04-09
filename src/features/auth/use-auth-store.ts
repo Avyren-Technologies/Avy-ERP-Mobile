@@ -9,6 +9,7 @@ import { getItem, removeItem, setItem } from '@/lib/storage';
 import { createLogger } from '@/lib/logger';
 import { unregisterPushNotifications } from '@/lib/notifications';
 import { queryClient } from '@/lib/api/provider';
+import { disconnectSocket } from '@/lib/socket';
 
 const logger = createLogger('AuthStore');
 
@@ -101,6 +102,9 @@ const _useAuthStore = create<AuthState>((set) => ({
     signOut: () => {
         // Unregister push token before clearing auth (fire-and-forget)
         unregisterPushNotifications().catch(() => {});
+        // Disconnect the shared Socket.io singleton so the next login doesn't
+        // inherit the previous user's authenticated socket and notification rooms.
+        disconnectSocket();
         removeToken();
         removeItem(USER_DATA_KEY);
         // Clear all React Query caches so new user doesn't see stale data

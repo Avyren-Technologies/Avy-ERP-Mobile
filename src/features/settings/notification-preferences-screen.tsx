@@ -112,6 +112,8 @@ export function NotificationPreferencesScreen() {
     // Local draft state for time inputs (commit on blur only, not per keystroke)
     const [quietStartDraft, setQuietStartDraft] = useState<string | null>(null);
     const [quietEndDraft, setQuietEndDraft] = useState<string | null>(null);
+    const [quietStartError, setQuietStartError] = useState(false);
+    const [quietEndError, setQuietEndError] = useState(false);
 
     const updateMutation = useMutation({
         mutationFn: (patch: Partial<NotificationPreferenceData>) => notificationApi.updatePreferences(patch),
@@ -202,22 +204,36 @@ export function NotificationPreferencesScreen() {
 
     const commitQuietStart = () => {
         const val = quietStartDraft;
-        setQuietStartDraft(null);
-        if (val === null || val === preference.quietHoursStart) return;
+        if (val === null || val === preference.quietHoursStart) {
+            setQuietStartDraft(null);
+            setQuietStartError(false);
+            return;
+        }
         if (val === '' || TIME_REGEX.test(val)) {
+            setQuietStartError(false);
+            setQuietStartDraft(null);
             update({ quietHoursStart: val === '' ? null : val });
         } else {
+            // Invalid — keep the draft visible with an error border so the user
+            // can correct it, and surface an error toast.
+            setQuietStartError(true);
             showErrorMessage('Start time must be HH:MM (24-hour)');
         }
     };
 
     const commitQuietEnd = () => {
         const val = quietEndDraft;
-        setQuietEndDraft(null);
-        if (val === null || val === preference.quietHoursEnd) return;
+        if (val === null || val === preference.quietHoursEnd) {
+            setQuietEndDraft(null);
+            setQuietEndError(false);
+            return;
+        }
         if (val === '' || TIME_REGEX.test(val)) {
+            setQuietEndError(false);
+            setQuietEndDraft(null);
             update({ quietHoursEnd: val === '' ? null : val });
         } else {
+            setQuietEndError(true);
             showErrorMessage('End time must be HH:MM (24-hour)');
         }
     };
@@ -333,10 +349,13 @@ export function NotificationPreferencesScreen() {
                                 </Text>
                                 <TextInput
                                     value={quietStartDraft ?? preference.quietHoursStart ?? ''}
-                                    onChangeText={setQuietStartDraft}
+                                    onChangeText={(text) => {
+                                        setQuietStartDraft(text);
+                                        if (quietStartError) setQuietStartError(false);
+                                    }}
                                     onBlur={commitQuietStart}
                                     placeholder="22:00"
-                                    style={styles.timeInput}
+                                    style={[styles.timeInput, quietStartError && styles.timeInputError]}
                                     maxLength={5}
                                     keyboardType="numbers-and-punctuation"
                                 />
@@ -347,10 +366,13 @@ export function NotificationPreferencesScreen() {
                                 </Text>
                                 <TextInput
                                     value={quietEndDraft ?? preference.quietHoursEnd ?? ''}
-                                    onChangeText={setQuietEndDraft}
+                                    onChangeText={(text) => {
+                                        setQuietEndDraft(text);
+                                        if (quietEndError) setQuietEndError(false);
+                                    }}
                                     onBlur={commitQuietEnd}
                                     placeholder="07:00"
-                                    style={styles.timeInput}
+                                    style={[styles.timeInput, quietEndError && styles.timeInputError]}
                                     maxLength={5}
                                     keyboardType="numbers-and-punctuation"
                                 />
@@ -460,6 +482,10 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#0F172A',
         backgroundColor: '#FFFFFF',
+    },
+    timeInputError: {
+        borderColor: '#DC2626',
+        borderWidth: 2,
     },
     testDesc: { fontSize: 13, color: '#64748B', padding: 14, paddingBottom: 8 },
     testBtn: {

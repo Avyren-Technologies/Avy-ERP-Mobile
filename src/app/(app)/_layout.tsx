@@ -466,7 +466,14 @@ function TabLayoutInner() {
                     router.push('/company/hr/my-grievances' as any);
                     break;
                 case 'SupportTicket':
-                    router.push('/company/support/tickets' as any);
+                    // Support routes live at /support with /support/ticket/[id]
+                    // — NOT under /company/support. When entityId is present
+                    // we navigate straight to the ticket detail.
+                    if (data.entityId) {
+                        router.push(`/support/ticket/${data.entityId}` as any);
+                    } else {
+                        router.push('/support' as any);
+                    }
                     break;
                 default:
                     // Safe fallback — land on dashboard. The bell icon on

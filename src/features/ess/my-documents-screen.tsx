@@ -1,7 +1,8 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
-    Modal,
+    FlatList,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -9,8 +10,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -222,24 +222,6 @@ export function MyDocumentsScreen() {
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
-            <AppTopHeader title="My Documents" onMenuPress={open} />
-            <FlashList
-                data={documents}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}
-                refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary[500]} />}
-                ListEmptyComponent={!isLoading ? <View style={styles.empty}><Text className="font-inter text-sm text-neutral-400">No documents uploaded</Text></View> : null}
-            />
-            <FAB onPress={() => setFormVisible(true)} />
-            <UploadDocumentModal
-                visible={formVisible}
-                onClose={() => setFormVisible(false)}
-                onSave={handleUpload}
-                isSaving={uploadDoc.isPending}
-            />
-            <ConfirmModal {...confirmModalProps} />
         <View style={{ flex: 1 }}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title={showForm ? 'Upload Document' : 'My Documents'} onMenuPress={open} />

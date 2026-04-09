@@ -84,7 +84,6 @@ export function useFileUpload(options: UseFileUploadOptions): UseFileUploadRetur
 
         const uploadResult = await FileSystem.uploadAsync(uploadUrl, file.uri, {
           httpMethod: 'PUT',
-          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
           headers: { 'Content-Type': file.type },
         });
 

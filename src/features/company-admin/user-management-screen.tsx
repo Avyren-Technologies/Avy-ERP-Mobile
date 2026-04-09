@@ -97,7 +97,7 @@ function mapApiUser(item: any): UserData {
         role: item.roleName ?? item.role ?? '',
         roleName: item.roleName ?? item.role ?? '',
         roleId: item.roleId ?? item.role?.id ?? '',
-        isActive: item.isActive ?? (item.status === 'active') ?? true,
+        isActive: item.isActive ?? (item.status ? item.status === 'active' : true),
         lastLogin: item.lastLogin ?? item.lastLoginAt ?? undefined,
         createdAt: item.createdAt ?? undefined,
     };

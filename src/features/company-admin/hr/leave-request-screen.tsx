@@ -3,13 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-<<<<<<< HEAD
-=======
-    ActivityIndicator,
     Alert,
-    FlatList,
     KeyboardAvoidingView,
->>>>>>> e62c336 (feat: redesign apply leave modal with full-screen layout, date pickers, and improved validation logic)
     Modal,
     Platform,
     Pressable,
@@ -18,7 +13,7 @@ import {
     StyleSheet,
     Switch,
     TextInput,
-    View,
+    View,r
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Animated, {

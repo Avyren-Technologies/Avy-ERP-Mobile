@@ -6,7 +6,70 @@ import { leaveKeys } from '@/features/company-admin/api/use-leave-queries';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 // ── ESS Config ────────────────────────────────────────────────────
-// ... lines 7-58 ...
+/** Update ESS config */
+export function useUpdateEssConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<ESSConfig>) => essApi.updateEssConfig(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.essConfig() });
+      showSuccess('ESS configuration updated successfully');
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to update ESS configuration');
+    },
+  });
+}
+
+// ── Approval Workflows ─────────────────────────────────────────────
+
+/** Create an approval workflow */
+export function useCreateApprovalWorkflow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => essApi.createApprovalWorkflow(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.workflows() });
+      showSuccess('Approval workflow created successfully');
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to create approval workflow');
+    },
+  });
+}
+
+/** Update an approval workflow */
+export function useUpdateApprovalWorkflow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      essApi.updateApprovalWorkflow(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: essKeys.workflows() });
+      queryClient.invalidateQueries({ queryKey: essKeys.workflow(id) });
+      showSuccess('Approval workflow updated successfully');
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to update approval workflow');
+    },
+  });
+}
+
+/** Delete an approval workflow */
+export function useDeleteApprovalWorkflow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.deleteApprovalWorkflow(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.workflows() });
+      showSuccess('Approval workflow deleted successfully');
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to delete approval workflow');
+    },
+  });
+}
+
 // ── Approval Requests ─────────────────────────────────────────────
 
 /** Approve an approval request (current step) */

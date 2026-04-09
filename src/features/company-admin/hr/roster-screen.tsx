@@ -427,6 +427,15 @@ export function RosterScreen() {
         </Animated.View>
     );
 
+    const renderItem = ({ item, index }: { item: RosterItem; index: number }) => (
+        <RosterCard
+            item={item}
+            index={index}
+            onEdit={() => handleEdit(item)}
+            onDelete={() => handleDelete(item)}
+        />
+    );
+
     const renderEmpty = () => {
         if (isLoading) return <View style={{ paddingTop: 24, paddingHorizontal: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
         if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load rosters" message="Check your connection and try again." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;

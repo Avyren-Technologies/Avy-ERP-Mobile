@@ -1774,8 +1774,8 @@ export function EmployeeDetailScreen() {
             voterId: documents.voterId,
             
             initialStatus: employeeStatus.toUpperCase().replaceAll(' ', '_') as any,
-        };
-    };
+        },
+    });
 
     const handleSave = () => {
         const data = collectFormData();

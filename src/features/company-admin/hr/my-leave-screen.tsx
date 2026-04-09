@@ -577,91 +577,59 @@ export function MyLeaveScreen() {
         });
     };
 
-    return (
-        <View style={st.container}>
-            <LinearGradient
-                colors={[colors.gradient.surface, colors.white, colors.accent[50]]}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            />
+    const listData = [{ key: 'my-leave-content' }];
 
-            {/* Header */}
-            <AppTopHeader title="My Leave" onMenuPress={toggle} />
-
-            { (isLoading || isLoadingReqs) && (
-                <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
-                    <SkeletonCard /><SkeletonCard /><SkeletonCard />
-                </View>
-            )}
-            {!(isLoading || isLoadingReqs) && !!error && (
-                <View style={{ paddingTop: 60, alignItems: 'center' }}>
-                    <EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => { refetch(); refetchReqs(); } }} />
-                </View>
-            )}
-            {!(isLoading || isLoadingReqs) && !error && (
+    const renderItem = () => (
+        <View>
+            {data.balances.length > 0 && (
+                <Animated.View entering={FadeInDown.duration(400)}>
+                    <Text style={st.sectionTitle}>Leave Balance</Text>
                     <ScrollView
-                        style={{ flex: 1 }}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={[st.scrollContent, { paddingBottom: Math.max(insets.bottom, 20) + 40 }]}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={isFetching && !(isLoading || isLoadingReqs)}
-                                onRefresh={() => { refetch(); refetchReqs(); }}
-                                tintColor={colors.primary[500]}
-                                colors={[colors.primary[500]]}
-                            />
-                        }
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={st.balanceScroll}
                     >
-                    {/* ── Leave Balance — horizontal scroll ── */}
-                    {data.balances.length > 0 && (
-                        <Animated.View entering={FadeInDown.duration(400)}>
-                            <Text style={st.sectionTitle}>Leave Balance</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={st.balanceScroll}
-                            >
-                                {data.balances.map((b, i) => (
-                                    <BalanceCard key={b.code + i} item={b} index={i} />
-                                ))}
-                            </ScrollView>
-                        </Animated.View>
-                    )}
+                        {data.balances.map((b, i) => (
+                            <BalanceCard key={b.code + i} item={b} index={i} />
+                        ))}
+                    </ScrollView>
+                </Animated.View>
+            )}
 
-                    {/* ── Apply for Leave Button ── */}
-                    <Pressable onPress={() => setFormVisible(true)} style={st.applyBtn}>
-                        <Svg width={18} height={18} viewBox="0 0 24 24">
-                            <Path d="M12 5v14M5 12h14" stroke={colors.white} strokeWidth="2.5" strokeLinecap="round" />
-                        </Svg>
-                        <Text style={st.applyBtnText}>Apply for Leave</Text>
-                    </Pressable>
+            <Pressable onPress={() => setFormVisible(true)} style={st.applyBtn}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                    <Path d="M12 5v14M5 12h14" stroke={colors.white} strokeWidth="2.5" strokeLinecap="round" />
+                </Svg>
+                <Text style={st.applyBtnText}>Apply for Leave</Text>
+            </Pressable>
 
-                    {/* ── My Requests ── */}
-                    <Text style={[st.sectionTitle, { marginTop: 24 }]}>
-                        My Requests
-                        {data.requests.length > 0 ? (
-                            <Text style={st.sectionCount}> ({data.requests.length})</Text>
-                        ) : null}
-                    </Text>
+            <Text style={[st.sectionTitle, { marginTop: 24 }]}>
+                My Requests
+                {data.requests.length > 0 ? (
+                    <Text style={st.sectionCount}> ({data.requests.length})</Text>
+                ) : null}
+            </Text>
 
-                    {data.requests.length === 0 ? (
-                        <View style={st.emptyRequests}>
-                            <Svg width={40} height={40} viewBox="0 0 24 24">
-                                <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                                    stroke={colors.neutral[300]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                            </Svg>
-                            <Text style={st.emptyText}>No leave requests yet</Text>
-                        </View>
-                    ) : (
-                        data.requests.map((req, i) => (
-                            <LeaveRequestCard key={req.id} req={req} index={i} onCancel={handleCancelLeave} />
-                        ))
-                    )}
+            {data.requests.length === 0 ? (
+                <View style={st.emptyRequests}>
+                    <Svg width={40} height={40} viewBox="0 0 24 24">
+                        <Path
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                            stroke={colors.neutral[300]}
+                            strokeWidth="1.5"
+                            fill="none"
+                            strokeLinecap="round"
+                        />
+                    </Svg>
+                    <Text style={st.emptyText}>No leave requests yet</Text>
                 </View>
-            </Animated.View>
-        );
-    };
+            ) : (
+                data.requests.map((req, i) => (
+                    <LeaveRequestCard key={req.id} req={req} index={i} onCancel={handleCancelLeave} />
+                ))
+            )}
+        </View>
+    );
 
     const renderEmpty = () => {
         if (isLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
@@ -670,7 +638,7 @@ export function MyLeaveScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={st.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="My Leave" onMenuPress={toggle} />
             {isLoading || error ? renderEmpty() : (
@@ -678,11 +646,10 @@ export function MyLeaveScreen() {
                     data={listData}
                     renderItem={renderItem}
                     keyExtractor={item => item.key}
-                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+                    contentContainerStyle={[st.scrollContent, { paddingBottom: insets.bottom + 40 }]}
                     showsVerticalScrollIndicator={false}
                     refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
                 />
-                </ScrollView>
             )}
 
             <ApplyLeaveModal

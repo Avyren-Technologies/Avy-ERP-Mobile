@@ -462,6 +462,15 @@ export function CostCentreScreen() {
         </Animated.View>
     );
 
+    const renderItem = ({ item, index }: { item: CostCentreItem; index: number }) => (
+        <CostCentreCard
+            item={item}
+            index={index}
+            onEdit={() => handleEdit(item)}
+            onDelete={() => handleDelete(item)}
+        />
+    );
+
     const renderEmpty = () => {
         if (isLoading) return <View style={{ paddingTop: 24, paddingHorizontal: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
         if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load cost centres" message="Check your connection and try again." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;
@@ -474,7 +483,6 @@ export function CostCentreScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white]} style={StyleSheet.absoluteFill} />
             <AppTopHeader title="Cost Centre Management" onMenuPress={toggle} />
             <FlashList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
-            <FlatList data={filtered} renderItem={({ item, index }) => <CostCentreCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />

@@ -1,22 +1,36 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, AppStateStatus, Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const logo = require('../../../assets/logo.png') as number;
 import { getItem } from '@/lib/storage';
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 
+/**
+ * Full-screen biometric lock gate — industry-standard app lock.
+ *
+ * Strict enforcement: ANY time the app goes to `background` and returns
+ * to `active`, the user must authenticate via biometrics to proceed.
+ * Only triggers when the user has opted in (`biometric_enabled` = true).
+ *
+ * - Tracks `background` state specifically (not `inactive`) to avoid
+ *   false triggers from system dialogs, notification center, or the
+ *   biometric prompt itself (which puts iOS into `inactive`).
+ * - Auto-prompts biometric on lock.
+ * - Retry button if auth fails or is dismissed.
+ * - Android back button cannot dismiss the lock.
+ */
 export function BiometricLockGate({ children }: { children: React.ReactNode }) {
     const [locked, setLocked] = useState(false);
     const [authFailed, setAuthFailed] = useState(false);
-    const backgroundTimestamp = useRef<number | null>(null);
-    const appState = useRef<AppStateStatus>(AppState.currentState);
+    const wentToBackground = useRef(false);
     const isAuthenticating = useRef(false);
-
-    const GRACE_PERIOD_MS = 2000;
 
     const authenticate = useCallback(async () => {
         if (isAuthenticating.current) return;
@@ -45,26 +59,20 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-            const prevState = appState.current;
-            appState.current = nextState;
-
-            if (nextState === 'background' || nextState === 'inactive') {
-                if (prevState === 'active') {
-                    backgroundTimestamp.current = Date.now();
-                }
+            // Only track actual background (home button, app switch).
+            // `inactive` is ignored — it fires for system dialogs, notification
+            // center, and the biometric prompt itself on iOS.
+            if (nextState === 'background') {
+                wentToBackground.current = true;
                 return;
             }
 
-            if (nextState === 'active' && (prevState === 'background' || prevState === 'inactive')) {
+            // Lock when returning from background to active
+            if (nextState === 'active' && wentToBackground.current) {
+                wentToBackground.current = false;
+
                 const biometricEnabled = getItem<boolean>(BIOMETRIC_ENABLED_KEY);
                 if (!biometricEnabled) return;
-
-                const elapsed = backgroundTimestamp.current
-                    ? Date.now() - backgroundTimestamp.current
-                    : Infinity;
-                backgroundTimestamp.current = null;
-
-                if (elapsed < GRACE_PERIOD_MS) return;
 
                 setLocked(true);
                 setAuthFailed(false);
@@ -74,6 +82,7 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
         return () => subscription.remove();
     }, []);
 
+    // Auto-prompt biometric when lock activates
     useEffect(() => {
         if (locked && !isAuthenticating.current) {
             const timer = setTimeout(() => authenticate(), 300);
@@ -90,12 +99,12 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
                     transparent={false}
                     animationType="fade"
                     statusBarTranslucent
-                    onRequestClose={() => {}}
+                    onRequestClose={() => {
+                        // Prevent Android back button from dismissing the lock
+                    }}
                 >
                     <View style={lockStyles.container}>
-                        <View style={lockStyles.iconCircle}>
-                            <Text style={lockStyles.lockIcon}>🔒</Text>
-                        </View>
+                        <Image source={logo} style={lockStyles.logo} resizeMode="contain" />
                         <Text style={lockStyles.title}>App Locked</Text>
                         <Text style={lockStyles.subtitle}>
                             Authenticate to unlock Avy ERP
@@ -133,17 +142,10 @@ const lockStyles = StyleSheet.create({
         justifyContent: 'center',
         paddingHorizontal: 32,
     },
-    iconCircle: {
+    logo: {
         width: 96,
         height: 96,
-        borderRadius: 48,
-        backgroundColor: colors.primary[50],
-        alignItems: 'center',
-        justifyContent: 'center',
         marginBottom: 24,
-    },
-    lockIcon: {
-        fontSize: 44,
     },
     title: {
         fontFamily: 'Inter',

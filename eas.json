@@ -6,8 +6,9 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "distribution": "store",
+      "distribution": "internal",
       "environment": "production",
+      "buildType": "apk",
       "ios": {
         "image": "latest"
       },

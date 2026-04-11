@@ -713,15 +713,14 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
     const isNarrowScreen = SCREEN_WIDTH < 380;
     const fmt = useCompanyFormatter();
 
-    // Live clock — update every 10s (seconds are cosmetic, not critical)
+    // Live clock — match web DynamicDashboardScreen (1s tick)
     const [clockStr, setClockStr] = React.useState(() =>
         fmt.timeWithSeconds(new Date().toISOString())
     );
     React.useEffect(() => {
-        // Update immediately, then every 10 seconds
-        const id = setInterval(() => {
-            setClockStr(fmt.timeWithSeconds(new Date().toISOString()));
-        }, 10_000);
+        const tick = () => setClockStr(fmt.timeWithSeconds(new Date().toISOString()));
+        tick();
+        const id = setInterval(tick, 1000);
         return () => clearInterval(id);
     }, [fmt]);
 
@@ -758,11 +757,11 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
         if (status !== 'CHECKED_IN' || !shift?.punchIn) return;
         startRef.current = Date.now();
         baseRef.current = shift.elapsedSeconds ?? 0;
-        // Update elapsed every 30s — HH:MM display doesn't need per-second updates
-        setElapsed(baseRef.current);
-        const id = setInterval(() => {
+        const tick = () => {
             setElapsed(baseRef.current + Math.floor((Date.now() - startRef.current) / 1000));
-        }, 30_000);
+        };
+        tick();
+        const id = setInterval(tick, 1000);
         return () => clearInterval(id);
     }, [status, shift?.punchIn, shift?.elapsedSeconds]);
 

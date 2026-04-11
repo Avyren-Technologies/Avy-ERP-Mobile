@@ -560,6 +560,7 @@ function CreateExpenseClaimModal({
                 amount: Number.parseFloat(li.amount),
                 expenseDate: li.expenseDate.trim(),
                 merchantName: li.merchantName.trim() || undefined,
+                receipts: receipts.length > 0 ? receipts.map(r => ({ fileName: r.fileName, fileUrl: r.fileUrl })) : undefined,
             })),
         };
         onSave(payload);

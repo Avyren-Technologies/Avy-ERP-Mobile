@@ -1,5 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
@@ -118,13 +118,13 @@ export interface NotificationsSheetHandle {
 
 export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
   function NotificationsSheet(_props, ref) {
-    const sheetRef = useRef<BottomSheet>(null);
+    const sheetRef = useRef<React.ComponentRef<typeof BottomSheetModal>>(null);
     const queryClient = useQueryClient();
     const snapPoints = useMemo(() => ['60%', '90%'], []);
 
     useImperativeHandle(ref, () => ({
-      open: () => sheetRef.current?.snapToIndex(0),
-      close: () => sheetRef.current?.close(),
+      open: () => sheetRef.current?.present(),
+      close: () => sheetRef.current?.dismiss(),
     }));
 
     const { data: notifData, isLoading, refetch } = useQuery({
@@ -165,11 +165,11 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
     );
 
     return (
-      <BottomSheet
+      <BottomSheetModal
         ref={sheetRef}
-        index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
+        enableDynamicSizing={false}
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
@@ -231,7 +231,7 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
             }
           />
         )}
-      </BottomSheet>
+      </BottomSheetModal>
     );
   },
 );

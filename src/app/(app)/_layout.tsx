@@ -364,21 +364,15 @@ function TabLayoutInner() {
             const isEnrolled = await LocalAuthentication.isEnrolledAsync();
             if (!hasHardware || !isEnrolled) return;
 
-            // Check company setting — use cached value first, only fetch once
-            const cacheKey = 'biometric_company_setting';
-            const cached = getItem<boolean>(cacheKey);
-            if (cached === false) return; // Previously checked: not enabled
-            if (cached !== true) {
-                // Not cached yet — fetch from API once
-                try {
-                    const response = await client.get('/auth/security-settings');
-                    const data = response as any;
-                    const enabled = !!data?.data?.biometricLoginEnabled;
-                    setItem(cacheKey, enabled);
-                    if (!enabled) return;
-                } catch {
-                    return;
-                }
+            // Check company setting — always fetch fresh from API to avoid
+            // stale MMKV cache preventing the prompt from appearing
+            try {
+                const response = await client.get('/auth/security-settings');
+                const data = response as any;
+                const enabled = !!data?.data?.biometricLoginEnabled;
+                if (!enabled) return;
+            } catch {
+                return;
             }
 
             // Show prompt after a short delay

@@ -1,4 +1,6 @@
 import type { ConfigContext, ExpoConfig } from '@expo/config';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 import type { AppIconBadgeConfig } from 'app-icon-badge/types';
 
@@ -10,6 +12,45 @@ import Env from './env';
 
 const EXPO_ACCOUNT_OWNER = 'avyrentechnologies';
 const EAS_PROJECT_ID = 'f53c2a58-f3c7-4947-8fb7-9820829c8b63';
+
+/**
+ * Firebase Android client config — required for getExpoPushTokenAsync on Android
+ * (in addition to FCM V1 key in EAS).
+ *
+ * Use one file per app id (matches EXPO_PUBLIC_APP_ENV / EAS profile):
+ *   google-services.development.json  → com.avyren.erp.development
+ *   google-services.preview.json      → com.avyren.erp.preview
+ *   google-services.production.json   → com.avyren.erp
+ *
+ * Alternatively, a single merged `google-services.json` from Firebase (all clients
+ * in one project) also works — it is used if no env-specific file exists.
+ */
+const GOOGLE_SERVICES_BY_ENV: Record<
+  typeof Env.EXPO_PUBLIC_APP_ENV,
+  string
+> = {
+  development: 'google-services.development.json',
+  preview: 'google-services.preview.json',
+  production: 'google-services.production.json',
+};
+
+function resolveGoogleServicesFile(): string | undefined {
+  const env = Env.EXPO_PUBLIC_APP_ENV;
+  const envRelative = GOOGLE_SERVICES_BY_ENV[env];
+  const envPath = join(process.cwd(), envRelative);
+  if (existsSync(envPath)) {
+    return `./${envRelative}`;
+  }
+
+  const mergedPath = join(process.cwd(), 'google-services.json');
+  if (existsSync(mergedPath)) {
+    return './google-services.json';
+  }
+
+  return undefined;
+}
+
+const androidGoogleServicesFile = resolveGoogleServicesFile();
 
 const appIconBadgeConfig: AppIconBadgeConfig = {
   enabled: Env.EXPO_PUBLIC_APP_ENV !== 'production',
@@ -69,6 +110,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#FFFFFF',
     },
     package: Env.EXPO_PUBLIC_PACKAGE,
+    ...(androidGoogleServicesFile
+      ? { googleServicesFile: androidGoogleServicesFile }
+      : {}),
     config: {
       googleMaps: {
         apiKey: Env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',

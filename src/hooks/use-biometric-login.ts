@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { authApi, decodeJwtPayload } from '@/lib/api/auth';
 import { signIn } from '@/features/auth/use-auth-store';
-import { getItem, removeItem } from '@/lib/storage';
+import { getItem, removeItem, setItem } from '@/lib/storage';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('BiometricLogin');
@@ -86,8 +86,7 @@ export function useBiometricLogin() {
           );
 
           // Update the stored biometric token with the new refresh token
-          const { setItem } = require('@/lib/storage') as typeof import('@/lib/storage');
-          await setItem(BIOMETRIC_TOKEN_KEY, tokens.refreshToken);
+          setItem(BIOMETRIC_TOKEN_KEY, tokens.refreshToken);
 
           setBiometricSuccess(true);
           logger.info('Biometric login completed successfully');

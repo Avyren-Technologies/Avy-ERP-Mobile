@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { SidebarIconType, SidebarSection } from '@/components/ui/sidebar'; // eslint-disable-line perfectionist/sort-imports
 import colors from '@/components/ui/colors';
+import { BiometricLockGate } from '@/components/ui/biometric-lock-gate';
 import {
     Sidebar,
     SidebarProvider,
@@ -738,7 +739,11 @@ function TabLayoutInner() {
                         options={{ href: null }}
                     />
                     <Tabs.Screen
-                        name="settings"
+                        name="settings/index"
+                        options={{ href: null }}
+                    />
+                    <Tabs.Screen
+                        name="settings/notifications"
                         options={{ href: null }}
                     />
                     <Tabs.Screen
@@ -779,7 +784,9 @@ function TabLayoutInner() {
 export default function TabLayout() {
     return (
         <SidebarProvider>
-            <TabLayoutInner />
+            <BiometricLockGate>
+                <TabLayoutInner />
+            </BiometricLockGate>
         </SidebarProvider>
     );
 }

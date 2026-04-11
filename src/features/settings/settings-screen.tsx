@@ -2,6 +2,7 @@
 import Env from 'env';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import {
   ChevronRight,
@@ -59,8 +60,12 @@ export function SettingsScreen() {
   const [biometricToggling, setBiometricToggling] = React.useState(false);
   const [mfaSetupLoading, setMfaSetupLoading] = React.useState(false);
 
+  const isFocused = useIsFocused();
+
   // Check biometric hardware availability and current toggle state
+  // Re-read on every focus to catch external changes (e.g., 401 cleanup)
   React.useEffect(() => {
+    if (!isFocused) return;
     async function checkBiometric() {
       try {
         const hasHardware = await LocalAuthentication.hasHardwareAsync();
@@ -73,7 +78,7 @@ export function SettingsScreen() {
       setBiometricEnabled(enabled === true);
     }
     checkBiometric();
-  }, []);
+  }, [isFocused]);
 
   const handleToggleBiometric = async (value: boolean) => {
     if (biometricToggling) return;

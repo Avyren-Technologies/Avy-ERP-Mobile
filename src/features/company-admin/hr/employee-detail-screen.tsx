@@ -607,7 +607,7 @@ function PersonalTab({
             <SectionTitle title="Contact" />
             <FormField label="Personal Mobile" value={form.personalMobile} onChangeText={(v) => onChange({ personalMobile: v })} placeholder="+91 98765 43210" keyboardType="phone-pad" required />
             <FormField label="Alternative Mobile" value={form.alternativeMobile} onChangeText={(v) => onChange({ alternativeMobile: v })} keyboardType="phone-pad" />
-            <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" required />
+            <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" />
             <FormField label="Official Email" value={form.officialEmail} onChangeText={(v) => onChange({ officialEmail: v })} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" />
 
             <SectionTitle title="Current Address" />
@@ -654,10 +654,10 @@ function PersonalTab({
                                 thumbColor={createUserAccount ? colors.white : colors.neutral[100]}
                             />
                         </View>
-                        {createUserAccount && !form.officialEmail && (
+                        {createUserAccount && !form.officialEmail?.trim() && !form.personalEmail?.trim() && (
                             <View style={st.loginWarning}>
                                 <Text className="font-inter text-[11px] font-semibold text-warning-700">
-                                    Official Email (above) is required to create a login account.
+                                    Enter a personal or work email above to create a login account.
                                 </Text>
                             </View>
                         )}
@@ -1831,11 +1831,6 @@ export function EmployeeDetailScreen() {
             setActiveTab('personal');
             return;
         }
-        if (!personal.personalEmail.trim()) {
-            showErrorMessage('Personal Email is required.');
-            setActiveTab('personal');
-            return;
-        }
         if (!personal.currentLine1.trim() || !personal.currentCity.trim() || !personal.currentState.trim() || !personal.currentCountry.trim()) {
             showErrorMessage('Complete Current Address is required (Line 1, City, State, Country).');
             setActiveTab('personal');
@@ -1871,8 +1866,8 @@ export function EmployeeDetailScreen() {
 
         // --- Account ---
         if (isCreateMode && createUserAccount) {
-            if (!personal.officialEmail.trim()) {
-                showErrorMessage('Official Email is required for login account.');
+            if (!personal.officialEmail.trim() && !personal.personalEmail.trim()) {
+                showErrorMessage('Personal or work email is required when enabling login for this employee.');
                 setActiveTab('personal');
                 return;
             }

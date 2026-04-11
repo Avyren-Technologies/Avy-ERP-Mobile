@@ -64,7 +64,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#4F46E5',
-      sound: 'default',
       enableVibrate: true,
       enableLights: true,
     });
@@ -78,7 +77,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 250, 500],
       lightColor: '#DC2626',
-      sound: 'default',
       enableVibrate: true,
       enableLights: true,
     });

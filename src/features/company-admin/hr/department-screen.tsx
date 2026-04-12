@@ -37,7 +37,7 @@ import {
     useDeleteDepartment,
     useUpdateDepartment,
 } from '@/features/company-admin/api/use-hr-mutations';
-import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useCostCentres, useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ HELPERS ============
@@ -330,6 +330,7 @@ function DepartmentFormModal({
     isSaving,
     departments,
     employeeList,
+    costCentreOptions,
 }: {
     readonly visible: boolean;
     readonly onClose: () => void;
@@ -338,6 +339,7 @@ function DepartmentFormModal({
     readonly isSaving: boolean;
     readonly departments: DepartmentItem[];
     readonly employeeList: { readonly id: string; readonly name: string; readonly code: string }[];
+    readonly costCentreOptions: { readonly id: string; readonly label: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
@@ -518,20 +520,14 @@ function DepartmentFormModal({
                             employees={employeeList}
                         />
 
-                        {/* Cost Centre Code */}
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Cost Centre Code</Text>
-                            <View style={styles.inputWrap}>
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder='e.g. "CC-ENG"'
-                                    placeholderTextColor={colors.neutral[400]}
-                                    value={costCentreCode}
-                                    onChangeText={setCostCentreCode}
-                                    autoCapitalize="characters"
-                                />
-                            </View>
-                        </View>
+                        {/* Cost Centre */}
+                        <Dropdown
+                            label="Cost Centre"
+                            value={costCentreCode}
+                            options={costCentreOptions}
+                            onSelect={setCostCentreCode}
+                            placeholder="Select cost centre..."
+                        />
 
                         {/* Status */}
                         <ChipSelector
@@ -644,6 +640,7 @@ export function DepartmentScreen() {
 
     const { data: response, isLoading, error, refetch, isFetching } = useDepartments();
     const { data: empResponse } = useEmployees();
+    const { data: costCentresResponse } = useCostCentres();
     const createMutation = useCreateDepartment();
     const updateMutation = useUpdateDepartment();
     const deleteMutation = useDeleteDepartment();
@@ -667,6 +664,15 @@ export function DepartmentScreen() {
             code: e.employeeId ?? e.code ?? '',
         }));
     }, [empResponse]);
+
+    const costCentreOptions = React.useMemo(() => {
+        const raw = (costCentresResponse as any)?.data ?? costCentresResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.map((c: any) => ({
+            id: c.code ?? c.id ?? '',
+            label: `${c.code ?? ''} - ${c.name ?? ''}`,
+        }));
+    }, [costCentresResponse]);
 
     const departments: DepartmentItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -800,6 +806,7 @@ export function DepartmentScreen() {
                 isSaving={createMutation.isPending || updateMutation.isPending}
                 departments={departments}
                 employeeList={employeeList}
+                costCentreOptions={costCentreOptions}
             />
 
             <ConfirmModal {...confirmModalProps} />

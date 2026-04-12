@@ -347,7 +347,10 @@ export function ShiftCheckInScreen() {
             qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
             qc.invalidateQueries({ queryKey: ['ess', 'dashboard'] });
         },
-        onError: () => showErrorMessage('Failed to check in. Please try again.'),
+        onError: (err: any) => {
+            const msg = err?.response?.data?.message ?? err?.message ?? 'Failed to check in. Please try again.';
+            showErrorMessage(msg);
+        },
     });
     const checkOutMut = useMutation({
         mutationFn: async () => {
@@ -371,7 +374,10 @@ export function ShiftCheckInScreen() {
             qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
             qc.invalidateQueries({ queryKey: ['ess', 'dashboard'] });
         },
-        onError: () => showErrorMessage('Failed to check out. Please try again.'),
+        onError: (err: any) => {
+            const msg = err?.response?.data?.message ?? err?.message ?? 'Failed to check out. Please try again.';
+            showErrorMessage(msg);
+        },
     });
 
     const isBusy = checkInMut.isPending || checkOutMut.isPending;

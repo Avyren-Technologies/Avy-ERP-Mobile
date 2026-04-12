@@ -178,9 +178,11 @@ function ModuleCard({
                 </View>
             </View>
 
-            <Text className="mt-2 font-inter text-xs leading-[18px] text-neutral-500 dark:text-neutral-400" numberOfLines={2}>
-                {item.description}
-            </Text>
+            {item.description ? (
+                <Text className="mt-2 font-inter text-xs leading-[18px] text-neutral-600 dark:text-neutral-300" numberOfLines={3}>
+                    {item.description}
+                </Text>
+            ) : null}
 
             {/* Pricing hidden — uncomment when pricing is finalized
             <View style={styles.cardFooter}>

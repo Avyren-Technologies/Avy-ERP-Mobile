@@ -132,7 +132,7 @@ function LinkedScreenDropdown({
                                 autoCorrect={false}
                             />
                         </View>
-                        <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                        <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
                             {filtered.map((item, idx) => {
                                 const isSelected = item.value === value;
                                 return (
@@ -674,7 +674,7 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         borderColor: colors.primary[200],
-        maxHeight: 220,
+        maxHeight: 320,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,

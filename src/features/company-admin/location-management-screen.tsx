@@ -549,7 +549,7 @@ function EditLocationSheet({
     return (
         <BottomSheet
             ref={sheetRef}
-            index={-1}
+            index={0}
             snapPoints={snapPoints}
             enablePanDownToClose
             backdropComponent={renderBackdrop}
@@ -796,7 +796,8 @@ export function LocationManagementScreen() {
 
     const handleEdit = (location: PlantBranch) => {
         setEditingLocation(location);
-        editSheetRef.current?.snapToIndex(0);
+        // Sheet mounts via conditional render; open in next tick after mount
+        setTimeout(() => editSheetRef.current?.snapToIndex(0), 50);
     };
 
     const handleSave = (data: Partial<PlantBranch>) => {
@@ -935,13 +936,15 @@ export function LocationManagementScreen() {
                 }
             />
 
-            {/* Edit Bottom Sheet */}
-            <EditLocationSheet
-                sheetRef={editSheetRef}
-                location={editingLocation}
-                onSave={handleSave}
-                isSaving={updateMutation.isPending}
-            />
+            {/* Edit Bottom Sheet — only mount when editing to avoid touch blocking */}
+            {editingLocation && (
+                <EditLocationSheet
+                    sheetRef={editSheetRef}
+                    location={editingLocation}
+                    onSave={handleSave}
+                    isSaving={updateMutation.isPending}
+                />
+            )}
 
             {/* Delete Confirm Modal */}
             <ConfirmModal {...confirmModalProps} />

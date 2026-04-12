@@ -28,6 +28,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { usePaymentList, useRecordPayment } from '@/features/super-admin/api/use-payment-queries';
 import type { PaymentMethod, PaymentRecord, RecordPaymentPayload } from '@/lib/api/payment';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -77,10 +78,10 @@ function PaymentCard({ payment, index }: { payment: PaymentRecord; index: number
             <View style={styles.card}>
                 {/* Top row: date + amount */}
                 <View style={styles.cardTopRow}>
-                    <Text className="font-inter text-xs text-neutral-500">
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                         {formatDate(payment.paidAt)}
                     </Text>
-                    <Text className="font-inter text-base font-bold text-primary-950">
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
                         {formatCurrency(payment.amount)}
                     </Text>
                 </View>
@@ -91,7 +92,7 @@ function PaymentCard({ payment, index }: { payment: PaymentRecord; index: number
                         <Text className="font-inter text-sm font-semibold text-neutral-800" numberOfLines={1}>
                             {payment.tenantName ?? 'Unknown Tenant'}
                         </Text>
-                        <Text className="font-inter text-xs text-neutral-500 mt-0.5">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                             Invoice: {payment.invoiceNumber ?? payment.invoiceId}
                         </Text>
                     </View>
@@ -200,7 +201,7 @@ function RecordPaymentModal({
             <View style={[styles.modalContainer, { paddingTop: insets.top + 12 }]}>
                 {/* Header */}
                 <View style={styles.modalHeader}>
-                    <Text className="font-inter text-xl font-bold text-primary-950">
+                    <Text className="font-inter text-xl font-bold text-primary-950 dark:text-white">
                         Record Payment
                     </Text>
                     <Pressable onPress={handleClose} style={styles.modalCloseBtn}>
@@ -268,7 +269,7 @@ function RecordPaymentModal({
                                         ]}
                                     >
                                         <Text
-                                            className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}
+                                            className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                                         >
                                             {formatMethodLabel(m)}
                                         </Text>
@@ -345,6 +346,9 @@ function RecordPaymentModal({
 // ============ MAIN COMPONENT ============
 
 export function PaymentHistoryScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const [methodFilter, setMethodFilter] = React.useState('ALL');
     const [page] = React.useState(1);
@@ -387,7 +391,7 @@ export function PaymentHistoryScreen() {
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                         Payment History
                     </Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                         {totalCount} payments recorded
                     </Text>
                 </View>
@@ -412,7 +416,7 @@ export function PaymentHistoryScreen() {
                                 ]}
                             >
                                 <Text
-                                    className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}
+                                    className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                                 >
                                     {f.label}
                                 </Text>
@@ -508,10 +512,10 @@ export function PaymentHistoryScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 24,
@@ -529,9 +533,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 7,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     filterChipActive: {
         backgroundColor: colors.primary[600],
@@ -541,7 +545,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         padding: 14,
         marginBottom: 10,
@@ -551,7 +555,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardTopRow: {
         flexDirection: 'row',
@@ -586,7 +590,7 @@ const styles = StyleSheet.create({
     // Modal styles
     modalContainer: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -601,7 +605,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -614,9 +618,9 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     formInput: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderRadius: 12,
         paddingHorizontal: 14,
         paddingVertical: 12,
@@ -637,9 +641,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 10,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     formMethodChipActive: {
         backgroundColor: colors.primary[600],
@@ -667,3 +671,4 @@ const styles = StyleSheet.create({
         elevation: 0,
     },
 });
+const styles = createStyles(false);

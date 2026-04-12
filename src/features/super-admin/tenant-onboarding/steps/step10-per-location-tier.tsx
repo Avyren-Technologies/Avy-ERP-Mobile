@@ -156,7 +156,7 @@ export function Step10PerLocationTier({
         <Animated.View entering={FadeInUp.duration(300)}>
             {/* Info banner */}
             <View style={[S.infoCard, { marginBottom: 8 }]}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     User tier controls concurrent user capacity and base subscription pricing for each
                     location independently.
                 </Text>
@@ -256,7 +256,7 @@ export function Step10PerLocationTier({
                                     <View
                                         style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
                                     >
-                                        <Text className="font-inter text-sm font-bold text-primary-950">
+                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                             {tier.label}
                                         </Text>
                                         {tier.popular ? (
@@ -274,7 +274,7 @@ export function Step10PerLocationTier({
                                             </View>
                                         ) : null}
                                     </View>
-                                    <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                                    <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                         {tier.range} · {tier.description}
                                     </Text>
                                 </View>
@@ -360,10 +360,10 @@ export function Step10PerLocationTier({
                             ]}
                         >
                             <View style={{ flex: 1 }}>
-                                <Text className="font-inter text-sm font-bold text-primary-950">
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                     {bt.label}
                                 </Text>
-                                <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                     {bt.description}
                                 </Text>
                             </View>
@@ -403,7 +403,7 @@ export function Step10PerLocationTier({
                                     Calculated: Monthly Total x 24
                                 </Text>
                                 {/* Pricing hidden — uncomment when pricing is finalized
-                                <Text className="mt-1 font-inter text-lg font-bold text-primary-900">
+                                <Text className="mt-1 font-inter text-lg font-bold text-primary-900 dark:text-primary-100">
                                     ₹{calculatedOneTimeFee.toLocaleString('en-IN')}
                                 </Text>
                                 */}
@@ -540,7 +540,7 @@ export function Step10PerLocationTier({
             >
                 {resolvedModuleIds.length > 0 ? (
                     <View style={{ marginBottom: 10 }}>
-                        <Text className="mb-1 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        <Text className="mb-1 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
                             Modules
                         </Text>
                         {resolvedModuleIds.map((id) => {
@@ -557,7 +557,7 @@ export function Step10PerLocationTier({
                                         marginBottom: 4,
                                     }}
                                 >
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {moduleItem.icon} {moduleItem.name}
                                     </Text>
                                     <Text className="font-inter text-xs font-semibold text-primary-800">
@@ -599,18 +599,18 @@ export function Step10PerLocationTier({
                         Tier Base: ₹{tierBaseCost.toLocaleString('en-IN')} / month
                     </Text>
                     {activeEntry.billingType === 'monthly' && (
-                        <Text className="mt-1 font-inter text-sm font-bold text-primary-900">
+                        <Text className="mt-1 font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                             ₹{locationMonthly.toLocaleString('en-IN')}/month
                         </Text>
                     )}
                     {activeEntry.billingType === 'annual' && (
-                        <Text className="mt-1 font-inter text-sm font-bold text-primary-900">
+                        <Text className="mt-1 font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                             ₹{locationAnnual.toLocaleString('en-IN')}/year (₹{locationMonthly.toLocaleString('en-IN')}/month x 10 months — save 16.67%)
                         </Text>
                     )}
                     {activeEntry.billingType === 'one_time_amc' && (
                         <View>
-                            <Text className="mt-1 font-inter text-sm font-bold text-primary-900">
+                            <Text className="mt-1 font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                                 ₹{effectiveOneTimeFee.toLocaleString('en-IN')} one-time
                                 {endpointType === 'default'
                                     ? ` + ₹${effectiveAmc.toLocaleString('en-IN')} AMC/year`

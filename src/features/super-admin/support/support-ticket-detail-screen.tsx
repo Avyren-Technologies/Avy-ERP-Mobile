@@ -30,6 +30,7 @@ import {
 } from '@/features/super-admin/api/use-support-mutations';
 import { useTicketSocket } from '@/hooks/use-ticket-socket';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -220,7 +221,7 @@ function RejectReasonInput({
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(300)} style={styles.rejectSection}>
-            <Text className="font-inter text-xs font-semibold text-neutral-500" style={{ marginBottom: 6 }}>
+            <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400" style={{ marginBottom: 6 }}>
                 Rejection Reason
             </Text>
             <TextInput
@@ -233,7 +234,7 @@ function RejectReasonInput({
             />
             <View style={styles.rejectBtnRow}>
                 <Pressable onPress={onCancel} style={styles.rejectCancelBtn}>
-                    <Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text>
+                    <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">Cancel</Text>
                 </Pressable>
                 <Pressable
                     onPress={onSubmit}
@@ -254,6 +255,9 @@ function RejectReasonInput({
 // ============ MAIN SCREEN ============
 
 export function SupportTicketDetailScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -441,7 +445,7 @@ export function SupportTicketDetailScreen() {
             <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
                 {currentStatus === 'CLOSED' ? (
                     <View style={{ alignItems: 'center', paddingVertical: 12, flex: 1 }}>
-                        <Text className="font-inter text-xs text-neutral-500">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             Ticket Closed
                         </Text>
                     </View>
@@ -477,10 +481,10 @@ export function SupportTicketDetailScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingBottom: 16,
@@ -503,7 +507,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 12,
         paddingBottom: 4,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
@@ -519,7 +523,7 @@ const styles = StyleSheet.create({
     moduleActions: {
         paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
@@ -545,15 +549,15 @@ const styles = StyleSheet.create({
     rejectSection: {
         paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
     rejectInput: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         padding: 12,
         minHeight: 60,
         fontSize: 14,
@@ -596,9 +600,9 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
     bubbleUser: {
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderBottomLeftRadius: 4,
     },
     bubbleAdmin: {
@@ -610,14 +614,14 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
         paddingHorizontal: 16,
         paddingTop: 10,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderTopWidth: 1,
         borderTopColor: colors.neutral[100],
         gap: 10,
     },
     inputField: {
         flex: 1,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 10,
@@ -625,7 +629,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.neutral[800],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     sendBtn: {
         width: 42,
@@ -641,3 +645,4 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 });
+const styles = createStyles(false);

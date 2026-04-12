@@ -23,11 +23,15 @@ import colors from '@/components/ui/colors';
 import { showErrorMessage } from '@/components/ui/utils';
 import { useMfaVerifyMutation } from '@/features/auth/use-auth-mutations';
 import { createLogger } from '@/lib/logger';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const logger = createLogger('MfaVerifyScreen');
 const CODE_LENGTH = 6;
 
 export function MfaVerifyScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mfaToken } = useLocalSearchParams<{ mfaToken: string }>();
@@ -218,7 +222,7 @@ export function MfaVerifyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F7FF',
@@ -263,7 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 2,
     borderColor: colors.primary[200],
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     textAlign: 'center',
     fontSize: 22,
     fontWeight: '700',
@@ -276,7 +280,7 @@ const styles = StyleSheet.create({
   },
   codeInputFilled: {
     borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   loadingContainer: {
     alignItems: 'center',
@@ -304,9 +308,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 14,
     borderRadius: 14,
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
   },
   infoIcon: {
     marginTop: 1,
@@ -324,3 +328,4 @@ const styles = StyleSheet.create({
     color: colors.primary[600],
   },
 });
+const styles = createStyles(false);

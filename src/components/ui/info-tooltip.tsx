@@ -46,7 +46,7 @@ export function InfoTooltip({ content }: { content: string }) {
  */
 export function SectionDescription({ children }: { children: string }) {
     return (
-        <Text className="mb-2 font-inter text-xs leading-relaxed text-neutral-500">{children}</Text>
+        <Text className="mb-2 font-inter text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">{children}</Text>
     );
 }
 

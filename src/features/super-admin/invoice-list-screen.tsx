@@ -27,6 +27,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useInvoiceList } from '@/features/super-admin/api/use-invoice-queries';
 import type { Invoice, InvoiceStatus, InvoiceType } from '@/lib/api/invoice';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -112,7 +113,7 @@ function InvoiceCard({ invoice, index }: { invoice: Invoice; index: number }) {
                 <View style={styles.cardHeader}>
                     <View style={styles.invoiceIdContainer}>
                         <Text
-                            className="font-inter text-sm font-bold text-primary-950"
+                            className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                             numberOfLines={1}
                             style={styles.monoText}
                         >
@@ -144,7 +145,7 @@ function InvoiceCard({ invoice, index }: { invoice: Invoice; index: number }) {
 
                 {/* Bottom row: Amount + Due date */}
                 <View style={styles.amountRow}>
-                    <Text className="font-inter text-lg font-bold text-primary-950">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                         {formatCurrency(invoice.grandTotal)}
                     </Text>
                     {invoice.dueDate ? (
@@ -187,7 +188,7 @@ function FilterChipRow({
                         ]}
                     >
                         <Text
-                            className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                            className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                         >
                             {f.label}
                         </Text>
@@ -201,6 +202,9 @@ function FilterChipRow({
 // ============ MAIN COMPONENT ============
 
 export function InvoiceListScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState('all');
@@ -249,7 +253,7 @@ export function InvoiceListScreen() {
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                         Invoices
                     </Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                         {totalCount} invoice{totalCount !== 1 ? 's' : ''}
                     </Text>
                 </View>
@@ -359,10 +363,10 @@ export function InvoiceListScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 24,
@@ -385,9 +389,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 7,
         borderRadius: 10,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     chipActive: {
         backgroundColor: colors.primary[600],
@@ -397,7 +401,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -407,10 +411,10 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardPressed: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         transform: [{ scale: 0.98 }],
     },
     cardHeader: {
@@ -452,3 +456,4 @@ const styles = StyleSheet.create({
         paddingTop: 80,
     },
 });
+const styles = createStyles(false);

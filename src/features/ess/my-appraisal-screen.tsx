@@ -22,6 +22,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
 import { useEssSubmitSelfReview } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyAppraisals } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -70,12 +71,20 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Rating Display ───────────────────────────────────────────────
 
-function RatingPill({ label, value }: { label: string; value?: number | null }) {
+/** API may send ratings as numbers or numeric strings. */
+function formatRatingPill(value: unknown): string {
+    if (value == null) return '—';
+    if (typeof value === 'string' && value.trim() === '') return '—';
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) ? n.toFixed(1) : '—';
+}
+
+function RatingPill({ label, value }: { label: string; value?: unknown }) {
     return (
         <View style={styles.ratingPill}>
-            <Text className="font-inter text-[10px] text-neutral-500">{label}</Text>
-            <Text className="font-inter text-xs font-bold text-primary-900">
-                {value != null ? value.toFixed(1) : '—'}
+            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{label}</Text>
+            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                {formatRatingPill(value)}
             </Text>
         </View>
     );
@@ -138,9 +147,9 @@ function SelfReviewModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">Self Review</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-1">Self Review</Text>
                     {entry?.cycle?.name && (
-                        <Text className="font-inter text-xs text-neutral-500 mb-4">{entry.cycle.name}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mb-4">{entry.cycle.name}</Text>
                     )}
 
                     <ScrollView
@@ -151,13 +160,13 @@ function SelfReviewModal({
                         {/* Goal Ratings */}
                         {goals.length > 0 && (
                             <View style={styles.fieldWrap}>
-                                <Text className="mb-2 font-inter text-xs font-bold text-primary-900">
+                                <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                     Goal Ratings (1-5)
                                 </Text>
                                 {goals.map((goal, idx) => (
                                     <View key={goal.id} style={styles.goalRow}>
                                         <View style={{ flex: 1 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={2}>
                                                 {idx + 1}. {goal.title}
                                             </Text>
                                             {goal.weightage != null && (
@@ -184,7 +193,7 @@ function SelfReviewModal({
 
                         {/* Overall Rating */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Overall Self Rating (1-5) <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -202,7 +211,7 @@ function SelfReviewModal({
 
                         {/* Self Comments */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Comments
                             </Text>
                             <View style={[styles.inputWrap, { height: 100 }]}>
@@ -221,7 +230,7 @@ function SelfReviewModal({
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={() =>
@@ -268,11 +277,11 @@ function DetailModal({
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <Text className="font-inter text-lg font-bold text-primary-950">Appraisal Details</Text>
+                        <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">Appraisal Details</Text>
                         <StatusBadge status={entry.status} />
                     </View>
                     {entry.cycle?.name && (
-                        <Text className="font-inter text-xs text-neutral-500 mb-4">{entry.cycle.name}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mb-4">{entry.cycle.name}</Text>
                     )}
 
                     <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
@@ -286,24 +295,24 @@ function DetailModal({
                         {/* Comments */}
                         {entry.selfComments && (
                             <View style={styles.commentBlock}>
-                                <Text className="font-inter text-xs font-bold text-primary-900 mb-1">Self Comments</Text>
-                                <Text className="font-inter text-xs text-neutral-600 leading-4">{entry.selfComments}</Text>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100 mb-1">Self Comments</Text>
+                                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 leading-4">{entry.selfComments}</Text>
                             </View>
                         )}
                         {entry.managerComments && (
                             <View style={styles.commentBlock}>
-                                <Text className="font-inter text-xs font-bold text-primary-900 mb-1">Manager Comments</Text>
-                                <Text className="font-inter text-xs text-neutral-600 leading-4">{entry.managerComments}</Text>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100 mb-1">Manager Comments</Text>
+                                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 leading-4">{entry.managerComments}</Text>
                             </View>
                         )}
 
                         {/* Goals */}
                         {goals.length > 0 && (
                             <View style={{ marginTop: 8 }}>
-                                <Text className="font-inter text-xs font-bold text-primary-900 mb-2">Goals</Text>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100 mb-2">Goals</Text>
                                 {goals.map((goal, idx) => (
                                     <View key={goal.id} style={styles.goalDetailCard}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={2}>
                                             {idx + 1}. {goal.title}
                                         </Text>
                                         <View style={[styles.ratingsRow, { marginTop: 6 }]}>
@@ -312,8 +321,8 @@ function DetailModal({
                                             <RatingPill label="Final" value={goal.finalRating} />
                                             {goal.weightage != null && (
                                                 <View style={styles.ratingPill}>
-                                                    <Text className="font-inter text-[10px] text-neutral-500">Weight</Text>
-                                                    <Text className="font-inter text-xs font-bold text-primary-900">{goal.weightage}%</Text>
+                                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Weight</Text>
+                                                    <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{goal.weightage}%</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -335,6 +344,9 @@ function DetailModal({
 // ── Main Screen ──────────────────────────────────────────────────
 
 export function MyAppraisalScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -397,7 +409,7 @@ export function MyAppraisalScreen() {
                 <Pressable onPress={() => handleCardPress(item)} style={styles.card}>
                     <View style={styles.cardHeader}>
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-900" numberOfLines={2}>
+                            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100" numberOfLines={2}>
                                 {cycleName}
                             </Text>
                             {item.cycle?.startDate && item.cycle?.endDate && (
@@ -428,7 +440,7 @@ export function MyAppraisalScreen() {
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="My Appraisal" onMenuPress={open} />
             <FlashList
                 data={appraisals}
@@ -470,12 +482,12 @@ export function MyAppraisalScreen() {
 
 // ── Styles ───────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         padding: 16,
         marginBottom: 12,
         shadowColor: colors.primary[900],
@@ -501,7 +513,7 @@ const styles = StyleSheet.create({
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     ratingsRow: { flexDirection: 'row', gap: 8 },
     ratingPill: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 8,
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -509,7 +521,7 @@ const styles = StyleSheet.create({
         gap: 1,
     },
     formSheet: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingHorizontal: 24,
@@ -525,10 +537,10 @@ const styles = StyleSheet.create({
     },
     fieldWrap: { marginBottom: 14 },
     inputWrap: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         height: 46,
         justifyContent: 'center',
@@ -545,10 +557,10 @@ const styles = StyleSheet.create({
     ratingInputWrap: {
         width: 56,
         height: 40,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -561,13 +573,13 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     goalDetailCard: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         padding: 12,
         marginBottom: 8,
     },
     commentBlock: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         padding: 12,
         marginTop: 8,
@@ -576,11 +588,11 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 14,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     saveBtn: {
         flex: 1,
@@ -596,3 +608,4 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
 });
+const styles = createStyles(false);

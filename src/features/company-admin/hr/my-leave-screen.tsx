@@ -31,6 +31,7 @@ import { showErrorMessage } from '@/components/ui/utils';
 import { useApplyLeave, useCancelLeave } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyLeaveBalance } from '@/features/company-admin/api/use-ess-queries';
 import { useLeaveRequests, useLeaveTypes } from '@/features/company-admin/api/use-leave-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -320,7 +321,7 @@ function ApplyLeaveModal({
                     <Pressable onPress={onClose} style={st.navCancelWrap}>
                         <Text style={st.navCancelText}>Cancel</Text>
                     </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Apply for Leave</Text>
+                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">Apply for Leave</Text>
                     <Pressable
                         onPress={handleApply}
                         disabled={!isValid || isSaving}
@@ -527,6 +528,9 @@ function LeaveRequestCard({
 // ============ MAIN SCREEN ============
 
 export function MyLeaveScreen() {
+  const isDark = useIsDark();
+  const st = _createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch, isFetching } = useMyLeaveBalance();
@@ -539,29 +543,47 @@ export function MyLeaveScreen() {
     const data = React.useMemo(() => {
         const raw: any = (response as any)?.data ?? response;
         const balancesArr = Array.isArray(raw) ? raw : (raw?.balances ?? raw?.leaveBalances ?? []);
-        const balances: LeaveBalance[] = balancesArr.map((b: any, i: number) => ({
-            type:    b.leaveTypeName ?? b.type ?? b.leaveType?.name ?? '',
-            code:    b.leaveTypeCode ?? b.code ?? b.leaveType?.code ?? (b.leaveTypeName ?? b.type ?? '').slice(0, 2).toUpperCase(),
-            balance: b.available ?? b.balance ?? b.remaining ?? 0,
-            used:    b.used ?? b.taken ?? 0,
-            total:   b.entitled ?? b.total ?? b.allocated ?? 0,
-            color:   BALANCE_COLORS[i % BALANCE_COLORS.length],
-        }));
+        const balances: LeaveBalance[] = balancesArr.map((b: any, i: number) => {
+            // Prisma Decimal fields come as strings — convert to numbers
+            const taken = Number(b.taken ?? b.used ?? 0);
+            const opening = Number(b.openingBalance ?? 0);
+            const accrued = Number(b.accrued ?? 0);
+            const adjusted = Number(b.adjusted ?? 0);
+            const total = b.entitled ?? b.total ?? b.allocated
+                ? Number(b.entitled ?? b.total ?? b.allocated)
+                : opening + accrued + adjusted;
+            const typeName = b.leaveTypeName ?? b.leaveType?.name ?? b.type ?? '';
+            return {
+                type:    typeName,
+                code:    b.leaveTypeCode ?? b.leaveType?.code ?? b.code ?? typeName.slice(0, 2).toUpperCase(),
+                balance: Number(b.available ?? b.balance ?? b.remaining ?? 0),
+                used:    taken,
+                total,
+                color:   BALANCE_COLORS[i % BALANCE_COLORS.length],
+            };
+        });
 
-        const requestsRaw = (reqsResponse as any)?.data?.data ?? (reqsResponse as any)?.data;
-        const requestsArr = Array.isArray(requestsRaw) ? requestsRaw : (requestsRaw?.requests ?? []);
-        const requests: MyLeaveRequest[] = requestsArr.map((r: any) => ({
+        const reqsRaw: any = (reqsResponse as any)?.data ?? reqsResponse;
+        const requestsArr = Array.isArray(reqsRaw)
+            ? reqsRaw
+            : (reqsRaw?.requests ?? reqsRaw?.data ?? []);
+        const requests: MyLeaveRequest[] = (Array.isArray(requestsArr) ? requestsArr : []).map((r: any) => ({
             id:       r.id ?? '',
             type:     r.leaveTypeName ?? r.leaveType?.name ?? r.type ?? '',
-            fromDate: r.fromDate ? r.fromDate.split('T')[0] : '',
-            toDate:   r.toDate ? r.toDate.split('T')[0] : '',
-            days:     r.days ?? r.numberOfDays ?? 0,
-            status:   r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase() : 'Pending',
+            fromDate: r.fromDate ? String(r.fromDate).split('T')[0] : '',
+            toDate:   r.toDate ? String(r.toDate).split('T')[0] : '',
+            days:     Number(r.days ?? r.numberOfDays ?? 0),
+            status:   r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase() as LeaveStatus : 'Pending',
             reason:   r.reason ?? '',
         }));
 
         return { balances, requests };
     }, [response, reqsResponse]);
+
+    const refreshAll = React.useCallback(() => {
+        refetch();
+        refetchReqs();
+    }, [refetch, refetchReqs]);
 
     const handleApply = (formData: Record<string, unknown>) => {
         applyMutation.mutate(formData, { onSuccess: () => setFormVisible(false) });
@@ -633,7 +655,7 @@ export function MyLeaveScreen() {
 
     const renderEmpty = () => {
         if (isLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
-        if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;
+        if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: refreshAll }} /></View>;
         return null;
     };
 
@@ -648,7 +670,7 @@ export function MyLeaveScreen() {
                     keyExtractor={item => item.key}
                     contentContainerStyle={[st.scrollContent, { paddingBottom: insets.bottom + 40 }]}
                     showsVerticalScrollIndicator={false}
-                    refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                    refreshControl={<RefreshControl refreshing={(isFetching || isLoadingReqs) && !isLoading} onRefresh={refreshAll} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
                 />
             )}
 
@@ -666,8 +688,8 @@ export function MyLeaveScreen() {
 
 // ============ STYLES ============
 
-const st = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const _createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
 
     headerBar: {
         flexDirection: 'row',
@@ -677,7 +699,7 @@ const st = StyleSheet.create({
     },
     hamburgerBtn: {
         width: 40, height: 40, borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center', alignItems: 'center',
     },
 
@@ -693,11 +715,11 @@ const st = StyleSheet.create({
     balanceScroll: { paddingBottom: 4, paddingRight: 4, gap: 10 },
     balanceCard: {
         width: 190,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         shadowColor: colors.neutral[900],
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -728,12 +750,12 @@ const st = StyleSheet.create({
 
     // Request card
     requestCard: {
-        backgroundColor: colors.white, borderRadius: 16, padding: 18,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 18,
         marginBottom: 12,
         shadowColor: colors.neutral[900],
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08, shadowRadius: 10, elevation: 1,
-        borderWidth: 1, borderColor: colors.neutral[100],
+        borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     },
     requestCardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
     requestType: { fontFamily: 'Inter', fontSize: 16, fontWeight: '700', color: colors.primary[950], marginBottom: 6 },
@@ -759,7 +781,7 @@ const st = StyleSheet.create({
     navBar: {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 16, paddingBottom: 12,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
     },
     navCancelWrap: { minWidth: 60, paddingVertical: 6 },
@@ -780,8 +802,8 @@ const st = StyleSheet.create({
         textTransform: 'uppercase', marginBottom: 8, marginLeft: 2,
     },
     card: {
-        backgroundColor: colors.white, borderRadius: 16,
-        marginBottom: 18, borderWidth: 1, borderColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16,
+        marginBottom: 18, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         overflow: 'hidden',
         shadowColor: colors.primary[900],
         shadowOffset: { width: 0, height: 2 },
@@ -792,10 +814,10 @@ const st = StyleSheet.create({
     chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
     chip: {
         paddingHorizontal: 14, paddingVertical: 8,
-        borderRadius: 20, borderWidth: 1.5, borderColor: colors.neutral[200],
-        backgroundColor: colors.neutral[50],
+        borderRadius: 20, borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     },
-    chipActive: { borderColor: colors.primary[500], backgroundColor: colors.primary[50] },
+    chipActive: { borderColor: colors.primary[500], backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
     chipText: { fontFamily: 'Inter', fontSize: 13, color: colors.neutral[500], fontWeight: '500' },
     chipTextActive: { color: colors.primary[700], fontWeight: '700' },
 
@@ -808,13 +830,13 @@ const st = StyleSheet.create({
     dateLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: colors.neutral[600] },
     dateValue: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: colors.primary[700] },
     datePlaceholder: { fontFamily: 'Inter', fontSize: 14, color: colors.neutral[400] },
-    dateDivider: { height: 1, backgroundColor: colors.neutral[100], marginHorizontal: 16 },
+    dateDivider: { height: 1, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], marginHorizontal: 16 },
 
     // Days badge
     daysBadge: {
         alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 8,
-        backgroundColor: colors.primary[50], borderRadius: 20,
-        borderWidth: 1, borderColor: colors.primary[100], marginBottom: 18,
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 20,
+        borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100], marginBottom: 18,
     },
     daysBadgeText: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: colors.primary[700] },
 
@@ -833,20 +855,20 @@ const st = StyleSheet.create({
     },
 
     // Calendar
-    calBox: { backgroundColor: colors.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.neutral[100] },
+    calBox: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100] },
     calFieldLabel: {
         fontFamily: 'Inter', fontSize: 11, fontWeight: '700',
         color: colors.neutral[500], textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10,
     },
     calSelectedDisplay: {
         flexDirection: 'row', alignItems: 'center', gap: 6,
-        backgroundColor: colors.primary[50], borderRadius: 10,
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 10,
         paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12,
-        borderWidth: 1, borderColor: colors.primary[100],
+        borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     calSelectedText: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: colors.primary[700] },
     calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    calNavBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    calNavBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     calMonthTitle: { fontFamily: 'Inter', fontSize: 15, fontWeight: '700', color: colors.primary[950] },
     calWeekRow: { flexDirection: 'row', marginBottom: 4 },
     calWeekLabel: {
@@ -857,9 +879,10 @@ const st = StyleSheet.create({
     calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
     calCell: { width: `${100 / 7}%` as any, aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
     calCellSelected: { backgroundColor: colors.primary[600] },
-    calCellToday: { backgroundColor: colors.primary[50] },
+    calCellToday: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
     calDayText: { fontFamily: 'Inter', fontSize: 13, color: colors.primary[900] },
     calDayTextSelected: { color: colors.white, fontWeight: '800' },
     calDayTextToday: { color: colors.primary[600], fontWeight: '700' },
     calDayTextDisabled: { color: colors.neutral[300] },
 });
+const st = _createStyles(false);

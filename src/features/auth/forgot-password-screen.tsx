@@ -221,13 +221,13 @@ export function ForgotPasswordScreen() {
                 />
               </Svg>
             </View>
-            <Text className="font-inter text-3xl font-bold text-primary-950">
+            <Text className="font-inter text-3xl font-bold text-primary-950 dark:text-white">
               {step === 'identify' && 'Forgot Password'}
               {step === 'verify' && 'Verify Code'}
               {step === 'reset' && 'Set New Password'}
               {step === 'success' && 'Password Updated'}
             </Text>
-            <Text className="font-inter text-sm text-neutral-500" style={styles.subtitle}>
+            <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400" style={styles.subtitle}>
               {step === 'identify' &&
                 'Enter your email and we will send a verification code.'}
               {step === 'verify' &&
@@ -243,7 +243,7 @@ export function ForgotPasswordScreen() {
             {step === 'identify' && (
               <View style={styles.section}>
                 <Text
-                  className="font-inter text-sm font-semibold text-primary-900"
+                  className="font-inter text-sm font-semibold text-primary-900 dark:text-primary-100"
                   style={styles.fieldLabel}
                 >
                   Email
@@ -278,7 +278,7 @@ export function ForgotPasswordScreen() {
             {step === 'verify' && (
               <View style={styles.section}>
                 <Text
-                  className="font-inter text-sm font-semibold text-primary-900"
+                  className="font-inter text-sm font-semibold text-primary-900 dark:text-primary-100"
                   style={styles.fieldLabel}
                 >
                   Verification Code
@@ -315,7 +315,7 @@ export function ForgotPasswordScreen() {
             {step === 'reset' && (
               <View style={styles.section}>
                 <Text
-                  className="font-inter text-sm font-semibold text-primary-900"
+                  className="font-inter text-sm font-semibold text-primary-900 dark:text-primary-100"
                   style={styles.fieldLabel}
                 >
                   New Password
@@ -342,7 +342,7 @@ export function ForgotPasswordScreen() {
                 </View>
 
                 <Text
-                  className="font-inter text-sm font-semibold text-primary-900"
+                  className="font-inter text-sm font-semibold text-primary-900 dark:text-primary-100"
                   style={styles.confirmFieldLabel}
                 >
                   Confirm Password

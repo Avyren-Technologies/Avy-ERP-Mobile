@@ -29,6 +29,7 @@ import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 import { useDeleteEmployee } from '@/features/company-admin/api/use-hr-mutations';
 import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -136,7 +137,7 @@ function EmployeeCard({
                     <View style={styles.nameContainer}>
                         <View style={styles.nameRow}>
                             <Text
-                                className="font-inter text-sm font-bold text-primary-950"
+                                className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                                 numberOfLines={1}
                                 style={{ flex: 1 }}
                             >
@@ -145,7 +146,7 @@ function EmployeeCard({
                         </View>
                         {employee.designationName ? (
                             <Text
-                                className="font-inter text-xs text-neutral-500"
+                                className="font-inter text-xs text-neutral-500 dark:text-neutral-400"
                                 numberOfLines={1}
                             >
                                 {employee.designationName}
@@ -226,7 +227,7 @@ function EmployeeCard({
                                 />
                             </Svg>
                             <Text
-                                className="font-inter text-[11px] text-neutral-600"
+                                className="font-inter text-[11px] text-neutral-600 dark:text-neutral-400"
                                 numberOfLines={1}
                             >
                                 {employee.departmentName}
@@ -256,7 +257,7 @@ function EmployeeCard({
                                 />
                             </Svg>
                             <Text
-                                className="font-inter text-[11px] text-neutral-500"
+                                className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400"
                                 numberOfLines={1}
                             >
                                 {employee.locationName}
@@ -284,6 +285,9 @@ const STATUS_FILTERS = [
 const PAGE_SIZE = 20;
 
 export function EmployeeDirectoryScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -470,7 +474,7 @@ export function EmployeeDirectoryScreen() {
                                 />
                             </Svg>
                             <Text
-                                className={`font-inter text-xs font-semibold ${deptFilter ? 'text-primary-700' : 'text-neutral-600'}`}
+                                className={`font-inter text-xs font-semibold ${deptFilter ? 'text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
                                 numberOfLines={1}
                             >
                                 {deptFilter
@@ -510,11 +514,11 @@ export function EmployeeDirectoryScreen() {
                                             }}
                                             style={[
                                                 styles.deptDropdownItem,
-                                                isActive && { backgroundColor: colors.primary[50] },
+                                                isActive && { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
                                             ]}
                                         >
                                             <Text
-                                                className={`font-inter text-sm ${isActive ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
+                                                className={`font-inter text-sm ${isActive ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}
                                                 numberOfLines={1}
                                             >
                                                 {dept.name}
@@ -638,10 +642,10 @@ export function EmployeeDirectoryScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerGradient: {
         paddingHorizontal: 24,
@@ -711,13 +715,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         gap: 6,
     },
     deptFilterBtnActive: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderColor: colors.primary[300],
     },
     deptDropdown: {
@@ -726,7 +730,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 200,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: colors.primary[200],
@@ -751,7 +755,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -761,7 +765,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: {
         flexDirection: 'row',
@@ -817,7 +821,7 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     idBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
@@ -834,3 +838,4 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
     },
 });
+const styles = createStyles(false);

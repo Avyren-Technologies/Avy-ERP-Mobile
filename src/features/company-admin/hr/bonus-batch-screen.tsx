@@ -33,6 +33,7 @@ import { useApproveBonusBatch, useCreateBonusBatch, useMergeBonusBatch } from '@
 import { useBonusBatch, useBonusBatches } from '@/features/company-admin/api/use-bonus-batch-queries';
 import { useDepartments, useDesignations, useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -64,11 +65,11 @@ const TYPE_COLORS: Record<BonusType, { bg: string; text: string }> = {
     SPOT: { bg: colors.success[50], text: 'text-success-700' },
     REFERRAL: { bg: colors.info[50], text: 'text-info-700' },
     RETENTION: { bg: colors.warning[50], text: 'text-warning-700' },
-    STATUTORY: { bg: colors.neutral[100], text: 'text-neutral-600' },
+    STATUTORY: { bg: colors.neutral[100], text: 'text-neutral-600 dark:text-neutral-400' },
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-    DRAFT: { bg: colors.neutral[100], text: 'text-neutral-600' },
+    DRAFT: { bg: colors.neutral[100], text: 'text-neutral-600 dark:text-neutral-400' },
     APPROVED: { bg: colors.success[50], text: 'text-success-700' },
     MERGED: { bg: colors.primary[50], text: 'text-primary-700' },
 };
@@ -98,13 +99,13 @@ function StatusBadge({ status }: { status: string }) {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -149,7 +150,7 @@ function SearchableSelectModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '80%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-3">{title}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-3">{title}</Text>
                     <View style={[styles.inputWrapStyle, { marginBottom: 12 }]}>
                         <TextInput
                             style={styles.textInput}
@@ -178,13 +179,13 @@ function SearchableSelectModal({
                                         </View>
                                     )}
                                     <View style={{ flex: 1 }}>
-                                        <Text className={`font-inter text-sm ${isSelected ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{item.label}</Text>
-                                        {item.sublabel && <Text className="font-inter text-[10px] text-neutral-500">{item.sublabel}</Text>}
+                                        <Text className={`font-inter text-sm ${isSelected ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{item.label}</Text>
+                                        {item.sublabel && <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.sublabel}</Text>}
                                     </View>
                                 </Pressable>
                             );
                         }}
-                        ListEmptyComponent={<Text className="font-inter text-sm text-neutral-500 text-center py-4">No results found</Text>}
+                        ListEmptyComponent={<Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">No results found</Text>}
                     />
                     {multiple && (
                         <Pressable onPress={onClose} style={[styles.saveBtn, { marginTop: 12 }]}>
@@ -224,7 +225,7 @@ function DetailModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '80%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Batch Details</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Batch Details</Text>
                     {isLoading ? (
                         <View style={{ paddingTop: 20 }}><SkeletonCard /><SkeletonCard /></View>
                     ) : detail ? (
@@ -232,28 +233,28 @@ function DetailModal({
                             {/* Info Row */}
                             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                                 <View style={styles.infoCard}>
-                                    <Text className="font-inter text-[10px] text-neutral-500 uppercase">Name</Text>
-                                    <Text className="font-inter text-sm font-bold text-primary-950 mt-1">{detail.name}</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 uppercase">Name</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mt-1">{detail.name}</Text>
                                 </View>
                                 <View style={styles.infoCard}>
-                                    <Text className="font-inter text-[10px] text-neutral-500 uppercase">Type</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 uppercase">Type</Text>
                                     <View style={{ marginTop: 4 }}><TypeBadge type={detail.type} /></View>
                                 </View>
                                 <View style={styles.infoCard}>
-                                    <Text className="font-inter text-[10px] text-neutral-500 uppercase">Status</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 uppercase">Status</Text>
                                     <View style={{ marginTop: 4 }}><StatusBadge status={detail.status} /></View>
                                 </View>
                             </View>
                             {/* Items */}
-                            <Text className="font-inter text-xs font-bold text-neutral-500 uppercase mb-2">Items</Text>
+                            <Text className="font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase mb-2">Items</Text>
                             {(detail.items ?? []).map((item: any, idx: number) => (
                                 <View key={idx} style={styles.itemRow}>
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">{item.employeeName ?? item.employeeId}</Text>
-                                        {item.remarks ? <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">{item.remarks}</Text> : null}
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{item.employeeName ?? item.employeeId}</Text>
+                                        {item.remarks ? <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">{item.remarks}</Text> : null}
                                     </View>
                                     <View style={{ alignItems: 'flex-end' }}>
-                                        <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{(item.amount ?? 0).toLocaleString('en-IN')}</Text>
+                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{'₹'}{(item.amount ?? 0).toLocaleString('en-IN')}</Text>
                                         {item.tds ? <Text className="font-inter text-[10px] text-danger-500">TDS: {'₹'}{item.tds.toLocaleString('en-IN')}</Text> : null}
                                         <Text className="font-inter text-[10px] font-bold text-success-600">Net: {'₹'}{(item.netAmount ?? item.amount ?? 0).toLocaleString('en-IN')}</Text>
                                     </View>
@@ -272,12 +273,12 @@ function DetailModal({
                                     </Pressable>
                                 )}
                                 <Pressable onPress={onClose} style={[styles.cancelBtn, { flex: 1 }]}>
-                                    <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                                    <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text>
                                 </Pressable>
                             </View>
                         </ScrollView>
                     ) : (
-                        <Text className="font-inter text-sm text-neutral-500 text-center py-8">No details available.</Text>
+                        <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400 text-center py-8">No details available.</Text>
                     )}
                 </View>
             </View>
@@ -413,18 +414,18 @@ function CreateModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '92%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Create Bonus Batch</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Create Bonus Batch</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         {/* Batch Name */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Batch Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Batch Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="e.g. Q1 Performance Bonus" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <ChipSelector label="Bonus Type" options={BONUS_TYPES} value={type} onSelect={setType} />
 
                         {/* Selection Mode Tabs */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Selection Mode</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Selection Mode</Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 {(['department', 'designation', 'employee'] as SelectionMode[]).map(mode => {
                                     const labels: Record<SelectionMode, string> = { department: 'By Dept', designation: 'By Desig', employee: 'By Employee' };
@@ -440,7 +441,7 @@ function CreateModal({
                                             setIndividualRemarks({});
                                             setShowPreview(false);
                                         }} style={[styles.chip, selected && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{labels[mode]}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{labels[mode]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -451,9 +452,9 @@ function CreateModal({
                         {selectionMode === 'department' && (
                             <>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department <Text className="text-danger-500">*</Text></Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Department <Text className="text-danger-500">*</Text></Text>
                                     <Pressable onPress={() => setDeptPickerVisible(true)} style={styles.inputWrapStyle}>
-                                        <Text className={`font-inter text-sm ${selectedDepartmentId ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                        <Text className={`font-inter text-sm ${selectedDepartmentId ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
                                             {selectedDeptName || 'Select department...'}
                                         </Text>
                                     </Pressable>
@@ -464,7 +465,7 @@ function CreateModal({
                                     </View>
                                 ) : null}
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bonus Amount (for all)</Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Bonus Amount (for all)</Text>
                                     <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter amount" placeholderTextColor={colors.neutral[400]} value={bulkAmount} onChangeText={setBulkAmount} keyboardType="numeric" /></View>
                                 </View>
                             </>
@@ -474,9 +475,9 @@ function CreateModal({
                         {selectionMode === 'designation' && (
                             <>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Designation <Text className="text-danger-500">*</Text></Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Designation <Text className="text-danger-500">*</Text></Text>
                                     <Pressable onPress={() => setDesigPickerVisible(true)} style={styles.inputWrapStyle}>
-                                        <Text className={`font-inter text-sm ${selectedDesignationId ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                        <Text className={`font-inter text-sm ${selectedDesignationId ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
                                             {selectedDesigName || 'Select designation...'}
                                         </Text>
                                     </Pressable>
@@ -487,7 +488,7 @@ function CreateModal({
                                     </View>
                                 ) : null}
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bonus Amount (for all)</Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Bonus Amount (for all)</Text>
                                     <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter amount" placeholderTextColor={colors.neutral[400]} value={bulkAmount} onChangeText={setBulkAmount} keyboardType="numeric" /></View>
                                 </View>
                             </>
@@ -497,9 +498,9 @@ function CreateModal({
                         {selectionMode === 'employee' && (
                             <>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employees <Text className="text-danger-500">*</Text></Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Employees <Text className="text-danger-500">*</Text></Text>
                                     <Pressable onPress={() => setEmpPickerVisible(true)} style={styles.inputWrapStyle}>
-                                        <Text className={`font-inter text-sm ${selectedEmployeeIds.length > 0 ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                        <Text className={`font-inter text-sm ${selectedEmployeeIds.length > 0 ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
                                             {selectedEmployeeIds.length > 0 ? `${selectedEmployeeIds.length} selected` : 'Select employees...'}
                                         </Text>
                                     </Pressable>
@@ -522,23 +523,23 @@ function CreateModal({
                                         {/* Same vs Individual toggle */}
                                         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
                                             <Pressable onPress={() => setSameAmountForAll(true)} style={[styles.chip, sameAmountForAll && styles.chipActive]}>
-                                                <Text className={`font-inter text-[10px] font-bold ${sameAmountForAll ? 'text-white' : 'text-neutral-600'}`}>Same for All</Text>
+                                                <Text className={`font-inter text-[10px] font-bold ${sameAmountForAll ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>Same for All</Text>
                                             </Pressable>
                                             <Pressable onPress={() => setSameAmountForAll(false)} style={[styles.chip, !sameAmountForAll && styles.chipActive]}>
-                                                <Text className={`font-inter text-[10px] font-bold ${!sameAmountForAll ? 'text-white' : 'text-neutral-600'}`}>Individual</Text>
+                                                <Text className={`font-inter text-[10px] font-bold ${!sameAmountForAll ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>Individual</Text>
                                             </Pressable>
                                         </View>
 
                                         {sameAmountForAll ? (
                                             <View style={styles.fieldWrap}>
-                                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bonus Amount (for all)</Text>
+                                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Bonus Amount (for all)</Text>
                                                 <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter amount" placeholderTextColor={colors.neutral[400]} value={bulkAmount} onChangeText={setBulkAmount} keyboardType="numeric" /></View>
                                             </View>
                                         ) : (
                                             <>
                                                 {selectedEmployeeIds.map(id => (
                                                     <View key={id} style={styles.itemFormCard}>
-                                                        <Text className="font-inter text-xs font-bold text-primary-950 mb-2">{getEmpName(id)}</Text>
+                                                        <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white mb-2">{getEmpName(id)}</Text>
                                                         <View style={{ flexDirection: 'row', gap: 8 }}>
                                                             <View style={[styles.inputWrapStyle, { flex: 1 }]}>
                                                                 <TextInput style={styles.textInput} placeholder="Amount" placeholderTextColor={colors.neutral[400]} value={individualAmounts[id] ?? ''} onChangeText={v => setIndividualAmounts(p => ({ ...p, [id]: v }))} keyboardType="numeric" />
@@ -566,22 +567,22 @@ function CreateModal({
                                     <>
                                         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
                                             <View style={[styles.infoBanner, { flex: 1 }]}>
-                                                <Text className="font-inter text-[10px] text-neutral-500 uppercase">Employees</Text>
+                                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 uppercase">Employees</Text>
                                                 <Text className="font-inter text-base font-bold text-primary-700">{previewItems.length}</Text>
                                             </View>
                                             <View style={[styles.infoBanner, { flex: 1, backgroundColor: colors.success[50] }]}>
-                                                <Text className="font-inter text-[10px] text-neutral-500 uppercase">Total</Text>
+                                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 uppercase">Total</Text>
                                                 <Text className="font-inter text-base font-bold text-success-700">{'₹'}{totalAmount.toLocaleString('en-IN')}</Text>
                                             </View>
                                         </View>
                                         {previewItems.slice(0, 10).map(item => (
                                             <View key={item.employeeId} style={styles.itemRow}>
-                                                <Text className="font-inter text-xs font-semibold text-primary-950" style={{ flex: 1 }}>{item.employeeName}</Text>
+                                                <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>{item.employeeName}</Text>
                                                 <Text className="font-inter text-xs font-bold text-primary-700">{'₹'}{item.amount.toLocaleString('en-IN')}</Text>
                                             </View>
                                         ))}
                                         {previewItems.length > 10 && (
-                                            <Text className="font-inter text-[10px] text-neutral-500 text-center py-2">...and {previewItems.length - 10} more</Text>
+                                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 text-center py-2">...and {previewItems.length - 10} more</Text>
                                         )}
                                     </>
                                 )}
@@ -589,7 +590,7 @@ function CreateModal({
                         )}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ name, type, items: previewItems.filter(i => i.employeeId && i.amount > 0) })} disabled={!canSubmit || isSaving} style={[styles.saveBtn, (!canSubmit || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Creating...' : `Create (${previewItems.length})`}</Text>
                         </Pressable>
@@ -649,14 +650,14 @@ function MergeModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Merge to Payroll</Text>
-                    <Text className="font-inter text-sm text-neutral-500 mb-4">Merge "{batch?.name}" into a payroll run.</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">Merge to Payroll</Text>
+                    <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400 mb-4">Merge "{batch?.name}" into a payroll run.</Text>
                     <View style={styles.fieldWrap}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Payroll Run ID <Text className="text-danger-500">*</Text></Text>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Payroll Run ID <Text className="text-danger-500">*</Text></Text>
                         <View style={styles.inputWrapStyle}><TextInput style={styles.textInput} placeholder="Enter payroll run ID" placeholderTextColor={colors.neutral[400]} value={payrollRunId} onChangeText={setPayrollRunId} /></View>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onMerge(payrollRunId)} disabled={!payrollRunId.trim() || isMerging} style={[styles.saveBtn, (!payrollRunId.trim() || isMerging) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isMerging ? 'Merging...' : 'Merge'}</Text>
                         </Pressable>
@@ -677,10 +678,10 @@ function BatchCard({ item, index, onPress }: { item: BonusBatchItem; index: numb
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             <TypeBadge type={item.type} />
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             {item.createdAt ? fmt.date(item.createdAt) : ''}
                         </Text>
                     </View>
@@ -688,7 +689,7 @@ function BatchCard({ item, index, onPress }: { item: BonusBatchItem; index: numb
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">{item.employeeCount ?? 0} employees</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.employeeCount ?? 0} employees</Text>
                     </View>
                     <View style={[styles.metaChip, { backgroundColor: colors.success[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-success-700">{'₹'}{(item.totalAmount ?? 0).toLocaleString('en-IN')}</Text>
@@ -702,6 +703,9 @@ function BatchCard({ item, index, onPress }: { item: BonusBatchItem; index: numb
 // ============ MAIN COMPONENT ============
 
 export function BonusBatchScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -766,8 +770,8 @@ export function BonusBatchScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Bonus Batches</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{batches.length} batch{batches.length !== 1 ? 'es' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Bonus Batches</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{batches.length} batch{batches.length !== 1 ? 'es' : ''}</Text>
             <View style={{ marginTop: 16 }}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search batches..." />
             </View>
@@ -806,37 +810,38 @@ export function BonusBatchScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrapStyle: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrapStyle: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-    infoCard: { flex: 1, backgroundColor: colors.neutral[50], borderRadius: 12, padding: 10 },
+    infoCard: { flex: 1, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, padding: 10 },
     itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    itemFormCard: { backgroundColor: colors.neutral[50], borderRadius: 14, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.neutral[100] },
-    infoBanner: { backgroundColor: colors.primary[50], borderRadius: 12, padding: 10 },
-    selectedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary[50], borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: colors.primary[200] },
+    itemFormCard: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 14, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100] },
+    infoBanner: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 12, padding: 10 },
+    selectedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: colors.primary[200] },
     selectOption: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1.5, borderColor: colors.neutral[300], justifyContent: 'center', alignItems: 'center' },
     checkboxActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
 });
+const styles = createStyles(false);

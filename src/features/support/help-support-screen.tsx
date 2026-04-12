@@ -30,6 +30,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSupportTickets } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCreateSupportTicket } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -255,7 +256,7 @@ function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
         <Pressable onPress={onPress} style={s.ticketCard}>
             <View style={s.ticketCardHeader}>
                 <Text
-                    className="font-inter text-sm font-bold text-primary-950"
+                    className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                     numberOfLines={1}
                     style={{ flex: 1 }}
                 >
@@ -273,7 +274,7 @@ function TicketCard({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
 
             {ticket.lastMessage ? (
                 <Text
-                    className="font-inter text-xs text-neutral-500"
+                    className="font-inter text-xs text-neutral-500 dark:text-neutral-400"
                     numberOfLines={2}
                     style={{ marginTop: 6 }}
                 >
@@ -295,7 +296,7 @@ function FAQItem({ faq }: { faq: FAQ }) {
                 style={s.faqHeader}
             >
                 <Text
-                    className="font-inter text-sm font-semibold text-primary-900"
+                    className="font-inter text-sm font-semibold text-primary-900 dark:text-primary-100"
                     style={{ flex: 1, marginRight: 8 }}
                 >
                     {faq.question}
@@ -304,7 +305,7 @@ function FAQItem({ faq }: { faq: FAQ }) {
             </Pressable>
             {expanded && (
                 <Animated.View entering={FadeInDown.duration(200)}>
-                    <Text className="font-inter text-xs text-neutral-600" style={s.faqBody}>
+                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400" style={s.faqBody}>
                         {faq.answer}
                     </Text>
                 </Animated.View>
@@ -362,23 +363,25 @@ function CreateTicketSheet({
             index={-1}
             snapPoints={snapPoints}
             enablePanDownToClose
+            enableDynamicSizing={false}
             backdropComponent={renderBackdrop}
             backgroundStyle={s.sheetBg}
             handleIndicatorStyle={s.sheetHandle}
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             android_keyboardInputMode="adjustResize"
+            containerStyle={{ pointerEvents: 'box-none' }}
         >
             <BottomSheetScrollView
                 contentContainerStyle={s.sheetContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Text className="mb-4 font-inter text-lg font-bold text-primary-950">
+                <Text className="mb-4 font-inter text-lg font-bold text-primary-950 dark:text-white">
                     Create Support Ticket
                 </Text>
 
                 {/* Subject */}
-                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Subject
                 </Text>
                 <TextInput
@@ -390,7 +393,7 @@ function CreateTicketSheet({
                 />
 
                 {/* Category */}
-                <Text className="mb-1.5 mt-4 font-inter text-xs font-bold text-primary-900">
+                <Text className="mb-1.5 mt-4 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Category
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
@@ -419,7 +422,7 @@ function CreateTicketSheet({
                 </ScrollView>
 
                 {/* Message */}
-                <Text className="mb-1.5 mt-4 font-inter text-xs font-bold text-primary-900">
+                <Text className="mb-1.5 mt-4 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Message
                 </Text>
                 <TextInput
@@ -465,6 +468,9 @@ function CreateTicketSheet({
 // ============ MAIN SCREEN ============
 
 export function HelpSupportScreen() {
+  const isDark = useIsDark();
+  const s = _createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -551,7 +557,7 @@ export function HelpSupportScreen() {
                 <View style={{ flex: 1 }}>
                     {/* Filters */}
                     <View style={s.filterSection}>
-                        <Text className="mb-1.5 font-inter text-xs font-semibold text-neutral-500">
+                        <Text className="mb-1.5 font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                             Status
                         </Text>
                         <ScrollView
@@ -571,7 +577,7 @@ export function HelpSupportScreen() {
                             </View>
                         </ScrollView>
 
-                        <Text className="mb-1.5 font-inter text-xs font-semibold text-neutral-500">
+                        <Text className="mb-1.5 font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                             Category
                         </Text>
                         <ScrollView
@@ -635,7 +641,7 @@ export function HelpSupportScreen() {
                     <Animated.View entering={FadeInDown.duration(300)}>
                         <View style={s.helpHeader}>
                             <HelpIcon color={colors.primary[600]} />
-                            <Text className="ml-2 font-inter text-base font-bold text-primary-900">
+                            <Text className="ml-2 font-inter text-base font-bold text-primary-900 dark:text-primary-100">
                                 Frequently Asked Questions
                             </Text>
                         </View>
@@ -645,10 +651,10 @@ export function HelpSupportScreen() {
                     </Animated.View>
 
                     <View style={s.contactSection}>
-                        <Text className="font-inter text-sm font-bold text-primary-900">
+                        <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                             Still need help?
                         </Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             Create a support ticket and our team will get back to you within 24 hours.
                         </Text>
                         <Pressable
@@ -674,10 +680,10 @@ export function HelpSupportScreen() {
 
 // ============ STYLES ============
 
-const s = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 20,
@@ -698,7 +704,7 @@ const s = StyleSheet.create({
         gap: 6,
         paddingVertical: 10,
         borderRadius: 10,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     tabButtonActive: {
         backgroundColor: colors.primary[600],
@@ -723,7 +729,7 @@ const s = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     filterChipActive: {
         backgroundColor: colors.primary[600],
@@ -737,7 +743,7 @@ const s = StyleSheet.create({
         color: '#fff',
     },
     ticketCard: {
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderRadius: 12,
         padding: 14,
         marginBottom: 10,
@@ -778,7 +784,7 @@ const s = StyleSheet.create({
         marginBottom: 16,
     },
     faqItem: {
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderRadius: 10,
         marginBottom: 8,
         overflow: 'hidden',
@@ -795,7 +801,7 @@ const s = StyleSheet.create({
     },
     contactSection: {
         marginTop: 24,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
@@ -807,11 +813,11 @@ const s = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.primary[200],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     // Bottom Sheet
     sheetBg: {
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
     },
@@ -825,13 +831,13 @@ const s = StyleSheet.create({
     },
     textInput: {
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 14,
         color: colors.neutral[800],
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
     },
     submitButton: {
         marginTop: 20,
@@ -845,3 +851,4 @@ const s = StyleSheet.create({
         borderRadius: 12,
     },
 });
+const s = _createStyles(false);

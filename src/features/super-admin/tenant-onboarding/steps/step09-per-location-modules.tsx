@@ -204,7 +204,7 @@ export function Step9PerLocationModules({
                                     fill={colors.neutral[500]}
                                 />
                             </Svg>
-                            <Text className="font-inter text-xs text-neutral-600">
+                            <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                 Copy to all locations
                             </Text>
                         </Pressable>
@@ -270,10 +270,10 @@ export function Step9PerLocationModules({
                             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
                                 <Text className="text-xl">{moduleItem.icon}</Text>
                                 <View style={{ flex: 1 }}>
-                                    <Text className="font-inter text-sm font-bold text-primary-950">
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                         {moduleItem.name}
                                     </Text>
-                                    <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                                    <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                         {moduleItem.description}
                                     </Text>
                                 </View>
@@ -316,7 +316,7 @@ export function Step9PerLocationModules({
                                                     backgroundColor: colors.neutral[100],
                                                 }}
                                             >
-                                                <Text className="font-inter text-[10px] text-neutral-600">
+                                                <Text className="font-inter text-[10px] text-neutral-600 dark:text-neutral-400">
                                                     {dep.icon} {dep.name}
                                                 </Text>
                                             </View>
@@ -382,7 +382,7 @@ export function Step9PerLocationModules({
                                         borderTopColor: colors.neutral[200],
                                     }}
                                 >
-                                    <Text className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                                    <Text className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
                                         Custom Price Override
                                     </Text>
                                     <View
@@ -448,10 +448,10 @@ export function Step9PerLocationModules({
                                     backgroundColor: colors.accent[50],
                                 }}
                             >
-                                <Text className="font-inter text-sm font-bold text-primary-950">
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                     {dependency.icon} {dependency.name}
                                 </Text>
-                                <Text className="mt-1 font-inter text-xs text-neutral-600">
+                                <Text className="mt-1 font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                     Required by: {requiredBy}
                                 </Text>
                             </View>
@@ -476,7 +476,7 @@ export function Step9PerLocationModules({
                             alignItems: 'center',
                         }}
                     >
-                        <Text className="font-inter text-xs text-neutral-600">
+                        <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                             {activeLoc?.name || 'Location'} —{' '}
                             {resolvedModuleIds.length} module
                             {resolvedModuleIds.length > 1 ? 's' : ''}

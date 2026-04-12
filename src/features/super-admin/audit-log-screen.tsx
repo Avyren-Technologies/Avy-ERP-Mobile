@@ -24,6 +24,7 @@ import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useAuditLogs, useAuditFilterOptions } from '@/features/super-admin/api/use-audit-queries';
 import { useCompanyAuditLogs } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -90,7 +91,7 @@ function AuditLogCard({ item, index }: { item: AuditLogItem; index: number }) {
                     >
                         {item.action}
                     </Text>
-                    <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                         {item.entityType} {'\u2022'} {item.entityId}
                     </Text>
                     {item.performedBy ? (
@@ -102,7 +103,7 @@ function AuditLogCard({ item, index }: { item: AuditLogItem; index: number }) {
 
                 {/* Right: Timestamp */}
                 <View style={styles.cardRight}>
-                    <Text className="font-inter text-[10px] font-semibold text-neutral-500">
+                    <Text className="font-inter text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
                         {date}
                     </Text>
                     <Text className="font-inter text-[10px] text-neutral-400">
@@ -140,6 +141,9 @@ function useRoleAwareAuditLogs(params: {
 }
 
 export function AuditLogScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const userRole = useAuthStore.use.userRole();
     const isCompanyAdmin = userRole === 'company-admin';
@@ -240,7 +244,7 @@ export function AuditLogScreen() {
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                         Audit Log
                     </Text>
-                    <Text className="font-inter mt-1 text-sm text-neutral-500">
+                    <Text className="font-inter mt-1 text-sm text-neutral-500 dark:text-neutral-400">
                         {totalCount} {totalCount === 1 ? 'entry' : 'entries'}
                     </Text>
                 </View>
@@ -336,10 +340,10 @@ export function AuditLogScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 24,
@@ -354,7 +358,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         padding: 14,
         marginBottom: 10,
@@ -366,7 +370,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
         gap: 12,
     },
     actionBadge: {
@@ -392,3 +396,4 @@ const styles = StyleSheet.create({
         paddingTop: 80,
     },
 });
+const styles = createStyles(false);

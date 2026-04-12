@@ -19,13 +19,12 @@ export function usePlatformSupportTickets(params?: { status?: string; category?:
   });
 }
 
-/** Single platform support ticket by ID (auto-refreshes every 10s) */
+/** Single platform support ticket by ID (real-time updates via useTicketSocket) */
 export function usePlatformSupportTicket(id: string) {
   return useQuery({
     queryKey: platformSupportKeys.ticket(id),
     queryFn: () => supportApi.getTicket(id),
     enabled: !!id,
-    refetchInterval: 10000,
   });
 }
 

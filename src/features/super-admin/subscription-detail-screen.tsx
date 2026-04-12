@@ -41,6 +41,7 @@ import type {
     AmcStatus,
     LocationCostBreakdown,
 } from '@/lib/api/subscription';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ HELPERS ============
 
@@ -131,7 +132,7 @@ function LocationCard({ location, index }: { location: LocationCostBreakdown; in
             {/* Header row */}
             <View style={styles.locationHeader}>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>
                         {location.locationName}
                     </Text>
                     <Text className="font-inter text-xs text-neutral-400 mt-0.5">
@@ -145,7 +146,7 @@ function LocationCard({ location, index }: { location: LocationCostBreakdown; in
             <View style={styles.badgesRow}>
                 <TierBadge tier={location.userTier} />
                 <View style={[styles.billingBadge, { backgroundColor: colors.neutral[100] }]}>
-                    <Text className="font-inter text-[10px] font-bold text-neutral-600">
+                    <Text className="font-inter text-[10px] font-bold text-neutral-600 dark:text-neutral-400">
                         {location.modulesCount} modules
                     </Text>
                 </View>
@@ -158,16 +159,16 @@ function LocationCard({ location, index }: { location: LocationCostBreakdown; in
             <View style={styles.costSection}>
                 {location.billingType === 'MONTHLY' && (
                     <View style={styles.costRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Monthly Cost</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-900">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Monthly Cost</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                             {formatCurrency(location.monthlyCost)}/month
                         </Text>
                     </View>
                 )}
                 {location.billingType === 'ANNUAL' && (
                     <View style={styles.costRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Annual Cost</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-900">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Annual Cost</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                             {formatCurrency(location.annualCost)}/year
                         </Text>
                     </View>
@@ -175,15 +176,15 @@ function LocationCard({ location, index }: { location: LocationCostBreakdown; in
                 {location.billingType === 'ONE_TIME_AMC' && (
                     <>
                         <View style={styles.costRow}>
-                            <Text className="font-inter text-xs text-neutral-500">One-Time Cost</Text>
-                            <Text className="font-inter text-sm font-bold text-primary-900">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">One-Time Cost</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                                 {formatCurrency(location.oneTimeCost)} one-time
                             </Text>
                         </View>
                         {showAmc && location.amcCost != null && (
                             <View style={styles.costRow}>
-                                <Text className="font-inter text-xs text-neutral-500">AMC</Text>
-                                <Text className="font-inter text-sm font-bold text-primary-900">
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">AMC</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                                     {formatCurrency(location.amcCost)}/year
                                 </Text>
                             </View>
@@ -250,7 +251,7 @@ function BillingTypeSelector({
                     <View style={[styles.radioCircle, selected === opt && styles.radioCircleSelected]}>
                         {selected === opt && <View style={styles.radioInner} />}
                     </View>
-                    <Text className="font-inter text-sm font-semibold text-primary-950">
+                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                         {BILLING_TYPE_LABELS[opt]}
                     </Text>
                 </Pressable>
@@ -281,7 +282,7 @@ function TierSelector({
                         {selected === tier.key && <View style={styles.radioInner} />}
                     </View>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-semibold text-primary-950">
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                             {tier.label}
                         </Text>
                         <Text className="font-inter text-xs text-neutral-400">
@@ -300,6 +301,9 @@ function TierSelector({
 // ============ MAIN SCREEN ============
 
 export function SubscriptionDetailScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const router = useRouter();
     const { companyId } = useLocalSearchParams<{ companyId: string }>();
     const insets = useSafeAreaInsets();
@@ -505,7 +509,7 @@ export function SubscriptionDetailScreen() {
 
                 {/* ===== LOCATION CARDS ===== */}
                 <View style={styles.section}>
-                    <Text className="font-inter text-sm font-bold text-primary-950 mb-3">
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">
                         Locations ({locations.length})
                     </Text>
 
@@ -524,7 +528,7 @@ export function SubscriptionDetailScreen() {
 
                 {/* ===== ACTIONS ===== */}
                 <View style={styles.section}>
-                    <Text className="font-inter text-sm font-bold text-primary-950 mb-3">
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">
                         Actions
                     </Text>
 
@@ -592,12 +596,12 @@ export function SubscriptionDetailScreen() {
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setActiveModal(null)} />
                     <Animated.View entering={SlideInUp.duration(300).easing(Easing.out(Easing.cubic))} exiting={SlideOutDown.duration(250)} style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
-                        <Text className="text-center font-inter text-lg font-bold text-primary-950">Change Billing Type</Text>
-                        <Text className="mt-1 text-center font-inter text-sm text-neutral-500">Select the new billing type.</Text>
+                        <Text className="text-center font-inter text-lg font-bold text-primary-950 dark:text-white">Change Billing Type</Text>
+                        <Text className="mt-1 text-center font-inter text-sm text-neutral-500 dark:text-neutral-400">Select the new billing type.</Text>
                         <BillingTypeSelector selected={selectedBillingType} onChange={setSelectedBillingType} />
                         <View style={styles.modalActions}>
                             <Pressable style={({ pressed }) => [styles.modalCancelBtn, pressed && { opacity: 0.8 }]} onPress={() => setActiveModal(null)}>
-                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                             </Pressable>
                             <Pressable style={({ pressed }) => [styles.modalConfirmBtn, pressed && { opacity: 0.85 }]} onPress={handleChangeBillingType}>
                                 <Text className="font-inter text-sm font-bold text-white">
@@ -615,14 +619,14 @@ export function SubscriptionDetailScreen() {
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setActiveModal(null)} />
                     <Animated.View entering={SlideInUp.duration(300).easing(Easing.out(Easing.cubic))} exiting={SlideOutDown.duration(250)} style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
-                        <Text className="text-center font-inter text-lg font-bold text-primary-950">Change User Tier</Text>
-                        <Text className="mt-1 text-center font-inter text-sm text-neutral-500">Select the new tier.</Text>
+                        <Text className="text-center font-inter text-lg font-bold text-primary-950 dark:text-white">Change User Tier</Text>
+                        <Text className="mt-1 text-center font-inter text-sm text-neutral-500 dark:text-neutral-400">Select the new tier.</Text>
                         <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
                             <TierSelector selected={selectedTier} onChange={setSelectedTier} />
                         </ScrollView>
                         <View style={styles.modalActions}>
                             <Pressable style={({ pressed }) => [styles.modalCancelBtn, pressed && { opacity: 0.8 }]} onPress={() => setActiveModal(null)}>
-                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                             </Pressable>
                             <Pressable style={({ pressed }) => [styles.modalConfirmBtn, pressed && { opacity: 0.85 }]} onPress={handleChangeTier}>
                                 <Text className="font-inter text-sm font-bold text-white">
@@ -640,8 +644,8 @@ export function SubscriptionDetailScreen() {
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setActiveModal(null)} />
                     <Animated.View entering={SlideInUp.duration(300).easing(Easing.out(Easing.cubic))} exiting={SlideOutDown.duration(250)} style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
-                        <Text className="text-center font-inter text-lg font-bold text-primary-950">Extend Trial Period</Text>
-                        <Text className="mt-1 text-center font-inter text-sm text-neutral-500">Enter the new trial end date (YYYY-MM-DD).</Text>
+                        <Text className="text-center font-inter text-lg font-bold text-primary-950 dark:text-white">Extend Trial Period</Text>
+                        <Text className="mt-1 text-center font-inter text-sm text-neutral-500 dark:text-neutral-400">Enter the new trial end date (YYYY-MM-DD).</Text>
                         <TextInput
                             style={styles.dateInput}
                             placeholder="YYYY-MM-DD"
@@ -652,7 +656,7 @@ export function SubscriptionDetailScreen() {
                         />
                         <View style={styles.modalActions}>
                             <Pressable style={({ pressed }) => [styles.modalCancelBtn, pressed && { opacity: 0.8 }]} onPress={() => setActiveModal(null)}>
-                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                             </Pressable>
                             <Pressable style={({ pressed }) => [styles.modalConfirmBtn, pressed && { opacity: 0.85 }]} onPress={handleExtendTrial}>
                                 <Text className="font-inter text-sm font-bold text-white">
@@ -679,10 +683,10 @@ export function SubscriptionDetailScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerGradient: {
         borderBottomLeftRadius: 24,
@@ -707,7 +711,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     locationCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
@@ -730,7 +734,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     billingBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 8,
@@ -764,9 +768,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     actionButtonDanger: {
         paddingHorizontal: 16,
@@ -790,12 +794,12 @@ const styles = StyleSheet.create({
         gap: 12,
         padding: 14,
         borderRadius: 12,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     radioOptionSelected: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderColor: colors.primary[400],
     },
     radioCircle: {
@@ -822,7 +826,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalSheet: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingBottom: 40,
@@ -846,11 +850,11 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 14,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     modalConfirmBtn: {
         flex: 1,
@@ -868,7 +872,7 @@ const styles = StyleSheet.create({
     dateInput: {
         marginTop: 12,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 12,
@@ -884,3 +888,4 @@ const styles = StyleSheet.create({
         zIndex: 200,
     },
 });
+const styles = createStyles(false);

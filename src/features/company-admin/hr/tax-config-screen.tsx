@@ -23,6 +23,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useUpdateTaxConfig } from '@/features/company-admin/api/use-payroll-mutations';
 import { useTaxConfig } from '@/features/company-admin/api/use-payroll-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -72,13 +73,13 @@ const DEFAULT_FORM: TaxConfigForm = {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -91,7 +92,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
     return (
         <View style={styles.sectionCard}>
             <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
-            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">{subtitle}</Text>}
+            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">{subtitle}</Text>}
             {!subtitle && <View style={{ height: 8 }} />}
             {children}
         </View>
@@ -141,6 +142,9 @@ function SlabTable({ slabs, onUpdate, onAdd, onRemove }: {
 // ============ MAIN ============
 
 export function TaxConfigScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useTaxConfig();
@@ -227,8 +231,8 @@ export function TaxConfigScreen() {
             <AppTopHeader title="Tax & TDS" onMenuPress={toggle} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">Tax Configuration</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Income tax slabs and TDS settings</Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Tax Configuration</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Income tax slabs and TDS settings</Text>
                 </Animated.View>
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
@@ -236,11 +240,11 @@ export function TaxConfigScreen() {
                     <SectionCard title="General Settings">
                         <ChipSelector label="Default Regime" options={['Old', 'New']} value={form.defaultRegime} onSelect={v => updateForm({ defaultRegime: v as Regime })} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Declaration Deadline</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Declaration Deadline</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={form.declarationDeadline} onChangeText={v => updateForm({ declarationDeadline: v })} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Cess Rate</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Cess Rate</Text>
                             <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
                                 <TextInput style={[styles.textInput, { flex: 1 }]} placeholder="4" placeholderTextColor={colors.neutral[400]} value={form.cessRate} onChangeText={v => updateForm({ cessRate: v })} keyboardType="decimal-pad" />
                                 <Text className="ml-2 font-inter text-xs text-neutral-400">%</Text>
@@ -302,23 +306,23 @@ export function TaxConfigScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     scrollContent: { paddingHorizontal: 24 },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     fieldWrap: { marginTop: 12, marginBottom: 4 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
-    inputWrapSmall: { backgroundColor: colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrapSmall: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     textInputSmall: { fontFamily: 'Inter', fontSize: 12, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     addBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -333,3 +337,4 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
     },
 });
+const styles = createStyles(false);

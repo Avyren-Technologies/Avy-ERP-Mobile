@@ -32,6 +32,7 @@ import {
     useUpdateNotificationTemplate,
 } from '@/features/company-admin/api/use-ess-mutations';
 import { useNotificationTemplates } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -93,21 +94,21 @@ function TemplateFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '90%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">{editItem ? 'Edit Template' : 'New Template'}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">{editItem ? 'Edit Template' : 'New Template'}</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Template Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Template Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Leave Approved" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         {/* Channel Selector */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Channel</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Channel</Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                 {CHANNELS.map(ch => {
                                     const sel = ch === channel;
                                     return (
                                         <Pressable key={ch} onPress={() => setChannel(ch)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{ch}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{ch}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -116,13 +117,13 @@ function TemplateFormModal({
                         {/* Subject (email only) */}
                         {channel === 'Email' && (
                             <View style={styles.fieldWrap}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Subject</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Subject</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Email subject..." placeholderTextColor={colors.neutral[400]} value={subject} onChangeText={setSubject} /></View>
                             </View>
                         )}
                         {/* Body */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Body <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Body <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, { height: 120 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Notification body..." placeholderTextColor={colors.neutral[400]} value={body} onChangeText={setBody} multiline numberOfLines={5} />
                             </View>
@@ -130,12 +131,12 @@ function TemplateFormModal({
                         </View>
                         {/* Active */}
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950" style={{ flex: 1 }}>Active</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>Active</Text>
                             <Switch value={active} onValueChange={setActive} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={active ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => { if (isValid) onSave({ name: name.trim(), channel, subject, body: body.trim(), active }); }} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : editItem ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -155,14 +156,14 @@ function TemplateCard({ item, index, onEdit, onDelete, onToggle }: { item: Templ
             <Pressable onPress={onEdit} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                         <View style={[styles.channelBadge, { backgroundColor: cc.bg }]}>
                             <Text style={{ color: cc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.channel}</Text>
                         </View>
                     </View>
                     <Switch value={item.active} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={item.active ? colors.primary[600] : colors.neutral[300]} />
                 </View>
-                {item.subject ? <Text className="mt-2 font-inter text-xs text-neutral-500" numberOfLines={1}>Subject: {item.subject}</Text> : null}
+                {item.subject ? <Text className="mt-2 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>Subject: {item.subject}</Text> : null}
                 <View style={styles.cardFooter}>
                     <Text className="font-inter text-[10px] text-neutral-400 flex-1" numberOfLines={1}>{item.body}</Text>
                     <Pressable onPress={onDelete} hitSlop={8}>
@@ -177,6 +178,9 @@ function TemplateCard({ item, index, onEdit, onDelete, onToggle }: { item: Templ
 // ============ MAIN COMPONENT ============
 
 export function NotificationTemplateScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -253,28 +257,29 @@ export function NotificationTemplateScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     channelBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4, alignSelf: 'flex-start' },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 4 },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

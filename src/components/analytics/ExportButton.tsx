@@ -6,6 +6,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export type ExportFormat = 'xlsx' | 'pdf' | 'csv';
 
@@ -44,6 +45,9 @@ const EXPORT_OPTIONS: ExportOption[] = [
 ];
 
 export function ExportButton({ onExport, loading, disabled }: ExportButtonProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const [visible, setVisible] = useState(false);
 
   const handleExport = (format: ExportFormat) => {
@@ -77,7 +81,7 @@ export function ExportButton({ onExport, loading, disabled }: ExportButtonProps)
             <Animated.View entering={FadeInUp.duration(300)}>
               {/* Header */}
               <View style={styles.sheetHeader}>
-                <Text className="font-inter text-[17px] font-bold text-neutral-900">
+                <Text className="font-inter text-[17px] font-bold text-neutral-900 dark:text-white">
                   Export Report
                 </Text>
                 <Pressable onPress={() => setVisible(false)} style={styles.closeButton}>
@@ -108,7 +112,7 @@ export function ExportButton({ onExport, loading, disabled }: ExportButtonProps)
 
               {/* Cancel */}
               <Pressable onPress={() => setVisible(false)} style={styles.cancelButton}>
-                <Text className="font-inter text-[15px] font-semibold text-neutral-500">
+                <Text className="font-inter text-[15px] font-semibold text-neutral-500 dark:text-neutral-400">
                   Cancel
                 </Text>
               </Pressable>
@@ -120,7 +124,7 @@ export function ExportButton({ onExport, loading, disabled }: ExportButtonProps)
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   triggerButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 8,
@@ -176,11 +180,11 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
   },
   optionText: {
     flex: 1,
@@ -194,3 +198,4 @@ const styles = StyleSheet.create({
     borderTopColor: colors.neutral[100],
   },
 });
+const styles = createStyles(false);

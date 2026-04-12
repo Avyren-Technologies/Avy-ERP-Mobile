@@ -28,6 +28,7 @@ import { useUpdateOvertimeRules } from '@/features/company-admin/api/use-attenda
 import { useOvertimeRules } from '@/features/company-admin/api/use-attendance-queries';
 
 import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ OPTIONS (same as web) ============
 
@@ -79,10 +80,10 @@ function ToggleRow({ label, subtitle, value, onToggle, tooltip }: { label: strin
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
                     {tooltip && <InfoTooltip content={tooltip} />}
                 </View>
-                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
         </View>
@@ -94,10 +95,10 @@ function NumberRow({ label, subtitle, value, onChange, suffix, tooltip }: { labe
         <View style={styles.numberRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
                     {tooltip && <InfoTooltip content={tooltip} />}
                 </View>
-                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={styles.numberInputWrap}>
@@ -120,10 +121,10 @@ function NullableNumberRow({ label, subtitle, value, onChange, suffix, nullLabel
                     </View>
                     <View style={{ marginLeft: 8 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
                             {tooltip && <InfoTooltip content={tooltip} />}
                         </View>
-                        {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+                        {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{subtitle}</Text>}
                     </View>
                 </Pressable>
             </View>
@@ -144,6 +145,9 @@ function NullableNumberRow({ label, subtitle, value, onChange, suffix, nullLabel
 // ============ MAIN COMPONENT ============
 
 export function OvertimeRulesScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useOvertimeRules();
@@ -289,7 +293,7 @@ export function OvertimeRulesScreen() {
             {hasChanges && (
                 <Animated.View entering={FadeInDown.duration(300)} style={[styles.saveBar, { paddingBottom: insets.bottom + 16 }]}>
                     <View style={styles.saveRow}>
-                        <Pressable onPress={handleReset} style={styles.resetBtn}><Text className="font-inter text-sm font-bold text-neutral-600">Reset</Text></Pressable>
+                        <Pressable onPress={handleReset} style={styles.resetBtn}><Text className="font-inter text-sm font-bold text-neutral-600 dark:text-neutral-400">Reset</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={updateMutation.isPending} style={[styles.saveBtnFull, updateMutation.isPending && { opacity: 0.5 }]}>
                             {updateMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Save Changes</Text>}
                         </Pressable>
@@ -309,22 +313,22 @@ export function OvertimeRulesScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     scrollContent: { paddingHorizontal: 24 },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     numberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     infoRow: { paddingVertical: 12 },
     numberInputWrap: {
-        backgroundColor: colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 10, height: 38, minWidth: 60, justifyContent: 'center',
     },
     numberInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950], textAlign: 'right' },
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(248, 247, 255, 0.95)', borderTopWidth: 1, borderTopColor: colors.neutral[100],
     },
     saveRow: { flexDirection: 'row', gap: 12 },
-    resetBtn: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+    resetBtn: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
     saveBtnFull: {
         flex: 1, height: 52, borderRadius: 16, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center',
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
@@ -347,3 +351,4 @@ const styles = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
 });
+const styles = createStyles(false);

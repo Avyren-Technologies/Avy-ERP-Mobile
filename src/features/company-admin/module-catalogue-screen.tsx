@@ -23,6 +23,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useModuleCatalogue } from '@/features/company-admin/api/use-company-admin-queries';
 import { useAddLocationModules, useRemoveLocationModule } from '@/features/company-admin/api/use-company-admin-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -159,7 +160,7 @@ function ModuleCard({
                     <ModuleIcon name={item.name} color={iconColor} />
                 </View>
                 <View style={styles.cardHeaderText}>
-                    <Text className="font-inter text-base font-bold text-primary-950" numberOfLines={1}>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white" numberOfLines={1}>
                         {item.name}
                     </Text>
                     <View style={[
@@ -170,14 +171,14 @@ function ModuleCard({
                             styles.statusDot,
                             { backgroundColor: item.isActive ? colors.success[500] : colors.neutral[400] },
                         ]} />
-                        <Text className={`font-inter text-[10px] font-bold ${item.isActive ? 'text-success-700' : 'text-neutral-500'}`}>
+                        <Text className={`font-inter text-[10px] font-bold ${item.isActive ? 'text-success-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                             {item.isActive ? 'Active' : 'Not Subscribed'}
                         </Text>
                     </View>
                 </View>
             </View>
 
-            <Text className="mt-2 font-inter text-xs leading-[18px] text-neutral-500" numberOfLines={2}>
+            <Text className="mt-2 font-inter text-xs leading-[18px] text-neutral-500 dark:text-neutral-400" numberOfLines={2}>
                 {item.description}
             </Text>
 
@@ -200,7 +201,7 @@ function ModuleCard({
                         const isMasters = item.id === 'masters';
                         return (
                             <View key={loc.locationId} style={styles.locationRow}>
-                                <Text className="font-inter text-xs text-neutral-500" numberOfLines={1} style={{ flex: 1 }}>
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1} style={{ flex: 1 }}>
                                     {loc.locationName}
                                 </Text>
                                 {isMasters ? (
@@ -244,6 +245,9 @@ function ModuleCard({
 // ============ MAIN SCREEN ============
 
 export function ModuleCatalogueScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const router = useRouter();
@@ -398,10 +402,10 @@ export function ModuleCatalogueScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     loadingContainer: {
         padding: 20,
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         padding: 16,
         shadowColor: colors.primary[900],
@@ -479,3 +483,4 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
 });
+const styles = createStyles(false);

@@ -118,7 +118,7 @@ const Option = React.memo(
   }) => {
     return (
       <Pressable
-        className="flex-row items-center border-b border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
+        className="flex-row items-center border-b border-neutral-300 bg-white dark:bg-charcoal-900 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
         {...props}
       >
         <Text className="flex-1 dark:text-neutral-100">{label}</Text>

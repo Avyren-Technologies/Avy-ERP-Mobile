@@ -33,6 +33,7 @@ import {
     useUpdateSuccessionPlan,
     useDeleteSuccessionPlan,
 } from '@/features/company-admin/api/use-performance-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -148,14 +149,14 @@ function PlanDetailModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 60 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">{item.positionTitle}</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mb-4">{item.departmentName}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-1">{item.positionTitle}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mb-4">{item.departmentName}</Text>
 
                     <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                         {/* Incumbent Info */}
                         <View style={styles.detailCard}>
                             <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">Current Incumbent</Text>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">{item.incumbentName || 'Vacant'}</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{item.incumbentName || 'Vacant'}</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
                                 <StatusBadge status={item.status} />
                                 <RiskBadge risk={item.riskLevel} />
@@ -174,7 +175,7 @@ function PlanDetailModal({
                                             <Text className="font-inter text-xs font-bold text-primary-600">{s.name.charAt(0).toUpperCase()}</Text>
                                         </View>
                                         <View style={{ flex: 1 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950">{s.name}</Text>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{s.name}</Text>
                                             <ReadinessBadge readiness={s.readiness} />
                                         </View>
                                         {s.score > 0 && (
@@ -192,7 +193,7 @@ function PlanDetailModal({
                         {item.notes ? (
                             <View style={styles.detailCard}>
                                 <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">Notes</Text>
-                                <Text className="font-inter text-sm text-primary-950">{item.notes}</Text>
+                                <Text className="font-inter text-sm text-primary-950 dark:text-white">{item.notes}</Text>
                             </View>
                         ) : null}
 
@@ -201,7 +202,7 @@ function PlanDetailModal({
                         ) : null}
                     </ScrollView>
                     <Pressable onPress={onClose} style={styles.cancelBtn}>
-                        <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                        <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text>
                     </Pressable>
                 </View>
             </View>
@@ -280,32 +281,32 @@ function PlanFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 40 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Plan' : 'New Succession Plan'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Position <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Position <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. VP Engineering" placeholderTextColor={colors.neutral[400]} value={form.positionTitle} onChangeText={v => update('positionTitle', v)} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Department <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Department..." placeholderTextColor={colors.neutral[400]} value={form.departmentName} onChangeText={v => update('departmentName', v)} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Current Incumbent</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Current Incumbent</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Name of current holder..." placeholderTextColor={colors.neutral[400]} value={form.incumbentName} onChangeText={v => update('incumbentName', v)} /></View>
                         </View>
 
                         {/* Risk Level */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Risk Level</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Risk Level</Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                 {RISK_LEVELS.map(r => {
                                     const sel = r === form.riskLevel;
                                     return (
                                         <Pressable key={r} onPress={() => update('riskLevel', r)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{r}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{r}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -315,18 +316,18 @@ function PlanFormModal({
                         {/* Successor */}
                         <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2 mt-2">Add Successor (Optional)</Text>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Successor Name</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Successor Name</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Name..." placeholderTextColor={colors.neutral[400]} value={form.successorName} onChangeText={v => update('successorName', v)} /></View>
                         </View>
                         {form.successorName.trim() ? (
                             <View style={styles.fieldWrap}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Readiness</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Readiness</Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                     {READINESS_LEVELS.map(l => {
                                         const sel = l === form.successorReadiness;
                                         return (
                                             <Pressable key={l} onPress={() => update('successorReadiness', l)} style={[styles.chip, sel && styles.chipActive]}>
-                                                <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{READINESS_LABELS[l]}</Text>
+                                                <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{READINESS_LABELS[l]}</Text>
                                             </Pressable>
                                         );
                                     })}
@@ -335,14 +336,14 @@ function PlanFormModal({
                         ) : null}
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Notes</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Notes</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Additional notes..." placeholderTextColor={colors.neutral[400]} value={form.notes} onChangeText={v => update('notes', v)} multiline />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create Plan'}</Text>
                         </Pressable>
@@ -365,15 +366,15 @@ function PlanCard({ item, index, onView, onEdit, onDelete }: {
             <Pressable onPress={onView} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.positionTitle}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.departmentName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.positionTitle}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.departmentName}</Text>
                     </View>
                     <StatusBadge status={item.status} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
                     <RiskBadge risk={item.riskLevel} />
                     {item.incumbentName ? (
-                        <Text className="font-inter text-xs text-neutral-500">Incumbent: {item.incumbentName}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Incumbent: {item.incumbentName}</Text>
                     ) : (
                         <View style={[styles.badge, { backgroundColor: colors.danger[50] }]}>
                             <Text style={{ color: colors.danger[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Vacant</Text>
@@ -383,7 +384,7 @@ function PlanCard({ item, index, onView, onEdit, onDelete }: {
                 {/* Successor summary */}
                 <View style={styles.successorSummary}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-xs text-neutral-500">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             {successorCount} successor{successorCount !== 1 ? 's' : ''} identified
                         </Text>
                         {readyCount > 0 && (
@@ -422,6 +423,9 @@ function PlanCard({ item, index, onView, onEdit, onDelete }: {
 // ============ MAIN COMPONENT ============
 
 export function SuccessionScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -503,8 +507,8 @@ export function SuccessionScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Succession Planning</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{plans.length} plan{plans.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Succession Planning</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{plans.length} plan{plans.length !== 1 ? 's' : ''}</Text>
 
             {/* Bench Strength Stats */}
             {bench && (
@@ -513,21 +517,21 @@ export function SuccessionScreen() {
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                         <View style={[styles.statBox, { flex: 1 }]}>
                             <Text className="font-inter text-lg font-bold text-primary-600">{bench.totalPositions}</Text>
-                            <Text className="font-inter text-[10px] text-neutral-500">Positions</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Positions</Text>
                         </View>
                         <View style={[styles.statBox, { flex: 1 }]}>
                             <Text className="font-inter text-lg font-bold text-success-600">{bench.coveredPositions}</Text>
-                            <Text className="font-inter text-[10px] text-neutral-500">Covered</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Covered</Text>
                         </View>
                         <View style={[styles.statBox, { flex: 1 }]}>
                             <Text className="font-inter text-lg font-bold text-danger-600">{bench.criticalRoles}</Text>
-                            <Text className="font-inter text-[10px] text-neutral-500">Critical</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Critical</Text>
                         </View>
                     </View>
                     {/* Coverage bar */}
                     <View style={{ marginBottom: 8 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <Text className="font-inter text-xs text-neutral-600">Coverage</Text>
+                            <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">Coverage</Text>
                             <Text className="font-inter text-xs font-bold text-primary-600">{coveragePct.toFixed(0)}%</Text>
                         </View>
                         <View style={styles.progressTrack}>
@@ -577,40 +581,41 @@ export function SuccessionScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     gradientHeader: { paddingBottom: 16, paddingHorizontal: 20 },
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    benchCard: { backgroundColor: colors.white, borderRadius: 16, padding: 16, marginTop: 12, borderWidth: 1, borderColor: colors.primary[100] },
-    statBox: { backgroundColor: colors.neutral[50], borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.neutral[200] },
+    benchCard: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16, marginTop: 12, borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100] },
+    statBox: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     progressTrack: { height: 6, backgroundColor: colors.neutral[200], borderRadius: 3, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
     successorSummary: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
-    miniAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary[50], borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+    miniAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
     successorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    successorAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
-    editBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.primary[50] },
-    detailCard: { backgroundColor: colors.neutral[50], borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.neutral[200] },
-    fullFormSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    successorAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    editBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
+    detailCard: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
+    fullFormSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200], marginTop: 16 },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], marginTop: 16 },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

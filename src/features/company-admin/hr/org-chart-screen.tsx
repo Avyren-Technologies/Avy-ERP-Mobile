@@ -29,6 +29,8 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useOrgChart } from '@/features/company-admin/api/use-hr-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useFileUrl } from '@/hooks/use-file-url';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -150,10 +152,15 @@ function Avatar({ name, imageUrl, size = 'md' }: {
     const dim = sizeMap[size];
     const initials = getInitials(name);
 
-    if (imageUrl) {
+    // profilePhotoUrl is an R2 key — resolve to a pre-signed download URL
+    const isFullUrl = imageUrl?.startsWith('http://') || imageUrl?.startsWith('https://');
+    const { url: resolvedUrl } = useFileUrl({ key: imageUrl, enabled: !!imageUrl && !isFullUrl });
+    const src = isFullUrl ? imageUrl : resolvedUrl;
+
+    if (src) {
         return (
             <RNImage
-                source={{ uri: imageUrl }}
+                source={{ uri: src }}
                 style={[
                     styles.avatarImage,
                     { width: dim, height: dim, borderRadius: dim / 2 },
@@ -192,11 +199,11 @@ function RootCard({ node, isHighlighted, onPress }: {
             ]}>
                 <Avatar name={node.name} imageUrl={node.imageUrl} size="lg" />
                 <View style={styles.rootCardInfo}>
-                    <Text className="font-inter text-base font-bold text-primary-950" numberOfLines={1}>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white" numberOfLines={1}>
                         {node.name}
                     </Text>
                     {node.designation ? (
-                        <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                             {node.designation}
                         </Text>
                     ) : null}
@@ -278,11 +285,11 @@ function EmployeeCard({ node, isHighlighted, level, hasChildren, isExpanded, chi
         >
             <Avatar name={node.name} imageUrl={node.imageUrl} size="sm" />
             <View style={styles.employeeCardInfo}>
-                <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>
                     {node.name}
                 </Text>
                 {node.designation ? (
-                    <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
+                    <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                         {node.designation}
                     </Text>
                 ) : null}
@@ -507,7 +514,7 @@ function EmployeeTooltip({ node, onClose }: {
                                 <Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                                 <Circle cx="12" cy="9" r="2.5" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                             </Svg>
-                            <Text className="font-inter text-xs text-neutral-500 ml-2 flex-1" numberOfLines={1}>{node.location}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 ml-2 flex-1" numberOfLines={1}>{node.location}</Text>
                         </View>
                     ) : null}
                     {node.employeeId ? (
@@ -516,7 +523,7 @@ function EmployeeTooltip({ node, onClose }: {
                                 <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
                                 <Circle cx="12" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                             </Svg>
-                            <Text className="font-inter text-xs text-neutral-500 ml-2">{node.employeeId}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 ml-2">{node.employeeId}</Text>
                         </View>
                     ) : null}
                     {node.officialEmail ? (
@@ -525,7 +532,7 @@ function EmployeeTooltip({ node, onClose }: {
                                 <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                 <Path d="M22 6l-10 7L2 6" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
-                            <Text className="font-inter text-xs text-neutral-500 ml-2 flex-1" numberOfLines={1}>{node.officialEmail}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 ml-2 flex-1" numberOfLines={1}>{node.officialEmail}</Text>
                         </View>
                     ) : null}
                     {joinDate ? (
@@ -533,7 +540,7 @@ function EmployeeTooltip({ node, onClose }: {
                             <Svg width={13} height={13} viewBox="0 0 24 24">
                                 <Path d="M8 2v3M16 2v3M3 8h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
-                            <Text className="font-inter text-xs text-neutral-500 ml-2">Joined {joinDate}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 ml-2">Joined {joinDate}</Text>
                         </View>
                     ) : null}
                 </View>
@@ -582,7 +589,7 @@ function ZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: {
                 </Pressable>
                 <View style={styles.zoomDivider} />
                 <Pressable onPress={onReset} style={styles.zoomPercentButton}>
-                    <Text className="font-inter text-[10px] font-bold text-neutral-500">
+                    <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400">
                         {Math.round(zoom * 100)}%
                     </Text>
                 </Pressable>
@@ -609,6 +616,9 @@ function ZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: {
 // ============ MAIN COMPONENT ============
 
 export function OrgChartScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
 
@@ -632,12 +642,16 @@ export function OrgChartScreen() {
 
     const allNodes = React.useMemo(() => flattenNodes(orgData), [orgData]);
 
-    const rootNode = orgData[0] ?? null;
-
+    // Aggregate ALL employees from ALL root nodes (not just the first root)
     const deptGroups = React.useMemo(() => {
-        if (!rootNode) return [];
-        return groupByDepartment(rootNode.reportees);
-    }, [rootNode]);
+        if (orgData.length === 0) return [];
+        // Collect all root nodes + all their reportees into a single flat list for grouping
+        const allTopLevel: OrgNode[] = [];
+        for (const root of orgData) {
+            allTopLevel.push(root);
+        }
+        return groupByDepartment(allTopLevel);
+    }, [orgData]);
 
     const visibleGroups = React.useMemo(() => {
         if (!selectedDept) return deptGroups;
@@ -863,14 +877,19 @@ export function OrgChartScreen() {
                 {/* Dotted background canvas */}
                 <View style={styles.canvasArea}>
                     <View style={{ transform: [{ scale: zoom }], transformOrigin: 'top center' }}>
-                        {/* Root Card */}
-                        {rootNode && (
+                        {/* Root Cards — show all top-level roots */}
+                        {orgData.length > 0 && (
                             <View style={styles.rootSection}>
-                                <RootCard
-                                    node={rootNode}
-                                    isHighlighted={highlightId === rootNode.id}
-                                    onPress={() => setSelectedEmployee(rootNode)}
-                                />
+                                {orgData.map((root, idx) => (
+                                    <View key={root.id}>
+                                        <RootCard
+                                            node={root}
+                                            isHighlighted={highlightId === root.id}
+                                            onPress={() => setSelectedEmployee(root)}
+                                        />
+                                        {idx < orgData.length - 1 && <View style={{ height: 8 }} />}
+                                    </View>
+                                ))}
 
                                 {/* Vertical connector from root */}
                                 {deptGroups.length > 0 && (
@@ -919,7 +938,7 @@ export function OrgChartScreen() {
                                                 className="font-inter text-[10px] font-bold"
                                                 style={{ color: selectedDept === null ? colors.white : colors.neutral[600] }}
                                             >
-                                                {rootNode?.reportees.length ?? 0}
+                                                {allNodes.length}
                                             </Text>
                                         </View>
                                     </Pressable>
@@ -986,10 +1005,10 @@ export function OrgChartScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
 
     // ── Header ──
@@ -1008,7 +1027,7 @@ const styles = StyleSheet.create({
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         paddingHorizontal: 14,
         height: 44,
@@ -1020,7 +1039,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter',
     },
     searchCountBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 8,
         paddingHorizontal: 8,
         paddingVertical: 2,
@@ -1031,7 +1050,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     canvasArea: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         marginTop: 16,
         padding: 20,
@@ -1041,7 +1060,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 3,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         overflow: 'hidden',
     },
     loadingContainer: {
@@ -1062,7 +1081,7 @@ const styles = StyleSheet.create({
     rootCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         paddingHorizontal: 20,
         paddingVertical: 16,
@@ -1073,7 +1092,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 4,
         borderWidth: 1.5,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
         alignSelf: 'center',
         maxWidth: 320,
     },
@@ -1083,13 +1102,13 @@ const styles = StyleSheet.create({
     },
     rootDeptBadge: {
         alignSelf: 'flex-start',
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 8,
         paddingHorizontal: 8,
         paddingVertical: 2,
         marginTop: 4,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     rootConnector: {
         alignItems: 'center',
@@ -1165,13 +1184,13 @@ const styles = StyleSheet.create({
     employeeCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         paddingHorizontal: 12,
         paddingVertical: 10,
         gap: 10,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         shadowColor: colors.primary[900],
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.03,
@@ -1189,10 +1208,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHighlighted: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderColor: colors.primary[300],
         borderWidth: 2,
         shadowColor: colors.primary[500],
@@ -1283,7 +1302,7 @@ const styles = StyleSheet.create({
         zIndex: 100,
     },
     tooltipCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         overflow: 'hidden',
         marginHorizontal: 24,
@@ -1338,9 +1357,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 10,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
 
     // ── Zoom Controls ──
@@ -1351,10 +1370,10 @@ const styles = StyleSheet.create({
         zIndex: 50,
     },
     zoomCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         shadowColor: colors.primary[900],
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -1405,3 +1424,4 @@ const styles = StyleSheet.create({
         backgroundColor: colors.neutral[400],
     },
 });
+const styles = createStyles(false);

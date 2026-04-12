@@ -23,6 +23,7 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 
 import { useExitClearances, useExitRequests } from '@/features/company-admin/api/use-offboarding-queries';
 import { useUpdateClearance } from '@/features/company-admin/api/use-offboarding-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -105,7 +106,7 @@ function ClearanceCard({
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <DeptIcon dept={item.department} />
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text className="font-inter text-sm font-bold text-primary-950">{item.department}</Text>
+            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.department}</Text>
             <Text className="font-inter text-[10px] text-neutral-400">{clearedCount}/{item.items.length} items cleared</Text>
           </View>
           {allCleared ? (
@@ -129,7 +130,7 @@ function ClearanceCard({
                 </Svg>
               )}
             </View>
-            <Text className={`font-inter text-xs ${ci.cleared ? 'text-neutral-400 line-through' : 'text-primary-900'}`}>{ci.label}</Text>
+            <Text className={`font-inter text-xs ${ci.cleared ? 'text-neutral-400 line-through' : 'text-primary-900 dark:text-primary-100'}`}>{ci.label}</Text>
           </View>
         ))}
       </View>
@@ -140,6 +141,9 @@ function ClearanceCard({
 // ============ MAIN SCREEN ============
 
 export function ClearanceDashboardScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
   const router = useRouter();
@@ -198,7 +202,7 @@ export function ClearanceDashboardScreen() {
 
       {/* Overall progress */}
       <Animated.View entering={FadeInDown.delay(50).duration(350)} style={styles.progressSection}>
-        <Text className="font-inter text-xs font-bold text-primary-900 mb-2">Overall Clearance Progress</Text>
+        <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100 mb-2">Overall Clearance Progress</Text>
         <ProgressBar total={totalItems} cleared={clearedItems} />
         {clearedItems === totalItems && totalItems > 0 && (
           <Text className="font-inter text-xs font-semibold text-success-600 mt-2">All departments cleared — exit status will auto-advance.</Text>
@@ -232,26 +236,26 @@ export function ClearanceDashboardScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
   header: { paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   progressSection: {
     marginHorizontal: 16, marginTop: 12, marginBottom: 8,
-    backgroundColor: colors.white, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
   },
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   progressTrack: {
-    flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.neutral[100],
+    flex: 1, height: 8, borderRadius: 4, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%', borderRadius: 4, backgroundColor: colors.primary[500],
   },
   card: {
-    backgroundColor: colors.white, borderRadius: 16, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
   },
@@ -277,3 +281,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success[500], borderColor: colors.success[500],
   },
 });
+const styles = createStyles(false);

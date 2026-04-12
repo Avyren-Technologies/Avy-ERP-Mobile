@@ -17,6 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -117,6 +118,9 @@ export function ConfirmModal({
     onConfirm,
     onCancel,
 }: ConfirmModalProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const { iconBg, iconColor, buttonBg } = getVariantColors(variant);
 
     return (
@@ -149,10 +153,10 @@ export function ConfirmModal({
 
                     {/* Content */}
                     <View style={styles.content}>
-                        <Text className="text-center font-inter text-lg font-bold text-primary-950">
+                        <Text className="text-center font-inter text-lg font-bold text-primary-950 dark:text-white">
                             {title}
                         </Text>
-                        <Text className="mt-2 text-center font-inter text-sm leading-5 text-neutral-500">
+                        <Text className="mt-2 text-center font-inter text-sm leading-5 text-neutral-500 dark:text-neutral-400">
                             {message}
                         </Text>
                     </View>
@@ -166,7 +170,7 @@ export function ConfirmModal({
                             ]}
                             onPress={onCancel}
                         >
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                                 {cancelText}
                             </Text>
                         </Pressable>
@@ -237,14 +241,14 @@ export function useConfirmModal() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     backdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     sheet: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingBottom: 40,
@@ -281,11 +285,11 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 14,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     confirmButton: {
         flex: 1,
@@ -300,3 +304,4 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
 });
+const styles = createStyles(false);

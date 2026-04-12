@@ -20,6 +20,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useMyPayments } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -83,7 +84,7 @@ function PaymentCard({ item, index }: { item: PaymentItem; index: number }) {
 
                 <View style={{ flex: 1, marginLeft: 12 }}>
                     <View style={styles.cardTopRow}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             {formatCurrency(item.amount, item.currency)}
                         </Text>
                         <View style={[styles.methodBadge, { backgroundColor: methodColor.bg }]}>
@@ -116,6 +117,9 @@ function PaymentCard({ item, index }: { item: PaymentItem; index: number }) {
 // ============ MAIN SCREEN ============
 
 export function MyPaymentsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data, isLoading, refetch, isRefetching } = useMyPayments();
@@ -182,10 +186,10 @@ export function MyPaymentsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     loadingContainer: {
         padding: 20,
@@ -197,7 +201,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         padding: 14,
         shadowColor: colors.primary[900],
@@ -234,3 +238,4 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
 });
+const styles = createStyles(false);

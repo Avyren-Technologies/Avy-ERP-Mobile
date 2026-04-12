@@ -60,6 +60,7 @@ import {
     useTrainingPrograms,
     useTrainingSessions,
 } from '@/features/company-admin/api/use-recruitment-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -254,13 +255,13 @@ function AvatarCircle({ name }: { name: string }) {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -285,11 +286,11 @@ function Dropdown({
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -299,7 +300,7 @@ function Dropdown({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                             <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
                         </View>
@@ -307,7 +308,7 @@ function Dropdown({
                             {filteredOptions.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                                 </Pressable>
                             ))}
                             {filteredOptions.length === 0 && <Text className="py-4 text-center font-inter text-sm text-neutral-400">No options found</Text>}
@@ -360,43 +361,43 @@ function CatalogueFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Training' : 'New Training'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Training name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <ChipSelector label="Type" options={[...TRAINING_TYPES]} value={type} onSelect={v => setType(v as TrainingType)} />
                         <ChipSelector label="Mode" options={[...TRAINING_MODES]} value={mode} onSelect={v => setMode(v as TrainingMode)} />
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Duration (hrs)</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Duration (hrs)</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={durationHours} onChangeText={setDurationHours} keyboardType="number-pad" /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Cost</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Cost</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={cost} onChangeText={setCost} keyboardType="number-pad" /></View>
                             </View>
                         </View>
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">Mandatory</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Mandatory</Text>
                             <Switch value={mandatory} onValueChange={setMandatory} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={mandatory ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Certification Name</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Certification Name</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. AWS Solutions Architect" placeholderTextColor={colors.neutral[400]} value={certificationName} onChangeText={setCertificationName} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Training description..." placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline numberOfLines={3} />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ name: name.trim(), type, mode, durationHours: Number(durationHours) || 0, mandatory, certificationName: certificationName.trim(), cost: Number(cost) || 0, description: description.trim() })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -434,13 +435,13 @@ function NominationFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Nominate for Training</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Nominate for Training</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Select employee..." required />
                         <Dropdown label="Training" value={trainingId} options={trainingOptions} onSelect={setTrainingId} placeholder="Select training..." required />
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ employeeId, employeeName: employeeOptions.find(e => e.id === employeeId)?.label ?? '', trainingId, trainingName: trainingOptions.find(t => t.id === trainingId)?.label ?? '', status: 'Nominated' })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Nominating...' : 'Nominate'}</Text>
                         </Pressable>
@@ -461,8 +462,8 @@ function CatalogueCard({ item, index, onEdit, onDelete }: {
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
-                        {item.certificationName ? <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.certificationName}</Text> : null}
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
+                        {item.certificationName ? <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.certificationName}</Text> : null}
                     </View>
                     {item.mandatory && (
                         <View style={[styles.typeBadge, { backgroundColor: colors.danger[50] }]}>
@@ -474,7 +475,7 @@ function CatalogueCard({ item, index, onEdit, onDelete }: {
                     <TypeBadge label={item.type} colorMap={TYPE_COLORS} />
                     <TypeBadge label={item.mode} colorMap={MODE_COLORS} />
                     {item.durationHours > 0 && (
-                        <Text className="font-inter text-xs text-neutral-500">{item.durationHours}h</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.durationHours}h</Text>
                     )}
                     {item.cost > 0 && (
                         <Text className="font-inter text-xs text-neutral-400">{'₹'}{item.cost.toLocaleString('en-IN')}</Text>
@@ -500,14 +501,14 @@ function NominationCard({ item, index, onComplete, onCancel }: {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                         <AvatarCircle name={item.employeeName} />
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.trainingName}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{item.trainingName}</Text>
                         </View>
                     </View>
                     <StatusBadge status={item.status} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                    {item.completionDate ? <Text className="font-inter text-xs text-neutral-500">Completed: {item.completionDate}</Text> : null}
+                    {item.completionDate ? <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Completed: {item.completionDate}</Text> : null}
                     {item.score > 0 && (
                         <View style={[styles.typeBadge, { backgroundColor: colors.success[50] }]}>
                             <Text style={{ color: colors.success[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Score: {item.score}%</Text>
@@ -528,7 +529,7 @@ function NominationCard({ item, index, onComplete, onCancel }: {
                             </Pressable>
                         )}
                         <Pressable onPress={onCancel} style={styles.cancelActionBtn}>
-                            <Text className="font-inter text-xs font-semibold text-neutral-500">Cancel</Text>
+                            <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                     </View>
                 )}
@@ -558,14 +559,14 @@ function SessionCard({ item, index, onStart, onComplete, onDelete, onAttendance 
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.batchName}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.trainingName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.batchName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{item.trainingName}</Text>
                     </View>
                     <SessionStatusBadge status={item.status} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                    {item.startDateTime && <Text className="font-inter text-xs text-neutral-500">From: {item.startDateTime.split('T')[0]}</Text>}
-                    {item.endDateTime && <Text className="font-inter text-xs text-neutral-500">To: {item.endDateTime.split('T')[0]}</Text>}
+                    {item.startDateTime && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">From: {item.startDateTime.split('T')[0]}</Text>}
+                    {item.endDateTime && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">To: {item.endDateTime.split('T')[0]}</Text>}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                     {item.venue ? <Text className="font-inter text-xs text-neutral-400">{item.venue}</Text> : null}
@@ -632,8 +633,8 @@ function TrainerCard({ item, index, onEdit, onDelete }: {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                         <AvatarCircle name={displayName} />
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{displayName}</Text>
-                            {item.email ? <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.email}</Text> : null}
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{displayName}</Text>
+                            {item.email ? <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{item.email}</Text> : null}
                         </View>
                     </View>
                     <View style={[styles.typeBadge, { backgroundColor: tc.bg }]}>
@@ -649,7 +650,7 @@ function TrainerCard({ item, index, onEdit, onDelete }: {
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
                     <StarRating rating={Math.round(item.rating)} />
-                    {item.sessionCount > 0 && <Text className="font-inter text-xs text-neutral-500">{item.sessionCount} sessions</Text>}
+                    {item.sessionCount > 0 && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.sessionCount} sessions</Text>}
                     {item.experienceYears > 0 && <Text className="font-inter text-xs text-neutral-400">{item.experienceYears}yr exp</Text>}
                 </View>
                 <View style={styles.cardFooter}>
@@ -698,39 +699,39 @@ function SessionFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">New Session</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">New Session</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <Dropdown label="Training" value={trainingId} options={trainingOptions} onSelect={setTrainingId} placeholder="Select training..." required />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Batch Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Batch Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Batch A - Jan 2026" placeholderTextColor={colors.neutral[400]} value={batchName} onChangeText={setBatchName} /></View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Start Date</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Start Date</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={startDateTime} onChangeText={setStartDateTime} /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">End Date</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">End Date</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={endDateTime} onChangeText={setEndDateTime} /></View>
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Venue</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Venue</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Location or room" placeholderTextColor={colors.neutral[400]} value={venue} onChangeText={setVenue} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Meeting Link</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Meeting Link</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="https://..." placeholderTextColor={colors.neutral[400]} value={meetingLink} onChangeText={setMeetingLink} autoCapitalize="none" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Max Participants</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Max Participants</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={maxParticipants} onChangeText={setMaxParticipants} keyboardType="number-pad" /></View>
                         </View>
                         <Dropdown label="Trainer" value={trainerId} options={trainerOptions} onSelect={setTrainerId} placeholder="Select trainer..." />
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({
                             trainingId, batchName: batchName.trim(),
                             startDateTime: startDateTime.trim() || undefined, endDateTime: endDateTime.trim() || undefined,
@@ -792,12 +793,12 @@ function TrainerFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Trainer' : 'New Trainer'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">Internal Employee</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Internal Employee</Text>
                             <Switch value={isInternal} onValueChange={setIsInternal} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isInternal ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                         {isInternal ? (
@@ -805,36 +806,36 @@ function TrainerFormModal({
                         ) : (
                             <>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                                     <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Trainer name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                                 </View>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Email</Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Email</Text>
                                     <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="trainer@example.com" placeholderTextColor={colors.neutral[400]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
                                 </View>
                             </>
                         )}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Phone</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Phone</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Phone number" placeholderTextColor={colors.neutral[400]} value={phone} onChangeText={setPhone} keyboardType="phone-pad" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Specializations</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Specializations</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. React, Node.js, AWS (comma-separated)" placeholderTextColor={colors.neutral[400]} value={specializations} onChangeText={setSpecializations} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Qualifications</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Qualifications</Text>
                             <View style={[styles.inputWrap, { height: 60 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Degrees, certifications..." placeholderTextColor={colors.neutral[400]} value={qualifications} onChangeText={setQualifications} multiline />
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Experience (years)</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Experience (years)</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={experienceYears} onChangeText={setExperienceYears} keyboardType="number-pad" /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({
                             type: isInternal ? 'INTERNAL' : 'EXTERNAL',
                             employeeId: isInternal ? employeeId : undefined,
@@ -894,7 +895,7 @@ function AttendanceModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Session Attendance</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Session Attendance</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         {attLoading ? (
                             <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /></View>
@@ -902,13 +903,13 @@ function AttendanceModal({
                             <>
                                 {attendees.length > 0 && (
                                     <View style={{ marginBottom: 20 }}>
-                                        <Text className="font-inter text-sm font-bold text-primary-900 mb-2">Registered ({attendees.length})</Text>
+                                        <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100 mb-2">Registered ({attendees.length})</Text>
                                         {attendees.map(att => {
                                             const currentStatus = markStatuses[att.id] ?? att.status;
                                             const sc = ATTENDANCE_STATUS_COLORS[currentStatus] ?? ATTENDANCE_STATUS_COLORS.REGISTERED;
                                             return (
                                                 <View key={att.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                                    <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{att.employeeName}</Text>
+                                                    <Text className="font-inter text-sm text-primary-950 dark:text-white" style={{ flex: 1 }}>{att.employeeName}</Text>
                                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
                                                         {(['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'] as AttendanceStatus[]).map(st => {
                                                             const stc = ATTENDANCE_STATUS_COLORS[st];
@@ -932,7 +933,7 @@ function AttendanceModal({
                                         )}
                                     </View>
                                 )}
-                                <Text className="font-inter text-sm font-bold text-primary-900 mb-2">Add Attendees</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100 mb-2">Add Attendees</Text>
                                 {employeeOptions.filter(e => !attendees.some(a => a.employeeId === e.id)).map(emp => {
                                     const sel = selectedEmpIds.includes(emp.id);
                                     return (
@@ -941,7 +942,7 @@ function AttendanceModal({
                                             <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: sel ? colors.primary[600] : colors.neutral[300], backgroundColor: sel ? colors.primary[600] : colors.white, justifyContent: 'center', alignItems: 'center' }}>
                                                 {sel && <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
                                             </View>
-                                            <Text className="font-inter text-sm text-primary-950">{emp.label}</Text>
+                                            <Text className="font-inter text-sm text-primary-950 dark:text-white">{emp.label}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -949,7 +950,7 @@ function AttendanceModal({
                         )}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text></Pressable>
                         {selectedEmpIds.length > 0 && (
                             <Pressable onPress={() => onRegister(selectedEmpIds)} disabled={isRegistering}
                                 style={[styles.saveBtn, isRegistering && { opacity: 0.5 }]}>
@@ -1002,16 +1003,16 @@ function ProgramFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Program' : 'New Program'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Program name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Program description..." placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline numberOfLines={3} />
                             </View>
@@ -1019,16 +1020,16 @@ function ProgramFormModal({
                         <ChipSelector label="Category" options={[...PROGRAM_CATEGORIES]} value={category} onSelect={v => setCategory(v as ProgramCategory)} />
                         <ChipSelector label="Level" options={[...PROGRAM_LEVELS]} value={level} onSelect={v => setLevel(v as ProgramLevel)} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Total Duration (hrs)</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Total Duration (hrs)</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={totalDuration} onChangeText={setTotalDuration} keyboardType="number-pad" /></View>
                         </View>
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">Compulsory</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Compulsory</Text>
                             <Switch value={isCompulsory} onValueChange={setIsCompulsory} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isCompulsory ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ name: name.trim(), description: description.trim(), category, level, totalDuration: Number(totalDuration) || 0, isCompulsory })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -1066,20 +1067,20 @@ function AddCourseModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Add Course</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Add Course</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <Dropdown label="Training" value={trainingId} options={trainingOptions} onSelect={setTrainingId} placeholder="Select training..." required />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Sequence</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Sequence</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="1" placeholderTextColor={colors.neutral[400]} value={sequence} onChangeText={setSequence} keyboardType="number-pad" /></View>
                         </View>
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">Is Prerequisite</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Is Prerequisite</Text>
                             <Switch value={isPrerequisite} onValueChange={setIsPrerequisite} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isPrerequisite ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ trainingId, sequence: Number(sequence) || 1, isPrerequisite })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Adding...' : 'Add Course'}</Text>
                         </Pressable>
@@ -1124,7 +1125,7 @@ function EnrollModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '70%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Enroll Employees</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Enroll Employees</Text>
                     <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                         <TextInput style={styles.textInput} placeholder="Search employees..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
                     </View>
@@ -1137,13 +1138,13 @@ function EnrollModal({
                                     <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: selected ? colors.primary[600] : colors.neutral[300], backgroundColor: selected ? colors.primary[600] : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
                                         {selected && <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
                                     </View>
-                                    <Text className="font-inter text-sm text-primary-950">{emp.label}</Text>
+                                    <Text className="font-inter text-sm text-primary-950 dark:text-white">{emp.label}</Text>
                                 </Pressable>
                             );
                         })}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text></Pressable>
                         {selectedEmpIds.length > 0 && (
                             <Pressable onPress={() => onEnroll(selectedEmpIds)} disabled={isEnrolling}
                                 style={[styles.saveBtn, isEnrolling && { opacity: 0.5 }]}>
@@ -1170,7 +1171,7 @@ function ProgramCard({ item, index, onEdit, onDelete, onViewDetail }: {
             <Pressable onPress={onViewDetail} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                         {!item.isActive && (
@@ -1188,10 +1189,10 @@ function ProgramCard({ item, index, onEdit, onDelete, onViewDetail }: {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                     <TypeBadge label={item.category.replace('_', ' ')} colorMap={{ [item.category.replace('_', ' ')]: catColor }} />
                     <TypeBadge label={item.level} colorMap={{ [item.level]: levelColor }} />
-                    <Text className="font-inter text-xs text-neutral-500">{item.courseCount} course{item.courseCount !== 1 ? 's' : ''}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.courseCount} course{item.courseCount !== 1 ? 's' : ''}</Text>
                     <Text className="font-inter text-xs text-neutral-400">{item.enrollmentCount} enrolled</Text>
                 </View>
-                {item.description ? <Text className="mt-2 font-inter text-xs text-neutral-600" numberOfLines={2}>{item.description}</Text> : null}
+                {item.description ? <Text className="mt-2 font-inter text-xs text-neutral-600 dark:text-neutral-400" numberOfLines={2}>{item.description}</Text> : null}
                 <View style={styles.cardFooter}>
                     <Pressable onPress={onEdit} hitSlop={8}>
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke={colors.primary[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -1235,18 +1236,18 @@ function ProgramDetailModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">{program.name}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-1">{program.name}</Text>
                     <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
                         <TypeBadge label={program.category.replace('_', ' ')} colorMap={{ [program.category.replace('_', ' ')]: catColor }} />
                         <TypeBadge label={program.level} colorMap={{ [program.level]: { bg: colors.primary[50], text: colors.primary[700] } }} />
                         {program.isCompulsory && <TypeBadge label="Compulsory" colorMap={{ Compulsory: { bg: colors.danger[50], text: colors.danger[700] } }} />}
-                        {program.totalDuration > 0 && <Text className="font-inter text-xs text-neutral-500">{program.totalDuration}h total</Text>}
+                        {program.totalDuration > 0 && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{program.totalDuration}h total</Text>}
                     </View>
                     <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                         {/* Courses Section */}
                         <View style={{ marginBottom: 20 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                <Text className="font-inter text-base font-bold text-primary-900">Courses ({sortedCourses.length})</Text>
+                                <Text className="font-inter text-base font-bold text-primary-900 dark:text-primary-100">Courses ({sortedCourses.length})</Text>
                                 <Pressable onPress={() => setShowAddCourse(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[200] }}>
                                     <Text className="font-inter text-xs font-bold text-primary-600">+ Add Course</Text>
                                 </Pressable>
@@ -1260,7 +1261,7 @@ function ProgramDetailModal({
                                             <Text className="font-inter text-xs font-bold text-primary-700">{course.sequence}</Text>
                                         </View>
                                         <View style={{ flex: 1 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950">{course.trainingName}</Text>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{course.trainingName}</Text>
                                             {course.isPrerequisite && <Text className="font-inter text-[10px] text-warning-600">Prerequisite</Text>}
                                         </View>
                                         <Pressable onPress={() => onRemoveCourse(course.id)} hitSlop={8}>
@@ -1274,7 +1275,7 @@ function ProgramDetailModal({
                         {/* Enrollments Section */}
                         <View style={{ marginBottom: 20 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                <Text className="font-inter text-base font-bold text-primary-900">Enrollments ({program.enrollments?.length ?? 0})</Text>
+                                <Text className="font-inter text-base font-bold text-primary-900 dark:text-primary-100">Enrollments ({program.enrollments?.length ?? 0})</Text>
                                 <Pressable onPress={() => setShowEnroll(true)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.success[50], borderWidth: 1, borderColor: colors.success[200] }}>
                                     <Text className="font-inter text-xs font-bold text-success-600">+ Enroll</Text>
                                 </Pressable>
@@ -1287,7 +1288,7 @@ function ProgramDetailModal({
                                     return (
                                         <View key={enrollment.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
                                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <Text className="font-inter text-sm font-semibold text-primary-950">{enrollment.employeeName}</Text>
+                                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{enrollment.employeeName}</Text>
                                                 <View style={[styles.typeBadge, { backgroundColor: statusColor.bg }]}>
                                                     <Text style={{ color: statusColor.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{enrollment.status}</Text>
                                                 </View>
@@ -1307,7 +1308,7 @@ function ProgramDetailModal({
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={[styles.cancelBtn, { flex: 0, paddingHorizontal: 24 }]}><Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text></Pressable>
+                        <Pressable onPress={onClose} style={[styles.cancelBtn, { flex: 0, paddingHorizontal: 24 }]}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text></Pressable>
                     </View>
                 </View>
             </View>
@@ -1334,21 +1335,21 @@ function BudgetInfoSection() {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(60)} style={{ marginBottom: 16 }}>
             <View style={[styles.card, { backgroundColor: colors.primary[50], borderColor: colors.primary[100] }]}>
-                <Text className="font-inter text-xs font-bold text-primary-900 mb-2">Budget Utilization - FY {utilization.fiscalYear ?? currentYear}</Text>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100 mb-2">Budget Utilization - FY {utilization.fiscalYear ?? currentYear}</Text>
                 <View style={{ height: 8, backgroundColor: colors.neutral[200], borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
                     <View style={{ height: 8, backgroundColor: pct > 90 ? colors.danger[500] : pct > 70 ? colors.warning[500] : colors.primary[500], borderRadius: 4, width: `${Math.min(pct, 100)}%` }} />
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <View>
-                        <Text className="font-inter text-[10px] text-neutral-500">Allocated</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{'₹'}{totalAllocated.toLocaleString('en-IN')}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Allocated</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{'₹'}{totalAllocated.toLocaleString('en-IN')}</Text>
                     </View>
                     <View style={{ alignItems: 'center' }}>
-                        <Text className="font-inter text-[10px] text-neutral-500">Used</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Used</Text>
                         <Text className="font-inter text-sm font-bold text-warning-700">{'₹'}{totalUsed.toLocaleString('en-IN')}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                        <Text className="font-inter text-[10px] text-neutral-500">Remaining</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Remaining</Text>
                         <Text className="font-inter text-sm font-bold text-success-700">{'₹'}{remaining.toLocaleString('en-IN')}</Text>
                     </View>
                 </View>
@@ -1360,6 +1361,9 @@ function BudgetInfoSection() {
 // ============ MAIN COMPONENT ============
 
 export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab?: Tab } = {}) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -1680,8 +1684,8 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Training</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Training</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                 {subtitleMap[activeTab]}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ gap: 8 }}>
@@ -1689,7 +1693,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
                     const active = tab.key === activeTab;
                     return (
                         <Pressable key={tab.key} onPress={() => setActiveTab(tab.key)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{tab.label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{tab.label}</Text>
                         </Pressable>
                     );
                 })}
@@ -1763,42 +1767,43 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     actionRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, borderRadius: 10, backgroundColor: colors.success[600] },
-    cancelActionBtn: { height: 36, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center' },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    cancelActionBtn: { height: 36, paddingHorizontal: 12, borderRadius: 10, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center' },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
-    fullFormSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    fullFormSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 14 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

@@ -31,6 +31,7 @@ import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
 
 import { useTenantList } from '@/features/super-admin/api/use-tenant-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -152,7 +153,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                                 </Text>
                             ) : null}
                             <View style={styles.industryRow}>
-                                <Text className="font-inter text-xs text-neutral-500">
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                     {company.industry}
                                 </Text>
                                 {company.endpointType === 'custom' && (
@@ -181,7 +182,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             />
                             <Circle cx="9" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                         </Svg>
-                        <Text className="font-inter text-xs font-semibold text-neutral-600">
+                        <Text className="font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                             {company.userCount}
                         </Text>
                         <Text className="font-inter text-[10px] text-neutral-400">
@@ -198,7 +199,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             <Rect x="3" y="14" width="7" height="7" rx="1" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                             <Rect x="14" y="14" width="7" height="7" rx="1" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                         </Svg>
-                        <Text className="font-inter text-xs font-semibold text-neutral-600">
+                        <Text className="font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                             {moduleCount} modules
                         </Text>
                     </View>
@@ -217,7 +218,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             </View>
                         ) : (
                             <View style={styles.monthlyBadge}>
-                                <Text className="font-inter text-[8px] font-bold text-neutral-500">
+                                <Text className="font-inter text-[8px] font-bold text-neutral-500 dark:text-neutral-400">
                                     MO
                                 </Text>
                             </View>
@@ -239,7 +240,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             />
                             <Circle cx="12" cy="10" r="3" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                         </Svg>
-                        <Text className="font-inter text-[10px] font-medium text-neutral-500">
+                        <Text className="font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
                             {company.locationCount} {company.locationCount === 1 ? 'location' : 'locations'}
                         </Text>
                         {company.multiLocationMode && (
@@ -261,7 +262,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                             />
                             <Circle cx="12" cy="7" r="4" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                         </Svg>
-                        <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                             {company.primaryContact}, {company.primaryDesignation}
                         </Text>
                     </View>
@@ -303,7 +304,7 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
                         })}
                         {company.selectedModuleIds.length > 4 ? (
                             <View style={styles.moduleChipMore}>
-                                <Text className="font-inter text-[9px] font-semibold text-neutral-500">
+                                <Text className="font-inter text-[9px] font-semibold text-neutral-500 dark:text-neutral-400">
                                     +{company.selectedModuleIds.length - 4}
                                 </Text>
                             </View>
@@ -318,6 +319,9 @@ function CompanyCard({ company, index }: { company: CompanyItem; index: number }
 // ============ MAIN COMPONENT ============
 
 export function CompanyListScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [search, setSearch] = React.useState('');
@@ -395,7 +399,7 @@ export function CompanyListScreen() {
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                         Companies
                     </Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                         {totalCount} tenants · {activeCount} active
                     </Text>
                 </View>
@@ -507,10 +511,10 @@ export function CompanyListScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 24,
@@ -525,7 +529,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -535,10 +539,10 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardPressed: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         transform: [{ scale: 0.98 }],
     },
     cardHeader: {
@@ -601,7 +605,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     monthlyBadge: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 4,
         paddingHorizontal: 4,
         paddingVertical: 1,
@@ -642,7 +646,7 @@ const styles = StyleSheet.create({
     usageBarBg: {
         flex: 1,
         height: 4,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 2,
         overflow: 'hidden',
     },
@@ -657,13 +661,13 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     moduleChip: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 6,
         paddingHorizontal: 6,
         paddingVertical: 3,
     },
     moduleChipMore: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 6,
         paddingHorizontal: 6,
         paddingVertical: 3,
@@ -680,3 +684,4 @@ const styles = StyleSheet.create({
         paddingTop: 80,
     },
 });
+const styles = createStyles(false);

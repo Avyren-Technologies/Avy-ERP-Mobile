@@ -25,6 +25,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useEmailPayslip } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { usePayslip, usePayslips } from '@/features/company-admin/api/use-payroll-run-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -63,7 +64,7 @@ function MonthYearPicker({ month, year, onMonthChange, onYearChange }: {
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text className="font-inter text-sm font-bold text-primary-950">{MONTH_LABELS[month - 1]} {year}</Text>
+                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[month - 1]} {year}</Text>
             </View>
             <Pressable onPress={() => { if (month === 12) { onMonthChange(1); onYearChange(year + 1); } else { onMonthChange(month + 1); } }} style={styles.dateArrow}>
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -91,12 +92,12 @@ function PayslipTable({ title, items, color }: { title: string; items: { label: 
             <Text className="font-inter text-xs font-bold uppercase tracking-wider mb-2" style={{ color }}>{title}</Text>
             {items.map((item, idx) => (
                 <View key={idx} style={styles.tableRow}>
-                    <Text className="font-inter text-xs text-neutral-600 flex-1">{item.label}</Text>
-                    <Text className="font-inter text-xs font-semibold text-primary-950">{formatCurrency(item.amount)}</Text>
+                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 flex-1">{item.label}</Text>
+                    <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{formatCurrency(item.amount)}</Text>
                 </View>
             ))}
             <View style={[styles.tableRow, { borderTopWidth: 1, borderTopColor: colors.neutral[200], marginTop: 4, paddingTop: 8 }]}>
-                <Text className="font-inter text-xs font-bold text-primary-950">Total</Text>
+                <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">Total</Text>
                 <Text className="font-inter text-sm font-bold" style={{ color }}>{formatCurrency(total)}</Text>
             </View>
         </View>
@@ -116,7 +117,7 @@ function PayslipDetail({ payslip, onBack, onEmail, isEmailing }: {
                 <Pressable onPress={onBack} style={styles.backBtn}>
                     <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                 </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">Payslip</Text>
+                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">Payslip</Text>
                 <View style={{ width: 36 }} />
             </View>
             <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
@@ -125,8 +126,8 @@ function PayslipDetail({ payslip, onBack, onEmail, isEmailing }: {
                     <View style={styles.detailHeader}>
                         <AvatarCircle name={payslip.employeeName} />
                         <View style={{ flex: 1, marginLeft: 12 }}>
-                            <Text className="font-inter text-base font-bold text-primary-950">{payslip.employeeName}</Text>
-                            <Text className="font-inter text-xs text-neutral-500">{payslip.employeeCode}</Text>
+                            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{payslip.employeeName}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{payslip.employeeCode}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
                             <Text className="font-inter text-xs text-neutral-400">{MONTH_LABELS[payslip.month - 1]} {payslip.year}</Text>
@@ -140,7 +141,7 @@ function PayslipDetail({ payslip, onBack, onEmail, isEmailing }: {
 
                     {/* Net Pay Banner */}
                     <View style={styles.netPayBanner}>
-                        <Text className="font-inter text-xs text-neutral-500">Net Pay</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Net Pay</Text>
                         <Text className="font-inter text-2xl font-bold text-primary-800">{formatCurrency(payslip.netPay)}</Text>
                     </View>
 
@@ -161,7 +162,7 @@ function PayslipDetail({ payslip, onBack, onEmail, isEmailing }: {
                         </Pressable>
                         <Pressable style={[styles.actionBtn, { backgroundColor: colors.neutral[100] }]}>
                             <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke={colors.neutral[600]} strokeWidth="1.5" fill="none" strokeLinecap="round" /></Svg>
-                            <Text className="ml-2 font-inter text-sm font-semibold text-neutral-600">Download</Text>
+                            <Text className="ml-2 font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Download</Text>
                         </Pressable>
                     </View>
                 </Animated.View>
@@ -180,8 +181,8 @@ function PayslipCard({ item, index, onPress }: { item: PayslipItem; index: numbe
                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                         <AvatarCircle name={item.employeeName} />
                         <View style={{ flex: 1, marginLeft: 10 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
-                            <Text className="font-inter text-[10px] text-neutral-500">{MONTH_LABELS[item.month - 1]} {item.year}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{MONTH_LABELS[item.month - 1]} {item.year}</Text>
                         </View>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -201,6 +202,9 @@ function PayslipCard({ item, index, onPress }: { item: PayslipItem; index: numbe
 // ============ MAIN COMPONENT ============
 
 export function PayslipScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -289,8 +293,8 @@ export function PayslipScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Payslips</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{payslips.length} payslip{payslips.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Payslips</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{payslips.length} payslip{payslips.length !== 1 ? 's' : ''}</Text>
             <View style={{ marginTop: 16 }}>
                 <MonthYearPicker month={filterMonth} year={filterYear} onMonthChange={setFilterMonth} onYearChange={setFilterYear} />
             </View>
@@ -322,40 +326,40 @@ export function PayslipScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     emailedBadge: { backgroundColor: colors.success[50], borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
     monthYearPicker: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16,
-        padding: 12, borderWidth: 1, borderColor: colors.primary[50],
+        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16,
+        padding: 12, borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
     },
-    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     // Detail
     detailHeader: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     netPayBanner: {
-        backgroundColor: colors.primary[50], borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16,
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16,
     },
     tableCard: {
-        backgroundColor: colors.white, borderRadius: 16, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     actionBtn: {
@@ -364,3 +368,4 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 2,
     },
 });
+const styles = createStyles(false);

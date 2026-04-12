@@ -6,6 +6,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop, Text as SvgText } from 'react-na
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export interface HeatmapCell {
   row: string;
@@ -68,6 +69,9 @@ export function HeatmapChart({
   height: propHeight,
   colorScale = DEFAULT_COLOR_SCALE,
 }: HeatmapChartProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const computed = useMemo(() => {
     if (data.length === 0) return null;
 
@@ -223,13 +227,13 @@ export function HeatmapChart({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
@@ -242,3 +246,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+const styles = createStyles(false);

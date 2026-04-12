@@ -5,6 +5,7 @@ import Svg, { G, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export interface DistributionItem {
   label: string;
@@ -212,6 +213,9 @@ export function DistributionChart({
   distribution,
   height = 220,
 }: DistributionChartProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const { items, type = 'donut', title } = distribution;
   const [activeType, setActiveType] = useState(type);
 
@@ -235,7 +239,7 @@ export function DistributionChart({
             style={[styles.toggleButton, isDonut && styles.toggleButtonActive]}
           >
             <Text
-              className={`font-inter text-[11px] font-semibold ${isDonut ? 'text-white' : 'text-neutral-500'}`}
+              className={`font-inter text-[11px] font-semibold ${isDonut ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}
             >
               Donut
             </Text>
@@ -245,7 +249,7 @@ export function DistributionChart({
             style={[styles.toggleButton, !isDonut && styles.toggleButtonActive]}
           >
             <Text
-              className={`font-inter text-[11px] font-semibold ${!isDonut ? 'text-white' : 'text-neutral-500'}`}
+              className={`font-inter text-[11px] font-semibold ${!isDonut ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}
             >
               Bar
             </Text>
@@ -270,7 +274,7 @@ export function DistributionChart({
                 { backgroundColor: item.color ?? PALETTE[i % PALETTE.length] },
               ]}
             />
-            <Text className="font-inter text-[12px] text-neutral-600" numberOfLines={1} style={styles.legendLabel}>
+            <Text className="font-inter text-[12px] text-neutral-600 dark:text-neutral-400" numberOfLines={1} style={styles.legendLabel}>
               {item.label}
             </Text>
             <Text className="font-inter text-[12px] font-bold text-neutral-800">
@@ -288,13 +292,13 @@ export function DistributionChart({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
@@ -313,7 +317,7 @@ const styles = StyleSheet.create({
   },
   toggleRow: {
     flexDirection: 'row',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     borderRadius: 10,
     padding: 3,
   },
@@ -355,3 +359,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+const styles = createStyles(false);

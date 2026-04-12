@@ -33,6 +33,7 @@ import {
     useSubmitManagerReview,
     usePublishAppraisalEntry,
 } from '@/features/company-admin/api/use-performance-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -99,7 +100,7 @@ function RatingBar({ label, value, maxValue = 5 }: { label: string; value: numbe
     return (
         <View style={{ marginBottom: 10 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                <Text className="font-inter text-xs text-neutral-600">{label}</Text>
+                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">{label}</Text>
                 <Text className="font-inter text-xs font-bold" style={{ color: barColor }}>{value.toFixed(1)}</Text>
             </View>
             <View style={styles.progressTrack}>
@@ -114,9 +115,9 @@ function CalibrationBar({ label, count, percentage, target }: { label: string; c
     return (
         <View style={{ marginBottom: 12 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <Text className="font-inter text-xs font-semibold text-primary-950">{label}</Text>
+                <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{label}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text className="font-inter text-xs text-neutral-500">{count} ({percentage.toFixed(0)}%)</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{count} ({percentage.toFixed(0)}%)</Text>
                     <Text className="font-inter text-[10px] text-neutral-400">Target: {target}%</Text>
                 </View>
             </View>
@@ -158,8 +159,8 @@ function EntryDetailModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 60 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">{item.employeeName}</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mb-4">{item.designationName} - {item.departmentName}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-1">{item.employeeName}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mb-4">{item.designationName} - {item.departmentName}</Text>
 
                     <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                         {/* Current Ratings */}
@@ -168,15 +169,15 @@ function EntryDetailModal({
                             <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 }}>
                                 <View style={{ alignItems: 'center' }}>
                                     <Text className="font-inter text-2xl font-bold text-primary-600">{item.selfRating > 0 ? item.selfRating.toFixed(1) : '-'}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">Self</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Self</Text>
                                 </View>
                                 <View style={{ alignItems: 'center' }}>
                                     <Text className="font-inter text-2xl font-bold text-accent-600">{item.managerRating > 0 ? item.managerRating.toFixed(1) : '-'}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">Manager</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Manager</Text>
                                 </View>
                                 <View style={{ alignItems: 'center' }}>
                                     <Text className="font-inter text-2xl font-bold" style={{ color: ratingInfo?.color ?? colors.info[600] }}>{item.finalRating > 0 ? item.finalRating.toFixed(1) : '-'}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">Final</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Final</Text>
                                 </View>
                             </View>
                             {item.finalRating > 0 && ratingInfo && (
@@ -228,7 +229,7 @@ function EntryDetailModal({
                         )}
                     </ScrollView>
                     <Pressable onPress={onClose} style={styles.cancelBtn}>
-                        <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                        <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text>
                     </Pressable>
                 </View>
             </View>
@@ -245,8 +246,8 @@ function EntryCard({ item, index, onPress }: { item: AppraisalEntryItem; index: 
             <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.designationName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.designationName}</Text>
                     </View>
                     <StatusBadge status={item.status} />
                 </View>
@@ -276,14 +277,14 @@ function EntryCard({ item, index, onPress }: { item: AppraisalEntryItem; index: 
                         <View style={[styles.progressTrack, { flex: 1 }]}>
                             <View style={[styles.progressFill, { width: `${(item.kraScore / 5) * 100}%`, backgroundColor: colors.primary[500] }]} />
                         </View>
-                        <Text className="font-inter text-[10px] font-semibold text-neutral-600" style={{ width: 24, textAlign: 'right' }}>{item.kraScore.toFixed(1)}</Text>
+                        <Text className="font-inter text-[10px] font-semibold text-neutral-600 dark:text-neutral-400" style={{ width: 24, textAlign: 'right' }}>{item.kraScore.toFixed(1)}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
                         <Text className="font-inter text-[10px] text-neutral-400" style={{ width: 28 }}>Comp</Text>
                         <View style={[styles.progressTrack, { flex: 1 }]}>
                             <View style={[styles.progressFill, { width: `${(item.competencyScore / 5) * 100}%`, backgroundColor: colors.accent[500] }]} />
                         </View>
-                        <Text className="font-inter text-[10px] font-semibold text-neutral-600" style={{ width: 24, textAlign: 'right' }}>{item.competencyScore.toFixed(1)}</Text>
+                        <Text className="font-inter text-[10px] font-semibold text-neutral-600 dark:text-neutral-400" style={{ width: 24, textAlign: 'right' }}>{item.competencyScore.toFixed(1)}</Text>
                     </View>
                 </View>
             </Pressable>
@@ -294,6 +295,9 @@ function EntryCard({ item, index, onPress }: { item: AppraisalEntryItem; index: 
 // ============ MAIN COMPONENT ============
 
 export function RatingsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -392,11 +396,11 @@ export function RatingsScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Ratings & Calibration</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Ratings & Calibration</Text>
 
             {/* Cycle filter */}
             <Pressable onPress={() => setCycleModalVisible(true)} style={styles.dropdownBtn}>
-                <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>{selectedCycleName}</Text>
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{selectedCycleName}</Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <Modal visible={cycleModalVisible} transparent animationType="slide" onRequestClose={() => setCycleModalVisible(false)}>
@@ -404,16 +408,16 @@ export function RatingsScreen() {
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCycleModalVisible(false)} />
                     <View style={[styles.pickerSheet, { maxHeight: '50%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Cycle</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Cycle</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Pressable onPress={() => { setSelectedCycleId(''); setCycleModalVisible(false); }}
                                 style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: !selectedCycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                <Text className={`font-inter text-sm ${!selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>All Cycles</Text>
+                                <Text className={`font-inter text-sm ${!selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>All Cycles</Text>
                             </Pressable>
                             {cycleOptions.map(c => (
                                 <Pressable key={c.id} onPress={() => { setSelectedCycleId(c.id); setCycleModalVisible(false); }}
                                     style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: c.id === selectedCycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                    <Text className={`font-inter text-sm ${c.id === selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{c.name}</Text>
+                                    <Text className={`font-inter text-sm ${c.id === selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{c.name}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -426,15 +430,15 @@ export function RatingsScreen() {
                 <View style={styles.statsRow}>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-primary-600">{stats.total}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Total</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Total</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-accent-600">{stats.avg.toFixed(1)}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Avg Rating</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Avg Rating</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-success-600">{stats.completed}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Published</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Published</Text>
                     </View>
                 </View>
             )}
@@ -453,12 +457,12 @@ export function RatingsScreen() {
                     <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">Bell Curve Distribution</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
                         <View>
-                            <Text className="font-inter text-xs text-neutral-500">Average</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Average</Text>
                             <Text className="font-inter text-xl font-bold text-primary-600">{calibration.averageRating.toFixed(1)}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
-                            <Text className="font-inter text-xs text-neutral-500">Completion</Text>
-                            <Text className="font-inter text-xl font-bold text-primary-950">{calibration.completedEntries}/{calibration.totalEntries}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Completion</Text>
+                            <Text className="font-inter text-xl font-bold text-primary-950 dark:text-white">{calibration.completedEntries}/{calibration.totalEntries}</Text>
                         </View>
                     </View>
                     {calibration.distribution.map((d, i) => (
@@ -505,18 +509,18 @@ export function RatingsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     gradientHeader: { paddingBottom: 16, paddingHorizontal: 20 },
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
@@ -525,24 +529,25 @@ const styles = StyleSheet.create({
     ratingLabelSmall: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginLeft: 'auto' },
     ratingLabelBadge: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, alignSelf: 'center' },
     statsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-    statBox: { flex: 1, backgroundColor: colors.white, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.primary[50] },
+    statBox: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10,
     },
-    pickerSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
-    fullFormSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    pickerSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
+    fullFormSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    toggleCalBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[200], marginTop: 12 },
-    calibrationCard: { backgroundColor: colors.white, borderRadius: 16, padding: 16, marginTop: 12, borderWidth: 1, borderColor: colors.primary[100] },
+    toggleCalBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderWidth: 1, borderColor: colors.primary[200], marginTop: 12 },
+    calibrationCard: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16, marginTop: 12, borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100] },
     calibrationTrack: { height: 8, backgroundColor: colors.neutral[200], borderRadius: 4, overflow: 'hidden', position: 'relative' },
     calibrationFill: { height: '100%', borderRadius: 4 },
     calibrationTarget: { position: 'absolute', top: -2, width: 2, height: 12, backgroundColor: colors.primary[900], borderRadius: 1 },
-    detailCard: { backgroundColor: colors.neutral[50], borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.neutral[200] },
+    detailCard: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    cancelBtn: { height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200], marginTop: 16 },
+    cancelBtn: { height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], marginTop: 16 },
     actionBtn: { height: 46, borderRadius: 12, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', marginTop: 12 },
     publishBtn: { height: 46, borderRadius: 12, backgroundColor: colors.success[600], justifyContent: 'center', alignItems: 'center', marginTop: 4, marginBottom: 12 },
 });
+const styles = createStyles(false);

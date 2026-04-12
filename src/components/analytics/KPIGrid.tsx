@@ -143,7 +143,7 @@ export function KPIGrid({ kpis, onDrilldown }: KPIGridProps) {
 
               {/* Label */}
               <Text
-                className="font-inter text-[10px] font-bold text-neutral-500"
+                className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400"
                 style={styles.kpiLabel}
                 numberOfLines={1}
               >

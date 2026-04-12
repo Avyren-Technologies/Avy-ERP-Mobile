@@ -62,7 +62,7 @@ export function Step14IOTReasons({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.infoCard}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     IOT Reason Master classifies machine downtime events for OEE monitoring. These
                     reasons are logged when machines go idle or raise alarms on the shop floor.
                 </Text>
@@ -114,7 +114,7 @@ export function Step14IOTReasons({
                 <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
                     IOT Reason List
                 </Text>
-                <Text className="mb-4 font-inter text-xs text-neutral-500">
+                <Text className="mb-4 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     Add all reasons that operators will use to classify machine downtime on the shop floor
                 </Text>
 
@@ -132,7 +132,7 @@ export function Step14IOTReasons({
                         }}
                     >
                         <Text className="font-inter text-2xl mb-3">📡</Text>
-                        <Text className="font-inter text-sm font-semibold text-neutral-600">
+                        <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                             No IOT reasons defined
                         </Text>
                         <Text className="font-inter text-xs text-neutral-400 mt-1">
@@ -217,7 +217,7 @@ export function Step14IOTReasons({
                 <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
                     Common Reasons Reference
                 </Text>
-                <Text className="mb-4 font-inter text-xs text-neutral-500">
+                <Text className="mb-4 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     Typical IOT reasons for manufacturing companies — add as needed
                 </Text>
 
@@ -238,7 +238,7 @@ export function Step14IOTReasons({
                         ].map((s) => (
                             <Text
                                 key={s}
-                                className="font-inter text-xs text-neutral-600 bg-warning-50 rounded-full px-3 py-1.5 border border-warning-100 dark:text-neutral-300 dark:bg-warning-900/20 dark:border-warning-800/50"
+                                className="font-inter text-xs text-neutral-600 dark:text-neutral-400 bg-warning-50 rounded-full px-3 py-1.5 border border-warning-100 dark:text-neutral-300 dark:bg-warning-900/20 dark:border-warning-800/50"
                             >
                                 {s}
                             </Text>
@@ -263,7 +263,7 @@ export function Step14IOTReasons({
                         ].map((s) => (
                             <Text
                                 key={s}
-                                className="font-inter text-xs text-neutral-600 bg-danger-50 rounded-full px-3 py-1.5 border border-danger-100 dark:text-neutral-300 dark:bg-danger-900/20 dark:border-danger-800/50"
+                                className="font-inter text-xs text-neutral-600 dark:text-neutral-400 bg-danger-50 rounded-full px-3 py-1.5 border border-danger-100 dark:text-neutral-300 dark:bg-danger-900/20 dark:border-danger-800/50"
                             >
                                 {s}
                             </Text>

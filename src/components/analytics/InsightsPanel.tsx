@@ -73,12 +73,12 @@ function InsightCard({
             {insight.title}
           </Text>
         </View>
-        <Text className="font-inter text-[13px] text-neutral-600" style={styles.insightDescription}>
+        <Text className="font-inter text-[13px] text-neutral-600 dark:text-neutral-400" style={styles.insightDescription}>
           {insight.description}
         </Text>
         {insight.category && (
           <View style={styles.categoryBadge}>
-            <Text className="font-inter text-[11px] font-medium text-neutral-500">
+            <Text className="font-inter text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
               {insight.category}
             </Text>
           </View>

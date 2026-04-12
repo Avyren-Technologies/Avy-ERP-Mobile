@@ -29,6 +29,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useDownloadPayslipPdf } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyPayslips } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -50,6 +51,10 @@ function formatCurrency(n: number): string {
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_FILTERS = [
+    { label: 'All', value: '' },
+    ...MONTHS.map((m, i) => ({ label: m, value: String(i + 1).padStart(2, '0') })),
+];
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 4 }, (_, i) => String(currentYear - i));
 
@@ -69,20 +74,20 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '85%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">Payslip - {item.month} {item.year}</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mb-4">Net Pay: {formatCurrency(item.netPay)}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-1">Payslip - {item.month} {item.year}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mb-4">Net Pay: {formatCurrency(item.netPay)}</Text>
                     <ScrollView showsVerticalScrollIndicator={false}>
                         {/* Earnings */}
                         <View style={styles.detailSection}>
                             <Text className="font-inter text-xs font-bold uppercase tracking-wider text-success-600 mb-2">Earnings</Text>
                             {item.earnings.map((e, i) => (
                                 <View key={i} style={styles.detailRow}>
-                                    <Text className="font-inter text-sm text-neutral-600">{e.label}</Text>
-                                    <Text className="font-inter text-sm font-semibold text-primary-950">{formatCurrency(e.amount)}</Text>
+                                    <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">{e.label}</Text>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatCurrency(e.amount)}</Text>
                                 </View>
                             ))}
                             <View style={[styles.detailRow, styles.totalRow]}>
-                                <Text className="font-inter text-sm font-bold text-primary-950">Gross Earnings</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Gross Earnings</Text>
                                 <Text className="font-inter text-sm font-bold text-success-600">{formatCurrency(item.grossEarnings)}</Text>
                             </View>
                         </View>
@@ -92,12 +97,12 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
                             <Text className="font-inter text-xs font-bold uppercase tracking-wider text-danger-600 mb-2">Deductions</Text>
                             {item.deductions.map((d, i) => (
                                 <View key={i} style={styles.detailRow}>
-                                    <Text className="font-inter text-sm text-neutral-600">{d.label}</Text>
-                                    <Text className="font-inter text-sm font-semibold text-primary-950">{formatCurrency(d.amount)}</Text>
+                                    <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">{d.label}</Text>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatCurrency(d.amount)}</Text>
                                 </View>
                             ))}
                             <View style={[styles.detailRow, styles.totalRow]}>
-                                <Text className="font-inter text-sm font-bold text-primary-950">Total Deductions</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Total Deductions</Text>
                                 <Text className="font-inter text-sm font-bold text-danger-600">{formatCurrency(item.totalDeductions)}</Text>
                             </View>
                         </View>
@@ -124,7 +129,7 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
                         )}
                     </ScrollView>
                     <Pressable onPress={onClose} style={styles.closeBtn}>
-                        <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                        <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text>
                     </Pressable>
                 </View>
             </View>
@@ -141,19 +146,19 @@ function PayslipCard({ item, index, onPress }: { item: PayslipItem; index: numbe
                 <View style={styles.cardHeader}>
                     <View style={styles.monthBadge}>
                         <Text className="font-inter text-lg font-bold text-primary-700">{item.month}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">{item.year}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.year}</Text>
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
                         <View style={styles.amountRow}>
-                            <Text className="font-inter text-xs text-neutral-500">Gross</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Gross</Text>
                             <Text className="font-inter text-xs font-semibold text-success-600">{formatCurrency(item.grossEarnings)}</Text>
                         </View>
                         <View style={styles.amountRow}>
-                            <Text className="font-inter text-xs text-neutral-500">Deductions</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Deductions</Text>
                             <Text className="font-inter text-xs font-semibold text-danger-600">-{formatCurrency(item.totalDeductions)}</Text>
                         </View>
                         <View style={[styles.amountRow, { borderTopWidth: 1, borderTopColor: colors.neutral[100], paddingTop: 6, marginTop: 4 }]}>
-                            <Text className="font-inter text-sm font-bold text-primary-950">Net Pay</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Net Pay</Text>
                             <Text className="font-inter text-sm font-bold text-primary-700">{formatCurrency(item.netPay)}</Text>
                         </View>
                     </View>
@@ -166,12 +171,16 @@ function PayslipCard({ item, index, onPress }: { item: PayslipItem; index: numbe
 // ============ MAIN COMPONENT ============
 
 export function MyPayslipsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch, isFetching } = useMyPayslips();
     const downloadPdf = useDownloadPayslipPdf();
 
     const [selectedYear, setSelectedYear] = React.useState(YEARS[0]);
+    const [selectedMonth, setSelectedMonth] = React.useState('');
     const [detailItem, setDetailItem] = React.useState<PayslipItem | null>(null);
     const [detailVisible, setDetailVisible] = React.useState(false);
     const [downloadError, setDownloadError] = React.useState(false);
@@ -210,7 +219,11 @@ export function MyPayslipsScreen() {
         }));
     }, [response]);
 
-    const filtered = React.useMemo(() => payslips.filter(p => p.year === selectedYear), [payslips, selectedYear]);
+    const filtered = React.useMemo(() => payslips.filter(p => {
+        if (p.year !== selectedYear) return false;
+        if (selectedMonth && String(p.month) !== selectedMonth) return false;
+        return true;
+    }), [payslips, selectedYear, selectedMonth]);
 
     const openDetail = (item: PayslipItem) => { setDetailItem(item); setDetailVisible(true); };
 
@@ -220,15 +233,26 @@ export function MyPayslipsScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">My Payslips</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">View your monthly salary details</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">My Payslips</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">View your monthly salary details</Text>
             {/* Year Selector */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 14 }} contentContainerStyle={{ gap: 8 }}>
                 {YEARS.map(yr => {
                     const active = yr === selectedYear;
                     return (
                         <Pressable key={yr} onPress={() => setSelectedYear(yr)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{yr}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{yr}</Text>
+                        </Pressable>
+                    );
+                })}
+            </ScrollView>
+            {/* Month Selector */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }} contentContainerStyle={{ gap: 8 }}>
+                {MONTH_FILTERS.map(m => {
+                    const active = m.value === selectedMonth;
+                    return (
+                        <Pressable key={m.value} onPress={() => setSelectedMonth(m.value)} style={[styles.filterChip, active && styles.filterChipActive]}>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{m.label}</Text>
                         </Pressable>
                     );
                 })}
@@ -239,7 +263,7 @@ export function MyPayslipsScreen() {
     const renderEmpty = () => {
         if (isLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
         if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;
-        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No payslips" message={`No payslips found for ${selectedYear}.`} /></View>;
+        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No payslips" message={`No payslips found for ${selectedMonth ? `${MONTHS[Number(selectedMonth) - 1]} ` : ''}${selectedYear}.`} /></View>;
     };
 
     return (
@@ -263,34 +287,35 @@ export function MyPayslipsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: { flexDirection: 'row', alignItems: 'center' },
-    monthBadge: { width: 56, height: 56, borderRadius: 14, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    monthBadge: { width: 56, height: 56, borderRadius: 14, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     amountRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
-    filterChip: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    filterChip: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     detailSection: { marginBottom: 16 },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
     totalRow: { borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: 8, marginTop: 4 },
     netPayCard: {
-        backgroundColor: colors.primary[50], borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 16,
-        borderWidth: 1, borderColor: colors.primary[100],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 16,
+        borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     downloadBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-        height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary[200], backgroundColor: colors.primary[50],
+        height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary[200], backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    closeBtn: { marginTop: 12, height: 48, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    closeBtn: { marginTop: 12, height: 48, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
 });
+const styles = createStyles(false);

@@ -33,6 +33,7 @@ import {
     useCreateFeedback360,
     useUpdateFeedback360,
 } from '@/features/company-admin/api/use-performance-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -152,7 +153,7 @@ function ReportModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 60 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         360 Report - {employeeName}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
@@ -164,12 +165,12 @@ function ReportModal({
                                 <View style={styles.reportCard}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <View>
-                                            <Text className="font-inter text-xs text-neutral-500">Overall Average</Text>
+                                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Overall Average</Text>
                                             <Text className="font-inter text-2xl font-bold text-primary-600">{report.overallAverage.toFixed(1)}</Text>
                                         </View>
                                         <View style={{ alignItems: 'flex-end' }}>
-                                            <Text className="font-inter text-xs text-neutral-500">Responses</Text>
-                                            <Text className="font-inter text-2xl font-bold text-primary-950">{report.totalResponses}</Text>
+                                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Responses</Text>
+                                            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">{report.totalResponses}</Text>
                                         </View>
                                     </View>
                                     <RatingStars rating={report.overallAverage} />
@@ -181,7 +182,7 @@ function ReportModal({
                                         <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">By Rater Type</Text>
                                         {report.byType.map((item: any, idx: number) => (
                                             <View key={idx} style={styles.reportRow}>
-                                                <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{RATER_TYPE_LABELS[item.type as FeedbackType] ?? RATER_TYPE_LABELS[item.raterType as FeedbackType] ?? item.type ?? item.raterType}</Text>
+                                                <Text className="font-inter text-sm text-primary-950 dark:text-white" style={{ flex: 1 }}>{RATER_TYPE_LABELS[item.type as FeedbackType] ?? RATER_TYPE_LABELS[item.raterType as FeedbackType] ?? item.type ?? item.raterType}</Text>
                                                 <Text className="font-inter text-sm font-bold text-primary-600">{(item.average ?? item.avgRating ?? 0).toFixed(1)}</Text>
                                                 <Text className="font-inter text-xs text-neutral-400 ml-2">({item.count ?? 0})</Text>
                                             </View>
@@ -196,7 +197,7 @@ function ReportModal({
                                         {report.strengths.map((s: string, i: number) => (
                                             <View key={i} style={styles.bulletRow}>
                                                 <View style={[styles.bulletDot, { backgroundColor: colors.success[500] }]} />
-                                                <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{s}</Text>
+                                                <Text className="font-inter text-sm text-primary-950 dark:text-white" style={{ flex: 1 }}>{s}</Text>
                                             </View>
                                         ))}
                                     </View>
@@ -209,7 +210,7 @@ function ReportModal({
                                         {report.improvements.map((s: string, i: number) => (
                                             <View key={i} style={styles.bulletRow}>
                                                 <View style={[styles.bulletDot, { backgroundColor: colors.warning[500] }]} />
-                                                <Text className="font-inter text-sm text-primary-950" style={{ flex: 1 }}>{s}</Text>
+                                                <Text className="font-inter text-sm text-primary-950 dark:text-white" style={{ flex: 1 }}>{s}</Text>
                                             </View>
                                         ))}
                                     </View>
@@ -222,7 +223,7 @@ function ReportModal({
                         )}
                     </ScrollView>
                     <Pressable onPress={onClose} style={styles.cancelBtn}>
-                        <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                        <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text>
                     </Pressable>
                 </View>
             </View>
@@ -277,13 +278,13 @@ function FeedbackFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 60 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">New 360 Feedback</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">New 360 Feedback</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         {/* Cycle picker */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Cycle <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Cycle <Text className="text-danger-500">*</Text></Text>
                             <Pressable onPress={() => setCyclePickerVisible(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${selectedCycleName ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}>{selectedCycleName || 'Select cycle...'}</Text>
+                                <Text className={`font-inter text-sm ${selectedCycleName ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}>{selectedCycleName || 'Select cycle...'}</Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
                             <Modal visible={cyclePickerVisible} transparent animationType="slide" onRequestClose={() => setCyclePickerVisible(false)}>
@@ -291,12 +292,12 @@ function FeedbackFormModal({
                                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCyclePickerVisible(false)} />
                                     <View style={[styles.pickerSheet, { maxHeight: '50%' }]}>
                                         <View style={styles.sheetHandle} />
-                                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Cycle</Text>
+                                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Cycle</Text>
                                         <ScrollView showsVerticalScrollIndicator={false}>
                                             {cycleOptions.map(c => (
                                                 <Pressable key={c.id} onPress={() => { update('cycleId', c.id); setCyclePickerVisible(false); }}
                                                     style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: c.id === form.cycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                                    <Text className={`font-inter text-sm ${c.id === form.cycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{c.name}</Text>
+                                                    <Text className={`font-inter text-sm ${c.id === form.cycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{c.name}</Text>
                                                 </Pressable>
                                             ))}
                                         </ScrollView>
@@ -306,23 +307,23 @@ function FeedbackFormModal({
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employee <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Employee <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Employee name..." placeholderTextColor={colors.neutral[400]} value={form.employeeName} onChangeText={v => update('employeeName', v)} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Rater <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Rater <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Rater name..." placeholderTextColor={colors.neutral[400]} value={form.raterName} onChangeText={v => update('raterName', v)} /></View>
                         </View>
 
                         {/* Type chips */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Feedback Type</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Feedback Type</Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                 {FEEDBACK_TYPES.map(t => {
                                     const sel = t === form.raterType;
                                     return (
                                         <Pressable key={t} onPress={() => update('raterType', t)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{RATER_TYPE_LABELS[t]}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{RATER_TYPE_LABELS[t]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -330,14 +331,14 @@ function FeedbackFormModal({
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Comments</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Comments</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Additional notes..." placeholderTextColor={colors.neutral[400]} value={form.comments} onChangeText={v => update('comments', v)} multiline />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : 'Create Feedback'}</Text>
                         </Pressable>
@@ -358,8 +359,8 @@ function FeedbackCard({ item, index, onViewReport }: {
             <Pressable onPress={onViewReport} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">Rater: {item.raterName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">Rater: {item.raterName}</Text>
                     </View>
                     <StatusBadge status={item.status} />
                 </View>
@@ -378,7 +379,7 @@ function FeedbackCard({ item, index, onViewReport }: {
                     </View>
                 )}
                 {item.comments ? (
-                    <Text className="mt-2 font-inter text-xs text-neutral-500" numberOfLines={2}>{item.comments}</Text>
+                    <Text className="mt-2 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{item.comments}</Text>
                 ) : null}
                 {item.submittedAt ? (
                     <Text className="mt-1 font-inter text-[10px] text-neutral-400">Submitted: {item.submittedAt}</Text>
@@ -391,6 +392,9 @@ function FeedbackCard({ item, index, onViewReport }: {
 // ============ MAIN COMPONENT ============
 
 export function Feedback360Screen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { modalProps: confirmModalProps } = useConfirmModal();
@@ -459,12 +463,12 @@ export function Feedback360Screen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">360 Feedback</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{feedbackList.length} feedback entr{feedbackList.length !== 1 ? 'ies' : 'y'}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">360 Feedback</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{feedbackList.length} feedback entr{feedbackList.length !== 1 ? 'ies' : 'y'}</Text>
 
             {/* Cycle filter */}
             <Pressable onPress={() => setCycleModalVisible(true)} style={styles.dropdownBtn}>
-                <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>{selectedCycleName}</Text>
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{selectedCycleName}</Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <Modal visible={cycleModalVisible} transparent animationType="slide" onRequestClose={() => setCycleModalVisible(false)}>
@@ -472,16 +476,16 @@ export function Feedback360Screen() {
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCycleModalVisible(false)} />
                     <View style={[styles.pickerSheet, { maxHeight: '50%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Cycle</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Cycle</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Pressable onPress={() => { setSelectedCycleId(''); setCycleModalVisible(false); }}
                                 style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: !selectedCycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                <Text className={`font-inter text-sm ${!selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>All Cycles</Text>
+                                <Text className={`font-inter text-sm ${!selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>All Cycles</Text>
                             </Pressable>
                             {cycleOptions.map(c => (
                                 <Pressable key={c.id} onPress={() => { setSelectedCycleId(c.id); setCycleModalVisible(false); }}
                                     style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: c.id === selectedCycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                    <Text className={`font-inter text-sm ${c.id === selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{c.name}</Text>
+                                    <Text className={`font-inter text-sm ${c.id === selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{c.name}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -525,38 +529,39 @@ export function Feedback360Screen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     gradientHeader: { paddingBottom: 16, paddingHorizontal: 20 },
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10,
     },
-    pickerSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
-    fullFormSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    pickerSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
+    fullFormSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200], marginTop: 16 },
+    cancelBtn: { height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], marginTop: 16 },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-    reportCard: { backgroundColor: colors.primary[50], borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.primary[100] },
+    reportCard: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100] },
     reportRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
     bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 5 },
 });
+const styles = createStyles(false);

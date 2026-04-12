@@ -46,6 +46,7 @@ import {
     useInterviews,
     useOffers,
 } from '@/features/company-admin/api/use-recruitment-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -215,37 +216,37 @@ function EducationFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Add Education</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Add Education</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Institution <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Institution <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. MIT" placeholderTextColor={colors.neutral[400]} value={institution} onChangeText={setInstitution} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Degree <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Degree <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. B.Tech" placeholderTextColor={colors.neutral[400]} value={degree} onChangeText={setDegree} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Field of Study</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Field of Study</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Computer Science" placeholderTextColor={colors.neutral[400]} value={fieldOfStudy} onChangeText={setFieldOfStudy} /></View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Start Year</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Start Year</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="2020" placeholderTextColor={colors.neutral[400]} value={startYear} onChangeText={setStartYear} keyboardType="number-pad" /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">End Year</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">End Year</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="2024" placeholderTextColor={colors.neutral[400]} value={endYear} onChangeText={setEndYear} keyboardType="number-pad" /></View>
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Grade / GPA</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Grade / GPA</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 3.8 / 4.0" placeholderTextColor={colors.neutral[400]} value={grade} onChangeText={setGrade} /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ institution: institution.trim(), degree: degree.trim(), fieldOfStudy: fieldOfStudy.trim() || undefined, startYear: startYear ? Number(startYear) : undefined, endYear: endYear ? Number(endYear) : undefined, grade: grade.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Adding...' : 'Add'}</Text>
                         </Pressable>
@@ -283,35 +284,35 @@ function ExperienceFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Add Experience</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Add Experience</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Company <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Company <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Google" placeholderTextColor={colors.neutral[400]} value={company} onChangeText={setCompany} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Job Title <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Job Title <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Software Engineer" placeholderTextColor={colors.neutral[400]} value={jobTitle} onChangeText={setJobTitle} /></View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Start Date</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Start Date</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={startDate} onChangeText={setStartDate} /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">End Date</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">End Date</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={endDate} onChangeText={setEndDate} /></View>
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80, paddingVertical: 10 }]}>
                                 <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Role description..." placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ company: company.trim(), jobTitle: jobTitle.trim(), startDate: startDate.trim() || undefined, endDate: endDate.trim() || undefined, description: description.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Adding...' : 'Add'}</Text>
                         </Pressable>
@@ -347,23 +348,23 @@ function DocumentFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Add Document</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Add Document</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 300 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Title <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Title <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Resume" placeholderTextColor={colors.neutral[400]} value={title} onChangeText={setTitle} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Type</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Type</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Resume, Certificate" placeholderTextColor={colors.neutral[400]} value={type} onChangeText={setType} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">URL</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">URL</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="https://..." placeholderTextColor={colors.neutral[400]} value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ title: title.trim(), type: type.trim() || undefined, url: url.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Uploading...' : 'Add'}</Text>
                         </Pressable>
@@ -382,14 +383,14 @@ function EducationCard({ item, index, onDelete }: { item: EducationItem; index: 
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.degree}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.institution}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.degree}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.institution}</Text>
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
                 </View>
-                {item.fieldOfStudy ? <Text className="mt-1 font-inter text-xs text-neutral-500">{item.fieldOfStudy}</Text> : null}
+                {item.fieldOfStudy ? <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.fieldOfStudy}</Text> : null}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
                     {item.startYear ? <Text className="font-inter text-xs text-neutral-400">{item.startYear} - {item.endYear || 'Present'}</Text> : null}
                     {item.grade ? <Text className="font-inter text-xs text-neutral-400">Grade: {item.grade}</Text> : null}
@@ -405,14 +406,14 @@ function ExperienceCard({ item, index, onDelete }: { item: ExperienceItem; index
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.jobTitle}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.company}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.jobTitle}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.company}</Text>
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
                 </View>
-                {item.description ? <Text className="mt-1 font-inter text-xs text-neutral-500" numberOfLines={2}>{item.description}</Text> : null}
+                {item.description ? <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{item.description}</Text> : null}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
                     {item.startDate ? <Text className="font-inter text-xs text-neutral-400">{item.startDate} - {item.endDate || 'Present'}</Text> : null}
                 </View>
@@ -431,8 +432,8 @@ function DocumentCard({ item, index, onDelete }: { item: DocumentItem; index: nu
                             <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={colors.info[600]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={colors.info[600]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.title}</Text>
-                            {item.type ? <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.type}</Text> : null}
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.title}</Text>
+                            {item.type ? <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.type}</Text> : null}
                         </View>
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
@@ -458,15 +459,15 @@ function InterviewCard({ item, index }: { item: InterviewItem; index: number }) 
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">Round {item.round}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.datetime}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Round {item.round}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.datetime}</Text>
                     </View>
                     <View style={[styles.badge, { backgroundColor: sc.bg }]}>
                         <Text className="font-inter text-[10px] font-bold" style={{ color: sc.text }}>{item.status}</Text>
                     </View>
                 </View>
                 {item.panelists && item.panelists.length > 0 && (
-                    <Text className="mt-1 font-inter text-xs text-neutral-500">Panel: {item.panelists.join(', ')}</Text>
+                    <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">Panel: {item.panelists.join(', ')}</Text>
                 )}
                 {item.feedbackRating ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
@@ -487,10 +488,10 @@ function OfferCard({ item, index }: { item: OfferItem; index: number }) {
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         {/* Currency formatted for INR — will be made dynamic when multi-currency support is added */}
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             {'₹'}{(item.offeredCTC ?? 0).toLocaleString('en-IN')} CTC
                         </Text>
-                        {item.joiningDate ? <Text className="mt-0.5 font-inter text-xs text-neutral-500">Joining: {item.joiningDate}</Text> : null}
+                        {item.joiningDate ? <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">Joining: {item.joiningDate}</Text> : null}
                     </View>
                     <View style={[styles.badge, { backgroundColor: sc.bg }]}>
                         <Text className="font-inter text-[10px] font-bold" style={{ color: sc.text }}>{item.status}</Text>
@@ -511,8 +512,8 @@ function HistoryCard({ item, index }: { item: HistoryItem; index: number }) {
                     <View style={{ width: 2, flex: 1, backgroundColor: colors.neutral[200], marginTop: 2 }} />
                 </View>
                 <View style={[styles.card, { flex: 1, marginBottom: 0 }]}>
-                    <Text className="font-inter text-sm font-bold text-primary-950">{item.stage ?? item.fromStage} {item.toStage ? `\u2192 ${item.toStage}` : ''}</Text>
-                    {item.notes ? <Text className="mt-1 font-inter text-xs text-neutral-500">{item.notes}</Text> : null}
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.stage ?? item.fromStage} {item.toStage ? `\u2192 ${item.toStage}` : ''}</Text>
+                    {item.notes ? <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.notes}</Text> : null}
                     {item.reason ? <Text className="mt-1 font-inter text-xs text-neutral-400">Reason: {item.reason}</Text> : null}
                     {item.createdAt ? <Text className="mt-1 font-inter text-xs text-neutral-300">{item.createdAt}</Text> : null}
                 </View>
@@ -524,6 +525,9 @@ function HistoryCard({ item, index }: { item: HistoryItem; index: number }) {
 // ============ MAIN COMPONENT ============
 
 export function CandidateDetailScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -703,8 +707,8 @@ export function CandidateDetailScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                         <AvatarCircle name={candidate.name} size={48} />
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-base font-bold text-primary-950">{candidate.name}</Text>
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500">{candidate.email}</Text>
+                            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{candidate.name}</Text>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{candidate.email}</Text>
                             {candidate.phone ? <Text className="mt-0.5 font-inter text-xs text-neutral-400">{candidate.phone}</Text> : null}
                         </View>
                     </View>
@@ -731,7 +735,7 @@ export function CandidateDetailScreen() {
                     const active = tab.key === activeTab;
                     return (
                         <Pressable key={tab.key} onPress={() => setActiveTab(tab.key)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{tab.label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{tab.label}</Text>
                         </Pressable>
                     );
                 })}
@@ -794,36 +798,37 @@ export function CandidateDetailScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     profileCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    avatar: { backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     iconCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     convertBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
         marginTop: 12, height: 40, borderRadius: 12, backgroundColor: colors.success[600],
         shadowColor: colors.success[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
     },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

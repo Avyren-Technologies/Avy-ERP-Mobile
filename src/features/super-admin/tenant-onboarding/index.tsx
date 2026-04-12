@@ -531,10 +531,10 @@ export function TenantOnboardingScreen() {
                     </Pressable>
 
                     <View style={S.headerCenter}>
-                        <Text className="font-inter text-base font-bold text-primary-950">
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
                             {meta.title}
                         </Text>
-                        <Text className="font-inter text-xs text-neutral-500">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             Step {step} of {TOTAL_STEPS} · {meta.subtitle}
                         </Text>
                     </View>

@@ -36,10 +36,10 @@ function RazorpayXSection({
                         <Path d="M30 70L45 30h15L45 55h20L35 80z" fill="#3395FF" />
                     </Svg>
                     <View>
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             RazorpayX Payout API
                         </Text>
-                        <Text className="font-inter text-xs text-neutral-500">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             One-click salary disbursement
                         </Text>
                     </View>

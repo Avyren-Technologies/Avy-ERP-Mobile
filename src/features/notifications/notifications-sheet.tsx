@@ -11,6 +11,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import { notificationApi } from '@/lib/api/notifications';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Query key factory ──
 
@@ -118,6 +119,8 @@ export interface NotificationsSheetHandle {
 
 export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
   function NotificationsSheet(_props, ref) {
+    const isDark = useIsDark();
+    const styles = _createStyles(isDark);
     const sheetRef = useRef<React.ComponentRef<typeof BottomSheetModal>>(null);
     const queryClient = useQueryClient();
     const snapPoints = useMemo(() => ['60%', '90%'], []);
@@ -238,9 +241,9 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
 
 // ── Styles ──
 
-const styles = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
   sheetBackground: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -264,7 +267,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerBadge: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral[100],
   },
   itemUnread: {
-    backgroundColor: colors.primary[50] + '40', // 25% opacity
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50] + '40', // 25% opacity
   },
   typeIndicator: {
     width: 32,
@@ -314,3 +317,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
 });
+const styles = _createStyles(false);

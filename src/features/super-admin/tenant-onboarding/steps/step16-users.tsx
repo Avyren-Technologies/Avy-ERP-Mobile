@@ -55,7 +55,7 @@ export function Step16Users({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.infoCard}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     Create the initial set of users for this tenant. The Company Admin user is
                     required to allow the tenant to log in and complete their own configuration.
                 </Text>

@@ -41,7 +41,7 @@ export function ZeroDataState({
         <IconComponent size={40} color={colors.neutral[300]} />
       </View>
 
-      <Text className="font-inter text-[16px] font-semibold text-neutral-600" style={styles.title}>
+      <Text className="font-inter text-[16px] font-semibold text-neutral-600 dark:text-neutral-400" style={styles.title}>
         {title}
       </Text>
 

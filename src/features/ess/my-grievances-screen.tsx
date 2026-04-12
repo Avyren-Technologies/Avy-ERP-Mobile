@@ -24,6 +24,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { useFileGrievance } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyGrievances } from '@/features/company-admin/api/use-ess-queries';
 import { useGrievanceCategories } from '@/features/company-admin/api/use-recruitment-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 type GrievanceStatus = 'Open' | 'Investigating' | 'Resolved' | 'Closed' | 'Escalated';
 
@@ -80,15 +81,15 @@ function FileGrievanceModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">File a Grievance</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">File a Grievance</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         {/* Category Picker */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Category <Text className="text-danger-500">*</Text>
                             </Text>
                             <Pressable onPress={() => { setCategoryPickerVisible(true); setCatSearch(''); }} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${categoryId ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                                <Text className={`font-inter text-sm ${categoryId ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                                     {categoryOptions.find(c => c.id === categoryId)?.label ?? 'Select category...'}
                                 </Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -98,7 +99,7 @@ function FileGrievanceModal({
                                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCategoryPickerVisible(false)} />
                                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                                         <View style={styles.sheetHandle} />
-                                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Category</Text>
+                                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Category</Text>
                                         <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                                             <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={catSearch} onChangeText={setCatSearch} autoCapitalize="none" />
                                         </View>
@@ -106,7 +107,7 @@ function FileGrievanceModal({
                                             {filteredCategories.map(opt => (
                                                 <Pressable key={opt.id} onPress={() => { setCategoryId(opt.id); setCategoryPickerVisible(false); }}
                                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === categoryId ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                                    <Text className={`font-inter text-sm ${opt.id === categoryId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                                    <Text className={`font-inter text-sm ${opt.id === categoryId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                                                 </Pressable>
                                             ))}
                                             {filteredCategories.length === 0 && <Text className="py-4 text-center font-inter text-sm text-neutral-400">No categories found</Text>}
@@ -118,7 +119,7 @@ function FileGrievanceModal({
 
                         {/* Description */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Description <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={[styles.inputWrap, { height: 120 }]}>
@@ -137,8 +138,8 @@ function FileGrievanceModal({
                         {/* Anonymous Toggle */}
                         <View style={styles.toggleRow}>
                             <View style={{ flex: 1 }}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950">Anonymous</Text>
-                                <Text className="mt-0.5 font-inter text-xs text-neutral-500">File without revealing your identity</Text>
+                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Anonymous</Text>
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">File without revealing your identity</Text>
                             </View>
                             <Switch value={isAnonymous} onValueChange={setIsAnonymous} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isAnonymous ? colors.primary[600] : colors.neutral[300]} />
                         </View>
@@ -146,7 +147,7 @@ function FileGrievanceModal({
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={() => onSave({ categoryId, description: description.trim(), isAnonymous })}
@@ -165,6 +166,9 @@ function FileGrievanceModal({
 // ── Main Screen ──────────────────────────────────────────────────
 
 export function MyGrievancesScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -205,7 +209,7 @@ export function MyGrievancesScreen() {
                             <Text style={{ color: colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.categoryName ?? item.category?.name ?? 'General'}</Text>
                         </View>
                         {(item.anonymous || item.isAnonymous) && (
-                            <View style={[styles.catBadge, { backgroundColor: colors.neutral[100] }]}>
+                            <View style={[styles.catBadge, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100] }]}>
                                 <Text style={{ color: colors.neutral[600], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Anonymous</Text>
                             </View>
                         )}
@@ -213,13 +217,13 @@ export function MyGrievancesScreen() {
                 </View>
                 <StatusBadge status={item.status ?? 'Open'} />
             </View>
-            <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={3}>{item.description}</Text>
+            <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={3}>{item.description}</Text>
             {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Filed: {item.createdAt}</Text>}
         </Animated.View>
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="My Grievances" onMenuPress={open} />
             <FlashList
                 data={grievances}
@@ -242,23 +246,24 @@ export function MyGrievancesScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    card: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     catBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 14 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

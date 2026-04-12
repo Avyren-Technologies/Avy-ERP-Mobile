@@ -35,6 +35,7 @@ import { useCompanyProfile } from '@/features/company-admin/api/use-company-admi
 import type { UserTierKey } from '@/features/super-admin/tenant-onboarding/types';
 import { FormInput } from '@/features/super-admin/tenant-onboarding/atoms';
 import { FY_OPTIONS, MODULE_CATALOGUE, MONTHS, USER_TIERS } from '@/features/super-admin/tenant-onboarding/constants';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -224,7 +225,7 @@ function LockIcon() {
                 <Rect x="3" y="11" width="18" height="11" rx="2" stroke={colors.neutral[500]} strokeWidth="2" fill="none" />
                 <Path d="M7 11V7a5 5 0 0110 0v4" stroke={colors.neutral[500]} strokeWidth="2" fill="none" strokeLinecap="round" />
             </Svg>
-            <Text className="font-inter text-[10px] font-semibold text-neutral-500">Read-only</Text>
+            <Text className="font-inter text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">Read-only</Text>
         </View>
     );
 }
@@ -332,7 +333,7 @@ function SectionHeader({
     return (
         <View style={s.sectionHeader}>
             <SectionIcon type={iconType} />
-            <Text className="font-inter text-sm font-bold text-primary-900" style={{ flex: 1 }}>
+            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100" style={{ flex: 1 }}>
                 {title}
             </Text>
             {readOnly ? <LockIcon /> : null}
@@ -344,8 +345,8 @@ function SectionHeader({
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <View style={s.infoRow}>
-            <Text className="font-inter text-xs font-medium text-neutral-500">{label}</Text>
-            <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
+            <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">{label}</Text>
+            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={2}>
                 {value || '—'}
             </Text>
         </View>
@@ -399,7 +400,7 @@ function StatCard({
     return (
         <Pressable onPress={onPress} style={s.statCard}>
             <Text className="font-inter text-xl font-bold text-primary-600">{count}</Text>
-            <Text className="mt-0.5 font-inter text-[11px] font-medium text-neutral-500">{label}</Text>
+            <Text className="mt-0.5 font-inter text-[11px] font-medium text-neutral-500 dark:text-neutral-400">{label}</Text>
         </Pressable>
     );
 }
@@ -624,7 +625,7 @@ function EditBottomSheet({
                 return (
                     <>
                         <View style={bs.toggleRow}>
-                            <Text className="font-inter text-sm font-medium text-primary-900">Same as Registered Address</Text>
+                            <Text className="font-inter text-sm font-medium text-primary-900 dark:text-primary-100">Same as Registered Address</Text>
                             <Switch
                                 value={formData.sameAsRegistered ?? true}
                                 onValueChange={(v) => handleChange('sameAsRegistered', v)}
@@ -662,11 +663,11 @@ function EditBottomSheet({
                         <FormInput label="Date Format" placeholder="e.g. DD-MM-YYYY" value={formData.dateFormat ?? ''} onChangeText={(v) => handleChange('dateFormat', v)} />
                         <FormInput label="Time Format" placeholder="e.g. HH:mm" value={formData.timeFormat ?? ''} onChangeText={(v) => handleChange('timeFormat', v)} />
                         <View style={bs.toggleRow}>
-                            <Text className="font-inter text-sm font-medium text-primary-900">ESS Portal Enabled</Text>
+                            <Text className="font-inter text-sm font-medium text-primary-900 dark:text-primary-100">ESS Portal Enabled</Text>
                             <Switch value={formData.essEnabled ?? false} onValueChange={(v) => handleChange('essEnabled', v)} />
                         </View>
                         <View style={bs.toggleRow}>
-                            <Text className="font-inter text-sm font-medium text-primary-900">Mobile App Enabled</Text>
+                            <Text className="font-inter text-sm font-medium text-primary-900 dark:text-primary-100">Mobile App Enabled</Text>
                             <Switch value={formData.mobileEnabled ?? false} onValueChange={(v) => handleChange('mobileEnabled', v)} />
                         </View>
                     </>
@@ -692,7 +693,7 @@ function EditBottomSheet({
 
                             {/* Header */}
                             <View style={bs.header}>
-                                <Text className="font-inter text-base font-bold text-primary-950">{title}</Text>
+                                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{title}</Text>
                                 <Pressable onPress={onClose} style={bs.closeButton}>
                                     <Svg width={20} height={20} viewBox="0 0 24 24">
                                         <Path d="M18 6L6 18M6 6l12 12" stroke={colors.neutral[500]} strokeWidth="2" strokeLinecap="round" />
@@ -720,7 +721,7 @@ function EditBottomSheet({
                             {/* Actions */}
                             <View style={bs.actions}>
                                 <Pressable onPress={onClose} style={bs.cancelButton}>
-                                    <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                    <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                                 </Pressable>
                                 <Pressable
                                     onPress={handleSave}
@@ -745,6 +746,9 @@ function EditBottomSheet({
 // ============ MAIN COMPONENT ============
 
 export function CompanyProfileScreen() {
+  const isDark = useIsDark();
+  const s = _createStyles(isDark);
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
@@ -989,7 +993,7 @@ export function CompanyProfileScreen() {
         return (
             <View style={[s.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
                 <Text className="font-inter text-base font-semibold text-danger-600">Failed to load profile</Text>
-                <Text className="mt-1 text-center font-inter text-sm text-neutral-500">
+                <Text className="mt-1 text-center font-inter text-sm text-neutral-500 dark:text-neutral-400">
                     {(error as any)?.message ?? 'An error occurred.'}
                 </Text>
                 <Pressable onPress={() => refetch()} style={s.retryButton}>
@@ -1130,7 +1134,7 @@ export function CompanyProfileScreen() {
                         <SectionHeader title="Modules & Billing" iconType="modules" readOnly />
                         <View style={s.sectionCard}>
                             <View style={s.infoRow}>
-                                <Text className="font-inter text-xs font-medium text-neutral-500">Selected Modules</Text>
+                                <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">Selected Modules</Text>
                                 {moduleNames.length > 0 ? (
                                     <ChipRow items={moduleNames} variant="primary" />
                                 ) : (
@@ -1228,7 +1232,7 @@ export function CompanyProfileScreen() {
                             <InfoRow label="Date Format" value={profile.dateFormat} />
                             <InfoRow label="Time Format" value={profile.timeFormat} />
                             <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
-                                <Text className="mb-2 font-inter text-xs font-medium text-neutral-500">Feature Flags</Text>
+                                <Text className="mb-2 font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">Feature Flags</Text>
                                 <View style={s.chipRow}>
                                     <BooleanChip label="ESS" enabled={profile.essEnabled} />
                                     <BooleanChip label="Mobile" enabled={profile.mobileEnabled} />
@@ -1256,7 +1260,7 @@ export function CompanyProfileScreen() {
                                     <View key={loc.id} style={[s.sectionCard, { marginBottom: 12 }]}>
                                         {/* Location header */}
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                                            <View style={{ backgroundColor: colors.primary[100], paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 }}>
+                                            <View style={{ backgroundColor: isDark ? colors.primary[800] : colors.primary[100], paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 }}>
                                                 <Text className="font-inter text-[11px] font-bold text-primary-700 uppercase">{loc.name}</Text>
                                             </View>
                                             {loc.isHQ && (
@@ -1273,10 +1277,10 @@ export function CompanyProfileScreen() {
                                                 const isMutating = addModulesMutation.isPending || removeModuleMutation.isPending;
 
                                                 const cardStyle = isMasters
-                                                    ? { backgroundColor: colors.primary[50], borderColor: colors.primary[200], borderWidth: 1.5 as number }
+                                                    ? { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderColor: colors.primary[200], borderWidth: 1.5 as number }
                                                     : isActive
                                                         ? { backgroundColor: colors.success[50], borderColor: colors.success[300], borderWidth: 1.5 as number }
-                                                        : { backgroundColor: colors.neutral[50], borderColor: colors.neutral[200], borderWidth: 1 as number, borderStyle: 'dashed' as const };
+                                                        : { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], borderWidth: 1 as number, borderStyle: 'dashed' as const };
 
                                                 return (
                                                     <View
@@ -1298,7 +1302,7 @@ export function CompanyProfileScreen() {
                                                             </Text>
                                                         </View>
                                                         {/* Pricing hidden — uncomment when pricing is finalized
-                                                        <Text className="font-inter text-[10px] text-neutral-500 mb-1">
+                                                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mb-1">
                                                             Rs {mod.price}/mo
                                                         </Text>
                                                         */}
@@ -1424,10 +1428,10 @@ export function CompanyProfileScreen() {
 
 // ============ STYLES ============
 
-const s = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerGradient: {
         paddingBottom: 24,
@@ -1512,7 +1516,7 @@ const s = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
         justifyContent: 'center',
@@ -1525,12 +1529,12 @@ const s = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 8,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     sectionCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         shadowColor: colors.primary[900],
@@ -1539,7 +1543,7 @@ const s = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     infoRow: {
         paddingVertical: 10,
@@ -1556,7 +1560,7 @@ const s = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -1597,7 +1601,7 @@ const s = StyleSheet.create({
     statCard: {
         flex: 1,
         minWidth: '44%',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         paddingVertical: 14,
         paddingHorizontal: 12,
@@ -1619,12 +1623,12 @@ const s = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 10,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     },
     moduleTagActive: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderColor: colors.primary[200],
     },
     moduleTagText: {
@@ -1638,14 +1642,14 @@ const s = StyleSheet.create({
     },
     emptyContainer: {
         padding: 24,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         marginHorizontal: 16,
         marginTop: 8,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
         borderStyle: 'dashed',
     },
     emptyText: {
@@ -1655,6 +1659,7 @@ const s = StyleSheet.create({
         textAlign: 'center',
     },
 });
+const s = _createStyles(false);
 
 const bs = StyleSheet.create({
     backdrop: {

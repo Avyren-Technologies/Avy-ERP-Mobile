@@ -8,6 +8,7 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const PLANNED_FEATURES = [
     { title: 'Preventive Maintenance', desc: 'Schedule and track time-based and usage-based preventive maintenance plans' },
@@ -18,6 +19,9 @@ const PLANNED_FEATURES = [
 ];
 
 export function MaintenanceScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const { toggle } = useSidebar();
 
     return (
@@ -50,10 +54,10 @@ export function MaintenanceScreen() {
                         <Text className="font-inter text-primary-700 text-xs font-bold">COMING SOON</Text>
                     </View>
 
-                    <Text className="font-inter text-neutral-900 text-lg font-bold text-center mt-3">
+                    <Text className="font-inter text-neutral-900 dark:text-white text-lg font-bold text-center mt-3">
                         Maintenance Module
                     </Text>
-                    <Text className="font-inter text-neutral-500 text-sm text-center mt-2 leading-5">
+                    <Text className="font-inter text-neutral-500 dark:text-neutral-400 text-sm text-center mt-2 leading-5">
                         Comprehensive maintenance management with preventive scheduling, breakdown tracking, and a full machine registry for all your equipment.
                     </Text>
 
@@ -68,7 +72,7 @@ export function MaintenanceScreen() {
                                 <View style={styles.featureDot} />
                                 <View style={styles.featureText}>
                                     <Text className="font-inter text-neutral-800 text-sm font-semibold">{f.title}</Text>
-                                    <Text className="font-inter text-neutral-500 text-xs mt-0.5">{f.desc}</Text>
+                                    <Text className="font-inter text-neutral-500 dark:text-neutral-400 text-xs mt-0.5">{f.desc}</Text>
                                 </View>
                             </Animated.View>
                         ))}
@@ -84,12 +88,12 @@ export function MaintenanceScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     scrollView: { flex: 1 },
     scrollContent: { padding: 20, paddingBottom: 40 },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 24,
         alignItems: 'center',
@@ -103,7 +107,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 20,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -112,13 +116,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     featureList: { width: '100%', marginTop: 20, gap: 12 },
     featureItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         padding: 12,
         gap: 10,
@@ -132,3 +136,4 @@ const styles = StyleSheet.create({
     },
     featureText: { flex: 1 },
 });
+const styles = createStyles(false);

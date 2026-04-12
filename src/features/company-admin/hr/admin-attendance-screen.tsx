@@ -27,6 +27,7 @@ import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { adminAttendanceApi, adminAttendanceKeys } from '@/lib/api/admin-attendance';
 import { client } from '@/lib/api/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 /* ── Helpers ── */
 
@@ -247,6 +248,9 @@ function EmployeeInfoCard({
 /* ── Main Screen ── */
 
 export function AdminAttendanceScreen() {
+  const isDark = useIsDark();
+  const $ = _createStyles(isDark);
+
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
   const qc = useQueryClient();
@@ -500,7 +504,7 @@ export function AdminAttendanceScreen() {
                   return (
                     <TouchableOpacity
                       key={emp.id}
-                      style={[$.searchItem, isSelected && { backgroundColor: colors.primary[50] }]}
+                      style={[$.searchItem, isSelected && { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}
                       onPress={() => handleSelectEmployee(emp)}
                     >
                       {bulkMode && (
@@ -716,8 +720,8 @@ export function AdminAttendanceScreen() {
 
 /* ── Styles ── */
 
-const $ = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.gradient.surface },
+const _createStyles = (isDark: boolean) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
   header: { paddingHorizontal: 20, paddingBottom: 18 },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   modeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
@@ -731,9 +735,9 @@ const $ = StyleSheet.create({
   // Search
   searchContainer: { zIndex: 10 },
   searchBox: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: colors.neutral[200],
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
   },
   searchInput: {
@@ -741,8 +745,8 @@ const $ = StyleSheet.create({
     fontFamily: 'Inter_400Regular', padding: 0,
   },
   searchDropdown: {
-    backgroundColor: colors.white, borderRadius: 12, marginTop: 4,
-    borderWidth: 1, borderColor: colors.neutral[200],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 12, marginTop: 4,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     shadowColor: '#000', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 4,
     maxHeight: 300, overflow: 'hidden',
   },
@@ -751,13 +755,13 @@ const $ = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
   },
   searchItemAvatar: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary[50],
+    width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
 
   // Bulk
   bulkInfoCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[50],
+    flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
     borderWidth: 1, borderColor: colors.primary[200],
   },
@@ -769,19 +773,19 @@ const $ = StyleSheet.create({
 
   // Employee card
   card: {
-    backgroundColor: colors.white, borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 20,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
   },
   empHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   empPhoto: { width: 48, height: 48, borderRadius: 24 },
   empPhotoPlaceholder: {
-    width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary[50],
+    width: 48, height: 48, borderRadius: 24, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     justifyContent: 'center', alignItems: 'center',
   },
   empDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   detailPill: {
-    backgroundColor: colors.primary[50], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   shiftRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6,
@@ -806,8 +810,8 @@ const $ = StyleSheet.create({
 
   // Remarks
   remarksCard: {
-    backgroundColor: colors.white, borderRadius: 12, padding: 16,
-    borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 12, padding: 16,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
   },
   remarksInput: {
     fontSize: 14, color: colors.primary[950], fontFamily: 'Inter_400Regular',
@@ -844,23 +848,24 @@ const $ = StyleSheet.create({
   // Today log
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   cardIcon: {
-    width: 32, height: 32, borderRadius: 8, backgroundColor: colors.primary[50],
+    width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     alignItems: 'center', justifyContent: 'center',
   },
   emptyLog: {
-    backgroundColor: colors.white, borderRadius: 12, padding: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 12, padding: 24, alignItems: 'center',
+    borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
   },
   logList: {
-    backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden',
-    borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 12, overflow: 'hidden',
+    borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
   },
   logItem: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
   },
   logAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50],
+    width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
 });
+const $ = _createStyles(false);

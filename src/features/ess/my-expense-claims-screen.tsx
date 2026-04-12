@@ -31,6 +31,7 @@ import { useCancelMyExpenseClaim, useCreateMyExpenseClaim, useSubmitMyExpenseCla
 import { useExpenseCategories, useExpenseClaimsSummary, useMyExpenseClaims } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useFileUrl } from '@/hooks/use-file-url';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Receipt Thumbnail (resolves R2 keys) ────────────────────────
 
@@ -198,21 +199,21 @@ function SummaryCard({ summary }: { summary: any }) {
             <Text className="font-inter text-xs font-bold text-primary-800 mb-3">This Year Summary</Text>
             <View style={styles.summaryRow}>
                 <View style={styles.summaryItem}>
-                    <Text className="font-inter text-[10px] text-neutral-500">Total Claimed</Text>
-                    <Text className="font-inter text-sm font-bold text-primary-950">{formatCurrency(summary.totalClaimed ?? 0)}</Text>
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Total Claimed</Text>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{formatCurrency(summary.totalClaimed ?? 0)}</Text>
                 </View>
                 <View style={styles.summaryItem}>
-                    <Text className="font-inter text-[10px] text-neutral-500">Approved</Text>
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Approved</Text>
                     <Text className="font-inter text-sm font-bold text-success-700">{formatCurrency(summary.totalApproved ?? 0)}</Text>
                 </View>
             </View>
             <View style={[styles.summaryRow, { marginTop: 8 }]}>
                 <View style={styles.summaryItem}>
-                    <Text className="font-inter text-[10px] text-neutral-500">Pending</Text>
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Pending</Text>
                     <Text className="font-inter text-sm font-bold text-warning-700">{formatCurrency(summary.totalPending ?? 0)}</Text>
                 </View>
                 <View style={styles.summaryItem}>
-                    <Text className="font-inter text-[10px] text-neutral-500">Paid</Text>
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Paid</Text>
                     <Text className="font-inter text-sm font-bold text-success-700">{formatCurrency(summary.totalPaid ?? 0)}</Text>
                 </View>
             </View>
@@ -250,7 +251,7 @@ function PickerModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '50%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-base font-bold text-primary-950 mb-3">{title}</Text>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{title}</Text>
                     <ScrollView showsVerticalScrollIndicator={false}>
                         {options.map((opt) => (
                             <Pressable
@@ -266,7 +267,7 @@ function PickerModal({
                                 }}
                             >
                                 {renderLabel ? renderLabel(opt) : (
-                                    <Text className={`font-inter text-sm ${opt.value === selectedValue ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                    <Text className={`font-inter text-sm ${opt.value === selectedValue ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
                                         {opt.label}
                                     </Text>
                                 )}
@@ -315,9 +316,9 @@ function LineItemCard({
 
             {/* Category */}
             <View style={styles.fieldWrap}>
-                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900">Category *</Text>
+                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">Category *</Text>
                 <Pressable onPress={() => setCatPickerVisible(true)} style={styles.dropdownBtnSm}>
-                    <Text className={`font-inter text-xs ${item.categoryCode ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                    <Text className={`font-inter text-xs ${item.categoryCode ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                         {item.categoryCode || 'Select...'}
                     </Text>
                     <ChevronDownIcon />
@@ -335,7 +336,7 @@ function LineItemCard({
             {/* Amount + Date row */}
             <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={[styles.fieldWrap, { flex: 1 }]}>
-                    <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900">Amount *</Text>
+                    <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">Amount *</Text>
                     <View style={styles.inputWrapSm}>
                         <TextInput
                             style={styles.textInputSm}
@@ -348,7 +349,7 @@ function LineItemCard({
                     </View>
                 </View>
                 <View style={[styles.fieldWrap, { flex: 1 }]}>
-                    <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900">Date *</Text>
+                    <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">Date *</Text>
                     <View style={styles.inputWrapSm}>
                         <TextInput
                             style={styles.textInputSm}
@@ -364,7 +365,7 @@ function LineItemCard({
 
             {/* Description */}
             <View style={styles.fieldWrap}>
-                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900">Description *</Text>
+                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">Description *</Text>
                 <View style={styles.inputWrapSm}>
                     <TextInput
                         style={styles.textInputSm}
@@ -378,7 +379,7 @@ function LineItemCard({
 
             {/* Merchant */}
             <View style={[styles.fieldWrap, { marginBottom: 0 }]}>
-                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900">Merchant</Text>
+                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">Merchant</Text>
                 <View style={styles.inputWrapSm}>
                     <TextInput
                         style={styles.textInputSm}
@@ -598,7 +599,7 @@ function CreateExpenseClaimModal({
 
                         {/* Title */}
                         <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Title <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -614,11 +615,11 @@ function CreateExpenseClaimModal({
 
                         {/* Category Picker */}
                         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Category <Text className="text-danger-500">*</Text>
                             </Text>
                             <Pressable onPress={() => setCategoryPickerVisible(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${category ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                                <Text className={`font-inter text-sm ${category ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                                     {category || 'Select category...'}
                                 </Text>
                                 <ChevronDownIcon />
@@ -636,7 +637,7 @@ function CreateExpenseClaimModal({
                         {/* From / To Date */}
                         <Animated.View entering={FadeInDown.delay(150).springify()} style={{ flexDirection: 'row', gap: 8 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">From Date</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">From Date</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput
                                         style={styles.textInput}
@@ -649,7 +650,7 @@ function CreateExpenseClaimModal({
                                 </View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">To Date</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">To Date</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput
                                         style={styles.textInput}
@@ -668,9 +669,9 @@ function CreateExpenseClaimModal({
 
                         {/* Payment Method */}
                         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Payment Method</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Payment Method</Text>
                             <Pressable onPress={() => setPaymentPickerVisible(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${paymentMethod ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                                <Text className={`font-inter text-sm ${paymentMethod ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                                     {paymentLabel || 'Select method...'}
                                 </Text>
                                 <ChevronDownIcon />
@@ -688,7 +689,7 @@ function CreateExpenseClaimModal({
                         {/* Merchant + Project Code */}
                         <Animated.View entering={FadeInDown.delay(250).springify()} style={{ flexDirection: 'row', gap: 8 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Merchant</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Merchant</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput
                                         style={styles.textInput}
@@ -700,7 +701,7 @@ function CreateExpenseClaimModal({
                                 </View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Project Code</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Project Code</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput
                                         style={styles.textInput}
@@ -716,7 +717,7 @@ function CreateExpenseClaimModal({
 
                         {/* Description */}
                         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput
                                     style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]}
@@ -790,9 +791,9 @@ function CreateExpenseClaimModal({
                                     </View>
                                 )}
                                 <View style={{ flex: 1 }}>
-                                    <Text className="font-inter text-xs font-semibold text-primary-950" numberOfLines={1}>{r.fileName}</Text>
+                                    <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{r.fileName}</Text>
                                     {r.fileSize != null && (
-                                        <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">{formatFileSize(r.fileSize)}</Text>
+                                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">{formatFileSize(r.fileSize)}</Text>
                                     )}
                                     {isImageFile(r.fileUrl) && (
                                         <Text className="font-inter text-[10px] text-info-500 mt-0.5">Tap to view</Text>
@@ -820,7 +821,7 @@ function CreateExpenseClaimModal({
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={handleSave}
@@ -839,6 +840,9 @@ function CreateExpenseClaimModal({
 // ── Main Screen ──────────────────────────────────────────────────
 
 export function MyExpenseClaimsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -938,9 +942,9 @@ export function MyExpenseClaimsScreen() {
             <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{item.title ?? 'Untitled'}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.title ?? 'Untitled'}</Text>
                         {item.claimNumber && (
-                            <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">#{item.claimNumber}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">#{item.claimNumber}</Text>
                         )}
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
                             <CategoryBadge category={item.category ?? 'OTHER'} />
@@ -956,8 +960,8 @@ export function MyExpenseClaimsScreen() {
                 {isApprovedOrPaid && approvedAmount != null && approvedAmount !== claimedAmount && (
                     <View style={styles.amountsRow}>
                         <View style={styles.amountChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Claimed</Text>
-                            <Text className="font-inter text-xs font-bold text-primary-950">{formatCurrency(claimedAmount)}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Claimed</Text>
+                            <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">{formatCurrency(claimedAmount)}</Text>
                         </View>
                         <View style={[styles.amountChip, { backgroundColor: colors.success[50] }]}>
                             <Text className="font-inter text-[10px] text-success-700">Approved</Text>
@@ -970,14 +974,14 @@ export function MyExpenseClaimsScreen() {
                 {(item.paymentMethod || item.fromDate || item.toDate) && (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                         {item.paymentMethod && (
-                            <View style={[styles.catBadge, { backgroundColor: colors.neutral[100] }]}>
+                            <View style={[styles.catBadge, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100] }]}>
                                 <Text style={{ color: colors.neutral[600], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>
                                     {item.paymentMethod}
                                 </Text>
                             </View>
                         )}
                         {item.fromDate && item.toDate && (
-                            <Text className="font-inter text-[10px] text-neutral-500" style={{ alignSelf: 'center' }}>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400" style={{ alignSelf: 'center' }}>
                                 {formatDate(item.fromDate)} - {formatDate(item.toDate)}
                             </Text>
                         )}
@@ -986,7 +990,7 @@ export function MyExpenseClaimsScreen() {
 
                 {/* Line items count */}
                 {itemsList.length > 0 && (
-                    <Text className="font-inter text-[10px] text-neutral-500 mt-1">
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
                         {itemsList.length} line item{itemsList.length !== 1 ? 's' : ''}
                     </Text>
                 )}
@@ -1009,7 +1013,7 @@ export function MyExpenseClaimsScreen() {
                 )}
 
                 {item.description ? (
-                    <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.description}</Text>
+                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={2}>{item.description}</Text>
                 ) : null}
 
                 {item.createdAt && (
@@ -1036,7 +1040,7 @@ export function MyExpenseClaimsScreen() {
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="Expense Claims" onMenuPress={open} />
             <FlashList
                 data={claims}
@@ -1072,12 +1076,12 @@ export function MyExpenseClaimsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         padding: 16,
         marginBottom: 12,
         shadowColor: colors.primary[900],
@@ -1091,28 +1095,28 @@ const styles = StyleSheet.create({
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     sheetHandleWhite: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.4)', alignSelf: 'center', marginBottom: 12 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
-    inputWrapSm: { backgroundColor: colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrapSm: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     textInputSm: { fontFamily: 'Inter', fontSize: 12, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     dropdownBtnSm: {
-        backgroundColor: colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 10, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 10, height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-    submitActionBtn: { paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, borderColor: colors.primary[200], backgroundColor: colors.primary[50] },
+    submitActionBtn: { paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, borderColor: colors.primary[200], backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
     cancelActionBtn: { paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, borderColor: colors.danger[200], backgroundColor: colors.danger[50] },
     summaryCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         borderWidth: 1,
         borderColor: colors.primary[200],
@@ -1125,14 +1129,14 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     summaryRow: { flexDirection: 'row', gap: 12 },
-    summaryItem: { flex: 1, backgroundColor: colors.neutral[50], borderRadius: 10, padding: 10 },
+    summaryItem: { flex: 1, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 10, padding: 10 },
     amountsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-    amountChip: { backgroundColor: colors.neutral[50], borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    amountChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
     lineItemCard: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderLeftWidth: 3,
         borderLeftColor: colors.primary[400],
         padding: 12,
@@ -1169,7 +1173,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary[400],
     },
     totalBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 8,
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -1181,7 +1185,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         borderColor: colors.primary[200],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         marginBottom: 14,
     },
     modalGradientHeader: {
@@ -1210,17 +1214,17 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1.5,
         borderColor: colors.primary[200],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     receiptCard: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
         padding: 10,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         marginBottom: 8,
     },
     receiptThumb: {
@@ -1230,3 +1234,4 @@ const styles = StyleSheet.create({
         backgroundColor: colors.neutral[200],
     },
 });
+const styles = createStyles(false);

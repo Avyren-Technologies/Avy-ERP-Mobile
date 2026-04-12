@@ -42,6 +42,7 @@ import {
 } from '@/features/company-admin/api/use-analytics-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { analyticsApi } from '@/lib/api/analytics';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -358,6 +359,9 @@ function EmptyHistory() {
 // ---------------------------------------------------------------------------
 
 export function ReportsHubScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabId>('catalog');
   const [filters, setFilters] = useState<Record<string, string | undefined>>({});
@@ -608,10 +612,10 @@ export function ReportsHubScreen() {
 // Styles
 // ---------------------------------------------------------------------------
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
   },
   header: {
     paddingBottom: 20,
@@ -654,7 +658,7 @@ const styles = StyleSheet.create({
   // Tab bar
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral[100],
   },
@@ -676,7 +680,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral[100],
   },
@@ -684,12 +688,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
   },
   filterBadge: {
     backgroundColor: colors.primary[600],
@@ -749,11 +753,11 @@ const styles = StyleSheet.create({
   },
   reportCard: {
     width: '48.5%' as unknown as number,
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 3 },
@@ -789,17 +793,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   downloadButtonDisabled: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
   },
 
   // History card
   historyCard: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 16,
     padding: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 3 },
@@ -827,12 +831,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
   },
 
   // Load more
@@ -840,10 +844,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     marginTop: 4,
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
     shadowColor: colors.primary[400],
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
@@ -858,3 +862,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
 });
+const styles = createStyles(false);

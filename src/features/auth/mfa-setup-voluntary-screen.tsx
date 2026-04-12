@@ -26,6 +26,7 @@ import colors from '@/components/ui/colors';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { authApi } from '@/lib/api/auth';
 import { createLogger } from '@/lib/logger';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const logger = createLogger('MfaSetupVoluntaryScreen');
 const CODE_LENGTH = 6;
@@ -37,6 +38,9 @@ const CODE_LENGTH = 6;
  * and uses the authenticated session Bearer token for the confirm call.
  */
 export function MfaSetupVoluntaryScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { qrCodeDataUrl, secret } = useLocalSearchParams<{
@@ -309,7 +313,7 @@ export function MfaSetupVoluntaryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F7FF',
@@ -361,7 +365,7 @@ const styles = StyleSheet.create({
     color: colors.primary[500],
   },
   qrContainer: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 16,
     padding: 16,
     shadowColor: colors.primary[500],
@@ -370,7 +374,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
   },
   qrImage: {
     width: 200,
@@ -384,12 +388,12 @@ const styles = StyleSheet.create({
   secretContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
     gap: 8,
   },
   secretText: {
@@ -418,7 +422,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 2,
     borderColor: colors.primary[200],
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     textAlign: 'center',
     fontSize: 22,
     fontWeight: '700',
@@ -431,7 +435,7 @@ const styles = StyleSheet.create({
   },
   codeInputFilled: {
     borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   submittingContainer: {
     alignItems: 'center',
@@ -456,9 +460,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 14,
     borderRadius: 14,
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
   },
   infoIcon: {
     marginTop: 1,
@@ -476,3 +480,4 @@ const styles = StyleSheet.create({
     color: colors.primary[600],
   },
 });
+const styles = createStyles(false);

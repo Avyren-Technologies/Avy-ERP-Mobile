@@ -40,6 +40,7 @@ import {
     useUpdateCostCentre,
 } from '@/features/company-admin/api/use-hr-mutations';
 import { useCostCentres, useDepartments } from '@/features/company-admin/api/use-hr-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -82,7 +83,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
         <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.success[50] : colors.neutral[100] }]}>
             <View style={[styles.statusDot, { backgroundColor: isActive ? colors.success[500] : colors.neutral[400] }]} />
-            <Text className={`font-inter text-[10px] font-bold ${isActive ? 'text-success-700' : 'text-neutral-500'}`}>{status}</Text>
+            <Text className={`font-inter text-[10px] font-bold ${isActive ? 'text-success-700' : 'text-neutral-500 dark:text-neutral-400'}`}>{status}</Text>
         </View>
     );
 }
@@ -96,11 +97,11 @@ function Dropdown({
     const [open, setOpen] = React.useState(false);
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable onPress={() => setOpen(true)} style={[styles.dropdownBtn, !!error && { borderColor: colors.danger[300] }]}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
@@ -114,7 +115,7 @@ function Dropdown({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <Animated.View entering={FadeInUp} style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         <Pressable onPress={() => { onSelect(''); setOpen(false); }} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
                             <Text className="font-inter text-sm text-neutral-400">NONE</Text>
                         </Pressable>
@@ -122,7 +123,7 @@ function Dropdown({
                             {options.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label.toUpperCase()}</Text>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label.toUpperCase()}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -243,17 +244,17 @@ function CostCentreFormModal({
                         </Svg>
                     </Pressable>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text className="font-inter text-lg font-bold text-primary-950">
+                        <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                             {initialData ? 'Edit Cost Centre' : 'New Cost Centre'}
                         </Text>
-                        <Text className="font-inter text-[10px] text-neutral-500"> Manage budgeting and resource allocation </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400"> Manage budgeting and resource allocation </Text>
                     </View>
                 </View>
 
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: insets.bottom + 100 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, !!errors.name && { borderColor: colors.danger[300] }]}>
                                 <TextInput style={styles.textInput} placeholder='E.G. "ENGINEERING COST CENTRE"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={(val) => { setName(val); if (!codeManuallyEdited) { setCode(generateCode(val)); } if (errors.name) setErrors(prev => ({ ...prev, name: '' })); }} autoCapitalize="words" />
                             </View>
@@ -261,7 +262,7 @@ function CostCentreFormModal({
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Code <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Code <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, !!errors.code && { borderColor: colors.danger[300] }]}>
                                 <TextInput style={styles.textInput} placeholder='E.G. "CC-ENG-01"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={(val) => { setCode(val); setCodeManuallyEdited(true); if (errors.code) setErrors(prev => ({ ...prev, code: '' })); }} autoCapitalize="characters" />
                             </View>
@@ -272,7 +273,7 @@ function CostCentreFormModal({
                         <Dropdown label="Location" value={locationId} options={locationOptions} onSelect={setLocationId} placeholder="Select Location..." />
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Annual Budget</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Annual Budget</Text>
                             <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
                                 <Text className="font-inter text-sm font-bold text-neutral-400 mr-1">{'₹'}</Text>
                                 <TextInput style={[styles.textInput, { flex: 1 }]} placeholder="e.g. 5000000" placeholderTextColor={colors.neutral[400]} value={annualBudget} onChangeText={setAnnualBudget} keyboardType="numeric" />
@@ -282,7 +283,7 @@ function CostCentreFormModal({
                         </View>
                         
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                                 GL Account Code <Text className="font-inter text-[10px] font-normal text-neutral-400">(COMING SOON)</Text>
                             </Text>
                             <View style={[styles.inputWrap, { backgroundColor: colors.neutral[100], borderColor: colors.neutral[200] }]}>
@@ -292,13 +293,13 @@ function CostCentreFormModal({
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Status</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Status</Text>
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 {(['Active', 'Inactive'] as const).map(opt => {
                                     const selected = opt === status;
                                     return (
                                         <Pressable key={opt} onPress={() => setStatus(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt.toUpperCase()}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt.toUpperCase()}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -310,7 +311,7 @@ function CostCentreFormModal({
                 {/* Footer */}
                 <View style={[styles.modalFooter, { paddingBottom: Math.max(insets.bottom, 24) }]}>
                     <Pressable onPress={onClose} style={styles.discardBtn} hitSlop={8}>
-                        <Text className="font-inter text-sm font-bold text-neutral-500">DISCARD</Text>
+                        <Text className="font-inter text-sm font-bold text-neutral-500 dark:text-neutral-400">DISCARD</Text>
                     </Pressable>
                     <Pressable onPress={handleSave} disabled={isSaving} style={({ pressed }) => [styles.primaryBtn, isSaving && { opacity: 0.7 }, pressed && { transform: [{ scale: 0.98 }] }]}>
                         <Text className="font-inter text-sm font-bold text-white uppercase">{isSaving ? 'Saving...' : initialData ? 'Update CC' : 'Save CC'}</Text>
@@ -331,7 +332,7 @@ function CostCentreCard({ item, index, onEdit, onDelete }: { readonly item: Cost
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             <View style={styles.codeBadge}><Text className="font-inter text-[10px] font-bold text-primary-600">{item.code}</Text></View>
                         </View>
                     </View>
@@ -346,10 +347,10 @@ function CostCentreCard({ item, index, onEdit, onDelete }: { readonly item: Cost
                 <View style={styles.cardMeta}>
                     <StatusBadge status={item.status} />
                     {item.departmentName ? (
-                        <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 font-medium">DEPT: {item.departmentName.toUpperCase()}</Text></View>
+                        <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">DEPT: {item.departmentName.toUpperCase()}</Text></View>
                     ) : null}
                     {item.locationName ? (
-                        <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 font-medium">LOC: {item.locationName.toUpperCase()}</Text></View>
+                        <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">LOC: {item.locationName.toUpperCase()}</Text></View>
                     ) : null}
                     {item.annualBudget > 0 && (
                         <View style={[styles.metaChip, { backgroundColor: colors.success[50] }]}>
@@ -357,7 +358,7 @@ function CostCentreCard({ item, index, onEdit, onDelete }: { readonly item: Cost
                         </View>
                     )}
                     {item.glAccountCode ? (
-                        <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 font-medium">GL: {item.glAccountCode}</Text></View>
+                        <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">GL: {item.glAccountCode}</Text></View>
                     ) : null}
                 </View>
             </Pressable>
@@ -368,6 +369,9 @@ function CostCentreCard({ item, index, onEdit, onDelete }: { readonly item: Cost
 // ============ MAIN COMPONENT ============
 
 export function CostCentreScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -480,7 +484,7 @@ export function CostCentreScreen() {
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={[colors.gradient.surface, colors.white]} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={isDark ? ['#0F0D1A', '#1A1730'] : [colors.gradient.surface, colors.white]} style={StyleSheet.absoluteFill} />
             <AppTopHeader title="Cost Centre Management" onMenuPress={toggle} />
             <FlashList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
@@ -498,20 +502,20 @@ export function CostCentreScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.white },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white },
     headerContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 24, padding: 20, marginBottom: 16,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 24, padding: 20, marginBottom: 16,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 3,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.99 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.99 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[50] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    codeBadge: { backgroundColor: colors.primary[50], borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    codeBadge: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     deleteIconBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.danger[50], justifyContent: 'center', alignItems: 'center' },
@@ -520,17 +524,18 @@ const styles = StyleSheet.create({
     toastGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, shadowColor: colors.success[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
     
     modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     fieldWrap: { marginBottom: 16 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    dropdownBtn: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    dropdownBtn: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     
-    modalFooter: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.neutral[100], backgroundColor: colors.white },
+    modalFooter: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white },
     discardBtn: { paddingHorizontal: 16, paddingVertical: 10 },
     primaryBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.primary[600], flexDirection: 'row', justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[600], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

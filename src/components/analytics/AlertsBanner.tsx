@@ -134,7 +134,7 @@ export function AlertsBanner({ alerts, onDismiss, onPress }: AlertsBannerProps) 
                   )}
                 </View>
                 <Text
-                  className="font-inter text-[12px] text-neutral-600"
+                  className="font-inter text-[12px] text-neutral-600 dark:text-neutral-400"
                   numberOfLines={2}
                 >
                   {alert.message}

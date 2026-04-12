@@ -38,6 +38,7 @@ import {
     useUpdateDepartment,
 } from '@/features/company-admin/api/use-hr-mutations';
 import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ HELPERS ============
 
@@ -72,7 +73,7 @@ function StatusBadge({ status }: { readonly status: string }) {
     return (
         <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.success[50] : colors.neutral[100] }]}>
             <View style={[styles.statusDot, { backgroundColor: isActive ? colors.success[500] : colors.neutral[400] }]} />
-            <Text className={`font-inter text-[10px] font-bold ${isActive ? 'text-success-700' : 'text-neutral-500'}`}>
+            <Text className={`font-inter text-[10px] font-bold ${isActive ? 'text-success-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                 {status}
             </Text>
         </View>
@@ -97,18 +98,25 @@ function Dropdown({
     readonly required?: boolean;
 }) {
     const [open, setOpen] = React.useState(false);
+    const [searchText, setSearchText] = React.useState('');
+
+    const filtered = React.useMemo(() => {
+        if (!searchText.trim()) return options;
+        const q = searchText.toLowerCase();
+        return options.filter(o => o.label.toLowerCase().includes(q));
+    }, [options, searchText]);
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable
-                onPress={() => setOpen(true)}
+                onPress={() => { setOpen(true); setSearchText(''); }}
                 style={styles.dropdownBtn}
             >
                 <Text
-                    className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}
+                    className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                     numberOfLines={1}
                 >
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
@@ -123,17 +131,32 @@ function Dropdown({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
+                        {options.length > 5 && (
+                            <View style={[styles.inputWrap, { marginBottom: 12 }]}>
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Search..."
+                                    placeholderTextColor={colors.neutral[400]}
+                                    value={searchText}
+                                    onChangeText={setSearchText}
+                                    autoFocus
+                                />
+                            </View>
+                        )}
                         <Pressable
                             onPress={() => { onSelect(''); setOpen(false); }}
                             style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}
                         >
                             <Text className="font-inter text-sm text-neutral-400">None</Text>
                         </Pressable>
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            {options.map(opt => (
+                        <FlatList
+                            data={filtered}
+                            keyExtractor={item => item.id}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item: opt }) => (
                                 <Pressable
-                                    key={opt.id}
                                     onPress={() => { onSelect(opt.id); setOpen(false); }}
                                     style={{
                                         paddingVertical: 12,
@@ -144,12 +167,17 @@ function Dropdown({
                                         borderRadius: 8,
                                     }}
                                 >
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
                                         {opt.label}
                                     </Text>
                                 </Pressable>
-                            ))}
-                        </ScrollView>
+                            )}
+                            ListEmptyComponent={
+                                <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                                    <Text className="font-inter text-sm text-neutral-400">No results found</Text>
+                                </View>
+                            }
+                        />
                     </View>
                 </View>
             </Modal>
@@ -172,7 +200,7 @@ function ChipSelector({
 }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">{label}</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">{label}</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
@@ -182,7 +210,7 @@ function ChipSelector({
                             onPress={() => onSelect(opt)}
                             style={[styles.chip, selected && styles.chipActive]}
                         >
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>
                                 {opt}
                             </Text>
                         </Pressable>
@@ -221,10 +249,10 @@ function SearchableEmployeePicker({
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">{label}</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">{label}</Text>
             <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
                 <Text
-                    className={`font-inter text-sm ${displayValue ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}
+                    className={`font-inter text-sm ${displayValue ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                     numberOfLines={1}
                 >
                     {displayValue || 'Search employee...'}
@@ -239,7 +267,7 @@ function SearchableEmployeePicker({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '70%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                             <TextInput
                                 style={styles.textInput}
@@ -273,7 +301,7 @@ function SearchableEmployeePicker({
                                         borderRadius: 8,
                                     }}
                                 >
-                                    <Text className={`font-inter text-sm ${emp.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                    <Text className={`font-inter text-sm ${emp.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
                                         {emp.name}
                                     </Text>
                                     <Text className="font-inter text-xs text-neutral-400">{emp.code}</Text>
@@ -401,10 +429,10 @@ function DepartmentFormModal({
                         </Svg>
                     </Pressable>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text className="font-inter text-lg font-bold text-primary-950">
+                        <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                             {initialData ? 'Edit Department' : 'New Department'}
                         </Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             Configure administrative unit details
                         </Text>
                     </View>
@@ -422,7 +450,7 @@ function DepartmentFormModal({
                     >
                         {/* Name */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                                 Department Name <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={[styles.inputWrap, !!errors.name && { borderColor: colors.danger[300] }]}>
@@ -448,7 +476,7 @@ function DepartmentFormModal({
 
                         {/* Code */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                                 Department Code <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={[styles.inputWrap, !!errors.code && { borderColor: colors.danger[300] }]}>
@@ -492,7 +520,7 @@ function DepartmentFormModal({
 
                         {/* Cost Centre Code */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase tracking-wider">Cost Centre Code</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Cost Centre Code</Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
@@ -518,7 +546,7 @@ function DepartmentFormModal({
                         {/* Footer Actions */}
                         <View style={{ flexDirection: 'row', gap: 16 }}>
                             <Pressable onPress={onClose} style={styles.cancelBtn}>
-                                <Text className="font-inter text-sm font-bold text-neutral-600">DISCARD</Text>
+                                <Text className="font-inter text-sm font-bold text-neutral-600 dark:text-neutral-400">DISCARD</Text>
                             </Pressable>
                             <Pressable
                                 onPress={handleSave}
@@ -559,7 +587,7 @@ function DepartmentCard({
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>
                                 {item.name}
                             </Text>
                             <View style={styles.codeBadge}>
@@ -567,7 +595,7 @@ function DepartmentCard({
                             </View>
                         </View>
                         {item.headEmployee ? (
-                            <Text className="mt-1 font-inter text-xs text-neutral-500">
+                            <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 Head: {item.headEmployee}
                             </Text>
                         ) : null}
@@ -585,16 +613,16 @@ function DepartmentCard({
                 <View style={styles.cardMeta}>
                     {item.parentDepartment ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Parent: {item.parentDepartment}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Parent: {item.parentDepartment}</Text>
                         </View>
                     ) : null}
                     {item.costCentreCode ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">CC: {item.costCentreCode}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">CC: {item.costCentreCode}</Text>
                         </View>
                     ) : null}
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             {item.employeeCount} employee{item.employeeCount !== 1 ? 's' : ''}
                         </Text>
                     </View>
@@ -607,6 +635,9 @@ function DepartmentCard({
 // ============ MAIN COMPONENT ============
 
 export function DepartmentScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -647,10 +678,10 @@ export function DepartmentScreen() {
             parentId: item.parentId ?? '',
             parentDepartment: item.parent?.name ?? '',
             headEmployeeId: item.headEmployeeId ?? '',
-            headEmployee: item.headEmployee?.name ?? '',
+            headEmployee: item.headEmployee?.name ?? item.headEmployeeName ?? '',
             costCentreCode: item.costCentreCode ?? '',
             status: item.status ?? 'Active',
-            employeeCount: item._count?.employees ?? 0,
+            employeeCount: item._count?.employees ?? item.employeeCount ?? 0,
         }));
     }, [response]);
 
@@ -722,8 +753,8 @@ export function DepartmentScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Departments</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Departments</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                 {departments.length} department{departments.length !== 1 ? 's' : ''}
             </Text>
             <View style={{ marginTop: 16 }}>
@@ -790,37 +821,37 @@ export function DepartmentScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    codeBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    codeBadge: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 16 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: {
         flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center',
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
@@ -833,3 +864,4 @@ const styles = StyleSheet.create({
         zIndex: 9999,
     },
 });
+const styles = createStyles(false);

@@ -78,7 +78,7 @@ export function Step7Strategy({
                                 borderColor: colors.neutral[200],
                             }}
                         >
-                            <Text className="font-inter text-xs text-neutral-500 leading-relaxed">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
                                 Single-location mode: one HQ location will be created in the next step.
                                 All operational configurations will apply to that location.
                             </Text>

@@ -32,6 +32,7 @@ import {
     useUpdateApprovalWorkflow,
 } from '@/features/company-admin/api/use-ess-mutations';
 import { useApprovalWorkflows, useApprovalWorkflowConfig } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -120,19 +121,19 @@ function WorkflowFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 40 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">{editItem ? 'Edit Workflow' : 'New Workflow'}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">{editItem ? 'Edit Workflow' : 'New Workflow'}</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         {/* Name */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Workflow Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Workflow Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Leave Approval" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
 
                         {/* Trigger Event */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Trigger Event <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Trigger Event <Text className="text-danger-500">*</Text></Text>
                             <Pressable onPress={() => setTriggerOpen(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${triggerEvent ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>{triggerEvents.find(t => t.value === triggerEvent)?.label ?? (triggerEvent || 'Select event...')}</Text>
+                                <Text className={`font-inter text-sm ${triggerEvent ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>{triggerEvents.find(t => t.value === triggerEvent)?.label ?? (triggerEvent || 'Select event...')}</Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
                             <Modal visible={triggerOpen} transparent animationType="slide" onRequestClose={() => setTriggerOpen(false)}>
@@ -140,12 +141,12 @@ function WorkflowFormModal({
                                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setTriggerOpen(false)} />
                                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                                         <View style={styles.sheetHandle} />
-                                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Trigger Event</Text>
+                                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Trigger Event</Text>
                                         <ScrollView showsVerticalScrollIndicator={false}>
                                             {triggerEvents.map(ev => (
                                                 <Pressable key={ev.value} onPress={() => { setTriggerEvent(ev.value); setTriggerOpen(false); }}
                                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: ev.value === triggerEvent ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                                    <Text className={`font-inter text-sm ${ev.value === triggerEvent ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{ev.label}</Text>
+                                                    <Text className={`font-inter text-sm ${ev.value === triggerEvent ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{ev.label}</Text>
                                                 </Pressable>
                                             ))}
                                         </ScrollView>
@@ -156,7 +157,7 @@ function WorkflowFormModal({
 
                         {/* Active Toggle */}
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950" style={{ flex: 1 }}>Active</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>Active</Text>
                             <Switch value={active} onValueChange={setActive} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={active ? colors.primary[600] : colors.neutral[300]} />
                         </View>
 
@@ -178,14 +179,14 @@ function WorkflowFormModal({
                                         const sel = role.value === step.approverRole;
                                         return (
                                             <Pressable key={role.value} onPress={() => updateStep(idx, { approverRole: role.value })} style={[styles.chip, sel && styles.chipActive]}>
-                                                <Text className={`font-inter text-[10px] font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{role.label}</Text>
+                                                <Text className={`font-inter text-[10px] font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{role.label}</Text>
                                             </Pressable>
                                         );
                                     })}
                                 </View>
                                 {/* SLA Hours */}
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                    <Text className="font-inter text-xs text-neutral-500">SLA Hours:</Text>
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">SLA Hours:</Text>
                                     <View style={[styles.inputWrapSmall, { width: 60 }]}>
                                         <TextInput style={styles.textInputSmall} value={step.slaHours} onChangeText={v => updateStep(idx, { slaHours: v })} keyboardType="number-pad" placeholder="24" placeholderTextColor={colors.neutral[400]} />
                                     </View>
@@ -193,13 +194,13 @@ function WorkflowFormModal({
                                 {/* Toggles row */}
                                 <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                                     <Pressable onPress={() => updateStep(idx, { autoEscalate: !step.autoEscalate })} style={[styles.miniToggle, step.autoEscalate && styles.miniToggleActive]}>
-                                        <Text className={`font-inter text-[10px] font-semibold ${step.autoEscalate ? 'text-white' : 'text-neutral-500'}`}>Auto-Escalate</Text>
+                                        <Text className={`font-inter text-[10px] font-semibold ${step.autoEscalate ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}>Auto-Escalate</Text>
                                     </Pressable>
                                     <Pressable onPress={() => updateStep(idx, { autoApprove: !step.autoApprove })} style={[styles.miniToggle, step.autoApprove && styles.miniToggleActive]}>
-                                        <Text className={`font-inter text-[10px] font-semibold ${step.autoApprove ? 'text-white' : 'text-neutral-500'}`}>Auto-Approve</Text>
+                                        <Text className={`font-inter text-[10px] font-semibold ${step.autoApprove ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}>Auto-Approve</Text>
                                     </Pressable>
                                     <Pressable onPress={() => updateStep(idx, { autoReject: !step.autoReject })} style={[styles.miniToggle, step.autoReject && { backgroundColor: colors.danger[500] }]}>
-                                        <Text className={`font-inter text-[10px] font-semibold ${step.autoReject ? 'text-white' : 'text-neutral-500'}`}>Auto-Reject</Text>
+                                        <Text className={`font-inter text-[10px] font-semibold ${step.autoReject ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}>Auto-Reject</Text>
                                     </Pressable>
                                 </View>
                             </View>
@@ -210,7 +211,7 @@ function WorkflowFormModal({
                         </Pressable>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : editItem ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -231,7 +232,7 @@ function WorkflowCard({ item, index, onEdit, onDelete, onToggle, triggerEvents }
             <Pressable onPress={onEdit} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                         <View style={[styles.triggerBadge, { backgroundColor: tc.bg }]}>
                             <Text style={{ color: tc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{triggerLabel}</Text>
                         </View>
@@ -239,7 +240,7 @@ function WorkflowCard({ item, index, onEdit, onDelete, onToggle, triggerEvents }
                     <Switch value={item.active} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={item.active ? colors.primary[600] : colors.neutral[300]} />
                 </View>
                 <View style={styles.cardFooter}>
-                    <Text className="font-inter text-xs text-neutral-500">{item.steps.length} step{item.steps.length !== 1 ? 's' : ''}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.steps.length} step{item.steps.length !== 1 ? 's' : ''}</Text>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
@@ -252,6 +253,9 @@ function WorkflowCard({ item, index, onEdit, onDelete, onToggle, triggerEvents }
 // ============ MAIN COMPONENT ============
 
 export function ApprovalWorkflowScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -331,8 +335,8 @@ export function ApprovalWorkflowScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Approval Workflows</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{workflows.length} workflow{workflows.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Approval Workflows</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{workflows.length} workflow{workflows.length !== 1 ? 's' : ''}</Text>
         </Animated.View>
     );
 
@@ -365,45 +369,46 @@ export function ApprovalWorkflowScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     triggerBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4, alignSelf: 'flex-start' },
-    formSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
-    inputWrapSmall: { backgroundColor: colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 10, height: 36, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrapSmall: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 10, height: 36, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     textInputSmall: { fontFamily: 'Inter', fontSize: 12, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 4 },
-    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     stepCard: {
-        backgroundColor: colors.neutral[50], borderRadius: 14, padding: 12, marginBottom: 10,
-        borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 14, padding: 12, marginBottom: 10,
+        borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
-    stepBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start' },
-    miniToggle: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.neutral[100], borderWidth: 1, borderColor: colors.neutral[200] },
+    stepBadge: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start' },
+    miniToggle: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     miniToggleActive: { backgroundColor: colors.primary[500], borderColor: colors.primary[500] },
     addBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         padding: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary[200], borderStyle: 'dashed', marginTop: 4, marginBottom: 12,
     },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

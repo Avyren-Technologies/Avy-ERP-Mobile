@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { uploadApi, type FileCategory } from '@/lib/api/upload';
 import { showErrorMessage } from '@/components/ui/utils';
 

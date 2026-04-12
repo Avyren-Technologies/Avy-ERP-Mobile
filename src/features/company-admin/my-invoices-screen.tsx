@@ -26,6 +26,7 @@ import {
     useMyInvoiceDetail,
     useMyInvoices,
 } from '@/features/company-admin/api/use-company-admin-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -117,7 +118,7 @@ function FilterChips({
                         ]}
                     >
                         <Text
-                            className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-500'}`}
+                            className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}
                         >
                             {f}
                         </Text>
@@ -173,7 +174,7 @@ function InvoiceDetailPanel({ invoiceId, onClose }: { invoiceId: string; onClose
         <Animated.View entering={FadeInDown.springify()} style={styles.detailPanel}>
             <View style={styles.detailHeader}>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-base font-bold text-primary-950">
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
                         {detail.invoiceNumber}
                     </Text>
                     <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">
@@ -200,12 +201,12 @@ function InvoiceDetailPanel({ invoiceId, onClose }: { invoiceId: string; onClose
                     </View>
                     {detail.lineItems.map((li) => (
                         <View key={li.id} style={styles.lineItemRow}>
-                            <Text className="flex-1 font-inter text-xs text-primary-900" numberOfLines={1}>{li.description}</Text>
-                            <Text className="w-10 text-right font-inter text-xs text-neutral-500">{li.quantity}</Text>
-                            <Text className="w-20 text-right font-inter text-xs text-neutral-500">
+                            <Text className="flex-1 font-inter text-xs text-primary-900 dark:text-primary-100" numberOfLines={1}>{li.description}</Text>
+                            <Text className="w-10 text-right font-inter text-xs text-neutral-500 dark:text-neutral-400">{li.quantity}</Text>
+                            <Text className="w-20 text-right font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 {formatCurrency(li.unitPrice, detail.currency)}
                             </Text>
-                            <Text className="w-20 text-right font-inter text-xs font-semibold text-primary-900">
+                            <Text className="w-20 text-right font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">
                                 {formatCurrency(li.amount, detail.currency)}
                             </Text>
                         </View>
@@ -217,18 +218,18 @@ function InvoiceDetailPanel({ invoiceId, onClose }: { invoiceId: string; onClose
             {/* Totals */}
             <View style={styles.totalRow}>
                 <Text className="font-inter text-xs text-neutral-400">Subtotal</Text>
-                <Text className="font-inter text-xs font-semibold text-primary-900">
+                <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">
                     {formatCurrency(detail.subtotal, detail.currency)}
                 </Text>
             </View>
             <View style={styles.totalRow}>
                 <Text className="font-inter text-xs text-neutral-400">GST ({detail.gstPercent}%)</Text>
-                <Text className="font-inter text-xs font-semibold text-primary-900">
+                <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">
                     {formatCurrency(detail.gst, detail.currency)}
                 </Text>
             </View>
             <View style={[styles.totalRow, { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100] }]}>
-                <Text className="font-inter text-sm font-bold text-primary-900">Total</Text>
+                <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">Total</Text>
                 <Text className="font-inter text-base font-bold text-primary-700">
                     {formatCurrency(detail.total, detail.currency)}
                 </Text>
@@ -258,7 +259,7 @@ function InvoiceRow({
                 <View style={styles.invoiceCardRow}>
                     <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             {item.invoiceNumber}
                         </Text>
                         <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">
@@ -299,6 +300,9 @@ function InvoiceRow({
 // ============ MAIN SCREEN ============
 
 export function MyInvoicesScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const [filter, setFilter] = React.useState<StatusFilter>('All');
@@ -383,10 +387,10 @@ export function MyInvoicesScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     filterRow: {
         paddingHorizontal: 20,
@@ -397,9 +401,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     loadingContainer: {
         padding: 20,
@@ -412,7 +416,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     invoiceCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         padding: 14,
         shadowColor: colors.primary[900],
@@ -432,12 +436,12 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     detailPanel: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         padding: 16,
         marginTop: 4,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     detailHeader: {
         flexDirection: 'row',
@@ -445,7 +449,7 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         marginVertical: 10,
     },
     lineItemHeader: {
@@ -465,3 +469,4 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
     },
 });
+const styles = createStyles(false);

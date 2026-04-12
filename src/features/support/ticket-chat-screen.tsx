@@ -30,6 +30,7 @@ import {
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useTicketSocket } from '@/hooks/use-ticket-socket';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -173,25 +174,25 @@ function ModuleChangeCard({ request }: { request: ModuleChangeRequest }) {
             </Text>
             {request.moduleName && (
                 <View style={s.moduleRow}>
-                    <Text className="font-inter text-xs text-neutral-500">Module</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Module</Text>
                     <Text className="font-inter text-xs font-semibold text-neutral-800">{request.moduleName}</Text>
                 </View>
             )}
             {request.locationName && (
                 <View style={s.moduleRow}>
-                    <Text className="font-inter text-xs text-neutral-500">Location</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Location</Text>
                     <Text className="font-inter text-xs font-semibold text-neutral-800">{request.locationName}</Text>
                 </View>
             )}
             {request.changeType && (
                 <View style={s.moduleRow}>
-                    <Text className="font-inter text-xs text-neutral-500">Type</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Type</Text>
                     <Text className="font-inter text-xs font-semibold text-neutral-800">{request.changeType}</Text>
                 </View>
             )}
             {request.status && (
                 <View style={s.moduleRow}>
-                    <Text className="font-inter text-xs text-neutral-500">Status</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Status</Text>
                     <Text className="font-inter text-xs font-semibold text-neutral-800">{request.status}</Text>
                 </View>
             )}
@@ -202,6 +203,9 @@ function ModuleChangeCard({ request }: { request: ModuleChangeRequest }) {
 // ============ MAIN SCREEN ============
 
 export function TicketChatScreen() {
+  const isDark = useIsDark();
+  const s = _createStyles(isDark);
+
     const { id } = useLocalSearchParams<{ id: string }>();
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
@@ -338,11 +342,11 @@ export function TicketChatScreen() {
                 </Animated.View>
             )}
 
-            {/* Messages */}
+            {/* Messages + Input wrapped in KeyboardAvoidingView */}
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={0}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <FlatList
                     ref={flatListRef}
@@ -352,6 +356,7 @@ export function TicketChatScreen() {
                     inverted
                     contentContainerStyle={s.messagesList}
                     showsVerticalScrollIndicator={false}
+                    keyboardDismissMode="interactive"
                     ListEmptyComponent={
                         <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                             <Text className="font-inter text-sm text-neutral-400">
@@ -362,10 +367,10 @@ export function TicketChatScreen() {
                 />
 
                 {/* Input Bar */}
-                <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+                <View style={[s.inputBar, { paddingBottom: (Platform.OS === 'ios' ? 54 : 80) + Math.max(insets.bottom, 12) }]}>
                     {isClosed ? (
                         <View style={s.closedBanner}>
-                            <Text className="font-inter text-xs text-neutral-500">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 This ticket is closed. You cannot send messages.
                             </Text>
                         </View>
@@ -406,10 +411,10 @@ export function TicketChatScreen() {
 
 // ============ STYLES ============
 
-const s = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     closeButton: {
         width: 36,
@@ -473,7 +478,7 @@ const s = StyleSheet.create({
         borderBottomRightRadius: 4,
     },
     bubbleOther: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderBottomLeftRadius: 4,
     },
     bubbleMeta: {
@@ -489,9 +494,10 @@ const s = StyleSheet.create({
     inputBar: {
         borderTopWidth: 1,
         borderTopColor: colors.neutral[200],
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         paddingHorizontal: 12,
         paddingTop: 10,
+        paddingBottom: 12,
     },
     inputRow: {
         flexDirection: 'row',
@@ -501,14 +507,14 @@ const s = StyleSheet.create({
     textInput: {
         flex: 1,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 10,
         fontSize: 14,
         color: colors.neutral[800],
         maxHeight: 100,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     },
     sendButton: {
         width: 42,
@@ -523,3 +529,4 @@ const s = StyleSheet.create({
         paddingVertical: 12,
     },
 });
+const s = _createStyles(false);

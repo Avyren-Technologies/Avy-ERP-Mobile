@@ -24,6 +24,7 @@ import {
   useBulkValidateEmployees,
 } from '@/features/company-admin/api/use-hr-mutations';
 import { downloadBulkEmployeeTemplate } from '@/features/company-admin/api/use-hr-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -133,7 +134,7 @@ function ValidationRowCard({
               #{row.rowNum}
             </Text>
           </View>
-          <Text className="font-inter text-sm font-semibold text-primary-950" style={{ flex: 1 }}>
+          <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>
             {name}
           </Text>
           <View
@@ -221,11 +222,11 @@ function ImportResultCard({
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text className="font-inter text-sm font-semibold text-primary-950">
+            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
               {name}
             </Text>
             {row.employeeId ? (
-              <Text className="font-inter text-xs text-neutral-500">
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                 {row.employeeId}
               </Text>
             ) : null}
@@ -280,6 +281,9 @@ function ImportResultCard({
 // ── Main Screen ──────────────────────────────────────────────────────
 
 export function BulkEmployeeImportScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -444,11 +448,11 @@ export function BulkEmployeeImportScreen() {
             </LinearGradient>
           </View>
 
-          <Text className="font-inter text-base font-bold text-primary-950" style={{ marginTop: 16 }}>
+          <Text className="font-inter text-base font-bold text-primary-950 dark:text-white" style={{ marginTop: 16 }}>
             Download Import Template
           </Text>
           <Text
-            className="font-inter text-sm text-neutral-500"
+            className="font-inter text-sm text-neutral-500 dark:text-neutral-400"
             style={{ marginTop: 8, textAlign: 'center', lineHeight: 20 }}
           >
             Download the Excel template, fill in your employee data, then upload
@@ -550,7 +554,7 @@ export function BulkEmployeeImportScreen() {
                       {selectedFile.name}
                     </Text>
                     {selectedFile.size ? (
-                      <Text className="font-inter text-xs text-neutral-500" style={{ marginTop: 2 }}>
+                      <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" style={{ marginTop: 2 }}>
                         {formatFileSize(selectedFile.size)}
                       </Text>
                     ) : null}
@@ -573,7 +577,7 @@ export function BulkEmployeeImportScreen() {
 
             {/* Password Input */}
             <Animated.View entering={FadeInDown.duration(400).delay(200)} style={{ marginTop: 16 }}>
-              <Text className="font-inter text-sm font-semibold text-primary-950" style={{ marginBottom: 8 }}>
+              <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ marginBottom: 8 }}>
                 Default Password
               </Text>
               <View style={styles.passwordRow}>
@@ -698,7 +702,7 @@ export function BulkEmployeeImportScreen() {
                       Errors
                     </Text>
                   </View>
-                  <View style={[styles.summaryCard, { backgroundColor: colors.primary[50] }]}>
+                  <View style={[styles.summaryCard, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                     <Text
                       className="font-inter text-lg font-bold"
                       style={{ color: colors.primary[700] }}
@@ -716,7 +720,7 @@ export function BulkEmployeeImportScreen() {
 
                 {validationResult.rows.length > 0 && (
                   <Text
-                    className="font-inter text-sm font-semibold text-primary-950"
+                    className="font-inter text-sm font-semibold text-primary-950 dark:text-white"
                     style={{ marginTop: 16, marginBottom: 8 }}
                   >
                     Row Details
@@ -818,7 +822,7 @@ export function BulkEmployeeImportScreen() {
 
               {importResult.results.length > 0 && (
                 <Text
-                  className="font-inter text-sm font-semibold text-primary-950"
+                  className="font-inter text-sm font-semibold text-primary-950 dark:text-white"
                   style={{ marginTop: 16, marginBottom: 8 }}
                 >
                   Import Details
@@ -908,10 +912,10 @@ export function BulkEmployeeImportScreen() {
 
 // ── Styles ─────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gradient.surface,
+    backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
   },
   headerGradient: {
     paddingHorizontal: 24,
@@ -989,7 +993,7 @@ const styles = StyleSheet.create({
 
   // Template card
   templateCard: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
@@ -999,7 +1003,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     borderWidth: 1,
-    borderColor: colors.primary[50],
+    borderColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   templateIconWrap: {
     marginTop: 8,
@@ -1014,10 +1018,10 @@ const styles = StyleSheet.create({
 
   // Upload area
   uploadArea: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     borderStyle: 'dashed',
     padding: 24,
     alignItems: 'center',
@@ -1026,17 +1030,17 @@ const styles = StyleSheet.create({
   },
   uploadAreaSelected: {
     borderColor: colors.primary[300],
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
   },
 
   // Password
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     overflow: 'hidden',
   },
   passwordInput: {
@@ -1079,12 +1083,12 @@ const styles = StyleSheet.create({
 
   // Row cards
   rowCard: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.primary[50],
+    borderColor: isDark ? colors.primary[900] : colors.primary[50],
     shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
@@ -1141,7 +1145,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 24,
     paddingTop: 12,
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.neutral[100],
     shadowColor: '#000',
@@ -1151,3 +1155,4 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 });
+const styles = createStyles(false);

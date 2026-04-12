@@ -23,6 +23,7 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 
 import { useFnFSettlements, useFnFSettlement } from '@/features/company-admin/api/use-offboarding-queries';
 import { useComputeFnF, useApproveFnF, usePayFnF } from '@/features/company-admin/api/use-offboarding-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -128,14 +129,14 @@ function FnFDetailModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               <AvatarCircle name={settlement.employeeName} />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text className="font-inter text-base font-bold text-primary-950">{settlement.employeeName}</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{settlement.employeeName}</Text>
                 <StatusBadge status={settlement.status} />
               </View>
               <Text className="font-inter text-lg font-bold text-primary-700">{formatCurrency(settlement.totalAmount)}</Text>
             </View>
 
             {/* Breakdown table */}
-            <Text className="font-inter text-sm font-bold text-primary-900 mb-3">F&F Breakdown</Text>
+            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100 mb-3">F&F Breakdown</Text>
             <View style={styles.breakdownTable}>
               {FNF_LINE_ITEMS.map((line, idx) => {
                 const amount = breakdown?.[line.key] ?? 0;
@@ -143,10 +144,10 @@ function FnFDetailModal({
                 return (
                   <View key={line.key} style={[styles.breakdownRow, isNet && styles.breakdownNetRow,
                     idx < FNF_LINE_ITEMS.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.neutral[50] }]}>
-                    <Text className={`font-inter text-xs ${isNet ? 'font-bold text-primary-950' : 'text-primary-800'}`}>
+                    <Text className={`font-inter text-xs ${isNet ? 'font-bold text-primary-950 dark:text-white' : 'text-primary-800'}`}>
                       {line.label}
                     </Text>
-                    <Text className={`font-inter text-xs ${isNet ? 'font-bold text-primary-950' : line.isDeduction ? 'text-danger-600 font-semibold' : 'text-primary-800 font-semibold'}`}>
+                    <Text className={`font-inter text-xs ${isNet ? 'font-bold text-primary-950 dark:text-white' : line.isDeduction ? 'text-danger-600 font-semibold' : 'text-primary-800 font-semibold'}`}>
                       {line.isDeduction && amount > 0 ? `- ${formatCurrency(amount)}` : formatCurrency(amount)}
                     </Text>
                   </View>
@@ -188,7 +189,7 @@ function FnFCard({ item, index, onPress }: { item: FnFSettlementItem; index: num
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <AvatarCircle name={item.employeeName} />
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
+            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
             <View style={{ marginTop: 4 }}>
               <StatusBadge status={item.status} />
             </View>
@@ -206,6 +207,9 @@ function FnFCard({ item, index, onPress }: { item: FnFSettlementItem; index: num
 // ============ MAIN SCREEN ============
 
 export function FnFSettlementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
 
@@ -309,7 +313,7 @@ export function FnFSettlementScreen() {
             const active = s === statusFilter;
             return (
               <Pressable key={s} onPress={() => setStatusFilter(s)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{s}</Text>
+                <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{s}</Text>
               </Pressable>
             );
           })}
@@ -350,18 +354,18 @@ export function FnFSettlementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
   header: { paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   card: {
-    backgroundColor: colors.white, borderRadius: 16, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
   },
   avatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[50],
+    width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     alignItems: 'center', justifyContent: 'center',
   },
   statusBadge: {
@@ -371,11 +375,11 @@ const styles = StyleSheet.create({
   statusDot: { width: 5, height: 5, borderRadius: 2.5 },
   filterChip: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100,
-    borderWidth: 1, borderColor: colors.neutral[200], backgroundColor: colors.white,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], backgroundColor: isDark ? '#1A1730' : colors.white,
   },
   filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
   formSheet: {
-    backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingHorizontal: 20, paddingTop: 12,
   },
   sheetHandle: {
@@ -383,17 +387,18 @@ const styles = StyleSheet.create({
     alignSelf: 'center', marginBottom: 16,
   },
   breakdownTable: {
-    backgroundColor: colors.neutral[50], borderRadius: 12, overflow: 'hidden',
-    borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, overflow: 'hidden',
+    borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
   },
   breakdownRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 10,
   },
   breakdownNetRow: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   actionBtn: {
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
   },
 });
+const styles = createStyles(false);

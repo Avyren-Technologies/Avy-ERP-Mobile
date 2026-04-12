@@ -71,7 +71,7 @@ const TASK_STATUSES = ['PENDING', 'COMPLETED', 'SKIPPED', 'OVERDUE'];
 function StatusBadge({ status }: { status: string }) {
     const s = status?.toLowerCase();
     const bg = s === 'completed' ? colors.success[50] : s === 'skipped' ? colors.neutral[100] : s === 'overdue' ? colors.danger[50] : colors.warning[50];
-    const textCls = s === 'completed' ? 'text-success-700' : s === 'skipped' ? 'text-neutral-500' : s === 'overdue' ? 'text-danger-700' : 'text-warning-700';
+    const textCls = s === 'completed' ? 'text-success-700' : s === 'skipped' ? 'text-neutral-500 dark:text-neutral-400' : s === 'overdue' ? 'text-danger-700' : 'text-warning-700';
     return (
         <View style={[styles.typeBadge, { backgroundColor: bg }]}>
             <Text className={`font-inter text-[10px] font-bold uppercase ${textCls}`}>{status}</Text>
@@ -98,7 +98,7 @@ function ProgressBar({ percentage }: { percentage: number }) {
             <View style={styles.progressTrack}>
                 <View style={[styles.progressFill, { width: `${Math.min(percentage, 100)}%` as any, backgroundColor: color }]} />
             </View>
-            <Text className="font-inter text-xs font-bold text-neutral-600" style={{ minWidth: 36, textAlign: 'right' }}>{Math.round(percentage)}%</Text>
+            <Text className="font-inter text-xs font-bold text-neutral-600 dark:text-neutral-400" style={{ minWidth: 36, textAlign: 'right' }}>{Math.round(percentage)}%</Text>
         </View>
     );
 }
@@ -112,7 +112,7 @@ function TabSelector({ activeTab, onSelect }: { activeTab: Tab; onSelect: (t: Ta
                 const active = tab === activeTab;
                 return (
                     <Pressable key={tab} onPress={() => onSelect(tab)} style={[styles.chip, active && styles.chipActive]}>
-                        <Text className={`font-inter text-xs font-semibold capitalize ${active ? 'text-white' : 'text-neutral-600'}`}>{tab}</Text>
+                        <Text className={`font-inter text-xs font-semibold capitalize ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{tab}</Text>
                     </Pressable>
                 );
             })}
@@ -172,20 +172,20 @@ function TemplateFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
                         {initialData ? 'Edit Template' : 'Add Template'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Standard Onboarding" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Optional description" placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Checklist Items (one per line)</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Checklist Items (one per line)</Text>
                             <View style={[styles.inputWrap, { height: 120 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder={'Issue laptop\nCreate email account\nAssign mentor'} placeholderTextColor={colors.neutral[400]} value={items} onChangeText={setItems} multiline />
                             </View>
@@ -193,14 +193,14 @@ function TemplateFormModal({
                         </View>
                         <View style={styles.toggleRow}>
                             <View style={{ flex: 1, marginRight: 12 }}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950">Set as Default</Text>
-                                <Text className="mt-0.5 font-inter text-xs text-neutral-500">Auto-applied to new employees</Text>
+                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Set as Default</Text>
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">Auto-applied to new employees</Text>
                             </View>
                             <Switch value={isDefault} onValueChange={setIsDefault} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isDefault ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -220,10 +220,10 @@ function TemplateCard({ item, index, onEdit, onDelete }: { item: TemplateItem; i
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             {item.isDefault && <DefaultBadge />}
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">{Array.isArray(item.items) ? item.items.length : 0} items</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{Array.isArray(item.items) ? item.items.length : 0} items</Text>
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -231,7 +231,7 @@ function TemplateCard({ item, index, onEdit, onDelete }: { item: TemplateItem; i
                 </View>
                 {item.description ? (
                     <View style={styles.cardMeta}>
-                        <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={2}>{item.description}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{item.description}</Text>
                     </View>
                 ) : null}
             </Pressable>
@@ -249,8 +249,8 @@ function TaskCard({ item, index, onComplete, onSkip }: { item: TaskItem; index: 
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.title}</Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">{item.employeeName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.title}</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.employeeName}</Text>
                     </View>
                     <StatusBadge status={item.status ?? 'PENDING'} />
                 </View>
@@ -262,7 +262,7 @@ function TaskCard({ item, index, onComplete, onSkip }: { item: TaskItem; index: 
                     ) : null}
                     {item.dueDate ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Due: {fmt.date(item.dueDate)}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Due: {fmt.date(item.dueDate)}</Text>
                         </View>
                     ) : null}
                 </View>
@@ -274,7 +274,7 @@ function TaskCard({ item, index, onComplete, onSkip }: { item: TaskItem; index: 
                         </Pressable>
                         <Pressable onPress={onSkip} style={[styles.actionBtn, { backgroundColor: colors.neutral[100] }]}>
                             <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M5 4l10 8-10 8V4zM19 5v14" stroke={colors.neutral[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                            <Text className="ml-1 font-inter text-xs font-semibold text-neutral-500">Skip</Text>
+                            <Text className="ml-1 font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">Skip</Text>
                         </Pressable>
                     </View>
                 )}
@@ -380,8 +380,8 @@ export function OnboardingScreen() {
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">Onboarding</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Onboarding</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                         {activeTab === 'templates' ? `${templates.length} template${templates.length !== 1 ? 's' : ''}` : `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`}
                     </Text>
                 </View>
@@ -393,12 +393,12 @@ export function OnboardingScreen() {
             {/* Employee Progress (Tasks tab) */}
             {activeTab === 'tasks' && employeeProgress.length > 0 && (
                 <View style={{ marginTop: 16 }}>
-                    <Text className="mb-2 font-inter text-xs font-bold text-primary-900">Employee Progress</Text>
+                    <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Employee Progress</Text>
                     {employeeProgress.map(([id, info]) => (
                         <View key={id} style={{ marginBottom: 10, backgroundColor: colors.neutral[50], borderRadius: 12, padding: 12 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <Text className="font-inter text-xs font-bold text-primary-950">{info.name}</Text>
-                                <Text className="font-inter text-[10px] text-neutral-500">{info.completed}/{info.total}</Text>
+                                <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">{info.name}</Text>
+                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{info.completed}/{info.total}</Text>
                             </View>
                             <ProgressBar percentage={info.total > 0 ? (info.completed / info.total) * 100 : 0} />
                         </View>

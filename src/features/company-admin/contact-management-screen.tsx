@@ -33,6 +33,7 @@ import {
     useUpdateContact,
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyContacts } from '@/features/company-admin/api/use-company-admin-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -66,7 +67,7 @@ function ContactTypeChips({
 }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 Contact Type
             </Text>
             <GHScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -77,7 +78,7 @@ function ContactTypeChips({
                             onPress={() => onSelect(opt)}
                             style={[styles.chip, value === opt && styles.chipActive]}
                         >
-                            <Text className={`font-inter text-xs font-semibold ${value === opt ? 'text-white' : 'text-neutral-600'}`}>
+                            <Text className={`font-inter text-xs font-semibold ${value === opt ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>
                                 {opt}
                             </Text>
                         </Pressable>
@@ -160,10 +161,10 @@ function ContactFormModal({
                         </Svg>
                     </Pressable>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text className="font-inter text-lg font-bold text-primary-950">
+                        <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                             {initialData ? 'Edit Contact' : 'Add Contact'}
                         </Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             {initialData ? 'Update existing contact details' : 'Create new business contact'}
                         </Text>
                     </View>
@@ -179,7 +180,7 @@ function ContactFormModal({
                     >
                         {/* Name */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Name <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -190,13 +191,13 @@ function ContactFormModal({
                         {/* Designation + Department */}
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Designation</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Designation</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput style={styles.textInput} placeholder="CEO, CHRO" placeholderTextColor={colors.neutral[400]} value={designation} onChangeText={setDesignation} autoCapitalize="words" />
                                 </View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Department</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput style={styles.textInput} placeholder="HR, IT" placeholderTextColor={colors.neutral[400]} value={department} onChangeText={setDepartment} autoCapitalize="words" />
                                 </View>
@@ -208,7 +209,7 @@ function ContactFormModal({
 
                         {/* Email */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Email <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -218,7 +219,7 @@ function ContactFormModal({
 
                         {/* Phone */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Phone <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Phone <Text className="text-danger-500">*</Text></Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <View style={[styles.inputWrap, { width: 80 }]}>
                                     <TextInput style={styles.textInput} placeholder="+91" placeholderTextColor={colors.neutral[400]} value={countryCode} onChangeText={setCountryCode} keyboardType="phone-pad" />
@@ -231,7 +232,7 @@ function ContactFormModal({
 
                         {/* LinkedIn */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">LinkedIn</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">LinkedIn</Text>
                             <View style={styles.inputWrap}>
                                 <TextInput style={styles.textInput} placeholder="https://linkedin.com/in/username" placeholderTextColor={colors.neutral[400]} value={linkedin} onChangeText={setLinkedin} keyboardType="url" autoCapitalize="none" />
                             </View>
@@ -242,7 +243,7 @@ function ContactFormModal({
                         {/* Actions */}
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <Pressable onPress={onClose} style={styles.cancelBtn}>
-                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                             </Pressable>
                             <Pressable
                                 onPress={handleSave}
@@ -282,11 +283,11 @@ function ContactCard({
             >
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>
                             {contact.name}
                         </Text>
                         {(contact.designation || contact.department) && (
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                                 {[contact.designation, contact.department].filter(Boolean).join(' · ')}
                             </Text>
                         )}
@@ -312,7 +313,7 @@ function ContactCard({
                                 <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                                 <Path d="M22 6l-10 7L2 6" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" />
                             </Svg>
-                            <Text className="font-inter text-[11px] text-neutral-600" numberOfLines={1}>
+                            <Text className="font-inter text-[11px] text-neutral-600 dark:text-neutral-400" numberOfLines={1}>
                                 {contact.email}
                             </Text>
                         </View>
@@ -322,7 +323,7 @@ function ContactCard({
                             <Svg width={12} height={12} viewBox="0 0 24 24">
                                 <Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" />
                             </Svg>
-                            <Text className="font-inter text-[11px] text-neutral-600">
+                            <Text className="font-inter text-[11px] text-neutral-600 dark:text-neutral-400">
                                 {contact.countryCode} {contact.mobile}
                             </Text>
                         </View>
@@ -336,6 +337,9 @@ function ContactCard({
 // ============ MAIN COMPONENT ============
 
 export function ContactManagementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -489,10 +493,10 @@ export function ContactManagementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerBar: {
         flexDirection: 'row',
@@ -504,7 +508,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -517,7 +521,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -527,10 +531,10 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardPressed: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         transform: [{ scale: 0.98 }],
     },
     cardHeader: {
@@ -539,7 +543,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     typeBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 6,
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -558,7 +562,7 @@ const styles = StyleSheet.create({
     },
     // Form sheet
     sheetBg: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
     },
@@ -574,10 +578,10 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     inputWrap: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         height: 46,
         justifyContent: 'center',
@@ -591,9 +595,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     chipActive: {
         backgroundColor: colors.primary[600],
@@ -603,11 +607,11 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 14,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     saveBtn: {
         flex: 1,
@@ -623,3 +627,4 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
 });
+const styles = createStyles(false);

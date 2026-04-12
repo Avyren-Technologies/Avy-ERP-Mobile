@@ -6,8 +6,12 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useSelectedTheme } from '@/lib/hooks/use-selected-theme';
 import { translate } from '@/lib/i18n';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export function ThemeItem() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const { selectedTheme, setSelectedTheme } = useSelectedTheme();
   const [expanded, setExpanded] = React.useState(false);
 
@@ -40,8 +44,8 @@ export function ThemeItem() {
         style={({ pressed }) => [styles.trigger, pressed && styles.triggerPressed]}
       >
         <View style={styles.textGroup}>
-          <Text className="font-inter text-sm font-bold text-primary-950" tx="settings.theme.title" />
-          <Text className="font-inter text-xs text-neutral-500">{theme?.label}</Text>
+          <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" tx="settings.theme.title" />
+          <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{theme?.label}</Text>
         </View>
         <ChevronDown
           size={18}
@@ -80,7 +84,7 @@ export function ThemeItem() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     width: '100%',
   },
@@ -92,11 +96,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: colors.primary[100],
-    backgroundColor: colors.white,
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white,
   },
   triggerPressed: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   textGroup: {
     flex: 1,
@@ -110,8 +114,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.primary[100],
-    backgroundColor: colors.white,
+    borderColor: isDark ? colors.primary[800] : colors.primary[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     overflow: 'hidden',
   },
   option: {
@@ -124,10 +128,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary[50],
   },
   optionPressed: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   optionSelected: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: isDark ? colors.primary[800] : colors.primary[100],
   },
   optionText: {
     color: colors.primary[900],
@@ -137,3 +141,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+const styles = createStyles(false);

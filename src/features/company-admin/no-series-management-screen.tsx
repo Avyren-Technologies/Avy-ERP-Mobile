@@ -34,6 +34,7 @@ import {
     useUpdateNoSeries,
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyNoSeries, useLinkedScreens } from '@/features/company-admin/api/use-company-admin-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -97,14 +98,14 @@ function LinkedScreenDropdown({
 
     return (
         <View style={[styles.fieldWrap, { zIndex: open ? 1200 : 1, position: 'relative' }]}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 Linked Screen <Text className="text-danger-500">*</Text>
             </Text>
             <Pressable
                 onPress={() => setOpen(v => !v)}
                 style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, open && { borderColor: colors.primary[400] }]}
             >
-                <Text className={`flex-1 font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`flex-1 font-inter text-sm ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.value === value)?.label ?? (value || 'Select screen...')}
                 </Text>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
@@ -131,7 +132,7 @@ function LinkedScreenDropdown({
                                 autoCorrect={false}
                             />
                         </View>
-                        <ScrollView showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                        <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" nestedScrollEnabled>
                             {filtered.map((item, idx) => {
                                 const isSelected = item.value === value;
                                 return (
@@ -140,7 +141,7 @@ function LinkedScreenDropdown({
                                         onPress={() => { onSelect(item.value); setOpen(false); }}
                                         style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, backgroundColor: isSelected ? colors.primary[50] : '#fff', borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.neutral[100] }}
                                     >
-                                        <Text className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950'}`}>
+                                        <Text className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
                                             {item.label}
                                         </Text>
                                         {isSelected && (
@@ -231,7 +232,7 @@ function NoSeriesFormModal({
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
 
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
                         {initialData ? 'Edit No. Series' : 'Add No. Series'}
                     </Text>
 
@@ -239,7 +240,7 @@ function NoSeriesFormModal({
                         {/* Code + Starting Number */}
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                     Code <Text className="text-danger-500">*</Text>
                                 </Text>
                                 <View style={styles.inputWrap}>
@@ -247,7 +248,7 @@ function NoSeriesFormModal({
                                 </View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Starting Number</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Starting Number</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput style={styles.textInput} placeholder="1" placeholderTextColor={colors.neutral[400]} value={startNumber} onChangeText={setStartNumber} keyboardType="number-pad" />
                                 </View>
@@ -256,7 +257,7 @@ function NoSeriesFormModal({
 
                         {/* Description */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={styles.inputWrap}>
                                 <TextInput style={styles.textInput} placeholder="e.g. Sales Invoice Numbering" placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} />
                             </View>
@@ -268,13 +269,13 @@ function NoSeriesFormModal({
                         {/* Prefix + Suffix */}
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Prefix</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Prefix</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput style={styles.textInput} placeholder="e.g. INV-" placeholderTextColor={colors.neutral[400]} value={prefix} onChangeText={setPrefix} autoCapitalize="none" />
                                 </View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Suffix</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Suffix</Text>
                                 <View style={styles.inputWrap}>
                                     <TextInput style={styles.textInput} placeholder="e.g. -2026" placeholderTextColor={colors.neutral[400]} value={suffix} onChangeText={setSuffix} autoCapitalize="none" />
                                 </View>
@@ -283,7 +284,7 @@ function NoSeriesFormModal({
 
                         {/* Number of Digits */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Number of Digits</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Number of Digits</Text>
                             <View style={styles.inputWrap}>
                                 <TextInput style={styles.textInput} placeholder="e.g. 5" placeholderTextColor={colors.neutral[400]} value={numberCount} onChangeText={setNumberCount} keyboardType="number-pad" />
                             </View>
@@ -307,7 +308,7 @@ function NoSeriesFormModal({
                     {/* Actions */}
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={handleSave}
@@ -357,13 +358,13 @@ function NoSeriesCard({
                                 </Text>
                             </View>
                             {item.linkedScreen ? (
-                                <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                                     {screenLabel ?? item.linkedScreen}
                                 </Text>
                             ) : null}
                         </View>
                         {item.description ? (
-                            <Text className="mt-1 font-inter text-xs text-neutral-600" numberOfLines={1}>
+                            <Text className="mt-1 font-inter text-xs text-neutral-600 dark:text-neutral-400" numberOfLines={1}>
                                 {item.description}
                             </Text>
                         ) : null}
@@ -388,6 +389,9 @@ function NoSeriesCard({
 // ============ MAIN COMPONENT ============
 
 export function NoSeriesManagementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -555,10 +559,10 @@ export function NoSeriesManagementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerBar: {
         flexDirection: 'row',
@@ -570,7 +574,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -583,7 +587,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -593,10 +597,10 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardPressed: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         transform: [{ scale: 0.98 }],
     },
     cardHeader: {
@@ -605,7 +609,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     codeBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 6,
         paddingHorizontal: 8,
         paddingVertical: 3,
@@ -620,7 +624,7 @@ const styles = StyleSheet.create({
     },
     // Form sheet
     formSheet: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingHorizontal: 24,
@@ -638,10 +642,10 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     inputWrap: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         height: 46,
         justifyContent: 'center',
@@ -652,13 +656,13 @@ const styles = StyleSheet.create({
         color: colors.primary[950],
     },
     previewBox: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 16,
         padding: 16,
         alignItems: 'center',
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     dropdownList: {
         position: 'absolute',
@@ -666,7 +670,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 1200,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderRadius: 10,
         borderWidth: 1,
         borderColor: colors.primary[200],
@@ -683,7 +687,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
@@ -692,11 +696,11 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 14,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     saveBtn: {
         flex: 1,
@@ -712,3 +716,4 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
 });
+const styles = createStyles(false);

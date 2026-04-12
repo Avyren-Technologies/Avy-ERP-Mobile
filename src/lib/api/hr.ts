@@ -1,5 +1,8 @@
 import { client } from '@/lib/api/client';
 
+/** Large bulk validate/import runs can take several minutes. */
+const BULK_HR_REQUEST_TIMEOUT_MS = 600_000; // 10 minutes
+
 // --- Types ---
 
 export interface HrListParams {
@@ -222,14 +225,19 @@ export const hrApi = {
     client.get('/hr/employees/org-chart'),
 
   // ── Bulk Import ─────────────────────────────────────────────────────
+  /** Large spreadsheets / many rows can exceed typical client timeouts; align with web (10 min). */
   bulkDownloadTemplate: () =>
-    client.get('/hr/employees/bulk/template', { responseType: 'arraybuffer' }),
+    client.get('/hr/employees/bulk/template', {
+      responseType: 'arraybuffer',
+      timeout: BULK_HR_REQUEST_TIMEOUT_MS,
+    }),
 
   bulkValidate: (formData: FormData) =>
     client.post('/hr/employees/bulk/validate', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: BULK_HR_REQUEST_TIMEOUT_MS,
     }),
 
   bulkImport: (rows: Record<string, unknown>[], defaultPassword: string) =>
-    client.post('/hr/employees/bulk/import', { rows, defaultPassword }),
+    client.post('/hr/employees/bulk/import', { rows, defaultPassword }, { timeout: BULK_HR_REQUEST_TIMEOUT_MS }),
 };

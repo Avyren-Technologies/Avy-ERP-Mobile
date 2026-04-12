@@ -28,6 +28,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useAssignEmployeeSalary, useUpdateEmployeeSalary } from '@/features/company-admin/api/use-payroll-mutations';
 import { useEmployeeSalaries, useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -62,9 +63,9 @@ function Dropdown({ label, value, options, onSelect, placeholder, searchable }: 
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <Pressable onPress={() => setOpen(true)} style={styles.dropdownBtn}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -74,7 +75,7 @@ function Dropdown({ label, value, options, onSelect, placeholder, searchable }: 
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '70%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         {searchable && (
                             <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                                 <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={q} onChangeText={setQ} />
@@ -84,7 +85,7 @@ function Dropdown({ label, value, options, onSelect, placeholder, searchable }: 
                             {filtered.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); setQ(''); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -160,32 +161,32 @@ function AssignSalaryModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '92%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Salary' : 'Assign Salary'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Search employee..." searchable />
                         <Dropdown label="Salary Structure" value={structureId} options={structureOptions} onSelect={setStructureId} placeholder="Select structure..." />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Annual CTC <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Annual CTC <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
-                                <Text className="mr-1 font-inter text-sm text-neutral-500">&#8377;</Text>
+                                <Text className="mr-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">&#8377;</Text>
                                 <TextInput style={[styles.textInput, { flex: 1 }]} placeholder="1000000" placeholderTextColor={colors.neutral[400]} value={annualCTC} onChangeText={setAnnualCTC} keyboardType="number-pad" />
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Effective From</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Effective From</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={effectiveFrom} onChangeText={setEffectiveFrom} /></View>
                         </View>
 
                         {breakup.length > 0 && (
                             <>
-                                <Text className="mb-2 mt-3 font-inter text-xs font-bold text-neutral-500">Monthly Breakup Preview</Text>
+                                <Text className="mb-2 mt-3 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Monthly Breakup Preview</Text>
                                 <View style={styles.previewCard}>
                                     {breakup.map((row, idx) => (
                                         <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                            <Text className="font-inter text-xs text-neutral-600">{row.name}</Text>
-                                            <Text className="font-inter text-xs font-semibold text-primary-950">{formatCurrency(row.monthly)}</Text>
+                                            <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">{row.name}</Text>
+                                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{formatCurrency(row.monthly)}</Text>
                                         </View>
                                     ))}
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
@@ -197,7 +198,7 @@ function AssignSalaryModal({
                         )}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Assign Salary'}</Text>
                         </Pressable>
@@ -217,14 +218,14 @@ function EmployeeSalaryCard({ item, index, onEdit }: { item: EmployeeSalaryItem;
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
                             {item.isCurrent && (
                                 <View style={[styles.currentBadge]}>
                                     <Text style={{ color: colors.success[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Current</Text>
                                 </View>
                             )}
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">{item.structureName}</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.structureName}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                         <Text className="font-inter text-sm font-bold text-primary-800">{formatCurrency(item.annualCTC)}</Text>
@@ -232,8 +233,8 @@ function EmployeeSalaryCard({ item, index, onEdit }: { item: EmployeeSalaryItem;
                     </View>
                 </View>
                 <View style={styles.cardMeta}>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">Monthly: {formatCurrency(item.monthlyGross)}</Text></View>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">From: {item.effectiveFrom}</Text></View>
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Monthly: {formatCurrency(item.monthlyGross)}</Text></View>
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">From: {item.effectiveFrom}</Text></View>
                 </View>
             </Pressable>
         </Animated.View>
@@ -243,6 +244,9 @@ function EmployeeSalaryCard({ item, index, onEdit }: { item: EmployeeSalaryItem;
 // ============ MAIN ============
 
 export function EmployeeSalaryScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch, isFetching } = useEmployeeSalaries();
@@ -272,18 +276,25 @@ export function EmployeeSalaryScreen() {
     const items: EmployeeSalaryItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? '',
-            employeeId: item.employeeId ?? '',
-            employeeName: item.employeeName ?? '',
-            structureId: item.structureId ?? '',
-            structureName: item.structureName ?? '',
-            annualCTC: item.annualCTC ?? 0,
-            monthlyGross: item.monthlyGross ?? Math.round((item.annualCTC ?? 0) / 12),
-            effectiveFrom: item.effectiveFrom ?? '',
-            isCurrent: item.isCurrent ?? true,
-            components: item.components ?? [],
-        }));
+        return raw.map((item: any) => {
+            const emp = item.employee;
+            const empName = emp
+                ? [emp.firstName, emp.lastName].filter(Boolean).join(' ')
+                : '';
+            const ctc = item.annualCtc ?? item.annualCTC ?? 0;
+            return {
+                id: item.id ?? '',
+                employeeId: item.employeeId ?? emp?.employeeId ?? '',
+                employeeName: empName,
+                structureId: item.structureId ?? '',
+                structureName: item.structure?.name ?? '',
+                annualCTC: ctc,
+                monthlyGross: Math.round(ctc / 12),
+                effectiveFrom: item.effectiveFrom ?? '',
+                isCurrent: item.isCurrent ?? true,
+                components: item.components ?? [],
+            };
+        });
     }, [response]);
 
     const filtered = React.useMemo(() => {
@@ -308,8 +319,8 @@ export function EmployeeSalaryScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Employee Salaries</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{items.length} record{items.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Employee Salaries</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} record{items.length !== 1 ? 's' : ''}</Text>
             <View style={{ marginTop: 16 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by employee name..." /></View>
         </Animated.View>
     );
@@ -340,35 +351,36 @@ export function EmployeeSalaryScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     currentBadge: { backgroundColor: colors.success[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     previewCard: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, padding: 12, marginBottom: 12,
-        borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, padding: 12, marginBottom: 12,
+        borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

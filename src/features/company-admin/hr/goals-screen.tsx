@@ -32,6 +32,7 @@ import {
     useUpdateGoal,
 } from '@/features/company-admin/api/use-performance-mutations';
 import { useAppraisalCycles, useGoals } from '@/features/company-admin/api/use-performance-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -123,13 +124,13 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
 function ChipSelector({ label, options, value, onSelect, labels }: { label: string; options: string[]; value: string; onSelect: (v: string) => void; labels?: Record<string, string> }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{labels?.[opt] ?? opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{labels?.[opt] ?? opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -153,11 +154,11 @@ function FilterBar({
 
     return (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Goals & OKRs</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Goals & OKRs</Text>
 
             {/* Cycle selector */}
             <Pressable onPress={() => setCycleModalVisible(true)} style={styles.dropdownBtn}>
-                <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>{selectedCycleName}</Text>
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{selectedCycleName}</Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <Modal visible={cycleModalVisible} transparent animationType="slide" onRequestClose={() => setCycleModalVisible(false)}>
@@ -165,16 +166,16 @@ function FilterBar({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCycleModalVisible(false)} />
                     <View style={[styles.pickerSheet, { maxHeight: '50%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Cycle</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Cycle</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Pressable onPress={() => { onCycleChange(''); setCycleModalVisible(false); }}
                                 style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: !selectedCycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                <Text className={`font-inter text-sm ${!selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>All Cycles</Text>
+                                <Text className={`font-inter text-sm ${!selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>All Cycles</Text>
                             </Pressable>
                             {cycleOptions.map(c => (
                                 <Pressable key={c.id} onPress={() => { onCycleChange(c.id); setCycleModalVisible(false); }}
                                     style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: c.id === selectedCycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                    <Text className={`font-inter text-sm ${c.id === selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{c.name}</Text>
+                                    <Text className={`font-inter text-sm ${c.id === selectedCycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{c.name}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -188,7 +189,7 @@ function FilterBar({
                     const sel = l === selectedLevel;
                     return (
                         <Pressable key={l} onPress={() => onLevelChange(l)} style={[styles.chip, sel && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l === 'All' ? 'All' : GOAL_LEVEL_LABELS[l as GoalLevel] ?? l}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{l === 'All' ? 'All' : GOAL_LEVEL_LABELS[l as GoalLevel] ?? l}</Text>
                         </Pressable>
                     );
                 })}
@@ -273,15 +274,15 @@ function GoalFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Goal' : 'Add Goal'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         {/* Cycle */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Cycle <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Cycle <Text className="text-danger-500">*</Text></Text>
                             <Pressable onPress={() => setCyclePickerVisible(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${selectedCycleName ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}>{selectedCycleName || 'Select cycle...'}</Text>
+                                <Text className={`font-inter text-sm ${selectedCycleName ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}>{selectedCycleName || 'Select cycle...'}</Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
                             <Modal visible={cyclePickerVisible} transparent animationType="slide" onRequestClose={() => setCyclePickerVisible(false)}>
@@ -289,12 +290,12 @@ function GoalFormModal({
                                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setCyclePickerVisible(false)} />
                                     <View style={[styles.pickerSheet, { maxHeight: '50%' }]}>
                                         <View style={styles.sheetHandle} />
-                                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Cycle</Text>
+                                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Cycle</Text>
                                         <ScrollView showsVerticalScrollIndicator={false}>
                                             {cycleOptions.map(c => (
                                                 <Pressable key={c.id} onPress={() => { update('cycleId', c.id); setCyclePickerVisible(false); }}
                                                     style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: c.id === form.cycleId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                                    <Text className={`font-inter text-sm ${c.id === form.cycleId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{c.name}</Text>
+                                                    <Text className={`font-inter text-sm ${c.id === form.cycleId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{c.name}</Text>
                                                 </Pressable>
                                             ))}
                                         </ScrollView>
@@ -307,46 +308,46 @@ function GoalFormModal({
 
                         {form.level === 'INDIVIDUAL' && (
                             <View style={styles.fieldWrap}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employee</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Employee</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Search employee..." placeholderTextColor={colors.neutral[400]} value={form.employeeName} onChangeText={v => update('employeeName', v)} /></View>
                             </View>
                         )}
                         {form.level === 'DEPARTMENT' && (
                             <View style={styles.fieldWrap}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Department</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Department name..." placeholderTextColor={colors.neutral[400]} value={form.departmentName} onChangeText={v => update('departmentName', v)} /></View>
                             </View>
                         )}
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Title <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Title <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Goal title..." placeholderTextColor={colors.neutral[400]} value={form.title} onChangeText={v => update('title', v)} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}><TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Describe the goal..." placeholderTextColor={colors.neutral[400]} value={form.description} onChangeText={v => update('description', v)} multiline /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">KPI Metric</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">KPI Metric</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Revenue in Lakhs"' placeholderTextColor={colors.neutral[400]} value={form.kpiMetric} onChangeText={v => update('kpiMetric', v)} /></View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Target Value</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Target Value</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="100" placeholderTextColor={colors.neutral[400]} value={form.targetValue} onChangeText={v => update('targetValue', v)} keyboardType="number-pad" /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Weightage (%)</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Weightage (%)</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="20" placeholderTextColor={colors.neutral[400]} value={form.weightage} onChangeText={v => update('weightage', v)} keyboardType="number-pad" /></View>
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Parent Goal ID (for cascade)</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Parent Goal ID (for cascade)</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Optional parent goal ID" placeholderTextColor={colors.neutral[400]} value={form.parentGoalId} onChangeText={v => update('parentGoalId', v)} /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Add Goal'}</Text>
                         </Pressable>
@@ -365,7 +366,7 @@ function GoalCard({ item, index, onEdit, onDelete }: { item: GoalItem; index: nu
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.title}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.title}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                             <LevelBadge level={item.level} />
                             <GoalStatusBadge status={item.status} />
@@ -376,18 +377,18 @@ function GoalCard({ item, index, onEdit, onDelete }: { item: GoalItem; index: nu
                     </Pressable>
                 </View>
                 {item.level === 'INDIVIDUAL' && item.employeeName ? (
-                    <Text className="mt-1 font-inter text-xs text-neutral-500">{item.employeeName}</Text>
+                    <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.employeeName}</Text>
                 ) : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
-                    <Text className="font-inter text-xs text-neutral-500">W: {item.weightage}%</Text>
-                    <Text className="font-inter text-xs text-neutral-500">Target: {item.targetValue}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">W: {item.weightage}%</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Target: {item.targetValue}</Text>
                     <Text className="font-inter text-xs font-semibold text-primary-600">Achieved: {item.achievedValue}</Text>
                 </View>
                 <View style={{ marginTop: 8 }}><ProgressBar value={item.achievedValue} max={item.targetValue} /></View>
                 {(item.selfRating > 0 || item.managerRating > 0) && (
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
-                        {item.selfRating > 0 && <Text className="font-inter text-xs text-neutral-500">Self: {item.selfRating}</Text>}
-                        {item.managerRating > 0 && <Text className="font-inter text-xs text-neutral-500">Manager: {item.managerRating}</Text>}
+                        {item.selfRating > 0 && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Self: {item.selfRating}</Text>}
+                        {item.managerRating > 0 && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Manager: {item.managerRating}</Text>}
                     </View>
                 )}
             </Pressable>
@@ -398,6 +399,9 @@ function GoalCard({ item, index, onEdit, onDelete }: { item: GoalItem; index: nu
 // ============ MAIN COMPONENT ============
 
 export function GoalsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -511,18 +515,18 @@ export function GoalsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
@@ -530,17 +534,18 @@ const styles = StyleSheet.create({
     progressTrack: { height: 4, backgroundColor: colors.neutral[200], borderRadius: 2, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 2 },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10,
     },
-    pickerSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
-    fullFormSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    pickerSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
+    fullFormSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

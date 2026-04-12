@@ -52,7 +52,7 @@ function TimePicker({
 
     return (
         <View style={S.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label}{required && <Text className="text-danger-500"> *</Text>}
             </Text>
             <Pressable
@@ -63,7 +63,7 @@ function TimePicker({
                     error ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined,
                 ]}
             >
-                <Text className={`font-inter text-sm font-semibold ${value ? 'text-primary-950' : 'text-neutral-400'}`}>
+                <Text className={`font-inter text-sm font-semibold ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
                     {value || 'Select time'}
                 </Text>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
@@ -76,12 +76,12 @@ function TimePicker({
                 <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={{ backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 }}>
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-4">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-4">{label}</Text>
 
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             {/* Hours */}
                             <View style={{ flex: 1 }}>
-                                <Text className="font-inter text-xs font-bold text-neutral-500 mb-2 text-center">Hour</Text>
+                                <Text className="font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2 text-center">Hour</Text>
                                 <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
                                     {hours.map(h => (
                                         <Pressable
@@ -95,7 +95,7 @@ function TimePicker({
                                                 backgroundColor: selectedHour === h ? colors.primary[600] : colors.neutral[50],
                                             }}
                                         >
-                                            <Text className={`font-inter text-sm font-semibold ${selectedHour === h ? 'text-white' : 'text-primary-900'}`}>
+                                            <Text className={`font-inter text-sm font-semibold ${selectedHour === h ? 'text-white' : 'text-primary-900 dark:text-primary-100'}`}>
                                                 {String(h).padStart(2, '0')}
                                             </Text>
                                         </Pressable>
@@ -109,7 +109,7 @@ function TimePicker({
 
                             {/* Minutes */}
                             <View style={{ flex: 1 }}>
-                                <Text className="font-inter text-xs font-bold text-neutral-500 mb-2 text-center">Minute</Text>
+                                <Text className="font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2 text-center">Minute</Text>
                                 <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
                                     {minutes.map(m => (
                                         <Pressable
@@ -123,7 +123,7 @@ function TimePicker({
                                                 backgroundColor: selectedMinute === m ? colors.primary[600] : colors.neutral[50],
                                             }}
                                         >
-                                            <Text className={`font-inter text-sm font-semibold ${selectedMinute === m ? 'text-white' : 'text-primary-900'}`}>
+                                            <Text className={`font-inter text-sm font-semibold ${selectedMinute === m ? 'text-white' : 'text-primary-900 dark:text-primary-100'}`}>
                                                 {String(m).padStart(2, '0')}
                                             </Text>
                                         </Pressable>
@@ -137,7 +137,7 @@ function TimePicker({
                                 onPress={() => setOpen(false)}
                                 style={{ flex: 1, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], alignItems: 'center' }}
                             >
-                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                             </Pressable>
                             <Pressable
                                 onPress={handleConfirm}
@@ -281,7 +281,7 @@ export function Step12Shifts({
                 />
             </SectionCard>
 
-            <Text className="mb-3 font-inter text-sm font-bold text-primary-900">
+            <Text className="mb-3 font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
                 Shift Master
             </Text>
 
@@ -349,13 +349,13 @@ export function Step12Shifts({
                                 </Svg>
                             )}
                         </View>
-                        <Text className="font-inter text-sm text-neutral-600">
+                        <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                             No Shuffle (exclude from shift rotation)
                         </Text>
                     </Pressable>
 
                     {/* Downtime Slots */}
-                    <Text className="mb-2 mt-3 font-inter text-xs font-bold text-neutral-500">
+                    <Text className="mb-2 mt-3 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">
                         Planned Downtime Slots
                     </Text>
                     {shift.downtimeSlots.map((slot) => (

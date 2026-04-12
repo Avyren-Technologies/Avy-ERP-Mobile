@@ -11,6 +11,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 interface FilterOption {
   label: string;
@@ -50,7 +51,7 @@ function FilterSection({
 }) {
   return (
     <View style={sectionStyles.container}>
-      <Text className="font-inter text-[13px] font-semibold text-neutral-500" style={sectionStyles.title}>
+      <Text className="font-inter text-[13px] font-semibold text-neutral-500 dark:text-neutral-400" style={sectionStyles.title}>
         {title}
       </Text>
       <View style={sectionStyles.chipRow}>
@@ -64,7 +65,7 @@ function FilterSection({
             >
               <Text
                 className={`font-inter text-[13px] font-medium ${
-                  isSelected ? 'text-white' : 'text-neutral-600'
+                  isSelected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'
                 }`}
               >
                 {option.label}
@@ -119,6 +120,9 @@ export function FilterBottomSheet({
   grades = [],
   employeeTypes = [],
 }: FilterBottomSheetProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['60%', '85%'], []);
 
@@ -158,7 +162,7 @@ export function FilterBottomSheet({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text className="font-inter text-[18px] font-bold text-neutral-900">
+          <Text className="font-inter text-[18px] font-bold text-neutral-900 dark:text-white">
             Filters
           </Text>
           {activeFilterCount > 0 && (
@@ -232,13 +236,13 @@ export function FilterBottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   indicator: {
     backgroundColor: colors.neutral[300],
     width: 40,
   },
   background: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -287,3 +291,4 @@ const styles = StyleSheet.create({
     gap: 24,
   },
 });
+const styles = createStyles(false);

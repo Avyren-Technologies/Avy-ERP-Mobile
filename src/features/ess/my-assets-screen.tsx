@@ -10,6 +10,7 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useMyAssets } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
     NEW: { bg: colors.success[50], text: colors.success[700] },
@@ -20,6 +21,9 @@ const CONDITION_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 export function MyAssetsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { data, isLoading, refetch } = useMyAssets();
@@ -33,11 +37,11 @@ export function MyAssetsScreen() {
             <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-900" numberOfLines={2}>
+                        <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100" numberOfLines={2}>
                             {item.name ?? item.assetName ?? 'Unnamed Asset'}
                         </Text>
                         {(item.category ?? item.assetType) && (
-                            <Text className="font-inter text-xs text-neutral-500 mt-0.5">{item.category ?? item.assetType}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{item.category ?? item.assetType}</Text>
                         )}
                     </View>
                     <View style={[styles.badge, { backgroundColor: conditionStyle.bg }]}>
@@ -48,29 +52,29 @@ export function MyAssetsScreen() {
                     {(item.serialNumber ?? item.serialNo) && (
                         <View style={styles.metaItem}>
                             <Text className="font-inter text-[10px] text-neutral-400">S/N</Text>
-                            <Text className="font-inter text-xs font-semibold text-primary-950">{item.serialNumber ?? item.serialNo}</Text>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{item.serialNumber ?? item.serialNo}</Text>
                         </View>
                     )}
                     {item.assetTag && (
                         <View style={styles.metaItem}>
                             <Text className="font-inter text-[10px] text-neutral-400">Tag</Text>
-                            <Text className="font-inter text-xs font-semibold text-primary-950">{item.assetTag}</Text>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{item.assetTag}</Text>
                         </View>
                     )}
                     {(item.assignedDate ?? item.assignedAt) && (
                         <View style={styles.metaItem}>
                             <Text className="font-inter text-[10px] text-neutral-400">Assigned</Text>
-                            <Text className="font-inter text-xs font-semibold text-primary-950">{item.assignedDate ?? item.assignedAt}</Text>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{item.assignedDate ?? item.assignedAt}</Text>
                         </View>
                     )}
                 </View>
-                {item.description && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.description}</Text>}
+                {item.description && <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={2}>{item.description}</Text>}
             </Animated.View>
         );
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="My Assets" onMenuPress={open} />
             <FlashList
                 data={assets}
@@ -84,11 +88,12 @@ export function MyAssetsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    card: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
     meta: { flexDirection: 'row', gap: 16, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     metaItem: { alignItems: 'flex-start' },
     empty: { alignItems: 'center', paddingTop: 60 },
 });
+const styles = createStyles(false);

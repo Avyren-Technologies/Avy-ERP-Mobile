@@ -384,6 +384,25 @@ export function useUploadMyDocument() {
     mutationFn: (data: any) => essApi.uploadMyDocument(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: essKeys.myDocuments() });
+      showSuccess('Document uploaded successfully');
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to upload document');
+    },
+  });
+}
+
+/** Delete a personal document */
+export function useDeleteMyDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => essApi.deleteMyDocument(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.myDocuments() });
+      showSuccess('Document deleted successfully');
+    },
+    onError: (error: any) => {
+      showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to delete document');
     },
   });
 }

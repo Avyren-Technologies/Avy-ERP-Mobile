@@ -19,6 +19,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ MODULE DATA ============
 
@@ -79,6 +80,9 @@ function ModuleIcon({ type, size = 20, color }: { type: string; size?: number; c
 // ============ MAIN COMPONENT ============
 
 export function ModuleAssignmentScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,7 +113,7 @@ export function ModuleAssignmentScreen() {
     return (
         <View style={styles.container}>
             <LinearGradient
-                colors={[colors.gradient.surface, colors.white]}
+                colors={isDark ? ['#0F0D1A', '#1A1730'] : [colors.gradient.surface, colors.white]}
                 style={StyleSheet.absoluteFill}
             />
 
@@ -119,8 +123,8 @@ export function ModuleAssignmentScreen() {
                     <ChevronLeft size={20} color={colors.primary[600]} strokeWidth={2} />
                 </Pressable>
                 <View style={{ flex: 1, alignItems: 'center' as const }}>
-                    <Text className="font-inter text-base font-bold text-primary-950">Module Assignment</Text>
-                    <Text className="font-inter text-xs text-neutral-500">{activeModules.length} of {MODULES.length} modules active</Text>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">Module Assignment</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{activeModules.length} of {MODULES.length} modules active</Text>
                 </View>
                 <View style={{ width: 36 }} />
             </Animated.View>
@@ -156,10 +160,10 @@ export function ModuleAssignmentScreen() {
                                         <ModuleIcon type={mod.icon} color={isActive ? colors.primary[600] : colors.neutral[400]} />
                                     </View>
                                     <View style={styles.moduleCardInfo}>
-                                        <Text className={`font-inter text-sm font-bold ${isActive ? 'text-primary-800' : 'text-primary-950'}`}>
+                                        <Text className={`font-inter text-sm font-bold ${isActive ? 'text-primary-800' : 'text-primary-950 dark:text-white'}`}>
                                             {mod.name}
                                         </Text>
-                                        <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>
+                                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                                             {mod.description}
                                         </Text>
                                         {mod.deps.length > 0 && (
@@ -215,10 +219,10 @@ export function ModuleAssignmentScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         flexDirection: 'row',
@@ -230,7 +234,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -252,12 +256,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 18,
         padding: 14,
         marginBottom: 10,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         shadowColor: colors.primary[900],
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.03,
@@ -266,7 +270,7 @@ const styles = StyleSheet.create({
     },
     moduleCardActive: {
         borderColor: colors.primary[300],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     moduleCardLeft: {
         flexDirection: 'row',
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
-        backgroundColor: colors.primary[100],
+        backgroundColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     // Toggle
     toggleTrack: {
@@ -311,7 +315,7 @@ const styles = StyleSheet.create({
         width: 18,
         height: 18,
         borderRadius: 9,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.15,
@@ -329,7 +333,7 @@ const styles = StyleSheet.create({
         right: 0,
         paddingHorizontal: 24,
         paddingTop: 12,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopWidth: 1,
         borderTopColor: colors.neutral[100],
     },
@@ -349,3 +353,4 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 });
+const styles = createStyles(false);

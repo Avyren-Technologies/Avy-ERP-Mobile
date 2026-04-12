@@ -6,6 +6,7 @@ import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export interface FunnelStage {
   label: string;
@@ -34,6 +35,9 @@ const SIDE_PADDING = 16;
 const BAR_SPACING = 4;
 
 export function FunnelChart({ stages, height: propHeight }: FunnelChartProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const computed = useMemo(() => {
     if (stages.length === 0) return null;
 
@@ -145,13 +149,13 @@ export function FunnelChart({ stages, height: propHeight }: FunnelChartProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
@@ -164,3 +168,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+const styles = createStyles(false);

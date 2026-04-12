@@ -27,6 +27,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { useBillingSummary, useInvoices, useRevenueChart } from '@/features/super-admin/api/use-dashboard-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_W = (SCREEN_WIDTH - 48 - 12) / 2;
@@ -124,7 +125,7 @@ function RevenueChart({ chartData, isLoading }: { chartData: Array<{ month: stri
                             entering={FadeIn.duration(400).delay(500 + index * 80)}
                             style={styles.chartBarColumn}
                         >
-                            <Text className="mb-1 font-inter text-[9px] font-bold text-neutral-500">
+                            <Text className="mb-1 font-inter text-[9px] font-bold text-neutral-500 dark:text-neutral-400">
                                 {item.value >= 100000 ? `${(item.value / 100000).toFixed(1)}L` : `${item.value}`}
                             </Text>
                             <View style={styles.chartBarBg}>
@@ -145,7 +146,7 @@ function RevenueChart({ chartData, isLoading }: { chartData: Array<{ month: stri
                                     />
                                 )}
                             </View>
-                            <Text className="mt-1 font-inter text-[10px] font-medium text-neutral-500">
+                            <Text className="mt-1 font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
                                 {item.month}
                             </Text>
                         </Animated.View>
@@ -159,6 +160,9 @@ function RevenueChart({ chartData, isLoading }: { chartData: Array<{ month: stri
 // ============ MAIN COMPONENT ============
 
 export function BillingOverviewScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const fmt = useCompanyFormatter();
@@ -274,7 +278,7 @@ export function BillingOverviewScreen() {
                 {/* Header */}
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Billing</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Revenue & invoice management</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Revenue & invoice management</Text>
                 </Animated.View>
 
                 {/* KPI Cards */}
@@ -296,10 +300,10 @@ export function BillingOverviewScreen() {
                                     />
                                 </Svg>
                             </View>
-                            <Text className="mt-2 font-inter text-xl font-bold text-primary-950">
+                            <Text className="mt-2 font-inter text-xl font-bold text-primary-950 dark:text-white">
                                 {kpi.value}
                             </Text>
-                            <Text className="font-inter text-[10px] font-medium text-neutral-500">
+                            <Text className="font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
                                 {kpi.label}
                             </Text>
                             {kpi.change ? (
@@ -355,15 +359,15 @@ export function BillingOverviewScreen() {
                                     <Animated.View key={inv.id} entering={FadeInRight.duration(300).delay(700 + index * 60)}>
                                         <Pressable style={[styles.invoiceRow, index < invoices.length - 1 && styles.invoiceRowBorder]}>
                                             <View style={styles.invoiceLeft}>
-                                                <Text className="font-inter text-sm font-bold text-primary-950">
+                                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                                     {inv.company}
                                                 </Text>
-                                                <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                                                <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                                     {inv.id} • {inv.date}
                                                 </Text>
                                             </View>
                                             <View style={styles.invoiceRight}>
-                                                <Text className="font-inter text-sm font-bold text-primary-950">
+                                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                                     {inv.amount}
                                                 </Text>
                                                 <StatusBadge status={inv.status} size="sm" />
@@ -395,10 +399,10 @@ export function BillingOverviewScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 24,
@@ -415,7 +419,7 @@ const styles = StyleSheet.create({
     },
     kpiCard: {
         width: CARD_W,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 14,
         shadowColor: colors.primary[900],
@@ -424,7 +428,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     kpiIcon: {
         width: 36,
@@ -446,7 +450,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     chartCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 18,
         shadowColor: colors.primary[900],
@@ -455,7 +459,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     chartHeader: {
         flexDirection: 'row',
@@ -467,7 +471,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     chartBars: {
         flexDirection: 'row',
@@ -483,7 +487,7 @@ const styles = StyleSheet.create({
         width: 28,
         height: 100,
         borderRadius: 8,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         overflow: 'hidden',
         justifyContent: 'flex-end',
     },
@@ -502,10 +506,10 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         paddingHorizontal: 12,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     invoiceCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         paddingVertical: 4,
         shadowColor: colors.primary[900],
@@ -514,7 +518,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     invoiceRow: {
         flexDirection: 'row',
@@ -539,11 +543,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
 });
+const styles = createStyles(false);

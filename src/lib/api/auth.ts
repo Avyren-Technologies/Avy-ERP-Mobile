@@ -22,6 +22,7 @@ export interface AuthUser {
   companyId?: string;
   tenantId?: string;
   permissions?: string[];
+  mfaEnabled?: boolean;
 }
 
 /** Decode a JWT payload without verifying the signature (client-side read only). */

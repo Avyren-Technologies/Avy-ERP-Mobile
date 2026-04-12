@@ -1,11 +1,13 @@
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import { File as ExpoFile } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
+    FlatList,
     Image,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -51,6 +53,7 @@ import { useFileUrl } from '@/hooks/use-file-url';
 import { resolveCostCentreIdForDepartment } from '@/lib/employee-org-defaults';
 import { computeProbationEndIsoFromMasters } from '@/lib/probation-end-date';
 import { storage } from '@/lib/storage';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -263,7 +266,7 @@ function FormField({
 }) {
     return (
         <View style={st.field}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label}{required ? <Text className="text-danger-500"> *</Text> : null}
             </Text>
             <TextInput
@@ -305,7 +308,7 @@ function ChipSelect({
 }) {
     return (
         <View style={st.field}>
-            <Text className="mb-2 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label}{required ? <Text className="text-danger-500"> *</Text> : null}
             </Text>
             <View style={st.chipRow}>
@@ -318,7 +321,7 @@ function ChipSelect({
                             style={[st.chip, isActive && st.chipActive]}
                         >
                             <Text
-                                className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                                className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                             >
                                 {opt}
                             </Text>
@@ -348,13 +351,20 @@ function DropdownField({
     createRoute?: { route: string; label: string };
 }) {
     const [open, setOpen] = React.useState(false);
+    const [search, setSearch] = React.useState('');
     const selectedItem = options.find((o) => o.id === selected);
     const router = useRouter();
 
+    const filtered = React.useMemo(() => {
+        if (!search.trim()) return options;
+        const q = search.toLowerCase();
+        return options.filter((o) => o.name.toLowerCase().includes(q));
+    }, [options, search]);
+
     return (
-        <View style={[st.field, { zIndex: open ? 100 : 1 }]}>
+        <View style={st.field}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <Text className="font-inter text-xs font-bold text-primary-900">
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     {label}{required ? <Text className="text-danger-500"> *</Text> : null}
                 </Text>
                 {createRoute && (
@@ -369,11 +379,11 @@ function DropdownField({
                 )}
             </View>
             <Pressable
-                onPress={() => setOpen((v) => !v)}
+                onPress={() => { setOpen(true); setSearch(''); }}
                 style={[st.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
             >
                 <Text
-                    className={`font-inter text-sm ${selectedItem ? 'text-primary-950' : 'text-neutral-400'}`}
+                    className={`font-inter text-sm ${selectedItem ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                     numberOfLines={1}
                     style={{ flex: 1 }}
                 >
@@ -381,7 +391,7 @@ function DropdownField({
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24">
                     <Path
-                        d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                        d="M6 9l6 6 6-6"
                         stroke={colors.neutral[400]}
                         strokeWidth="2"
                         fill="none"
@@ -390,19 +400,33 @@ function DropdownField({
                     />
                 </Svg>
             </Pressable>
-            {open && (
-                <View style={st.dropdown}>
-                    {options.length === 0 ? (
-                        <Text className="font-inter text-sm text-neutral-400 py-3 text-center">
-                            No {label.toLowerCase()}s available
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                    <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
+                    <View style={st.dropdownSheet}>
+                        <View style={st.dropdownSheetHandle} />
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">
+                            {label}
                         </Text>
-                    ) : (
-                        <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
-                            {options.map((opt, idx) => {
+                        {options.length > 6 && (
+                            <TextInput
+                                value={search}
+                                onChangeText={setSearch}
+                                placeholder={`Search ${label.toLowerCase()}...`}
+                                placeholderTextColor={colors.neutral[400]}
+                                style={[st.input, { marginBottom: 8 }]}
+                                autoFocus={false}
+                            />
+                        )}
+                        <FlatList
+                            data={filtered}
+                            keyExtractor={(item) => item.id}
+                            style={{ maxHeight: 350 }}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item: opt, index: idx }) => {
                                 const isActive = opt.id === selected;
                                 return (
                                     <Pressable
-                                        key={opt.id}
                                         onPress={() => { onSelect(opt.id); setOpen(false); }}
                                         style={[
                                             st.dropdownItem,
@@ -411,7 +435,7 @@ function DropdownField({
                                         ]}
                                     >
                                         <Text
-                                            className={`font-inter text-sm ${isActive ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
+                                            className={`font-inter text-sm ${isActive ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}
                                             numberOfLines={1}
                                             style={{ flex: 1 }}
                                         >
@@ -424,11 +448,16 @@ function DropdownField({
                                         )}
                                     </Pressable>
                                 );
-                            })}
-                        </ScrollView>
-                    )}
+                            }}
+                            ListEmptyComponent={
+                                <Text className="font-inter text-sm text-neutral-400 py-3 text-center">
+                                    No {label.toLowerCase()}s available
+                                </Text>
+                            }
+                        />
+                    </View>
                 </View>
-            )}
+            </Modal>
         </View>
     );
 }
@@ -454,7 +483,7 @@ function RoleChipSelectWithCreate({
     return (
         <View style={st.field}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text className="font-inter text-xs font-bold text-primary-900">Role</Text>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Role</Text>
                 <Pressable onPress={() => router.push('/company/roles' as any)} hitSlop={8}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
@@ -477,7 +506,7 @@ function RoleChipSelectWithCreate({
                                 style={[st.chip, isActive && st.chipActive]}
                             >
                                 <Text
-                                    className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                                    className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                                 >
                                     {r.name}
                                 </Text>
@@ -527,7 +556,7 @@ function TabBar({
                         style={[st.tab, isActive && st.tabActive]}
                     >
                         <Text
-                            className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                            className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                         >
                             {tab.label}
                         </Text>
@@ -607,7 +636,7 @@ function PersonalTab({
             <SectionTitle title="Contact" />
             <FormField label="Personal Mobile" value={form.personalMobile} onChangeText={(v) => onChange({ personalMobile: v })} placeholder="+91 98765 43210" keyboardType="phone-pad" required />
             <FormField label="Alternative Mobile" value={form.alternativeMobile} onChangeText={(v) => onChange({ alternativeMobile: v })} keyboardType="phone-pad" />
-            <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" required />
+            <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" />
             <FormField label="Official Email" value={form.officialEmail} onChangeText={(v) => onChange({ officialEmail: v })} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" />
 
             <SectionTitle title="Current Address" />
@@ -620,7 +649,7 @@ function PersonalTab({
 
             <SectionTitle title="Permanent Address" />
             <View style={st.toggleRow}>
-                <Text className="font-inter text-sm font-medium text-primary-900">Same as Current Address</Text>
+                <Text className="font-inter text-sm font-medium text-primary-900 dark:text-primary-100">Same as Current Address</Text>
                 <Switch
                     value={form.sameAsCurrent}
                     onValueChange={(v) => onChange({ sameAsCurrent: v })}
@@ -646,7 +675,7 @@ function PersonalTab({
                     <SectionTitle title="Create Login Account" />
                     <View style={st.loginAccountCard}>
                         <View style={st.toggleRow}>
-                            <Text className="font-inter text-sm font-medium text-primary-900">Enable login for this employee</Text>
+                            <Text className="font-inter text-sm font-medium text-primary-900 dark:text-primary-100">Enable login for this employee</Text>
                             <Switch
                                 value={createUserAccount ?? false}
                                 onValueChange={(v) => onCreateUserAccountChange?.(v)}
@@ -654,10 +683,10 @@ function PersonalTab({
                                 thumbColor={createUserAccount ? colors.white : colors.neutral[100]}
                             />
                         </View>
-                        {createUserAccount && !form.officialEmail && (
+                        {createUserAccount && !form.officialEmail?.trim() && !form.personalEmail?.trim() && (
                             <View style={st.loginWarning}>
                                 <Text className="font-inter text-[11px] font-semibold text-warning-700">
-                                    Official Email (above) is required to create a login account.
+                                    Enter a personal or work email above to create a login account.
                                 </Text>
                             </View>
                         )}
@@ -720,7 +749,7 @@ function PersonalTab({
                                 {rolesError ? (
                                     <Text className="font-inter text-[10px] font-semibold text-danger-600 mt-2">Failed to load roles. Check permissions or try again.</Text>
                                 ) : rolesLoading ? (
-                                    <Text className="font-inter text-[10px] text-neutral-500 mt-2">Loading roles...</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-2">Loading roles...</Text>
                                 ) : (
                                     <RoleChipSelectWithCreate
                                         dynamicRoles={dynamicRoles || []}
@@ -784,7 +813,7 @@ function ProfessionalTab({
                     Select a location first to see available geofences.
                 </Text>
             ) : (
-                <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500">
+                <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500 dark:text-neutral-400">
                     Attendance check-in zone for this employee.
                 </Text>
             )}
@@ -792,11 +821,11 @@ function ProfessionalTab({
             <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} />
             <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} />
             <FormField label="Notice Period (Days)" value={form.noticePeriodDays} onChangeText={(v) => onChange({ noticePeriodDays: v })} keyboardType="number-pad" placeholder="e.g. 90" />
-            <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500">
+            <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500 dark:text-neutral-400">
                 Defaults from the grade (Grade master). You can override per employee.
             </Text>
             <FormField label="Probation End Date" value={form.probationEndDate} onChangeText={(v) => onChange({ probationEndDate: v })} placeholder="YYYY-MM-DD" editable={false} />
-            <Text className="font-inter mt-1 text-[10px] leading-4 text-neutral-500">
+            <Text className="font-inter mt-1 text-[10px] leading-4 text-neutral-500 dark:text-neutral-400">
                 Auto: designation probation days if set, else grade probation months (same rules as the server).
             </Text>
         </Animated.View>
@@ -820,11 +849,11 @@ function SalaryTab({
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Compensation" />
             <View style={st.field}>
-                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Annual CTC
                 </Text>
                 <View style={[st.input, { flexDirection: 'row', alignItems: 'center' }]}>
-                    <Text className="mr-2 font-inter text-sm font-semibold text-neutral-500">INR</Text>
+                    <Text className="mr-2 font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">INR</Text>
                     <TextInput
                         style={[st.textInner, { flex: 1 }]}
                         placeholder="e.g. 12,00,000"
@@ -842,7 +871,7 @@ function SalaryTab({
                     />
                 </View>
                 {form.annualCtc ? (
-                    <Text className="mt-1 font-inter text-[10px] text-neutral-500">
+                    <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                         INR {formatCurrency(form.annualCtc)} per annum
                     </Text>
                 ) : null}
@@ -868,19 +897,19 @@ function SalaryTab({
 
             {form.salaryStructure && Object.keys(form.salaryStructure).length > 0 ? (
                 <View style={st.breakdownCard}>
-                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500">Component Breakdown</Text>
+                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Component Breakdown</Text>
                     <View style={st.breakdownHeader}>
-                        <Text className="font-inter text-[10px] font-bold text-neutral-500" style={{ flex: 1 }}>COMPONENT</Text>
-                        <Text className="font-inter text-[10px] font-bold text-neutral-500" style={{ width: 80, textAlign: 'right' }}>MONTHLY</Text>
-                        <Text className="font-inter text-[10px] font-bold text-neutral-500" style={{ width: 80, textAlign: 'right' }}>ANNUAL</Text>
+                        <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400" style={{ flex: 1 }}>COMPONENT</Text>
+                        <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400" style={{ width: 80, textAlign: 'right' }}>MONTHLY</Text>
+                        <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400" style={{ width: 80, textAlign: 'right' }}>ANNUAL</Text>
                     </View>
                     {Object.entries(form.salaryStructure).map(([key, val]) => (
                         <View key={key} style={st.breakdownRow}>
                             <Text className="font-inter text-xs text-neutral-700" style={{ flex: 1 }} numberOfLines={1}>{key}</Text>
-                            <Text className="font-inter text-xs font-semibold text-primary-950" style={{ width: 80, textAlign: 'right' }}>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" style={{ width: 80, textAlign: 'right' }}>
                                 {typeof val === 'number' ? `₹${Math.round(val / 12).toLocaleString('en-IN')}` : '\u2014'}
                             </Text>
-                            <Text className="font-inter text-xs font-semibold text-primary-950" style={{ width: 80, textAlign: 'right' }}>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" style={{ width: 80, textAlign: 'right' }}>
                                 {typeof val === 'number' ? `₹${val.toLocaleString('en-IN')}` : String(val)}
                             </Text>
                         </View>
@@ -897,7 +926,7 @@ function SalaryTab({
                 </View>
             ) : (
                 <View style={st.readOnlyCard}>
-                    <Text className="font-inter text-xs text-neutral-500">
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                         {form.structureId ? 'Enter Annual CTC to see breakdown' : 'No salary structure selected'}
                     </Text>
                 </View>
@@ -996,7 +1025,7 @@ function DocumentsTab({
             <SectionTitle title="Statutory IDs" />
             <FormField label="PAN" value={form.pan} onChangeText={(v) => onChange({ pan: v.toUpperCase() })} placeholder="ABCDE1234F" autoCapitalize="characters" />
             <View style={st.field}>
-                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Aadhaar</Text>
+                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Aadhaar</Text>
                 <TextInput
                     style={st.input}
                     placeholder="1234 5678 9012"
@@ -1006,7 +1035,7 @@ function DocumentsTab({
                     keyboardType="number-pad"
                 />
                 {form.aadhaar.length >= 4 ? (
-                    <Text className="mt-1 font-inter text-[10px] text-neutral-500">
+                    <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                         Masked: {maskAadhaar(form.aadhaar)}
                     </Text>
                 ) : null}
@@ -1020,7 +1049,7 @@ function DocumentsTab({
             <SectionTitle title="Uploaded Documents" />
             {docs.length === 0 ? (
                 <View style={st.readOnlyCard}>
-                    <Text className="font-inter text-xs text-neutral-500">
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                         No documents uploaded yet.
                     </Text>
                 </View>
@@ -1033,7 +1062,7 @@ function DocumentsTab({
                             </Text>
                         </View>
                         <View style={{ flex: 1, marginLeft: 8 }}>
-                            <Text className="font-inter text-xs font-semibold text-primary-950" numberOfLines={1}>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" numberOfLines={1}>
                                 {doc.fileName}
                             </Text>
                             <Text className="font-inter text-[10px] text-neutral-400">
@@ -1089,7 +1118,7 @@ function TimelineTab({
     if (events.length === 0) {
         return (
             <View style={st.readOnlyCard}>
-                <Text className="font-inter text-xs text-neutral-500">
+                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     No timeline events yet.
                 </Text>
             </View>
@@ -1111,11 +1140,11 @@ function TimelineTab({
                         </View>
                         {/* Content */}
                         <View style={st.timelineContent}>
-                            <Text className="font-inter text-xs font-bold text-primary-950">
+                            <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">
                                 {evt.title}
                             </Text>
                             {evt.description ? (
-                                <Text className="mt-0.5 font-inter text-[11px] text-neutral-600">
+                                <Text className="mt-0.5 font-inter text-[11px] text-neutral-600 dark:text-neutral-400">
                                     {evt.description}
                                 </Text>
                             ) : null}
@@ -1140,6 +1169,9 @@ function TimelineTab({
 // ============ MAIN COMPONENT ============
 
 export function EmployeeDetailScreen() {
+  const isDark = useIsDark();
+  const st = _createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -1665,13 +1697,15 @@ export function EmployeeDetailScreen() {
         });
         if (!result.canceled && result.assets[0]) {
             const asset = result.assets[0];
-            const fileInfo = await FileSystem.getInfoAsync(asset.uri);
-            if (fileInfo.exists) {
+            const file = new ExpoFile(asset.uri);
+            const exists = file.exists;
+            if (exists) {
+                const size = file.size ?? 0;
                 await uploadPhoto({
                     uri: asset.uri,
                     name: 'profile-photo.jpg',
                     type: asset.mimeType || 'image/jpeg',
-                    size: fileInfo.size ?? 0,
+                    size,
                 });
             }
         }
@@ -1713,15 +1747,22 @@ export function EmployeeDetailScreen() {
         }
     };
 
+    // Forward mappings: display values → API enum values
+    const genderMap: Record<string, string> = { 'Male': 'MALE', 'Female': 'FEMALE', 'Non-Binary': 'NON_BINARY', 'Prefer not to say': 'PREFER_NOT_TO_SAY' };
+    const maritalMap: Record<string, string> = { 'Single': 'SINGLE', 'Married': 'MARRIED', 'Divorced': 'DIVORCED', 'Widowed': 'WIDOWED' };
+    const workTypeMap: Record<string, string> = { 'On-site': 'ON_SITE', 'Remote': 'REMOTE', 'Hybrid': 'HYBRID' };
+
     // Collect all form data
     const collectFormData = (): Record<string, unknown> => ({
         // Profile photo
         profilePhotoUrl: profilePhotoUrl ?? undefined,
         // Personal
         firstName: personal.firstName, middleName: personal.middleName,
-        lastName: personal.lastName, dob: personal.dob, gender: personal.gender,
-        maritalStatus: personal.maritalStatus, bloodGroup: personal.bloodGroup,
-        fatherName: personal.fatherName, motherName: personal.motherName,
+        lastName: personal.lastName, dateOfBirth: personal.dob,
+        gender: genderMap[personal.gender] || personal.gender,
+        maritalStatus: maritalMap[personal.maritalStatus] || personal.maritalStatus,
+        bloodGroup: personal.bloodGroup,
+        fatherMotherName: [personal.fatherName, personal.motherName].filter(Boolean).join(' / ') || undefined,
         nationality: personal.nationality, religion: personal.religion,
         category: personal.category, personalMobile: personal.personalMobile,
         alternativeMobile: personal.alternativeMobile,
@@ -1738,10 +1779,9 @@ export function EmployeeDetailScreen() {
             city: personal.permanentCity, state: personal.permanentState,
             pin: personal.permanentPin, country: personal.permanentCountry,
         },
-        emergencyContact: {
-            name: personal.emergencyName, relation: personal.emergencyRelation,
-            mobile: personal.emergencyMobile,
-        },
+        emergencyContactName: personal.emergencyName,
+        emergencyContactRelation: personal.emergencyRelation,
+        emergencyContactMobile: personal.emergencyMobile,
         // Professional
         joiningDate: professional.joiningDate,
         employeeTypeId: professional.employeeTypeId || undefined,
@@ -1750,7 +1790,8 @@ export function EmployeeDetailScreen() {
         gradeId: professional.gradeId || undefined,
         reportingManagerId: professional.reportingManagerId || undefined,
         functionalManagerId: professional.functionalManagerId || undefined,
-        workType: professional.workType, shiftId: professional.shiftId || undefined,
+        workType: workTypeMap[professional.workType] || professional.workType,
+        shiftId: professional.shiftId || undefined,
         locationId: professional.locationId || undefined,
         geofenceId: professional.geofenceId || undefined,
         costCentreId: professional.costCentreId || undefined,
@@ -1831,11 +1872,6 @@ export function EmployeeDetailScreen() {
             setActiveTab('personal');
             return;
         }
-        if (!personal.personalEmail.trim()) {
-            showErrorMessage('Personal Email is required.');
-            setActiveTab('personal');
-            return;
-        }
         if (!personal.currentLine1.trim() || !personal.currentCity.trim() || !personal.currentState.trim() || !personal.currentCountry.trim()) {
             showErrorMessage('Complete Current Address is required (Line 1, City, State, Country).');
             setActiveTab('personal');
@@ -1871,8 +1907,8 @@ export function EmployeeDetailScreen() {
 
         // --- Account ---
         if (isCreateMode && createUserAccount) {
-            if (!personal.officialEmail.trim()) {
-                showErrorMessage('Official Email is required for login account.');
+            if (!personal.officialEmail.trim() && !personal.personalEmail.trim()) {
+                showErrorMessage('Personal or work email is required when enabling login for this employee.');
                 setActiveTab('personal');
                 return;
             }
@@ -2329,10 +2365,10 @@ export function EmployeeDetailScreen() {
 
 // ============ STYLES ============
 
-const st = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     draftBanner: {
         backgroundColor: colors.info[50],
@@ -2356,7 +2392,7 @@ const st = StyleSheet.create({
     photoSection: {
         alignItems: 'center',
         paddingVertical: 12,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
@@ -2399,7 +2435,7 @@ const st = StyleSheet.create({
     // Tab bar
     tabBar: {
         flexGrow: 0,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderBottomWidth: 1,
         borderBottomColor: colors.neutral[100],
     },
@@ -2412,7 +2448,7 @@ const st = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     tabActive: {
         backgroundColor: colors.primary[600],
@@ -2427,18 +2463,18 @@ const st = StyleSheet.create({
         marginBottom: 16,
     },
     input: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 14,
         color: colors.primary[950],
     },
     inputReadOnly: {
-        backgroundColor: colors.neutral[100],
-        borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         color: colors.neutral[600],
     },
     inputError: {
@@ -2460,32 +2496,31 @@ const st = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     chipActive: {
         backgroundColor: colors.primary[600],
         borderColor: colors.primary[600],
     },
-    // Dropdown
-    dropdown: {
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        zIndex: 200,
-        backgroundColor: colors.white,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: colors.primary[200],
-        marginTop: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-        elevation: 20,
-        overflow: 'hidden',
+    // Dropdown modal sheet
+    dropdownSheet: {
+        backgroundColor: isDark ? '#1A1730' : colors.white,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        paddingBottom: 32,
+        maxHeight: '65%',
+    },
+    dropdownSheetHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: colors.neutral[300],
+        alignSelf: 'center',
+        marginBottom: 16,
     },
     dropdownItem: {
         flexDirection: 'row',
@@ -2502,11 +2537,11 @@ const st = StyleSheet.create({
         marginBottom: 12,
     },
     loginAccountCard: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 14,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         marginTop: 4,
         gap: 8,
     },
@@ -2529,11 +2564,11 @@ const st = StyleSheet.create({
     },
     // Salary breakdown
     breakdownCard: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         marginBottom: 16,
     },
     breakdownHeader: {
@@ -2560,26 +2595,26 @@ const st = StyleSheet.create({
     },
     // Read-only card
     readOnlyCard: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         marginBottom: 16,
     },
     // Documents
     docCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         padding: 12,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     docTypeBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
@@ -2596,7 +2631,7 @@ const st = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: colors.primary[300],
         borderStyle: 'dashed',
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         marginTop: 8,
         marginBottom: 16,
     },
@@ -2639,7 +2674,7 @@ const st = StyleSheet.create({
         gap: 10,
         borderTopWidth: 1,
         borderTopColor: colors.neutral[100],
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
     },
     statusActionBtn: {
         flex: 1,
@@ -2647,7 +2682,7 @@ const st = StyleSheet.create({
         borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -2674,7 +2709,7 @@ const st = StyleSheet.create({
         borderColor: colors.danger[200],
     },
     exitFormPanel: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopWidth: 1,
         borderTopColor: colors.danger[200],
         paddingHorizontal: 24,
@@ -2696,3 +2731,4 @@ const st = StyleSheet.create({
         marginBottom: 8,
     },
 });
+const st = _createStyles(false);

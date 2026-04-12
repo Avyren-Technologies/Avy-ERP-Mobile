@@ -40,6 +40,7 @@ import type { CompanyShift, ShiftBreak, ShiftType, BreakType, CreateShiftPayload
 
 import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -94,10 +95,122 @@ const EMPTY_BREAK: BreakFormState = { name: '', type: 'FIXED', startTime: '', du
 function FormField({ label, value, onChange, placeholder, keyboardType }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; keyboardType?: 'default' | 'number-pad' | 'decimal-pad' }) {
     return (
         <View style={s.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={s.inputWrap}>
                 <TextInput style={s.textInput} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.neutral[400]} keyboardType={keyboardType ?? 'default'} />
             </View>
+        </View>
+    );
+}
+
+function TimePickerField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    const [open, setOpen] = React.useState(false);
+    const [selectedHour, setSelectedHour] = React.useState(() => {
+        if (!value) return 0;
+        const [h] = value.split(':').map(Number);
+        return isNaN(h!) ? 0 : h!;
+    });
+    const [selectedMinute, setSelectedMinute] = React.useState(() => {
+        if (!value) return 0;
+        const parts = value.split(':');
+        const m = Number(parts[1]);
+        return isNaN(m) ? 0 : m;
+    });
+
+    React.useEffect(() => {
+        if (open) {
+            if (value) {
+                const [h, m] = value.split(':').map(Number);
+                if (!isNaN(h!)) setSelectedHour(h!);
+                if (!isNaN(m!)) setSelectedMinute(m!);
+            }
+        }
+    }, [open, value]);
+
+    const hours = React.useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
+    const minutes = React.useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
+
+    const formatTime = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+    const handleConfirm = () => {
+        onChange(formatTime(selectedHour, selectedMinute));
+        setOpen(false);
+    };
+
+    return (
+        <View style={s.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
+            <Pressable
+                onPress={() => setOpen(true)}
+                style={[s.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+            >
+                <Text className={`font-inter text-sm font-semibold ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
+                    {value || 'Select time'}
+                </Text>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path d="M12 2a10 10 0 100 20A10 10 0 0012 2zM12 6v6l4 2" stroke={colors.neutral[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+            </Pressable>
+
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                    <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
+                    <View style={{ backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 }}>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-4">{label}</Text>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2 text-center">Hour</Text>
+                                <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
+                                    {hours.map(h => (
+                                        <Pressable
+                                            key={h}
+                                            onPress={() => setSelectedHour(h)}
+                                            style={{
+                                                padding: 10, borderRadius: 10, marginBottom: 4, alignItems: 'center',
+                                                backgroundColor: selectedHour === h ? colors.primary[600] : colors.neutral[50],
+                                            }}
+                                        >
+                                            <Text className={`font-inter text-sm font-semibold ${selectedHour === h ? 'text-white' : 'text-primary-900 dark:text-primary-100'}`}>
+                                                {String(h).padStart(2, '0')}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                            <View style={{ justifyContent: 'center', paddingBottom: 20 }}>
+                                <Text className="font-inter text-xl font-bold text-primary-600">:</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2 text-center">Minute</Text>
+                                <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
+                                    {minutes.map(m => (
+                                        <Pressable
+                                            key={m}
+                                            onPress={() => setSelectedMinute(m)}
+                                            style={{
+                                                padding: 10, borderRadius: 10, marginBottom: 4, alignItems: 'center',
+                                                backgroundColor: selectedMinute === m ? colors.primary[600] : colors.neutral[50],
+                                            }}
+                                        >
+                                            <Text className={`font-inter text-sm font-semibold ${selectedMinute === m ? 'text-white' : 'text-primary-900 dark:text-primary-100'}`}>
+                                                {String(m).padStart(2, '0')}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                            <Pressable onPress={() => setOpen(false)} style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center' }}>
+                                <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            </Pressable>
+                            <Pressable onPress={handleConfirm} style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center' }}>
+                                <Text className="font-inter text-sm font-bold text-white">Confirm</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -111,7 +224,7 @@ function NullableNumberRow({ label, value, onChange, suffix, tooltip }: { label:
                     {!isNull && <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text className="ml-2 font-inter text-xs text-neutral-600">{label}</Text>
+                    <Text className="ml-2 font-inter text-xs text-neutral-600 dark:text-neutral-400">{label}</Text>
                     {tooltip && <InfoTooltip content={tooltip} />}
                 </View>
             </Pressable>
@@ -137,7 +250,7 @@ function NullableBoolRow({ label, value, onChange }: { label: string; value: boo
                 <View style={[s.checkBox, !isNull && s.checkBoxActive]}>
                     {!isNull && <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
                 </View>
-                <Text className="ml-2 font-inter text-xs text-neutral-600">{label}</Text>
+                <Text className="ml-2 font-inter text-xs text-neutral-600 dark:text-neutral-400">{label}</Text>
             </Pressable>
             {!isNull ? (
                 <Switch value={value ?? false} onValueChange={(v) => onChange(v)} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
@@ -151,6 +264,9 @@ function NullableBoolRow({ label, value, onChange }: { label: string; value: boo
 // ============ MAIN COMPONENT ============
 
 export function ShiftManagementScreen() {
+  const isDark = useIsDark();
+  const s = _createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const confirmModal = useConfirmModal();
@@ -321,8 +437,8 @@ export function ShiftManagementScreen() {
                     </Pressable>
                 </View>
             </View>
-            <Text className="font-inter text-base font-bold text-primary-950">{item.name}</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{fmt.shiftTime(item.startTime)} — {fmt.shiftTime(item.endTime)}{item.isCrossDay ? ' (Cross-day)' : ''}</Text>
+            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{item.name}</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{fmt.shiftTime(item.startTime)} — {fmt.shiftTime(item.endTime)}{item.isCrossDay ? ' (Cross-day)' : ''}</Text>
             {(item.breaks?.length ?? 0) > 0 && (
                 <Text className="mt-1 font-inter text-xs text-neutral-400">{item.breaks?.length} break(s)</Text>
             )}
@@ -363,8 +479,8 @@ export function ShiftManagementScreen() {
             <Modal visible={modalOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setModalOpen(false)}>
                 <View style={[s.modalContainer, { paddingTop: insets.top + 12 }]}>
                     <View style={s.modalHeader}>
-                        <Pressable onPress={() => setModalOpen(false)}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
-                        <Text className="font-inter text-base font-bold text-primary-950">{editingId ? 'Edit Shift' : 'New Shift'}</Text>
+                        <Pressable onPress={() => setModalOpen(false)}><Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">Cancel</Text></Pressable>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{editingId ? 'Edit Shift' : 'New Shift'}</Text>
                         <Pressable onPress={handleSave} disabled={saving || !form.name}>
                             {saving ? <ActivityIndicator size="small" color={colors.primary[600]} /> : <Text className="font-inter text-sm font-bold text-primary-600">Save</Text>}
                         </Pressable>
@@ -376,26 +492,26 @@ export function ShiftManagementScreen() {
                         <FormField label="Shift Name" value={form.name} onChange={(v) => setForm((p) => ({ ...p, name: v }))} placeholder="e.g. Morning Shift" />
                         <ChipSelector label="Shift Type" options={SHIFT_TYPE_OPTIONS.map((o) => SHIFT_TYPE_LABELS[o])} selected={SHIFT_TYPE_LABELS[form.shiftType]} onSelect={(v) => { const key = Object.entries(SHIFT_TYPE_LABELS).find(([, l]) => l === v)?.[0] ?? 'DAY'; setForm((p) => ({ ...p, shiftType: key as ShiftType })); }} />
                         <View style={{ flexDirection: 'row', gap: 12 }}>
-                            <View style={{ flex: 1 }}><FormField label="Start Time" value={form.startTime} onChange={(v) => setForm((p) => ({ ...p, startTime: v }))} placeholder="HH:MM" /></View>
-                            <View style={{ flex: 1 }}><FormField label="End Time" value={form.endTime} onChange={(v) => setForm((p) => ({ ...p, endTime: v }))} placeholder="HH:MM" /></View>
+                            <View style={{ flex: 1 }}><TimePickerField label="Start Time" value={form.startTime} onChange={(v) => setForm((p) => ({ ...p, startTime: v }))} /></View>
+                            <View style={{ flex: 1 }}><TimePickerField label="End Time" value={form.endTime} onChange={(v) => setForm((p) => ({ ...p, endTime: v }))} /></View>
                         </View>
 
                         {/* Toggles */}
                         <View style={s.toggleRowModal}>
                             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                                <Text className="font-inter text-sm text-primary-950">Cross-Day Shift</Text>
+                                <Text className="font-inter text-sm text-primary-950 dark:text-white">Cross-Day Shift</Text>
                                 <InfoTooltip content="Enable for night shifts that span midnight (e.g., 22:00 to 06:00). Attendance date will be the shift start date." />
                             </View>
                             <Switch value={form.isCrossDay} onValueChange={(v) => setForm((p) => ({ ...p, isCrossDay: v }))} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={form.isCrossDay ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                         <View style={s.toggleRowModal}>
-                            <Text className="flex-1 font-inter text-sm text-primary-950">No Shuffle</Text>
+                            <Text className="flex-1 font-inter text-sm text-primary-950 dark:text-white">No Shuffle</Text>
                             <Switch value={form.noShuffle} onValueChange={(v) => setForm((p) => ({ ...p, noShuffle: v }))} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={form.noShuffle ? colors.primary[600] : colors.neutral[300]} />
                         </View>
 
                         {/* Policy Overrides */}
                         <Text className="mt-6 mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">Policy Overrides</Text>
-                        <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">Leave fields empty to inherit from company-wide Attendance Rules. Set a value to override for this specific shift.</Text>
+                        <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">Leave fields empty to inherit from company-wide Attendance Rules. Set a value to override for this specific shift.</Text>
                         <NullableNumberRow label="Grace Period" value={form.gracePeriodMinutes} onChange={(v) => setForm((p) => ({ ...p, gracePeriodMinutes: v }))} suffix="min" />
                         <NullableNumberRow label="Early Exit Tolerance" value={form.earlyExitToleranceMinutes} onChange={(v) => setForm((p) => ({ ...p, earlyExitToleranceMinutes: v }))} suffix="min" />
                         <NullableNumberRow label="Half Day Threshold" value={form.halfDayThresholdHours} onChange={(v) => setForm((p) => ({ ...p, halfDayThresholdHours: v }))} suffix="hrs" />
@@ -418,8 +534,8 @@ export function ShiftManagementScreen() {
                                 ) : currentBreaks.map((brk) => (
                                     <View key={brk.id} style={s.breakRow}>
                                         <View style={{ flex: 1 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950">{brk.name}</Text>
-                                            <Text className="font-inter text-xs text-neutral-500">{brk.type} / {brk.duration}min / {brk.isPaid ? 'Paid' : 'Unpaid'}</Text>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{brk.name}</Text>
+                                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{brk.type} / {brk.duration}min / {brk.isPaid ? 'Paid' : 'Unpaid'}</Text>
                                         </View>
                                         <Pressable onPress={() => openEditBreak(brk)} style={{ marginRight: 10 }}>
                                             <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -439,8 +555,8 @@ export function ShiftManagementScreen() {
             <Modal visible={breakModalOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setBreakModalOpen(false)}>
                 <View style={[s.modalContainer, { paddingTop: insets.top + 12 }]}>
                     <View style={s.modalHeader}>
-                        <Pressable onPress={() => setBreakModalOpen(false)}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
-                        <Text className="font-inter text-base font-bold text-primary-950">{editingBreakId ? 'Edit Break' : 'New Break'}</Text>
+                        <Pressable onPress={() => setBreakModalOpen(false)}><Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">Cancel</Text></Pressable>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{editingBreakId ? 'Edit Break' : 'New Break'}</Text>
                         <Pressable onPress={handleSaveBreak} disabled={breakSaving || !breakForm.name}>
                             {breakSaving ? <ActivityIndicator size="small" color={colors.primary[600]} /> : <Text className="font-inter text-sm font-bold text-primary-600">Save</Text>}
                         </Pressable>
@@ -449,11 +565,11 @@ export function ShiftManagementScreen() {
                         <FormField label="Break Name" value={breakForm.name} onChange={(v) => setBreakForm((p) => ({ ...p, name: v }))} placeholder="e.g. Lunch Break" />
                         <ChipSelector label="Break Type" options={BREAK_TYPE_OPTIONS.map((o) => BREAK_TYPE_LABELS[o])} selected={BREAK_TYPE_LABELS[breakForm.type]} onSelect={(v) => { const key = Object.entries(BREAK_TYPE_LABELS).find(([, l]) => l === v)?.[0] ?? 'FIXED'; setBreakForm((p) => ({ ...p, type: key as BreakType })); }} />
                         {breakForm.type === 'FIXED' && (
-                            <FormField label="Start Time" value={breakForm.startTime} onChange={(v) => setBreakForm((p) => ({ ...p, startTime: v }))} placeholder="HH:MM" />
+                            <TimePickerField label="Start Time" value={breakForm.startTime} onChange={(v) => setBreakForm((p) => ({ ...p, startTime: v }))} />
                         )}
                         <FormField label="Duration (minutes)" value={String(breakForm.duration)} onChange={(v) => setBreakForm((p) => ({ ...p, duration: Number(v) || 0 }))} keyboardType="number-pad" />
                         <View style={s.toggleRowModal}>
-                            <Text className="flex-1 font-inter text-sm text-primary-950">Paid Break</Text>
+                            <Text className="flex-1 font-inter text-sm text-primary-950 dark:text-white">Paid Break</Text>
                             <Switch value={breakForm.isPaid} onValueChange={(v) => setBreakForm((p) => ({ ...p, isPaid: v }))} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={breakForm.isPaid ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                     </ScrollView>
@@ -467,30 +583,31 @@ export function ShiftManagementScreen() {
 
 // ============ STYLES ============
 
-const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
-    searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, marginBottom: 8, backgroundColor: colors.white, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 44 },
+const _createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
+    searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, marginBottom: 8, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 44 },
     searchInput: { flex: 1, fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     shiftCard: {
-        backgroundColor: colors.white, borderRadius: 18, padding: 16, marginBottom: 10,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 18, padding: 16, marginBottom: 10,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     shiftCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     shiftTypeBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
-    iconBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.neutral[50], justifyContent: 'center', alignItems: 'center' },
-    modalContainer: { flex: 1, backgroundColor: colors.white },
+    iconBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], justifyContent: 'center', alignItems: 'center' },
+    modalContainer: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     fieldWrap: { marginBottom: 12 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     toggleRowModal: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     overrideRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[50] },
     overrideCheck: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     checkBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: colors.neutral[300], justifyContent: 'center', alignItems: 'center' },
     checkBoxActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    smallInputWrap: { backgroundColor: colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 8, height: 32, minWidth: 52, justifyContent: 'center' },
+    smallInputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 8, height: 32, minWidth: 52, justifyContent: 'center' },
     smallInput: { fontFamily: 'Inter', fontSize: 12, color: colors.primary[950], textAlign: 'right' },
-    addBreakBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary[50] },
+    addBreakBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
     breakRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
 });
+const s = _createStyles(false);

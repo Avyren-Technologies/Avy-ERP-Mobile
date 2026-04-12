@@ -33,6 +33,7 @@ import { NotificationsSheet } from '@/features/notifications/notifications-sheet
 import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
 import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import { useCompanyAdminStats } from '@/features/super-admin/api/use-dashboard-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 function useResponsiveWidths() {
     const { width: SCREEN_WIDTH } = useWindowDimensions();
@@ -347,7 +348,7 @@ function KPICard({ data, index, cardWidth }: { data: KPICardData; index: number;
                         {data.value}
                     </Text>
                 )}
-                <Text className="mt-1 font-inter text-xs font-medium text-neutral-500">
+                <Text className="mt-1 font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     {data.title}
                 </Text>
             </View>
@@ -540,7 +541,7 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
                                 <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                                     {item.title}
                                 </Text>
-                                <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>
+                                <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                                     {item.description}
                                 </Text>
                             </View>
@@ -558,6 +559,9 @@ function RecentActivitySection({ items, isLoading }: { items: ActivityItem[]; is
 // ============ MAIN COMPONENT ============
 
 export function CompanyAdminDashboard() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { CARD_WIDTH, QUICK_ACTION_WIDTH } = useResponsiveWidths();
     const { data: statsResponse, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useCompanyAdminStats();
@@ -674,7 +678,7 @@ export function CompanyAdminDashboard() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
                 <Text className="font-inter text-base font-semibold text-danger-600">Failed to load dashboard</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500 text-center">
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400 text-center">
                     {(statsError as any)?.message ?? 'An error occurred. Please try again.'}
                 </Text>
                 <Pressable onPress={() => refetchStats()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
@@ -737,10 +741,10 @@ export function CompanyAdminDashboard() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     scrollContent: {
         flexGrow: 1,
@@ -813,7 +817,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     kpiCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         shadowColor: colors.primary[900],
@@ -822,7 +826,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 3,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     kpiHeader: {
         flexDirection: 'row',
@@ -854,7 +858,7 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         paddingHorizontal: 12,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     quickActionsGrid: {
         flexDirection: 'row',
@@ -938,7 +942,7 @@ const styles = StyleSheet.create({
     },
     // Activity
     activityCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         paddingVertical: 4,
         shadowColor: colors.primary[900],
@@ -947,7 +951,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 3,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     activityItem: {
         flexDirection: 'row',
@@ -977,3 +981,4 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
 });
+const styles = createStyles(false);

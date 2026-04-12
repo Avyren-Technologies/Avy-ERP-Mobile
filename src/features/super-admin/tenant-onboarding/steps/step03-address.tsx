@@ -122,7 +122,7 @@ export function Step3Address({
                             </Svg>
                         )}
                     </View>
-                    <Text className="font-inter text-sm font-medium text-neutral-600">
+                    <Text className="font-inter text-sm font-medium text-neutral-600 dark:text-neutral-400">
                         Same as Registered Address
                     </Text>
                 </Pressable>

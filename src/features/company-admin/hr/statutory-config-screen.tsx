@@ -42,6 +42,7 @@ import {
     usePFConfig,
     usePTConfigs,
 } from '@/features/company-admin/api/use-payroll-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -95,7 +96,7 @@ function SectionCard({ title, subtitle, collapsed, onToggle, children }: { title
 function NumberField({ label, value, onChange, placeholder, suffix }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; suffix?: string }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
                 <TextInput style={[styles.textInput, { flex: 1 }]} placeholder={placeholder} placeholderTextColor={colors.neutral[400]} value={value} onChangeText={onChange} keyboardType="decimal-pad" />
                 {suffix && <Text className="ml-2 font-inter text-xs text-neutral-400">{suffix}</Text>}
@@ -108,8 +109,8 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
-                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500">{subtitle}</Text>}
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
         </View>
@@ -119,13 +120,13 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -146,9 +147,9 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
     const [open, setOpen] = React.useState(false);
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">State</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">State</Text>
             <Pressable onPress={() => setOpen(true)} style={styles.dropdownBtn}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>{value || 'Select state...'}</Text>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>{value || 'Select state...'}</Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -156,12 +157,12 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '70%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select State</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select State</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             {INDIAN_STATES.map(state => (
                                 <Pressable key={state} onPress={() => { onSelect(state); setOpen(false); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: state === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${state === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{state}</Text>
+                                    <Text className={`font-inter text-sm ${state === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{state}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -209,19 +210,19 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '85%' }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Add PT Config</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">Add PT Config</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <StateDropdown value={state} onSelect={setState} />
                         <ChipSelector label="Frequency" options={PT_FREQUENCIES} value={frequency} onSelect={setFrequency} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Registration Number</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Registration Number</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="PT Registration No." placeholderTextColor={colors.neutral[400]} value={regNumber} onChangeText={setRegNumber} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Financial Year</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Financial Year</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 2025-26" placeholderTextColor={colors.neutral[400]} value={financialYear} onChangeText={setFinancialYear} /></View>
                         </View>
-                        <Text className="mb-2 mt-2 font-inter text-xs font-bold text-neutral-500">Tax Slabs</Text>
+                        <Text className="mb-2 mt-2 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Tax Slabs</Text>
                         {slabs.map((slab, idx) => (
                             <View key={idx} style={styles.slabRow}>
                                 <View style={{ flex: 1 }}>
@@ -251,7 +252,7 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
                             <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" /></Svg>
                             <Text className="ml-2 font-inter text-xs font-semibold text-primary-600">Add Slab</Text>
                         </Pressable>
-                        <Text className="mb-1 mt-4 font-inter text-xs font-bold text-neutral-500">Monthly Overrides</Text>
+                        <Text className="mb-1 mt-4 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Monthly Overrides</Text>
                         <Text className="mb-2 font-inter text-[10px] text-neutral-400">Override PT amount for specific months</Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                             {(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const).map((label, i) => {
@@ -272,7 +273,7 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!state || isSaving} style={[styles.saveBtn, (!state || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : 'Add Config'}</Text>
                         </Pressable>
@@ -307,7 +308,7 @@ function LWFFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Add LWF Config</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">Add LWF Config</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <StateDropdown value={state} onSelect={setState} />
                         <NumberField label="Employee Amount" value={empAmount} onChange={setEmpAmount} placeholder="0" suffix="₹" />
@@ -315,7 +316,7 @@ function LWFFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean
                         <ChipSelector label="Frequency" options={LWF_FREQUENCIES} value={frequency} onSelect={setFrequency} />
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!state || isSaving} style={[styles.saveBtn, (!state || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : 'Add Config'}</Text>
                         </Pressable>
@@ -329,6 +330,9 @@ function LWFFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean
 // ============ MAIN ============
 
 export function StatutoryConfigScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -510,8 +514,8 @@ export function StatutoryConfigScreen() {
             <AppTopHeader title="Statutory Config" onMenuPress={toggle} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">Statutory Configuration</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">PF, ESI, PT, Gratuity, Bonus, LWF</Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Statutory Configuration</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">PF, ESI, PT, Gratuity, Bonus, LWF</Text>
                 </Animated.View>
 
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
@@ -525,7 +529,7 @@ export function StatutoryConfigScreen() {
                         <NumberField label="Wage Ceiling" value={pfForm.wageCeiling} onChange={v => { setPFForm(p => ({ ...p, wageCeiling: v })); setPFDirty(true); }} placeholder="15000" suffix="₹" />
                         <ToggleRow label="VPF Enabled" subtitle="Allow Voluntary Provident Fund" value={pfForm.vpfEnabled} onToggle={v => { setPFForm(p => ({ ...p, vpfEnabled: v })); setPFDirty(true); }} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Excluded Components</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Excluded Components</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Comma-separated" placeholderTextColor={colors.neutral[400]} value={pfForm.excludedComponents} onChangeText={v => { setPFForm(p => ({ ...p, excludedComponents: v })); setPFDirty(true); }} /></View>
                         </View>
                         <SaveSectionBtn onPress={handleSavePF} isPending={updatePF.isPending} hasChanges={pfDirty} />
@@ -544,8 +548,8 @@ export function StatutoryConfigScreen() {
                         {ptConfigs.map(pt => (
                             <View key={pt.id} style={styles.listItem}>
                                 <View style={{ flex: 1 }}>
-                                    <Text className="font-inter text-sm font-semibold text-primary-950">{pt.state}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">{pt.slabs.length} slab{pt.slabs.length !== 1 ? 's' : ''}  {'\u00B7'}  {pt.frequency}{pt.financialYear ? `  \u00B7  FY ${pt.financialYear}` : ''}</Text>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{pt.state}</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{pt.slabs.length} slab{pt.slabs.length !== 1 ? 's' : ''}  {'\u00B7'}  {pt.frequency}{pt.financialYear ? `  \u00B7  FY ${pt.financialYear}` : ''}</Text>
                                 </View>
                                 <Pressable onPress={() => handleDeletePT(pt)} hitSlop={8}>
                                     <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -561,13 +565,13 @@ export function StatutoryConfigScreen() {
                     {/* Gratuity */}
                     <SectionCard title="Gratuity" subtitle="Gratuity calculation settings" collapsed={collapsed.gratuity} onToggle={() => toggleSection('gratuity')}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Formula</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Formula</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="(Basic * 15 * Years) / 26" placeholderTextColor={colors.neutral[400]} value={gratuityForm.formula} onChangeText={v => { setGratuityForm(p => ({ ...p, formula: v })); setGratuityDirty(true); }} /></View>
                         </View>
                         <ChipSelector label="Base Salary" options={['Basic', 'Basic+DA']} value={gratuityForm.baseSalary} onSelect={v => { setGratuityForm(p => ({ ...p, baseSalary: v })); setGratuityDirty(true); }} />
                         <NumberField label="Max Amount" value={gratuityForm.maxAmount} onChange={v => { setGratuityForm(p => ({ ...p, maxAmount: v })); setGratuityDirty(true); }} placeholder="2000000" suffix="₹" />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Provision Method</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Provision Method</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Monthly" placeholderTextColor={colors.neutral[400]} value={gratuityForm.provisionMethod} onChangeText={v => { setGratuityForm(p => ({ ...p, provisionMethod: v })); setGratuityDirty(true); }} /></View>
                         </View>
                         <ToggleRow label="Gratuity Trust" subtitle="Company-managed gratuity trust" value={gratuityForm.trustEnabled} onToggle={v => { setGratuityForm(p => ({ ...p, trustEnabled: v })); setGratuityDirty(true); }} />
@@ -581,7 +585,7 @@ export function StatutoryConfigScreen() {
                         <NumberField label="Max Bonus %" value={bonusForm.maxBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, maxBonusPercent: v })); setBonusDirty(true); }} placeholder="20" suffix="%" />
                         <NumberField label="Eligibility Days" value={bonusForm.eligibilityDays} onChange={v => { setBonusForm(p => ({ ...p, eligibilityDays: v })); setBonusDirty(true); }} placeholder="30" />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Calculation Period</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Calculation Period</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="April-March" placeholderTextColor={colors.neutral[400]} value={bonusForm.calculationPeriod} onChangeText={v => { setBonusForm(p => ({ ...p, calculationPeriod: v })); setBonusDirty(true); }} /></View>
                         </View>
                         <SaveSectionBtn onPress={handleSaveBonus} isPending={updateBonus.isPending} hasChanges={bonusDirty} />
@@ -592,8 +596,8 @@ export function StatutoryConfigScreen() {
                         {lwfConfigs.map(lwf => (
                             <View key={lwf.id} style={styles.listItem}>
                                 <View style={{ flex: 1 }}>
-                                    <Text className="font-inter text-sm font-semibold text-primary-950">{lwf.state}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">Emp: ₹{lwf.employeeAmount}  {'\u00B7'}  Er: ₹{lwf.employerAmount}  {'\u00B7'}  {lwf.frequency}</Text>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{lwf.state}</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Emp: ₹{lwf.employeeAmount}  {'\u00B7'}  Er: ₹{lwf.employerAmount}  {'\u00B7'}  {lwf.frequency}</Text>
                                 </View>
                                 <Pressable onPress={() => handleDeleteLWF(lwf)} hitSlop={8}>
                                     <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -623,24 +627,24 @@ export function StatutoryConfigScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     scrollContent: { paddingHorizontal: 24 },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     fieldWrap: { marginTop: 12, marginBottom: 4 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
-    inputWrapSmall: { backgroundColor: colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrapSmall: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 8, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 10, height: 38, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     textInputSmall: { fontFamily: 'Inter', fontSize: 12, color: colors.primary[950] },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     listItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     addBtn: {
@@ -653,11 +657,12 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3,
     },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

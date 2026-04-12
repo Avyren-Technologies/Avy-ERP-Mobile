@@ -19,6 +19,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { signOut } from '@/features/auth/use-auth-store';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 interface MenuItem {
     id: string;
@@ -55,6 +56,9 @@ function MenuIcon({ type }: { type: string }) {
 // ============ MAIN COMPONENT ============
 
 export function MoreMenuScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -108,7 +112,7 @@ export function MoreMenuScreen() {
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <LinearGradient
-                colors={[colors.gradient.surface, colors.white]}
+                colors={isDark ? ['#0F0D1A', '#1A1730'] : [colors.gradient.surface, colors.white]}
                 style={StyleSheet.absoluteFill}
             />
 
@@ -120,7 +124,7 @@ export function MoreMenuScreen() {
                 {/* Header */}
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">More</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Tools & settings</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Tools & settings</Text>
                 </Animated.View>
 
                 {/* Admin Card */}
@@ -179,8 +183,8 @@ export function MoreMenuScreen() {
                                     <MenuIcon type={item.iconType} />
                                 </LinearGradient>
                                 <View style={styles.menuContent}>
-                                    <Text className="font-inter text-sm font-bold text-primary-950">{item.title}</Text>
-                                    <Text className="font-inter text-xs text-neutral-500">{item.subtitle}</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.title}</Text>
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.subtitle}</Text>
                                 </View>
                                 <Svg width={16} height={16} viewBox="0 0 24 24">
                                     <Path d="M9 18l6-6-6-6" stroke={colors.neutral[400]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -209,10 +213,10 @@ export function MoreMenuScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingHorizontal: 24,
@@ -296,7 +300,7 @@ const styles = StyleSheet.create({
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 18,
         padding: 14,
         shadowColor: colors.primary[900],
@@ -305,10 +309,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 1,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     menuItemPressed: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         transform: [{ scale: 0.98 }],
     },
     menuIcon: {
@@ -345,3 +349,4 @@ const styles = StyleSheet.create({
         borderRadius: 16,
     },
 });
+const styles = createStyles(false);

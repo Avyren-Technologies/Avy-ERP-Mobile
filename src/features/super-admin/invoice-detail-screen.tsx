@@ -40,6 +40,7 @@ import type {
     InvoiceType,
     PaymentMethod,
 } from '@/lib/api/invoice';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -131,15 +132,15 @@ function MarkAsPaidModal({ visible, onCancel, onConfirm, loading }: MarkAsPaidMo
                 <View style={markPaidStyles.sheet}>
                     <View style={markPaidStyles.handle} />
 
-                    <Text className="text-center font-inter text-lg font-bold text-primary-950">
+                    <Text className="text-center font-inter text-lg font-bold text-primary-950 dark:text-white">
                         Mark as Paid
                     </Text>
-                    <Text className="mt-1 text-center font-inter text-xs text-neutral-500">
+                    <Text className="mt-1 text-center font-inter text-xs text-neutral-500 dark:text-neutral-400">
                         Select payment method and add details
                     </Text>
 
                     {/* Payment method chips */}
-                    <Text className="mb-2 mt-5 font-inter text-xs font-semibold text-neutral-600">
+                    <Text className="mb-2 mt-5 font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                         Payment Method
                     </Text>
                     <View style={markPaidStyles.methodGrid}>
@@ -155,7 +156,7 @@ function MarkAsPaidModal({ visible, onCancel, onConfirm, loading }: MarkAsPaidMo
                                     ]}
                                 >
                                     <Text
-                                        className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                                        className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                                     >
                                         {m.label}
                                     </Text>
@@ -165,7 +166,7 @@ function MarkAsPaidModal({ visible, onCancel, onConfirm, loading }: MarkAsPaidMo
                     </View>
 
                     {/* Transaction reference */}
-                    <Text className="mb-2 mt-4 font-inter text-xs font-semibold text-neutral-600">
+                    <Text className="mb-2 mt-4 font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                         Transaction Reference
                     </Text>
                     <TextInput
@@ -177,7 +178,7 @@ function MarkAsPaidModal({ visible, onCancel, onConfirm, loading }: MarkAsPaidMo
                     />
 
                     {/* Notes */}
-                    <Text className="mb-2 mt-4 font-inter text-xs font-semibold text-neutral-600">
+                    <Text className="mb-2 mt-4 font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                         Notes (optional)
                     </Text>
                     <TextInput
@@ -198,7 +199,7 @@ function MarkAsPaidModal({ visible, onCancel, onConfirm, loading }: MarkAsPaidMo
                             ]}
                             onPress={onCancel}
                         >
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                                 Cancel
                             </Text>
                         </Pressable>
@@ -239,7 +240,7 @@ function SectionCard({
 }) {
     return (
         <Animated.View entering={FadeInUp.duration(400).delay(delay)} style={styles.sectionCard}>
-            <Text className="mb-3 font-inter text-sm font-bold text-primary-950">
+            <Text className="mb-3 font-inter text-sm font-bold text-primary-950 dark:text-white">
                 {title}
             </Text>
             {children}
@@ -250,6 +251,9 @@ function SectionCard({
 // ============ MAIN COMPONENT ============
 
 export function InvoiceDetailScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const fmt = useCompanyFormatter();
@@ -346,7 +350,7 @@ export function InvoiceDetailScreen() {
                             />
                         </Svg>
                     </Pressable>
-                    <Text className="font-inter text-lg font-bold text-primary-950">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                         Invoice Details
                     </Text>
                     <View style={{ width: 40 }} />
@@ -391,7 +395,7 @@ export function InvoiceDetailScreen() {
                             />
                         </Svg>
                     </Pressable>
-                    <Text className="font-inter text-lg font-bold text-primary-950">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                         Invoice Details
                     </Text>
                     <View style={{ width: 40 }} />
@@ -437,7 +441,7 @@ export function InvoiceDetailScreen() {
                         />
                     </Svg>
                 </Pressable>
-                <Text className="font-inter text-lg font-bold text-primary-950">
+                <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                     Invoice Details
                 </Text>
                 <View style={{ width: 40 }} />
@@ -455,12 +459,12 @@ export function InvoiceDetailScreen() {
                     <View style={styles.headerRow}>
                         <View style={{ flex: 1 }}>
                             <Text
-                                className="font-inter text-lg font-bold text-primary-950"
+                                className="font-inter text-lg font-bold text-primary-950 dark:text-white"
                                 style={styles.monoText}
                             >
                                 {invoice.invoiceNumber}
                             </Text>
-                            <Text className="mt-1 font-inter text-sm text-neutral-600">
+                            <Text className="mt-1 font-inter text-sm text-neutral-600 dark:text-neutral-400">
                                 {invoice.company?.displayName ?? 'Unknown Tenant'}
                             </Text>
                         </View>
@@ -532,10 +536,10 @@ export function InvoiceDetailScreen() {
                                         </Text>
                                     ) : null}
                                 </View>
-                                <Text className="font-inter text-xs text-neutral-600" style={{ width: 40, textAlign: 'center' }}>
+                                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400" style={{ width: 40, textAlign: 'center' }}>
                                     {item.quantity}
                                 </Text>
-                                <Text className="font-inter text-xs text-neutral-600" style={{ width: 70, textAlign: 'right' }}>
+                                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400" style={{ width: 70, textAlign: 'right' }}>
                                     {formatCurrency(item.unitPrice)}
                                 </Text>
                                 <Text className="font-inter text-xs font-semibold text-neutral-800" style={{ width: 80, textAlign: 'right' }}>
@@ -549,14 +553,14 @@ export function InvoiceDetailScreen() {
                 {/* ===== TAX BREAKDOWN ===== */}
                 <SectionCard title="Tax & Total" delay={200}>
                     <View style={styles.taxRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Subtotal</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Subtotal</Text>
                         <Text className="font-inter text-xs font-semibold text-neutral-700">
                             {formatCurrency(invoice.subtotal)}
                         </Text>
                     </View>
                     {invoice.cgst > 0 ? (
                         <View style={styles.taxRow}>
-                            <Text className="font-inter text-xs text-neutral-500">CGST</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">CGST</Text>
                             <Text className="font-inter text-xs font-semibold text-neutral-700">
                                 {formatCurrency(invoice.cgst)}
                             </Text>
@@ -564,7 +568,7 @@ export function InvoiceDetailScreen() {
                     ) : null}
                     {invoice.sgst > 0 ? (
                         <View style={styles.taxRow}>
-                            <Text className="font-inter text-xs text-neutral-500">SGST</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">SGST</Text>
                             <Text className="font-inter text-xs font-semibold text-neutral-700">
                                 {formatCurrency(invoice.sgst)}
                             </Text>
@@ -572,7 +576,7 @@ export function InvoiceDetailScreen() {
                     ) : null}
                     {invoice.igst > 0 ? (
                         <View style={styles.taxRow}>
-                            <Text className="font-inter text-xs text-neutral-500">IGST</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">IGST</Text>
                             <Text className="font-inter text-xs font-semibold text-neutral-700">
                                 {formatCurrency(invoice.igst)}
                             </Text>
@@ -580,14 +584,14 @@ export function InvoiceDetailScreen() {
                     ) : null}
                     {invoice.totalTax > 0 ? (
                         <View style={[styles.taxRow, styles.taxRowBorder]}>
-                            <Text className="font-inter text-xs font-medium text-neutral-500">Total Tax</Text>
+                            <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">Total Tax</Text>
                             <Text className="font-inter text-xs font-semibold text-neutral-700">
                                 {formatCurrency(invoice.totalTax)}
                             </Text>
                         </View>
                     ) : null}
                     <View style={[styles.taxRow, styles.grandTotalRow]}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             Grand Total
                         </Text>
                         <Text className="font-inter text-lg font-bold text-primary-600">
@@ -701,7 +705,7 @@ export function InvoiceDetailScreen() {
                                 >
                                     <View style={{ flex: 1 }}>
                                         <View style={styles.paymentTopRow}>
-                                            <Text className="font-inter text-sm font-bold text-primary-950">
+                                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                                 {formatCurrency(payment.amount)}
                                             </Text>
                                             <View style={[styles.methodBadge, { backgroundColor: methodColor.bg }]}>
@@ -717,7 +721,7 @@ export function InvoiceDetailScreen() {
                                             {formatDateTime(payment.paidAt)}
                                         </Text>
                                         {payment.transactionReference ? (
-                                            <Text className="mt-0.5 font-inter text-[10px] text-neutral-500">
+                                            <Text className="mt-0.5 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                                                 Ref: {payment.transactionReference}
                                             </Text>
                                         ) : null}
@@ -832,10 +836,10 @@ const markPaidStyles = StyleSheet.create({
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     topBar: {
         flexDirection: 'row',
@@ -848,7 +852,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: colors.primary[900],
@@ -900,7 +904,7 @@ const styles = StyleSheet.create({
 
     // Section card
     sectionCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -910,7 +914,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
 
     // Line items table
@@ -978,7 +982,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     actionButtonOutline: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1.5,
         borderColor: colors.primary[200],
     },
@@ -1007,3 +1011,4 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
 });
+const styles = createStyles(false);

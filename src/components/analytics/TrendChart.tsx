@@ -5,6 +5,7 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop, Text as SvgText
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export interface TrendDataPoint {
   x: string | number;
@@ -62,6 +63,9 @@ export function TrendChart({
   title,
   showLegend = true,
 }: TrendChartProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const chartWidth = 340; // Will be scaled via viewBox
   const chartHeight = height;
   const plotWidth = chartWidth - PADDING.left - PADDING.right;
@@ -261,7 +265,7 @@ export function TrendChart({
                   { backgroundColor: s.color ?? CHART_COLORS[i % CHART_COLORS.length] },
                 ]}
               />
-              <Text className="font-inter text-[12px] text-neutral-500">
+              <Text className="font-inter text-[12px] text-neutral-500 dark:text-neutral-400">
                 {s.label}
               </Text>
             </View>
@@ -272,13 +276,13 @@ export function TrendChart({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
@@ -301,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
@@ -336,3 +340,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
 });
+const styles = createStyles(false);

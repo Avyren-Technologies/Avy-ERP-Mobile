@@ -35,6 +35,7 @@ import {
     useUpdateLetterTemplate,
 } from '@/features/company-admin/api/use-recruitment-mutations';
 import { useLetters, useLetterTemplates } from '@/features/company-admin/api/use-recruitment-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -102,13 +103,13 @@ function AvatarCircle({ name }: { name: string }) {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -133,11 +134,11 @@ function Dropdown({
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -147,7 +148,7 @@ function Dropdown({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                             <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
                         </View>
@@ -155,7 +156,7 @@ function Dropdown({
                             {filteredOptions.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                                 </Pressable>
                             ))}
                             {filteredOptions.length === 0 && <Text className="py-4 text-center font-inter text-sm text-neutral-400">No options found</Text>}
@@ -196,17 +197,17 @@ function TemplateFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.fullFormSheet, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Template' : 'New Template'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <ChipSelector label="Letter Type" options={[...LETTER_TYPES]} value={type} onSelect={v => setType(v as LetterType)} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Template Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Template Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Standard Offer Letter" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Body <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Body <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, { height: 200 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Dear {employee_name},\n\nWe are pleased to..." placeholderTextColor={colors.neutral[400]} value={body} onChangeText={setBody} multiline numberOfLines={10} />
                             </View>
@@ -223,7 +224,7 @@ function TemplateFormModal({
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ type, name: name.trim(), body: body.trim() })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -263,17 +264,17 @@ function GenerateLetterModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Generate Letter</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Generate Letter</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <Dropdown label="Template" value={templateId} options={templateOptions.map(t => ({ id: t.id, label: `${t.type} - ${t.label}` }))} onSelect={setTemplateId} placeholder="Select template..." required />
                         <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Select employee..." required />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Effective Date <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Effective Date <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={effectiveDate} onChangeText={setEffectiveDate} /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ templateId, employeeId, employeeName: employeeOptions.find(e => e.id === employeeId)?.label ?? '', letterType: selectedTemplate?.type ?? 'Other', effectiveDate: effectiveDate.trim(), pdfGenerated: false, eSigned: false })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Generating...' : 'Generate'}</Text>
                         </Pressable>
@@ -294,11 +295,11 @@ function TemplateCard({ item, index, onEdit, onDelete }: {
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                     </View>
                     <TypeBadge type={item.type} />
                 </View>
-                <Text className="mt-2 font-inter text-xs text-neutral-500" numberOfLines={2}>{item.body}</Text>
+                <Text className="mt-2 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{item.body}</Text>
                 <View style={styles.cardFooter}>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -319,8 +320,8 @@ function LetterCard({ item, index, onGeneratePdf }: {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                         <AvatarCircle name={item.employeeName} />
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.effectiveDate}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.effectiveDate}</Text>
                         </View>
                     </View>
                     <TypeBadge type={item.letterType} />
@@ -351,6 +352,9 @@ function LetterCard({ item, index, onGeneratePdf }: {
 // ============ MAIN COMPONENT ============
 
 export function HRLettersScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -451,8 +455,8 @@ export function HRLettersScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">HR Letters</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">HR Letters</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                 {activeTab === 'templates' ? `${templates.length} template${templates.length !== 1 ? 's' : ''}` : `${letters.length} letter${letters.length !== 1 ? 's' : ''}`}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ gap: 8 }}>
@@ -460,7 +464,7 @@ export function HRLettersScreen() {
                     const active = tab.key === activeTab;
                     return (
                         <Pressable key={tab.key} onPress={() => setActiveTab(tab.key)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{tab.label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{tab.label}</Text>
                         </Pressable>
                     );
                 })}
@@ -509,41 +513,42 @@ export function HRLettersScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     statusIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     actionRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     generateBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, borderRadius: 10, backgroundColor: colors.primary[600] },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
-    fullFormSheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    fullFormSheet: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

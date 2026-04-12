@@ -34,6 +34,7 @@ import {
     LANGUAGES,
     DATE_FORMATS,
 } from '@/features/super-admin/tenant-onboarding/constants';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -74,7 +75,7 @@ function ModalToggleRow({
 }) {
     return (
         <View style={ms.toggleRow}>
-            <Text className="font-inter text-sm font-medium text-primary-900">{label}</Text>
+            <Text className="font-inter text-sm font-medium text-primary-900 dark:text-primary-100">{label}</Text>
             <Switch
                 value={value}
                 onValueChange={onValueChange}
@@ -108,7 +109,7 @@ function ModalRadioOption({
                     {label}
                 </Text>
                 {subtitle ? (
-                    <Text className="font-inter text-xs text-neutral-500">{subtitle}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</Text>
                 ) : null}
             </View>
         </Pressable>
@@ -221,7 +222,7 @@ function FiscalFields({
             <ChipSelector label="Timezone" options={TIMEZONES} selected={data.timezone ?? ''} onSelect={(v) => onChange('timezone', v)} error={errors.timezone} />
 
             <View style={ms.fieldGroup}>
-                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Working Days
                 </Text>
                 <View style={ms.chipRow}>
@@ -239,7 +240,7 @@ function FiscalFields({
                                 }}
                                 style={[ms.dayChip, selected && ms.dayChipSelected]}
                             >
-                                <Text className={`font-inter text-xs font-semibold ${selected ? 'text-primary-700' : 'text-neutral-500'}`}>
+                                <Text className={`font-inter text-xs font-semibold ${selected ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                                     {day.substring(0, 3)}
                                 </Text>
                             </Pressable>
@@ -267,7 +268,7 @@ function PreferencesFields({
             <ChipSelector label="Date Format" options={DATE_FORMATS} selected={data.dateFormat ?? ''} onSelect={(v) => onChange('dateFormat', v)} error={errors.dateFormat} />
 
             <View style={ms.toggleSection}>
-                <Text className="mb-2 font-inter text-xs font-bold text-primary-900">
+                <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Integrations & Features
                 </Text>
                 <ModalToggleRow label="India Compliance" value={data.indiaCompliance ?? false} onValueChange={(v) => onChange('indiaCompliance', v)} />
@@ -333,7 +334,7 @@ function StrategyFields({
             />
             {data.multiLocationMode && (
                 <>
-                    <Text className="mb-2 mt-4 font-inter text-xs font-bold text-primary-900">
+                    <Text className="mb-2 mt-4 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Location Configuration
                     </Text>
                     <ModalRadioOption
@@ -394,6 +395,9 @@ export function CompanyDetailEditModal({
     currentData,
     onSaved,
 }: EditModalProps) {
+  const isDark = useIsDark();
+  const ms = _createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const sectionKey = section as SectionKey;
     const mutation = useUpdateCompanySection();
@@ -462,7 +466,7 @@ export function CompanyDetailEditModal({
                 return <ControlsFields data={formData} onChange={handleChange} />;
             default:
                 return (
-                    <Text className="font-inter text-sm text-neutral-500">
+                    <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400">
                         No editable fields for this section.
                     </Text>
                 );
@@ -484,7 +488,7 @@ export function CompanyDetailEditModal({
 
                     {/* Header */}
                     <View style={ms.header}>
-                        <Text className="font-inter text-base font-bold text-primary-950">
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
                             {title}
                         </Text>
                         <Pressable onPress={onClose} style={ms.closeButton}>
@@ -516,7 +520,7 @@ export function CompanyDetailEditModal({
                     {/* Actions */}
                     <View style={ms.actions}>
                         <Pressable onPress={onClose} style={ms.cancelButton}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                                 Cancel
                             </Text>
                         </Pressable>
@@ -542,7 +546,7 @@ export function CompanyDetailEditModal({
 
 // ============ STYLES ============
 
-const ms = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     backdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',
@@ -552,7 +556,7 @@ const ms = StyleSheet.create({
         flex: 1,
     },
     sheet: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         maxHeight: '88%',
@@ -579,7 +583,7 @@ const ms = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 12,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -615,7 +619,7 @@ const ms = StyleSheet.create({
         borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     saveButton: {
         flex: 2,
@@ -648,13 +652,13 @@ const ms = StyleSheet.create({
         paddingHorizontal: 14,
         borderRadius: 14,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
-        backgroundColor: colors.neutral[50],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         marginBottom: 8,
     },
     radioOptionSelected: {
         borderColor: colors.primary[400],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     radioDot: {
         width: 20,
@@ -687,11 +691,12 @@ const ms = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 10,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
-        backgroundColor: colors.neutral[50],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     },
     dayChipSelected: {
         borderColor: colors.primary[400],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
 });
+const ms = _createStyles(false);

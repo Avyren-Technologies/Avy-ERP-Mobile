@@ -27,12 +27,16 @@ import colors from '@/components/ui/colors';
 import { COUNTRY_CODES, GEO_RADIUS_OPTIONS } from './constants';
 import { FormDatePicker } from './form-date-picker';
 import { S } from './shared-styles';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ FORM LABEL ============
 
 export function FormLabel({ text, required }: { text: string; required?: boolean }) {
+  const isDark = useIsDark();
+  const geoStyles = _createStyles(isDark);
+
     return (
-        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
             {text}
             {required && <Text className="text-danger-500"> *</Text>}
         </Text>
@@ -203,7 +207,7 @@ export function ChipSelector({
                             style={[S.chip, selected === opt && S.chipActive]}
                         >
                             <Text
-                                className={`font-inter text-xs font-semibold ${selected === opt ? 'text-white' : 'text-neutral-600'}`}
+                                className={`font-inter text-xs font-semibold ${selected === opt ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                             >
                                 {opt}
                             </Text>
@@ -281,7 +285,7 @@ export function FormSelect({
                 ]}
             >
                 <Text
-                    className={`flex-1 font-inter text-sm ${selected ? 'text-primary-950' : 'text-neutral-400'}`}
+                    className={`flex-1 font-inter text-sm ${selected ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                     numberOfLines={1}
                 >
                     {selected ? selectedLabel : placeholder}
@@ -423,7 +427,7 @@ export function FormSelect({
                                             }}
                                         >
                                             <Text
-                                                className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
+                                                className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}
                                             >
                                                 {item.label}
                                             </Text>
@@ -485,7 +489,7 @@ export function MultiChipSelector({
                             style={[S.chip, isSelected && S.chipActive]}
                         >
                             <Text
-                                className={`font-inter text-xs font-semibold ${isSelected ? 'text-white' : 'text-neutral-600'}`}
+                                className={`font-inter text-xs font-semibold ${isSelected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                             >
                                 {opt}
                             </Text>
@@ -516,9 +520,9 @@ export function ToggleRow({
     return (
         <View style={S.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
                 {subtitle && (
-                    <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>
+                    <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>
                         {subtitle}
                     </Text>
                 )}
@@ -554,7 +558,7 @@ export function SectionCard({
                     {title}
                 </Text>
             )}
-            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">{subtitle}</Text>}
+            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">{subtitle}</Text>}
             {children}
         </View>
     );
@@ -585,12 +589,12 @@ export function RadioOption({
             </View>
             <View style={{ flex: 1 }}>
                 <Text
-                    className={`font-inter text-sm font-semibold ${selected ? 'text-primary-700' : 'text-primary-950'}`}
+                    className={`font-inter text-sm font-semibold ${selected ? 'text-primary-700' : 'text-primary-950 dark:text-white'}`}
                 >
                     {label}
                 </Text>
                 {subtitle && (
-                    <Text className="font-inter text-xs text-neutral-500">{subtitle}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</Text>
                 )}
             </View>
             {badge && (
@@ -674,7 +678,7 @@ export function CountryCodePicker({
                 style={S.countryCodeBtn}
             >
                 <Text style={{ fontSize: 18 }}>{selected.flag}</Text>
-                <Text className="font-inter text-sm font-semibold text-primary-950">
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                     {selected.code}
                 </Text>
                 <Svg width={12} height={12} viewBox="0 0 24 24">
@@ -703,7 +707,7 @@ export function CountryCodePicker({
                                 Cancel
                             </Text>
                         </Pressable>
-                        <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
+                        <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">
                             Select Country
                         </Text>
                         <View style={{ width: 52 }} />
@@ -747,10 +751,10 @@ export function CountryCodePicker({
                                 }}
                             >
                                 <Text style={{ fontSize: 22 }}>{item.flag}</Text>
-                                <Text className="flex-1 font-inter text-sm text-primary-950">
+                                <Text className="flex-1 font-inter text-sm text-primary-950 dark:text-white">
                                     {item.country}
                                 </Text>
-                                <Text className="font-inter text-sm font-semibold text-neutral-500">
+                                <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
                                     {item.code}
                                 </Text>
                                 {item.code === value && (
@@ -926,7 +930,7 @@ export function GeoFencingModal({
                             />
                         </Svg>
                     </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
+                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">
                         Set Geofencing Area
                     </Text>
                     <View style={{ width: 36 }} />
@@ -1044,21 +1048,21 @@ export function GeoFencingModal({
                                 <Text className="font-inter text-xs font-bold text-primary-700">
                                     Selected Location
                                 </Text>
-                                <Text className="font-inter text-sm text-primary-950" numberOfLines={1}>
+                                <Text className="font-inter text-sm text-primary-950 dark:text-white" numberOfLines={1}>
                                     {localData.locationName}
                                 </Text>
                             </View>
                         </View>
                     ) : (
                         <View style={S.geoLocationDisplay}>
-                            <Text className="font-inter text-xs text-neutral-500">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 Search above or drag the map to position the pin
                             </Text>
                         </View>
                     )}
 
                     {/* Radius selector */}
-                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500">
+                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">
                         GEOFENCING RADIUS
                     </Text>
                     <View style={S.geoRadiusRow}>
@@ -1072,7 +1076,7 @@ export function GeoFencingModal({
                                 onPress={() => setLocalData((p) => ({ ...p, radius: opt.value }))}
                             >
                                 <Text
-                                    className={`font-inter text-xs font-semibold ${localData.radius === opt.value ? 'text-primary-700' : 'text-neutral-600'}`}
+                                    className={`font-inter text-xs font-semibold ${localData.radius === opt.value ? 'text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
                                 >
                                     {opt.label}
                                 </Text>
@@ -1081,7 +1085,7 @@ export function GeoFencingModal({
                     </View>
 
                     {/* Shape selector */}
-                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500">
+                    <Text className="mb-2 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">
                         BOUNDARY SHAPE
                     </Text>
                     <View style={S.geoShapeRow}>
@@ -1097,7 +1101,7 @@ export function GeoFencingModal({
                                     fill="none"
                                 />
                             </Svg>
-                            <Text className={`font-inter text-sm font-semibold ${localData.shape === 'circle' ? 'text-primary-700' : 'text-neutral-500'}`}>
+                            <Text className={`font-inter text-sm font-semibold ${localData.shape === 'circle' ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                                 Circle
                             </Text>
                         </Pressable>
@@ -1113,7 +1117,7 @@ export function GeoFencingModal({
                                     fill="none"
                                 />
                             </Svg>
-                            <Text className={`font-inter text-sm font-semibold ${localData.shape === 'freeform' ? 'text-primary-700' : 'text-neutral-500'}`}>
+                            <Text className={`font-inter text-sm font-semibold ${localData.shape === 'freeform' ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                                 Freeform
                             </Text>
                         </Pressable>
@@ -1184,14 +1188,14 @@ const placesStyles = {
     poweredContainer: { display: 'none' as const },
 };
 
-const geoStyles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.white },
+const _createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white },
     mapContainer: { flex: 1, position: 'relative' },
     closeBtn: {
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1210,3 +1214,4 @@ const geoStyles = StyleSheet.create({
         height: 48,
     },
 });
+const geoStyles = _createStyles(false);

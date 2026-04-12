@@ -15,7 +15,6 @@ const PUSH_TOKEN_KEY = 'push_token';
 // Configure how notifications are presented when the app is in the foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -64,7 +63,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#4F46E5',
-      sound: 'default',
       enableVibrate: true,
       enableLights: true,
     });
@@ -78,7 +76,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 250, 500],
       lightColor: '#DC2626',
-      sound: 'default',
       enableVibrate: true,
       enableLights: true,
     });
@@ -134,10 +131,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const isFirebaseInitError = /firebase/i.test(msg) && /initial/i.test(msg);
     if (isFirebaseInitError) {
       logger.warn(
-        "FCM not configured on this build. Push notifications are disabled " +
-          "for this session. If this is a dev/Expo Go build that's expected. " +
-          'See https://docs.expo.dev/push-notifications/fcm-credentials/',
+        'Android FCM client is not set up: add google-services.json and ' +
+          'expo.android.googleServicesFile (see Expo FCM credentials). ' +
+          'EAS FCM V1 credentials alone do not embed Firebase in the app binary. ' +
+          `Details: ${msg}`,
       );
+      logger.warn('Docs: https://docs.expo.dev/push-notifications/fcm-credentials/');
     } else {
       logger.error('Failed to get push token', { error: err });
     }

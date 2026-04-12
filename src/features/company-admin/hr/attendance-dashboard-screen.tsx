@@ -26,6 +26,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useAttendanceRecords, useAttendanceSummary } from '@/features/company-admin/api/use-attendance-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -87,7 +88,7 @@ function StatusBadge({ status }: { status: string }) {
         INCOMPLETE: { bg: colors.warning[50], text: 'text-warning-700' },
         ON_LEAVE: { bg: colors.info[50], text: 'text-info-700' },
         HOLIDAY: { bg: colors.info[50], text: 'text-info-700' },
-        WEEK_OFF: { bg: colors.neutral[100], text: 'text-neutral-600' },
+        WEEK_OFF: { bg: colors.neutral[100], text: 'text-neutral-600 dark:text-neutral-400' },
         EARLY_EXIT: { bg: colors.warning[50], text: 'text-warning-700' },
     };
     const key = status?.toUpperCase();
@@ -114,7 +115,7 @@ function KpiCard({ item, index }: { item: SummaryItem; index: number }) {
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 80)} style={[styles.kpiCard, { borderLeftColor: item.color, borderLeftWidth: 3 }]}>
             <Text className="font-inter text-2xl font-bold" style={{ color: item.color }}>{item.value}</Text>
-            <Text className="mt-1 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{item.label}</Text>
+            <Text className="mt-1 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{item.label}</Text>
         </Animated.View>
     );
 }
@@ -126,7 +127,7 @@ function DepartmentBar({ item }: { item: DepartmentBreakdown }) {
     return (
         <View style={styles.deptRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-xs font-semibold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                 <Text className="font-inter text-[10px] text-neutral-400">{item.present}/{item.total} present</Text>
             </View>
             <View style={styles.barBg}>
@@ -161,7 +162,7 @@ function DatePicker({ value, onChange }: { value: Date; onChange: (d: Date) => v
                 </Svg>
             </Pressable>
             <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text className="font-inter text-sm font-bold text-primary-950">{fmt.date(value.toISOString())}</Text>
+                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{fmt.date(value.toISOString())}</Text>
                 {isToday && <Text className="font-inter text-[10px] text-primary-500">Today</Text>}
             </View>
             <Pressable onPress={goForward} style={styles.dateArrow}>
@@ -187,13 +188,13 @@ function DepartmentFilter({
     return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
             <Pressable onPress={() => onSelect('')} style={[styles.filterChip, !selectedId && styles.filterChipActive]}>
-                <Text className={`font-inter text-xs font-semibold ${!selectedId ? 'text-white' : 'text-neutral-600'}`}>All</Text>
+                <Text className={`font-inter text-xs font-semibold ${!selectedId ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>All</Text>
             </Pressable>
             {departments.map(d => {
                 const active = d.id === selectedId;
                 return (
                     <Pressable key={d.id} onPress={() => onSelect(d.id)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                        <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{d.name}</Text>
+                        <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{d.name}</Text>
                     </Pressable>
                 );
             })}
@@ -218,10 +219,10 @@ function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) 
                     </View>
                     <View style={{ flex: 1, marginLeft: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
                             {item.isLate && <LateBadge />}
                         </View>
-                        <Text className="font-inter text-[10px] text-neutral-500">
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             {item.employeeCode}{item.department ? ` \u2022 ${item.department}` : ''}
                         </Text>
                         {item.shiftName ? (
@@ -234,13 +235,13 @@ function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) 
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">In: {formatTime(item.punchIn)}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">In: {formatTime(item.punchIn)}</Text>
                     </View>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">Out: {formatTime(item.punchOut)}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Out: {formatTime(item.punchOut)}</Text>
                     </View>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">{hrs > 0 ? `${hrs.toFixed(1)} hrs` : '--'}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{hrs > 0 ? `${hrs.toFixed(1)} hrs` : '--'}</Text>
                     </View>
                     {item.isLate && item.lateMinutes ? (
                         <View style={[styles.metaChip, { backgroundColor: colors.warning[50] }]}>
@@ -261,6 +262,9 @@ function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) 
 // ============ MAIN COMPONENT ============
 
 export function AttendanceDashboardScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const [selectedDate, setSelectedDate] = React.useState(new Date());
@@ -400,42 +404,43 @@ export function AttendanceDashboardScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     datePicker: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16,
-        padding: 12, marginBottom: 16, borderWidth: 1, borderColor: colors.primary[50],
+        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16,
+        padding: 12, marginBottom: 16, borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
     },
-    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
     kpiCard: {
-        flex: 1, minWidth: '45%', backgroundColor: colors.white, borderRadius: 16, padding: 14,
+        flex: 1, minWidth: '45%', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 14,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 16,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 16,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     deptRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    barBg: { width: 80, height: 6, borderRadius: 3, backgroundColor: colors.neutral[100], overflow: 'hidden' },
+    barBg: { width: 80, height: 6, borderRadius: 3, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], overflow: 'hidden' },
     barFill: { height: 6, borderRadius: 3, backgroundColor: colors.primary[400] },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 14, marginBottom: 10,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 14, marginBottom: 10,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardRow: { flexDirection: 'row', alignItems: 'center' },
-    avatar: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 12, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
 });
+const styles = createStyles(false);

@@ -57,7 +57,7 @@ export function Step13NoSeries({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.infoCard}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     Number Series defines auto-numbering formats for all transactional documents.
                     Each series generates unique, traceable document numbers across the system.
                 </Text>

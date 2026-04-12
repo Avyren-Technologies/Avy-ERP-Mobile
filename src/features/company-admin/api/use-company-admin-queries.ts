@@ -263,13 +263,12 @@ export function useSupportTickets(params?: { status?: string; category?: string;
   });
 }
 
-/** Single support ticket by ID (auto-refreshes every 10s) */
+/** Single support ticket by ID (real-time updates via useTicketSocket) */
 export function useSupportTicket(id: string) {
   return useQuery({
     queryKey: companyAdminKeys.supportTicket(id),
     queryFn: () => companyAdminApi.getSupportTicket(id),
     enabled: !!id,
-    refetchInterval: 10000,
   });
 }
 

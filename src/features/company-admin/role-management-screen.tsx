@@ -38,6 +38,7 @@ import {
     useRbacReferenceRoles,
     useRbacRoles,
 } from '@/features/company-admin/api/use-company-admin-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -112,7 +113,7 @@ function RoleCard({
                     <View style={styles.roleInfo}>
                         <View style={styles.roleNameRow}>
                             <Text
-                                className="font-inter text-sm font-bold text-primary-950"
+                                className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                                 numberOfLines={1}
                                 style={{ flex: 1 }}
                             >
@@ -140,7 +141,7 @@ function RoleCard({
                                             strokeLinecap="round"
                                         />
                                     </Svg>
-                                    <Text className="font-inter text-[9px] font-bold text-neutral-500">
+                                    <Text className="font-inter text-[9px] font-bold text-neutral-500 dark:text-neutral-400">
                                         System
                                     </Text>
                                 </View>
@@ -148,7 +149,7 @@ function RoleCard({
                         </View>
                         {role.description ? (
                             <Text
-                                className="mt-1 font-inter text-xs text-neutral-500"
+                                className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400"
                                 numberOfLines={2}
                             >
                                 {role.description}
@@ -216,7 +217,7 @@ function RoleCard({
                                 strokeLinejoin="round"
                             />
                         </Svg>
-                        <Text className="font-inter text-[11px] font-semibold text-neutral-600">
+                        <Text className="font-inter text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">
                             {permissionCount} permission{permissionCount !== 1 ? 's' : ''}
                         </Text>
                     </View>
@@ -241,7 +242,7 @@ function RoleCard({
                                 fill="none"
                             />
                         </Svg>
-                        <Text className="font-inter text-[11px] font-semibold text-neutral-600">
+                        <Text className="font-inter text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">
                             {role.userCount} user{role.userCount !== 1 ? 's' : ''}
                         </Text>
                     </View>
@@ -446,7 +447,7 @@ function RoleFormScreen({
                         />
                     </Svg>
                 </Pressable>
-                <Text className="flex-1 font-inter text-lg font-bold text-primary-950">
+                <Text className="flex-1 font-inter text-lg font-bold text-primary-950 dark:text-white">
                     {isEdit ? 'Edit Role' : 'Create Role'}
                 </Text>
             </Animated.View>
@@ -463,7 +464,7 @@ function RoleFormScreen({
             >
                 {/* Role Name */}
                 <View style={formStyles.field}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Role Name <Text className="text-danger-500">*</Text>
                     </Text>
                     <TextInput
@@ -486,7 +487,7 @@ function RoleFormScreen({
 
                 {/* Description */}
                 <View style={formStyles.field}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Description
                     </Text>
                     <TextInput
@@ -554,11 +555,11 @@ function RoleFormScreen({
                                     ]}
                                 >
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                                             {tpl.name}
                                         </Text>
                                         {tpl.description ? (
-                                            <Text className="font-inter text-xs text-neutral-500">
+                                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                                 {tpl.description}
                                             </Text>
                                         ) : null}
@@ -639,7 +640,7 @@ function RoleFormScreen({
                                         style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
                                     >
                                         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950">
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                                                 {mod.label}
                                             </Text>
                                             {permCount > 0 && (
@@ -689,7 +690,7 @@ function RoleFormScreen({
                                                     </Svg>
                                                 )}
                                             </View>
-                                            <Text className="font-inter text-xs font-semibold text-neutral-500">
+                                            <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                                                 Select All
                                             </Text>
                                         </Pressable>
@@ -729,7 +730,7 @@ function RoleFormScreen({
                                                             )}
                                                         </View>
                                                         <Text
-                                                            className={`font-inter text-xs ${isSelected ? 'font-semibold text-primary-700' : 'text-neutral-600'}`}
+                                                            className={`font-inter text-xs ${isSelected ? 'font-semibold text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
                                                         >
                                                             {action.charAt(0).toUpperCase() + action.slice(1)}
                                                         </Text>
@@ -749,7 +750,7 @@ function RoleFormScreen({
                     <Text className="font-inter text-xs font-bold text-neutral-400">
                         SUMMARY
                     </Text>
-                    <Text className="mt-1 font-inter text-sm font-semibold text-primary-950">
+                    <Text className="mt-1 font-inter text-sm font-semibold text-primary-950 dark:text-white">
                         {permissions.length} permission{permissions.length !== 1 ? 's' : ''} selected
                     </Text>
                 </View>
@@ -789,6 +790,9 @@ function RoleFormScreen({
 // ============ MAIN COMPONENT ============
 
 export function RoleManagementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const [showForm, setShowForm] = React.useState(false);
@@ -969,16 +973,16 @@ export function RoleManagementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     listContent: {
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -988,11 +992,11 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardSystem: {
         opacity: 0.75,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     cardHeader: {
         flexDirection: 'row',
@@ -1011,7 +1015,7 @@ const styles = StyleSheet.create({
     systemBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
@@ -1025,7 +1029,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1049,6 +1053,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.neutral[200],
     },
 });
+const styles = createStyles(false);
 
 const formStyles = StyleSheet.create({
     container: {

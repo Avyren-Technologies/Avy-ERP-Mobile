@@ -21,6 +21,7 @@ import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useDashboard } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ================================================================
 // Icons
@@ -112,6 +113,9 @@ function AnnouncementCard({ item, index }: { item: DashboardAnnouncement; index:
 // ================================================================
 
 export function AnnouncementsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -257,10 +261,10 @@ export function AnnouncementsScreen() {
 // Styles
 // ================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerIconWrap: {
         width: 38,
@@ -281,7 +285,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         gap: 8,
     },
@@ -302,7 +306,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 10,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     filterChipActive: {
         backgroundColor: colors.primary[500],
@@ -327,7 +331,7 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         shadowColor: '#000',
         shadowOpacity: 0.04,
         shadowOffset: { width: 0, height: 2 },
@@ -350,3 +354,4 @@ const styles = StyleSheet.create({
         paddingVertical: 60,
     },
 });
+const styles = createStyles(false);

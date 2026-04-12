@@ -38,6 +38,7 @@ import {
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyUsers, useRbacRoles } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -138,13 +139,13 @@ function UserCard({
 
                         <View style={styles.userNameContainer}>
                             <Text
-                                className="font-inter text-sm font-bold text-primary-950"
+                                className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                                 numberOfLines={1}
                             >
                                 {user.fullName}
                             </Text>
                             <Text
-                                className="font-inter text-xs text-neutral-500"
+                                className="font-inter text-xs text-neutral-500 dark:text-neutral-400"
                                 numberOfLines={1}
                             >
                                 {user.email}
@@ -219,7 +220,7 @@ function UserCard({
                             ]}
                         />
                         <Text
-                            className={`font-inter text-[10px] font-bold ${user.isActive ? 'text-success-700' : 'text-neutral-500'}`}
+                            className={`font-inter text-[10px] font-bold ${user.isActive ? 'text-success-700' : 'text-neutral-500 dark:text-neutral-400'}`}
                         >
                             {user.isActive ? 'Active' : 'Inactive'}
                         </Text>
@@ -367,11 +368,11 @@ function UserFormSheet({
                 {/* Header */}
                 <View style={sheetStyles.header}>
                     <Pressable onPress={onClose}>
-                        <Text className="font-inter text-sm font-semibold text-neutral-500">
+                        <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
                             Cancel
                         </Text>
                     </Pressable>
-                    <Text className="font-inter text-base font-bold text-primary-950">
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
                         {isEdit ? 'Edit User' : 'Add User'}
                     </Text>
                     <View style={{ width: 52 }} />
@@ -388,7 +389,7 @@ function UserFormSheet({
                 >
                     {/* Full Name */}
                     <View style={sheetStyles.field}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                             Full Name <Text className="text-danger-500">*</Text>
                         </Text>
                         <TextInput
@@ -411,7 +412,7 @@ function UserFormSheet({
 
                     {/* Email */}
                     <View style={sheetStyles.field}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                             Email <Text className="text-danger-500">*</Text>
                         </Text>
                         <TextInput
@@ -442,7 +443,7 @@ function UserFormSheet({
 
                     {/* Phone */}
                     <View style={sheetStyles.field}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                             Phone
                         </Text>
                         <TextInput
@@ -457,7 +458,7 @@ function UserFormSheet({
 
                     {/* Role Dropdown */}
                     <View style={[sheetStyles.field, { zIndex: 100 }]}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                             Role
                         </Text>
                         <Pressable
@@ -473,7 +474,7 @@ function UserFormSheet({
                             ]}
                         >
                             <Text
-                                className={`font-inter text-sm ${selectedRole ? 'text-primary-950' : 'text-neutral-400'}`}
+                                className={`font-inter text-sm ${selectedRole ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                             >
                                 {rolesLoading
                                     ? 'Loading roles...'
@@ -519,7 +520,7 @@ function UserFormSheet({
                                                 ]}
                                             >
                                                 <Text
-                                                    className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950'}`}
+                                                    className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}
                                                 >
                                                     {role.name}
                                                 </Text>
@@ -545,7 +546,7 @@ function UserFormSheet({
 
                     {/* Password */}
                     <View style={sheetStyles.field}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                             Password{' '}
                             {!isEdit && <Text className="text-danger-500">*</Text>}
                         </Text>
@@ -609,10 +610,10 @@ function UserFormSheet({
                     {/* Status Toggle */}
                     <View style={sheetStyles.toggleRow}>
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                                 {isActive ? 'Active' : 'Inactive'}
                             </Text>
-                            <Text className="font-inter text-xs text-neutral-500">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 {isActive
                                     ? 'User can log in and access the system'
                                     : 'User is disabled and cannot log in'}
@@ -660,6 +661,9 @@ function UserFormSheet({
 // ============ MAIN COMPONENT ============
 
 export function UserManagementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
@@ -915,10 +919,10 @@ export function UserManagementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     searchSection: {
         paddingHorizontal: 24,
@@ -928,7 +932,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -938,7 +942,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: {
         flexDirection: 'row',
@@ -971,7 +975,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -986,7 +990,7 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     roleBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
@@ -1011,6 +1015,7 @@ const styles = StyleSheet.create({
         marginLeft: 'auto',
     },
 });
+const styles = createStyles(false);
 
 const sheetStyles = StyleSheet.create({
     container: {

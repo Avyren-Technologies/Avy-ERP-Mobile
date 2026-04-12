@@ -28,6 +28,7 @@ import {
     ChipSelector,
     SectionCard,
 } from '@/features/super-admin/tenant-onboarding/atoms';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ OPTIONS (matching web exactly) ============
 
@@ -79,10 +80,10 @@ function ToggleRow({ label, subtitle, value, onToggle, tooltip }: {
         <View style={localStyles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
+                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
                     {tooltip && <InfoTooltip content={tooltip} />}
                 </View>
-                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={2}>{subtitle}</Text>}
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{subtitle}</Text>}
             </View>
             <Switch
                 value={value}
@@ -97,6 +98,9 @@ function ToggleRow({ label, subtitle, value, onToggle, tooltip }: {
 // ============ MAIN COMPONENT ============
 
 export function CompanySettingsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: settingsResponse, isLoading } = useCompanySettings();
@@ -144,7 +148,7 @@ export function CompanySettingsScreen() {
                 <AppTopHeader title="Company Settings" onMenuPress={toggle} />
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary[500]} />
-                    <Text className="mt-3 font-inter text-sm text-neutral-500">Loading settings...</Text>
+                    <Text className="mt-3 font-inter text-sm text-neutral-500 dark:text-neutral-400">Loading settings...</Text>
                 </View>
             </View>
         );
@@ -300,7 +304,7 @@ export function CompanySettingsScreen() {
                 >
                     <View style={styles.saveRow}>
                         <Pressable onPress={handleReset} style={styles.resetBtn}>
-                            <Text className="font-inter text-sm font-bold text-neutral-600">Reset</Text>
+                            <Text className="font-inter text-sm font-bold text-neutral-600 dark:text-neutral-400">Reset</Text>
                         </Pressable>
                         <Pressable
                             onPress={handleSave}
@@ -339,21 +343,21 @@ export function CompanySettingsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     saveContainer: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
         paddingHorizontal: 20, paddingTop: 12,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopWidth: 1, borderTopColor: colors.neutral[100],
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.08, shadowRadius: 12, elevation: 8,
     },
     saveRow: { flexDirection: 'row', gap: 12 },
     resetBtn: {
-        height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200],
+        height: 52, borderRadius: 14, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20,
     },
     saveBtn: { flex: 1, borderRadius: 14, overflow: 'hidden' },
@@ -370,6 +374,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
     },
 });
+const styles = createStyles(false);
 
 const localStyles = StyleSheet.create({
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },

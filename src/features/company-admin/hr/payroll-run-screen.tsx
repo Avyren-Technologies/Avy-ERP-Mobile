@@ -36,6 +36,7 @@ import {
     useReviewExceptions,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { usePayrollRun, usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -179,7 +180,7 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
                     );
                 })}
             </View>
-            <Text className="mt-2 font-inter text-xs font-bold text-primary-950 text-center">
+            <Text className="mt-2 font-inter text-xs font-bold text-primary-950 dark:text-white text-center">
                 {currentStep < totalSteps ? WIZARD_STEPS[currentStep] : 'Complete'}
             </Text>
         </View>
@@ -195,7 +196,7 @@ function MonthYearPicker({ month, year, onMonthChange, onYearChange }: {
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text className="font-inter text-sm font-bold text-primary-950">{MONTH_LABELS[month - 1]} {year}</Text>
+                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[month - 1]} {year}</Text>
             </View>
             <Pressable onPress={() => { if (month === 12) { onMonthChange(1); onYearChange(year + 1); } else { onMonthChange(month + 1); } }} style={styles.dateArrow}>
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -225,10 +226,10 @@ function NewRunModal({ visible, onClose, onCreate, isCreating }: {
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">New Payroll Run</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">New Payroll Run</Text>
                     <MonthYearPicker month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onCreate({ month, year })} disabled={isCreating} style={[styles.saveBtn, isCreating && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isCreating ? 'Creating...' : 'Create Run'}</Text>
                         </Pressable>
@@ -249,14 +250,14 @@ function RunCard({ item, index, onPress }: { item: PayrollRunItem; index: number
             <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{MONTH_LABELS[item.month - 1]} {item.year}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[item.month - 1]} {item.year}</Text>
                         <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">Created {formatDate(item.createdAt)}</Text>
                     </View>
                     <RunStatusBadge status={item.status} />
                 </View>
                 <View style={styles.cardMeta}>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">{item.employeeCount} employees</Text></View>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">Net: {formatCurrency(item.totalNetPay)}</Text></View>
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.employeeCount} employees</Text></View>
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Net: {formatCurrency(item.totalNetPay)}</Text></View>
                 </View>
             </Pressable>
         </Animated.View>
@@ -270,15 +271,15 @@ function Step1LockAttendance({ run, onLock, isLocking }: { run: PayrollRunItem; 
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 mb-3">Lock Attendance</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Lock Attendance</Text>
                 <View style={styles.summaryRow}>
                     <View style={[styles.summaryChip, { borderLeftColor: colors.primary[400], borderLeftWidth: 3 }]}>
                         <Text className="font-inter text-xl font-bold text-primary-800">{run.employeeCount}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500 mt-1">Employees</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Employees</Text>
                     </View>
                     <View style={[styles.summaryChip, { borderLeftColor: unresolvedCount > 0 ? colors.warning[400] : colors.success[400], borderLeftWidth: 3 }]}>
                         <Text className="font-inter text-xl font-bold" style={{ color: unresolvedCount > 0 ? colors.warning[700] : colors.success[700] }}>{unresolvedCount}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500 mt-1">Unresolved Issues</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Unresolved Issues</Text>
                     </View>
                 </View>
                 {unresolvedCount > 0 && (
@@ -302,7 +303,7 @@ function Step2ReviewExceptions({ run, onMarkAllReviewed, isReviewing }: { run: P
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 mb-3">Review Exceptions</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Review Exceptions</Text>
                 {exceptions.length === 0 ? (
                     <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                         <Svg width={32} height={32} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.success[500]} strokeWidth="1.5" fill="none" /></Svg>
@@ -314,10 +315,10 @@ function Step2ReviewExceptions({ run, onMarkAllReviewed, isReviewing }: { run: P
                             <View key={exc.id || idx} style={styles.exceptionRow}>
                                 <View style={{ flex: 1 }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">{exc.employeeName}</Text>
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{exc.employeeName}</Text>
                                         <ExceptionTypeBadge type={exc.type} />
                                     </View>
-                                    <Text className="mt-1 font-inter text-xs text-neutral-500">{exc.description}</Text>
+                                    <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{exc.description}</Text>
                                 </View>
                                 {exc.reviewed && (
                                     <View style={[styles.statusBadge, { backgroundColor: colors.success[50] }]}>
@@ -343,7 +344,7 @@ function Step3ComputeSalaries({ run, onCompute, isComputing }: { run: PayrollRun
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 mb-3">Compute Salaries</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Compute Salaries</Text>
                 {isComputing ? (
                     <View style={{ paddingVertical: 30, alignItems: 'center' }}>
                         <ActivityIndicator size="large" color={colors.primary[500]} />
@@ -355,15 +356,15 @@ function Step3ComputeSalaries({ run, onCompute, isComputing }: { run: PayrollRun
                         <View style={styles.summaryRow}>
                             <View style={[styles.summaryChip, { borderLeftColor: colors.success[400], borderLeftWidth: 3 }]}>
                                 <Text className="font-inter text-lg font-bold text-success-700">{formatCurrency(run.totalGross)}</Text>
-                                <Text className="font-inter text-[10px] text-neutral-500 mt-1">Total Gross</Text>
+                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Total Gross</Text>
                             </View>
                             <View style={[styles.summaryChip, { borderLeftColor: colors.danger[400], borderLeftWidth: 3 }]}>
                                 <Text className="font-inter text-lg font-bold text-danger-700">{formatCurrency(run.totalDeductions)}</Text>
-                                <Text className="font-inter text-[10px] text-neutral-500 mt-1">Total Deductions</Text>
+                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Total Deductions</Text>
                             </View>
                         </View>
                         <View style={styles.netPayBanner}>
-                            <Text className="font-inter text-xs text-neutral-500">Total Net Pay</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Total Net Pay</Text>
                             <Text className="font-inter text-xl font-bold text-primary-800">{formatCurrency(run.totalNetPay)}</Text>
                             <Text className="font-inter text-[10px] text-neutral-400">{run.employeeCount} employees</Text>
                         </View>
@@ -371,7 +372,7 @@ function Step3ComputeSalaries({ run, onCompute, isComputing }: { run: PayrollRun
                 ) : (
                     <View style={{ paddingVertical: 16, alignItems: 'center' }}>
                         <Svg width={40} height={40} viewBox="0 0 24 24"><Path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke={colors.neutral[300]} strokeWidth="1.5" fill="none" strokeLinecap="round" /></Svg>
-                        <Text className="mt-2 font-inter text-sm text-neutral-500">Ready to compute salaries for {run.employeeCount} employees</Text>
+                        <Text className="mt-2 font-inter text-sm text-neutral-500 dark:text-neutral-400">Ready to compute salaries for {run.employeeCount} employees</Text>
                     </View>
                 )}
                 {!hasComputed && !isComputing && (
@@ -396,19 +397,19 @@ function Step4StatutoryDeductions({ run, onCompute, isComputing }: { run: Payrol
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 mb-3">Statutory Deductions</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Statutory Deductions</Text>
                 {hasStatutory ? (
                     <View style={{ gap: 8 }}>
                         {items.map(item => (
                             <View key={item.label} style={[styles.statutoryRow, { borderLeftColor: item.color, borderLeftWidth: 3 }]}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950 flex-1">{item.label}</Text>
+                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white flex-1">{item.label}</Text>
                                 <Text className="font-inter text-sm font-bold" style={{ color: item.color }}>{formatCurrency(item.amount)}</Text>
                             </View>
                         ))}
                     </View>
                 ) : (
                     <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                        <Text className="font-inter text-sm text-neutral-500">Compute statutory deductions for PF, ESI, PT, TDS, and LWF</Text>
+                        <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400">Compute statutory deductions for PF, ESI, PT, TDS, and LWF</Text>
                     </View>
                 )}
                 {!hasStatutory && (
@@ -427,31 +428,31 @@ function Step5Approve({ run, onApprove }: { run: PayrollRunItem; onApprove: () =
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 mb-3">Approve Payroll</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Approve Payroll</Text>
                 <View style={styles.finalSummary}>
                     <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Total Gross</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{formatCurrency(run.totalGross)}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Total Gross</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{formatCurrency(run.totalGross)}</Text>
                     </View>
                     <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Total Deductions</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Total Deductions</Text>
                         <Text className="font-inter text-sm font-bold text-danger-700">{formatCurrency(run.totalDeductions)}</Text>
                     </View>
                     <View style={[styles.finalSummaryRow, { borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: 8, marginTop: 4 }]}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">Total Net Pay</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Total Net Pay</Text>
                         <Text className="font-inter text-base font-bold text-primary-800">{formatCurrency(run.totalNetPay)}</Text>
                     </View>
                     <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Employees</Text>
-                        <Text className="font-inter text-sm font-semibold text-primary-950">{run.employeeCount}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Employees</Text>
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{run.employeeCount}</Text>
                     </View>
                     <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Exceptions</Text>
-                        <Text className="font-inter text-sm font-semibold text-primary-950">{(run.exceptions ?? []).length}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Exceptions</Text>
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{(run.exceptions ?? []).length}</Text>
                     </View>
                     <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500">Holds</Text>
-                        <Text className="font-inter text-sm font-semibold text-primary-950">{run.holdCount ?? 0}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Holds</Text>
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{run.holdCount ?? 0}</Text>
                     </View>
                 </View>
                 <Pressable onPress={onApprove} style={[styles.primaryBtn, { backgroundColor: colors.success[600] }]}>
@@ -467,14 +468,14 @@ function Step6Disburse({ run, onDisburse, isDisbursing, disbursed }: { run: Payr
     return (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 mb-3">Disburse</Text>
+                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Disburse</Text>
                 {disbursed || run.status === 'DISBURSED' || run.status === 'ARCHIVED' ? (
                     <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                         <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.success[100], justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                             <Svg width={28} height={28} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.success[600]} strokeWidth="2" fill="none" /></Svg>
                         </View>
                         <Text className="font-inter text-base font-bold text-success-700">Payroll Disbursed!</Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">Bank file generated and payslips created</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">Bank file generated and payslips created</Text>
                         <Pressable onPress={() => router.push('/company/hr/payslips' as any)} style={[styles.outlineBtn, { marginTop: 16 }]}>
                             <Text className="font-inter text-sm font-bold text-primary-600">View Payslips</Text>
                         </Pressable>
@@ -484,11 +485,11 @@ function Step6Disburse({ run, onDisburse, isDisbursing, disbursed }: { run: Payr
                         <View style={{ gap: 8, marginBottom: 16 }}>
                             <View style={styles.readyRow}>
                                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4" stroke={colors.success[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                <Text className="ml-2 font-inter text-sm text-primary-950">Bank file ready for generation</Text>
+                                <Text className="ml-2 font-inter text-sm text-primary-950 dark:text-white">Bank file ready for generation</Text>
                             </View>
                             <View style={styles.readyRow}>
                                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4" stroke={colors.success[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                <Text className="ml-2 font-inter text-sm text-primary-950">Payslips will be auto-generated</Text>
+                                <Text className="ml-2 font-inter text-sm text-primary-950 dark:text-white">Payslips will be auto-generated</Text>
                             </View>
                         </View>
                         <Pressable onPress={onDisburse} disabled={isDisbursing} style={[styles.primaryBtn, { backgroundColor: colors.primary[700] }, isDisbursing && { opacity: 0.5 }]}>
@@ -506,6 +507,9 @@ function Step6Disburse({ run, onDisburse, isDisbursing, disbursed }: { run: Payr
 // ============ MAIN COMPONENT ============
 
 export function PayrollRunScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -640,7 +644,7 @@ export function PayrollRunScreen() {
                     <Pressable onPress={() => { setSelectedRunId(null); setDisbursed(false); }} style={styles.backBtn}>
                         <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
+                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">
                         {MONTHS[selectedRun.month - 1]} {selectedRun.year} Run
                     </Text>
                     <RunStatusBadge status={selectedRun.status} />
@@ -666,8 +670,8 @@ export function PayrollRunScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Payroll Runs</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{runs.length} run{runs.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Payroll Runs</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{runs.length} run{runs.length !== 1 ? 's' : ''}</Text>
             <View style={{ marginTop: 16 }}>
                 <MonthYearPicker month={filterMonth} year={filterYear} onMonthChange={setFilterMonth} onYearChange={setFilterYear} />
             </View>
@@ -697,33 +701,33 @@ export function PayrollRunScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     // Wizard
     wizardCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 20, marginBottom: 16,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 20, marginBottom: 16,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
     summaryChip: {
-        flex: 1, backgroundColor: colors.white, borderRadius: 14, padding: 14,
-        borderWidth: 1, borderColor: colors.neutral[100],
+        flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, padding: 14,
+        borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     },
     warningBanner: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: colors.warning[50],
@@ -735,7 +739,7 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
     },
     outlineBtn: {
-        height: 44, borderRadius: 14, backgroundColor: colors.primary[50],
+        height: 44, borderRadius: 14, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24,
         borderWidth: 1.5, borderColor: colors.primary[200],
     },
@@ -744,15 +748,15 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
     },
     statutoryRow: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
-        borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.neutral[100],
+        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white,
+        borderRadius: 12, padding: 14, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     },
     netPayBanner: {
-        backgroundColor: colors.primary[50], borderRadius: 14, padding: 16,
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 14, padding: 16,
         alignItems: 'center', marginTop: 4,
     },
     finalSummary: {
-        backgroundColor: colors.neutral[50], borderRadius: 14, padding: 16, marginBottom: 12, gap: 8,
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 14, padding: 16, marginBottom: 12, gap: 8,
     },
     finalSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     readyRow: { flexDirection: 'row', alignItems: 'center' },
@@ -760,8 +764,8 @@ const styles = StyleSheet.create({
     stepIndicatorContainer: { alignItems: 'center', paddingVertical: 16, marginBottom: 8 },
     stepRow: { flexDirection: 'row', alignItems: 'center' },
     stepCircle: {
-        width: 24, height: 24, borderRadius: 12, backgroundColor: colors.neutral[100],
-        justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.neutral[200],
+        width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
+        justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     stepCircleComplete: { backgroundColor: colors.success[500], borderColor: colors.success[500] },
     stepCircleCurrent: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
@@ -769,14 +773,15 @@ const styles = StyleSheet.create({
     stepLineActive: { backgroundColor: colors.success[400] },
     // MonthYear Picker
     monthYearPicker: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16,
-        padding: 12, borderWidth: 1, borderColor: colors.primary[50],
+        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16,
+        padding: 12, borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
     },
-    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     // Form sheet
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

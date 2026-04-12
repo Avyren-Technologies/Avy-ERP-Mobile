@@ -17,16 +17,28 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { usePolicyDocuments } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Main Screen ──────────────────────────────────────────────────
 
 export function PolicyDocumentsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
 
     const { data, isLoading, refetch } = usePolicyDocuments();
 
-    const documents = (data as any)?.data ?? [];
+    // essApi.getPolicyDocuments() does client.get() + return r.data (double unwrap)
+    // So hook data is already the array. Fall back to envelope unwrap for safety.
+    const documents = React.useMemo(() => {
+        if (!data) return [];
+        if (Array.isArray(data)) return data;
+        const raw = data as any;
+        if (Array.isArray(raw?.data)) return raw.data;
+        return [];
+    }, [data]);
 
     const handleOpenDocument = (url: string) => {
         if (url) {
@@ -39,12 +51,12 @@ export function PolicyDocumentsScreen() {
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={[styles.typeBadge, { backgroundColor: colors.primary[50] }]}>
+                        <View style={[styles.typeBadge, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                             <Text style={{ color: colors.primary[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.category ?? 'Policy'}</Text>
                         </View>
                     </View>
-                    <Text className="font-inter text-sm font-bold text-primary-950 mt-2">{item.title ?? item.name ?? '--'}</Text>
-                    {item.description && <Text className="font-inter text-xs text-neutral-500 mt-1" numberOfLines={2}>{item.description}</Text>}
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mt-2">{item.title ?? item.name ?? '--'}</Text>
+                    {item.description && <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-1" numberOfLines={2}>{item.description}</Text>}
                 </View>
                 {item.fileUrl && (
                     <Pressable onPress={() => handleOpenDocument(item.fileUrl)} style={styles.viewBtn}>
@@ -60,7 +72,7 @@ export function PolicyDocumentsScreen() {
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="Policy Documents" onMenuPress={open} />
             <FlashList
                 data={documents}
@@ -74,10 +86,11 @@ export function PolicyDocumentsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    card: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
-    viewBtn: { padding: 8, borderRadius: 8, backgroundColor: colors.primary[50], borderWidth: 1, borderColor: colors.primary[100] },
+    viewBtn: { padding: 8, borderRadius: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderWidth: 1, borderColor: isDark ? colors.primary[800] : colors.primary[100] },
 });
+const styles = createStyles(false);

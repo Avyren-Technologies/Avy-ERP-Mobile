@@ -444,6 +444,11 @@ export const essApi = {
     return r.data;
   },
 
+  deleteMyDocument: async (id: string) => {
+    const r = await client.delete(`/hr/ess/my-documents/${id}`);
+    return r.data;
+  },
+
   // ── Policy Documents ──────────────────────────────────────────
   getPolicyDocuments: async () => {
     const r = await client.get('/hr/ess/policy-documents');

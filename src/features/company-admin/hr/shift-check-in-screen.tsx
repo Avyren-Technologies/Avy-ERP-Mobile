@@ -21,6 +21,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { client } from '@/lib/api/client';
@@ -342,9 +343,11 @@ export function ShiftCheckInScreen() {
             return (await client.post('/hr/attendance/check-in', body) as any).data;
         },
         onSuccess: () => {
+            showSuccess('Checked In', 'Attendance recorded successfully');
             qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
             qc.invalidateQueries({ queryKey: ['ess', 'dashboard'] });
         },
+        onError: () => showErrorMessage('Failed to check in. Please try again.'),
     });
     const checkOutMut = useMutation({
         mutationFn: async () => {
@@ -364,9 +367,11 @@ export function ShiftCheckInScreen() {
             return (await client.post('/hr/attendance/check-out', body) as any).data;
         },
         onSuccess: () => {
+            showSuccess('Checked Out', 'Have a great day!');
             qc.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
             qc.invalidateQueries({ queryKey: ['ess', 'dashboard'] });
         },
+        onError: () => showErrorMessage('Failed to check out. Please try again.'),
     });
 
     const isBusy = checkInMut.isPending || checkOutMut.isPending;

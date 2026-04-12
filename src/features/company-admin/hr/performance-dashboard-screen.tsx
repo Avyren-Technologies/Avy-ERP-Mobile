@@ -19,6 +19,7 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { usePerformanceDashboard } from '@/features/company-admin/api/use-performance-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -71,7 +72,7 @@ function KPICard({ title, value, subtitle, color, icon, index }: {
                     {icon}
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-[10px] uppercase tracking-wider text-neutral-500">{title}</Text>
+                    <Text className="font-inter text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{title}</Text>
                     <Text className="font-inter text-xl font-bold" style={{ color }}>{value}</Text>
                     {subtitle ? <Text className="font-inter text-[10px] text-neutral-400">{subtitle}</Text> : null}
                 </View>
@@ -85,7 +86,7 @@ function MetricProgressBar({ label, value, maxValue, color }: { label: string; v
     return (
         <View style={{ marginBottom: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                <Text className="font-inter text-xs font-semibold text-primary-950">{label}</Text>
+                <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{label}</Text>
                 <Text className="font-inter text-xs font-bold" style={{ color }}>{value}/{maxValue} ({pct.toFixed(0)}%)</Text>
             </View>
             <View style={styles.progressTrack}>
@@ -99,7 +100,7 @@ function RatingDistBar({ label, count, percentage, color }: { label: string; cou
     return (
         <View style={{ marginBottom: 10 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                <Text className="font-inter text-xs text-neutral-600">{label}</Text>
+                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">{label}</Text>
                 <Text className="font-inter text-xs font-semibold" style={{ color }}>{count} ({percentage.toFixed(0)}%)</Text>
             </View>
             <View style={styles.progressTrack}>
@@ -131,9 +132,9 @@ function ActivityItem({ item, index }: { item: DashboardData['recentActivity'][0
                     </Svg>
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm text-primary-950" numberOfLines={2}>{item.description}</Text>
+                    <Text className="font-inter text-sm text-primary-950 dark:text-white" numberOfLines={2}>{item.description}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                        {item.actor ? <Text className="font-inter text-[10px] font-semibold text-neutral-500">{item.actor}</Text> : null}
+                        {item.actor ? <Text className="font-inter text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">{item.actor}</Text> : null}
                         {item.timestamp ? <Text className="font-inter text-[10px] text-neutral-400">{item.timestamp}</Text> : null}
                     </View>
                 </View>
@@ -145,6 +146,9 @@ function ActivityItem({ item, index }: { item: DashboardData['recentActivity'][0
 // ============ MAIN COMPONENT ============
 
 export function PerformanceDashboardScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
 
@@ -211,8 +215,8 @@ export function PerformanceDashboardScreen() {
             <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
                 {/* KPI Cards */}
                 <Animated.View entering={FadeInDown.duration(400)}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">Performance Dashboard</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Overview of performance metrics</Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Performance Dashboard</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Overview of performance metrics</Text>
                 </Animated.View>
 
                 <View style={styles.kpiGrid}>
@@ -246,7 +250,7 @@ export function PerformanceDashboardScreen() {
                     <MetricProgressBar label="360 Feedback Done" value={dashboard.feedbackCompleted} maxValue={dashboard.feedbackCompleted + dashboard.feedbackPending} color={colors.info[500]} />
                     <View style={{ marginBottom: 14 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <Text className="font-inter text-xs font-semibold text-primary-950">Succession Coverage</Text>
+                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">Succession Coverage</Text>
                             <Text className="font-inter text-xs font-bold" style={{ color: colors.accent[600] }}>{dashboard.successionCoverage}%</Text>
                         </View>
                         <View style={styles.progressTrack}>
@@ -304,21 +308,21 @@ export function PerformanceDashboardScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     gradientHeader: { paddingBottom: 16, paddingHorizontal: 20 },
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     kpiGrid: { marginTop: 16, gap: 10 },
     kpiCard: {
-        backgroundColor: colors.white, borderRadius: 16, padding: 14,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 14,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     kpiIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
     metricsCard: {
-        backgroundColor: colors.white, borderRadius: 16, padding: 16, marginTop: 16,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16, marginTop: 16,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     progressTrack: { height: 6, backgroundColor: colors.neutral[200], borderRadius: 3, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
@@ -328,3 +332,4 @@ const styles = StyleSheet.create({
     },
     activityIcon: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 });
+const styles = createStyles(false);

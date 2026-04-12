@@ -28,6 +28,7 @@ import { useDispatchESign } from '@/features/company-admin/api/use-recruitment-m
 import { usePendingESign } from '@/features/company-admin/api/use-recruitment-queries';
 import { useCanPerform } from '@/hooks/use-can-perform';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -74,7 +75,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
     return (
         <View style={[styles.statCard, { backgroundColor: bgMap[color] ?? colors.neutral[50] }]}>
             <Text className={`font-inter text-xl font-bold ${textMap[color] ?? 'text-neutral-700'}`}>{value}</Text>
-            <Text className="font-inter text-[10px] font-bold text-neutral-500 mt-0.5">{label}</Text>
+            <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400 mt-0.5">{label}</Text>
         </View>
     );
 }
@@ -88,7 +89,7 @@ function FilterChips({ value, onSelect }: { value: string; onSelect: (v: string)
                 const active = f === value;
                 return (
                     <Pressable key={f} onPress={() => onSelect(f)} style={[styles.chip, active && styles.chipActive]}>
-                        <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{f}</Text>
+                        <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{f}</Text>
                     </Pressable>
                 );
             })}
@@ -106,10 +107,10 @@ function ESignCard({ item, index, onResend, isResending, showAdminActions }: { i
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.letterType ?? 'HR Letter'}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.letterType ?? 'HR Letter'}</Text>
                             <StatusBadge status={item.status} />
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">{item.employeeName}</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.employeeName}</Text>
                     </View>
                     {showAdminActions && item.status === 'PENDING' && (
                         <Pressable onPress={onResend} disabled={isResending} style={styles.resendBtn}>
@@ -120,7 +121,7 @@ function ESignCard({ item, index, onResend, isResending, showAdminActions }: { i
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             Dispatched: {item.dispatchedAt ? fmt.date(item.dispatchedAt) : 'N/A'}
                         </Text>
                     </View>
@@ -133,6 +134,9 @@ function ESignCard({ item, index, onResend, isResending, showAdminActions }: { i
 // ============ MAIN COMPONENT ============
 
 export function ESignScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
@@ -171,8 +175,8 @@ export function ESignScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">{isHrAdmin ? 'E-Signatures' : 'My E-Sign Requests'}</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{isHrAdmin ? 'Track electronic signature requests' : 'View your e-signature requests'}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">{isHrAdmin ? 'E-Signatures' : 'My E-Sign Requests'}</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{isHrAdmin ? 'Track electronic signature requests' : 'View your e-signature requests'}</Text>
 
             {/* Stats */}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
@@ -217,23 +221,24 @@ export function ESignScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center' },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    resendBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary[50] },
+    resendBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
 });
+const styles = createStyles(false);

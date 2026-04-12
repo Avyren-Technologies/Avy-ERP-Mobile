@@ -23,6 +23,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
 import { useApplyForLoan } from '@/features/company-admin/api/use-ess-mutations';
 import { useEssLoanPolicies, useMyLoans } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
     PENDING: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
@@ -97,15 +98,15 @@ function ApplyLoanModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Apply for Loan</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Apply for Loan</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 440 }}>
                         {/* Policy Picker */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Loan Policy <Text className="text-danger-500">*</Text>
                             </Text>
                             <Pressable onPress={() => setPolicyPickerVisible(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${policyId ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                                <Text className={`font-inter text-sm ${policyId ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                                     {selectedPolicy?.name ?? 'Select policy...'}
                                 </Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -115,7 +116,7 @@ function ApplyLoanModal({
                                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPolicyPickerVisible(false)} />
                                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                                         <View style={styles.sheetHandle} />
-                                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Loan Policy</Text>
+                                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Loan Policy</Text>
                                         <ScrollView showsVerticalScrollIndicator={false}>
                                             {policies.map((pol: any) => (
                                                 <Pressable
@@ -130,10 +131,10 @@ function ApplyLoanModal({
                                                         borderRadius: 8,
                                                     }}
                                                 >
-                                                    <Text className={`font-inter text-sm ${pol.id === policyId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                                    <Text className={`font-inter text-sm ${pol.id === policyId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
                                                         {pol.name}
                                                     </Text>
-                                                    <Text className="font-inter text-xs text-neutral-500 mt-0.5">
+                                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                                                         Max: {formatCurrency(pol.maxAmount)} | {pol.interestRate}% | Up to {pol.maxTenureMonths} months
                                                     </Text>
                                                 </Pressable>
@@ -149,7 +150,7 @@ function ApplyLoanModal({
 
                         {/* Amount */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Amount ({'₹'}) <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -166,7 +167,7 @@ function ApplyLoanModal({
 
                         {/* Tenure */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Tenure (months) <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -185,8 +186,8 @@ function ApplyLoanModal({
                         {emi > 0 && (
                             <View style={styles.emiCard}>
                                 <Text className="font-inter text-xs font-semibold text-primary-700">Estimated Monthly EMI</Text>
-                                <Text className="font-inter text-lg font-bold text-primary-950 mt-1">{formatCurrency(emi)}</Text>
-                                <Text className="font-inter text-[10px] text-neutral-500 mt-0.5">
+                                <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mt-1">{formatCurrency(emi)}</Text>
+                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                                     at {rate}% p.a. for {parsedTenure} months
                                 </Text>
                             </View>
@@ -194,7 +195,7 @@ function ApplyLoanModal({
 
                         {/* Reason */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Reason <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={[styles.inputWrap, { height: 100 }]}>
@@ -213,7 +214,7 @@ function ApplyLoanModal({
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={() => onSave({
@@ -237,6 +238,9 @@ function ApplyLoanModal({
 // ── Main Screen ──────────────────────────────────────────────────
 
 export function MyLoanScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -295,9 +299,9 @@ export function MyLoanScreen() {
         if (section.type === 'policy') {
             return (
                 <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
-                    <Text className="font-inter text-sm font-bold text-primary-950">{item.name}</Text>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.name}</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                        <View style={[styles.tagBadge, { backgroundColor: colors.primary[50] }]}>
+                        <View style={[styles.tagBadge, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                             <Text style={{ color: colors.primary[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>
                                 {item.type ?? 'GENERAL'}
                             </Text>
@@ -319,7 +323,7 @@ export function MyLoanScreen() {
                         </View>
                     </View>
                     {item.description ? (
-                        <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.description}</Text>
+                        <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={2}>{item.description}</Text>
                     ) : null}
                 </Animated.View>
             );
@@ -331,24 +335,24 @@ export function MyLoanScreen() {
             <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{policyName}</Text>
-                        <Text className="font-inter text-xs text-neutral-500 mt-1">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{policyName}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                             Amount: {formatCurrency(item.amount)} | EMI: {formatCurrency(item.emi ?? 0)}
                         </Text>
-                        <Text className="font-inter text-xs text-neutral-500 mt-0.5">
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                             Tenure: {item.tenureMonths ?? '--'} months
                         </Text>
                     </View>
                     <StatusBadge status={item.status ?? 'PENDING'} />
                 </View>
-                {item.reason && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.reason}</Text>}
+                {item.reason && <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={2}>{item.reason}</Text>}
                 {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Applied: {item.createdAt}</Text>}
             </Animated.View>
         );
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="Loans" onMenuPress={open} />
             <SectionList
                 sections={sections}
@@ -372,13 +376,13 @@ export function MyLoanScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     sectionHeader: { paddingVertical: 8, paddingHorizontal: 4, marginBottom: 4 },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         padding: 16,
         marginBottom: 12,
         shadowColor: colors.primary[900],
@@ -392,17 +396,17 @@ const styles = StyleSheet.create({
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     empty: { alignItems: 'center', paddingTop: 40 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     emiCard: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 12,
         borderWidth: 1,
         borderColor: colors.primary[200],
@@ -410,6 +414,7 @@ const styles = StyleSheet.create({
         marginBottom: 14,
         alignItems: 'center',
     },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

@@ -17,6 +17,10 @@ type AuthStatus = 'idle' | 'signOut' | 'signIn';
 export type UserRole = 'super-admin' | 'company-admin' | 'user';
 
 const USER_DATA_KEY = 'user_data';
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const BIOMETRIC_TOKEN_KEY = 'biometric_token';
+const BIOMETRIC_PROMPT_SHOWN_KEY = 'biometric_prompt_shown';
+const BIOMETRIC_COMPANY_SETTING_KEY = 'biometric_company_setting';
 
 /**
  * Map backend role strings to app role types.
@@ -80,7 +84,7 @@ interface AuthState {
     userRole: UserRole | null;
     permissions: string[];
     signIn: (token: TokenType, user: AuthUser, role?: UserRole) => void;
-    signOut: () => void;
+    signOut: () => Promise<void>;
     updateTokens: (tokens: TokenType) => void;
     hydrate: () => void;
 }
@@ -99,16 +103,30 @@ const _useAuthStore = create<AuthState>((set) => ({
         logger.info('User signed in', { email: user.email, role: resolvedRole, permissionCount: permissions.length });
         set({ status: 'signIn', token, user, userRole: resolvedRole, permissions });
     },
-    signOut: () => {
-        // Unregister push token before clearing auth (fire-and-forget)
-        unregisterPushNotifications().catch(() => {});
-        // Disconnect the shared Socket.io singleton so the next login doesn't
-        // inherit the previous user's authenticated socket and notification rooms.
+    signOut: async () => {
+        // 1. Cleanup calls that need the auth token BEFORE it's cleared.
+        //    Await them so the DELETE /register-device request fires with
+        //    a valid Authorization header. Wrapped in try/catch so a
+        //    network failure doesn't block logout.
+        try {
+            await unregisterPushNotifications();
+        } catch {
+            // Non-fatal — device row stays active but will be cleaned up
+            // by the dead-token detector on the next failed push delivery.
+        }
+
+        // 2. Disconnect socket (uses stored token internally).
         disconnectSocket();
+
+        // 3. NOW clear auth state — token, user, biometric, caches.
         removeToken();
         removeItem(USER_DATA_KEY);
-        // Clear all React Query caches so new user doesn't see stale data
+        removeItem(BIOMETRIC_ENABLED_KEY);
+        removeItem(BIOMETRIC_TOKEN_KEY);
+        removeItem(BIOMETRIC_PROMPT_SHOWN_KEY);
+        removeItem(BIOMETRIC_COMPANY_SETTING_KEY);
         queryClient.clear();
+
         logger.info('User signed out');
         set({ status: 'signOut', token: null, user: null, userRole: null, permissions: [] });
     },

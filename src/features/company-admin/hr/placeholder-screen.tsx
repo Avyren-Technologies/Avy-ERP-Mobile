@@ -8,6 +8,7 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ REUSABLE HR PLACEHOLDER ============
 
@@ -17,6 +18,9 @@ interface HRPlaceholderScreenProps {
 }
 
 export function HRPlaceholderScreen({ title, subtitle }: HRPlaceholderScreenProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const { toggle } = useSidebar();
 
   return (
@@ -45,10 +49,10 @@ export function HRPlaceholderScreen({ title, subtitle }: HRPlaceholderScreenProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
   },
   content: {
     flex: 1,
@@ -60,7 +64,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
     paddingHorizontal: 24,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     borderRadius: 20,
     width: '100%',
   },
@@ -68,7 +72,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -86,3 +90,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+const styles = createStyles(false);

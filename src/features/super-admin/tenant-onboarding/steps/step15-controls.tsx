@@ -19,7 +19,7 @@ export function Step15Controls({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.infoCard}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     System controls are always company-level — they apply to all plants and locations
                     regardless of multi-location configuration.
                 </Text>

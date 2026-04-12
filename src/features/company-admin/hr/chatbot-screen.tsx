@@ -26,6 +26,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { useEscalateConversation, useSendChatbotMessage, useStartConversation } from '@/features/company-admin/api/use-chatbot-mutations';
 import { useChatbotMessages } from '@/features/company-admin/api/use-chatbot-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -74,7 +75,7 @@ function InlineMarkdownText({ text, isUser }: { text: string; isUser: boolean })
     while ((match = regex.exec(text)) !== null) {
         if (match.index > lastIndex) {
             parts.push(
-                <Text key={key++} className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>
+                <Text key={key++} className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950 dark:text-white'}`}>
                     {text.slice(lastIndex, match.index)}
                 </Text>
             );
@@ -82,21 +83,21 @@ function InlineMarkdownText({ text, isUser }: { text: string; isUser: boolean })
         if (match[1]) {
             // Bold
             parts.push(
-                <Text key={key++} className={`font-inter-bold text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>
+                <Text key={key++} className={`font-inter-bold text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950 dark:text-white'}`}>
                     {match[2]}
                 </Text>
             );
         } else if (match[3]) {
             // Italic *text*
             parts.push(
-                <Text key={key++} className={`font-inter italic text-sm leading-5 ${isUser ? 'text-white/70' : 'text-neutral-500'}`}>
+                <Text key={key++} className={`font-inter italic text-sm leading-5 ${isUser ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
                     {match[4]}
                 </Text>
             );
         } else if (match[5]) {
             // Italic _text_
             parts.push(
-                <Text key={key++} className={`font-inter italic text-sm leading-5 ${isUser ? 'text-white/70' : 'text-neutral-500'}`}>
+                <Text key={key++} className={`font-inter italic text-sm leading-5 ${isUser ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
                     {match[6]}
                 </Text>
             );
@@ -106,7 +107,7 @@ function InlineMarkdownText({ text, isUser }: { text: string; isUser: boolean })
 
     if (lastIndex < text.length) {
         parts.push(
-            <Text key={key++} className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950'}`}>
+            <Text key={key++} className={`font-inter text-sm leading-5 ${isUser ? 'text-white' : 'text-primary-950 dark:text-white'}`}>
                 {text.slice(lastIndex)}
             </Text>
         );
@@ -143,7 +144,7 @@ function MarkdownTable({ lines, isUser }: { lines: string[]; isUser: boolean }) 
                 ]}>
                     {parseRow(row).map((cell, ci) => (
                         <View key={ci} style={mdStyles.tableCell}>
-                            <Text className={`font-inter text-[11px] ${isUser ? 'text-white/80' : 'text-neutral-600'}`}>
+                            <Text className={`font-inter text-[11px] ${isUser ? 'text-white/80' : 'text-neutral-600 dark:text-neutral-400'}`}>
                                 <InlineMarkdownText text={cell} isUser={isUser} />
                             </Text>
                         </View>
@@ -261,6 +262,9 @@ function QuickActions({ onSelect, disabled }: { onSelect: (label: string) => voi
 // ============ MAIN COMPONENT ============
 
 export function ChatbotScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const flatListRef = React.useRef<FlashListRef<any>>(null);
@@ -329,8 +333,8 @@ export function ChatbotScreen() {
                     <View style={styles.emptyIcon}>
                         <Svg width={32} height={32} viewBox="0 0 24 24"><Path d="M12 8V4m0 4a4 4 0 100 8 4 4 0 000-8zM6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2" stroke={colors.primary[500]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </View>
-                    <Text className="font-inter text-lg font-bold text-primary-950">HR Assistant</Text>
-                    <Text className="font-inter text-sm text-neutral-500 text-center mt-1" style={{ maxWidth: 260 }}>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">HR Assistant</Text>
+                    <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400 text-center mt-1" style={{ maxWidth: 260 }}>
                         Ask about leave, payslips, attendance & more. Try a quick action below!
                     </Text>
                 </Animated.View>
@@ -404,27 +408,28 @@ export function ChatbotScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     escalateBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.warning[50], justifyContent: 'center', alignItems: 'center' },
     listContent: { paddingHorizontal: 16, paddingTop: 16 },
     messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 12, maxWidth: '85%' },
     messageRowUser: { alignSelf: 'flex-end', flexDirection: 'row' },
-    avatarBot: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center' },
+    avatarBot: { width: 28, height: 28, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center' },
     avatarUser: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center' },
     bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '100%' },
     bubbleUser: { backgroundColor: colors.primary[600], borderBottomRightRadius: 6 },
-    bubbleAssistant: { backgroundColor: colors.white, borderBottomLeftRadius: 6, borderWidth: 1, borderColor: colors.neutral[200] },
+    bubbleAssistant: { backgroundColor: isDark ? '#1A1730' : colors.white, borderBottomLeftRadius: 6, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     typingWrap: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 12, paddingHorizontal: 16 },
-    typingBubble: { flexDirection: 'row', gap: 4, backgroundColor: colors.white, borderRadius: 18, borderBottomLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: colors.neutral[200] },
+    typingBubble: { flexDirection: 'row', gap: 4, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 18, borderBottomLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     dot: { width: 6, height: 6, borderRadius: 3 },
     emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
     emptyContent: { alignItems: 'center' },
-    emptyIcon: { width: 64, height: 64, borderRadius: 20, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+    emptyIcon: { width: 64, height: 64, borderRadius: 20, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
     quickWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 },
-    quickChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
-    inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100], backgroundColor: colors.white },
-    inputWrap: { flex: 1, backgroundColor: colors.neutral[50], borderRadius: 14, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, minHeight: 46, justifyContent: 'center' },
+    quickChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
+    inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white },
+    inputWrap: { flex: 1, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 14, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, minHeight: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     sendBtn: { width: 46, height: 46, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

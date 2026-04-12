@@ -1,5 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
@@ -11,6 +11,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import { notificationApi } from '@/lib/api/notifications';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Query key factory ──
 
@@ -118,13 +119,15 @@ export interface NotificationsSheetHandle {
 
 export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
   function NotificationsSheet(_props, ref) {
-    const sheetRef = useRef<BottomSheet>(null);
+    const isDark = useIsDark();
+    const styles = _createStyles(isDark);
+    const sheetRef = useRef<React.ComponentRef<typeof BottomSheetModal>>(null);
     const queryClient = useQueryClient();
     const snapPoints = useMemo(() => ['60%', '90%'], []);
 
     useImperativeHandle(ref, () => ({
-      open: () => sheetRef.current?.snapToIndex(0),
-      close: () => sheetRef.current?.close(),
+      open: () => sheetRef.current?.present(),
+      close: () => sheetRef.current?.dismiss(),
     }));
 
     const { data: notifData, isLoading, refetch } = useQuery({
@@ -165,11 +168,11 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
     );
 
     return (
-      <BottomSheet
+      <BottomSheetModal
         ref={sheetRef}
-        index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
+        enableDynamicSizing={false}
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
@@ -231,16 +234,16 @@ export const NotificationsSheet = forwardRef<NotificationsSheetHandle>(
             }
           />
         )}
-      </BottomSheet>
+      </BottomSheetModal>
     );
   },
 );
 
 // ── Styles ──
 
-const styles = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
   sheetBackground: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -264,7 +267,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerBadge: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral[100],
   },
   itemUnread: {
-    backgroundColor: colors.primary[50] + '40', // 25% opacity
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50] + '40', // 25% opacity
   },
   typeIndicator: {
     width: 32,
@@ -314,3 +317,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
 });
+const styles = _createStyles(false);

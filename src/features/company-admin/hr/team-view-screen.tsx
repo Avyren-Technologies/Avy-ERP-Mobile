@@ -28,6 +28,7 @@ import {
     useTeamMembers,
     useApprovalRequests,
 } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -98,6 +99,9 @@ function AvatarCircle({ name }: { name: string }) {
 // ============ MAIN COMPONENT ============
 
 export function TeamViewScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -220,19 +224,19 @@ export function TeamViewScreen() {
                         <View style={styles.kpiGrid}>
                             <View style={[styles.kpiCard, { borderLeftColor: colors.success[500], borderLeftWidth: 3 }]}>
                                 <Text className="font-inter text-xl font-bold text-success-600">{teamAttendance.present}</Text>
-                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500">Present</Text>
+                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400">Present</Text>
                             </View>
                             <View style={[styles.kpiCard, { borderLeftColor: colors.danger[500], borderLeftWidth: 3 }]}>
                                 <Text className="font-inter text-xl font-bold text-danger-600">{teamAttendance.absent}</Text>
-                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500">Absent</Text>
+                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400">Absent</Text>
                             </View>
                             <View style={[styles.kpiCard, { borderLeftColor: colors.info[500], borderLeftWidth: 3 }]}>
                                 <Text className="font-inter text-xl font-bold text-info-600">{teamAttendance.onLeave}</Text>
-                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500">On Leave</Text>
+                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400">On Leave</Text>
                             </View>
                             <View style={[styles.kpiCard, { borderLeftColor: colors.warning[500], borderLeftWidth: 3 }]}>
                                 <Text className="font-inter text-xl font-bold text-warning-600">{teamAttendance.late}</Text>
-                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500">Late</Text>
+                                <Text className="font-inter text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400">Late</Text>
                             </View>
                         </View>
                         <View style={styles.attBarWrap}>
@@ -273,12 +277,12 @@ export function TeamViewScreen() {
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                                         <AvatarCircle name={a.employeeName} />
                                         <View style={{ flex: 1 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>{a.employeeName}</Text>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{a.employeeName}</Text>
                                             <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', marginTop: 2 }}>
                                                 <View style={styles.typeBadge}><Text className="font-inter text-[10px] font-bold text-info-700">{a.type}</Text></View>
                                                 <Text className="font-inter text-[10px] text-neutral-400">{new Date(a.submittedDate).toLocaleDateString()}</Text>
                                             </View>
-                                            {a.summary ? <Text className="mt-1 font-inter text-xs text-neutral-500" numberOfLines={1}>{a.summary}</Text> : null}
+                                            {a.summary ? <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{a.summary}</Text> : null}
                                         </View>
                                     </View>
                                     {approvalTab === 'PENDING' && (
@@ -309,8 +313,8 @@ export function TeamViewScreen() {
                                     <View key={m.id} style={styles.memberRow}>
                                         <AvatarCircle name={m.name} />
                                         <View style={{ flex: 1, marginLeft: 10 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={1}>{m.name}</Text>
-                                            <Text className="font-inter text-[10px] text-neutral-500">{m.designation}</Text>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>{m.name}</Text>
+                                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{m.designation}</Text>
                                         </View>
                                         <View style={[styles.memberStatusBadge, { backgroundColor: sc.bg }]}>
                                             <Text style={{ color: sc.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{m.status}</Text>
@@ -331,8 +335,8 @@ export function TeamViewScreen() {
                             teamLeaves.map((l, i) => (
                                 <View key={i} style={styles.leaveRow}>
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">{l.employeeName}</Text>
-                                        <Text className="font-inter text-[10px] text-neutral-500">{l.leaveType} {'\u2022'} {l.fromDate} to {l.toDate}</Text>
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{l.employeeName}</Text>
+                                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{l.leaveType} {'\u2022'} {l.fromDate} to {l.toDate}</Text>
                                     </View>
                                     <View style={styles.daysBadge}><Text className="font-inter text-xs font-bold text-primary-600">{l.days}d</Text></View>
                                 </View>
@@ -348,27 +352,27 @@ export function TeamViewScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingTop: 8, paddingBottom: 16 },
     scrollContent: { paddingHorizontal: 24 },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    countBadge: { backgroundColor: colors.primary[50], borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+    countBadge: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
     kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     kpiCard: {
-        flex: 1, minWidth: '45%', backgroundColor: colors.neutral[50], borderRadius: 12, padding: 10,
-        borderWidth: 1, borderColor: colors.neutral[100],
+        flex: 1, minWidth: '45%', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, padding: 10,
+        borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     },
     attBarWrap: { flexDirection: 'row', alignItems: 'center' },
-    attBarBg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.neutral[100], overflow: 'hidden' },
+    attBarBg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], overflow: 'hidden' },
     attBarFill: { height: 6, borderRadius: 3, backgroundColor: colors.primary[500] },
-    avatar: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 12, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     approvalItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     typeBadge: { backgroundColor: colors.info[50], borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
     approveBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.success[600], justifyContent: 'center', alignItems: 'center' },
@@ -376,8 +380,9 @@ const styles = StyleSheet.create({
     memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
     memberStatusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     leaveRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    daysBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    tabContainer: { flexDirection: 'row', backgroundColor: colors.primary[50], borderRadius: 12, padding: 4, marginBottom: 16 },
+    daysBadge: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    tabContainer: { flexDirection: 'row', backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 12, padding: 4, marginBottom: 16 },
     tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
     tabButtonActive: { backgroundColor: colors.primary[600] },
 });
+const styles = createStyles(false);

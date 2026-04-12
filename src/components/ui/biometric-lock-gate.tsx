@@ -9,6 +9,7 @@ import colors from '@/components/ui/colors';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const logo = require('../../../assets/logo.png') as number;
 import { getItem } from '@/lib/storage';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 
@@ -27,7 +28,12 @@ const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
  * - Android back button cannot dismiss the lock.
  */
 export function BiometricLockGate({ children }: { children: React.ReactNode }) {
-    const [locked, setLocked] = useState(false);
+  const isDark = useIsDark();
+  const lockStyles = _createStyles(isDark);
+
+    // Initialize locked immediately on cold start if biometric is enabled.
+    // getItem is synchronous (MMKV) — no flash of dashboard content.
+    const [locked, setLocked] = useState(() => getItem<boolean>(BIOMETRIC_ENABLED_KEY) === true);
     const [authFailed, setAuthFailed] = useState(false);
     const wentToBackground = useRef(false);
     const isAuthenticating = useRef(false);
@@ -134,10 +140,10 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
     );
 }
 
-const lockStyles = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 32,
@@ -190,3 +196,4 @@ const lockStyles = StyleSheet.create({
         color: colors.white,
     },
 });
+const lockStyles = _createStyles(false);

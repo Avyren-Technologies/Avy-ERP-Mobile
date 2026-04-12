@@ -30,6 +30,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSubmitProbationReview } from '@/features/company-admin/api/use-hr-mutations';
 import { useProbationDue } from '@/features/company-admin/api/use-hr-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -94,7 +95,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
@@ -108,7 +109,7 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
                                 selected && (isTerminate ? styles.chipDanger : styles.chipActive),
                             ]}
                         >
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : isTerminate ? 'text-danger-600' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : isTerminate ? 'text-danger-600' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -150,22 +151,22 @@ function ReviewModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Probation Review</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">Probation Review</Text>
                     {employee && (
                         <View style={{ backgroundColor: colors.neutral[50], borderRadius: 12, padding: 12, marginBottom: 16 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950">{employee.name}</Text>
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500">{employee.employeeId} &middot; {employee.department} &middot; {employee.designation}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{employee.name}</Text>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{employee.employeeId} &middot; {employee.department} &middot; {employee.designation}</Text>
                         </View>
                     )}
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         {/* Rating */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900">Performance Rating <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Performance Rating <Text className="text-danger-500">*</Text></Text>
                             <StarRating value={rating} onChange={setRating} />
                         </View>
                         {/* Feedback */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Feedback</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Feedback</Text>
                             <View style={[styles.inputWrap, { height: 100 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Enter review feedback..." placeholderTextColor={colors.neutral[400]} value={feedback} onChangeText={setFeedback} multiline />
                             </View>
@@ -175,13 +176,13 @@ function ReviewModal({
                         {/* Extension */}
                         {decision === 'Extend' && (
                             <View style={styles.fieldWrap}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Extension (months)</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Extension (months)</Text>
                                 <ChipSelector label="" options={['1', '2', '3', '6']} value={extensionMonths} onSelect={setExtensionMonths} />
                             </View>
                         )}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable
                             onPress={() => onSubmit({ rating, feedback, decision: decision.toUpperCase(), extensionMonths: decision === 'Extend' ? Number(extensionMonths) : undefined })}
                             disabled={!isValid || isSubmitting}
@@ -212,8 +213,8 @@ function EmployeeCard({ item, index, onReview }: { item: ProbationEmployee; inde
                             <Text className="font-inter text-sm font-bold text-primary-700">{(item.name ?? '?')[0]?.toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
-                            <Text className="mt-0.5 font-inter text-[10px] text-neutral-500">{item.employeeId}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
+                            <Text className="mt-0.5 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.employeeId}</Text>
                         </View>
                     </View>
                     <UrgencyBadge days={days} />
@@ -226,12 +227,12 @@ function EmployeeCard({ item, index, onReview }: { item: ProbationEmployee; inde
                     ) : null}
                     {item.designation ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">{item.designation}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.designation}</Text>
                         </View>
                     ) : null}
                     {endDate ? (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Ends: {fmt.date(endDate)}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Ends: {fmt.date(endDate)}</Text>
                         </View>
                     ) : null}
                 </View>
@@ -245,8 +246,8 @@ function EmployeeCard({ item, index, onReview }: { item: ProbationEmployee; inde
 function SummaryCard({ label, count, color }: { label: string; count: number; color: string }) {
     return (
         <View style={[styles.summaryCard, { borderLeftColor: color, borderLeftWidth: 3 }]}>
-            <Text className="font-inter text-xl font-bold text-primary-950">{count}</Text>
-            <Text className="font-inter text-[10px] text-neutral-500">{label}</Text>
+            <Text className="font-inter text-xl font-bold text-primary-950 dark:text-white">{count}</Text>
+            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{label}</Text>
         </View>
     );
 }
@@ -254,6 +255,9 @@ function SummaryCard({ label, count, color }: { label: string; count: number; co
 // ============ MAIN COMPONENT ============
 
 export function ProbationReviewScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const [search, setSearch] = React.useState('');
@@ -295,8 +299,8 @@ export function ProbationReviewScreen() {
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <View>
-                <Text className="font-inter text-2xl font-bold text-primary-950">Probation Reviews</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500">{employees.length} employee{employees.length !== 1 ? 's' : ''} due</Text>
+                <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Probation Reviews</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{employees.length} employee{employees.length !== 1 ? 's' : ''} due</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                 <SummaryCard label="Total Due" count={employees.length} color={colors.primary[500]} />
@@ -338,33 +342,34 @@ export function ProbationReviewScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
-    summaryCard: { flex: 1, backgroundColor: colors.white, borderRadius: 14, padding: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+    summaryCard: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, padding: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[100], justifyContent: 'center', alignItems: 'center' },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[800] : colors.primary[100], justifyContent: 'center', alignItems: 'center' },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     chipDanger: { backgroundColor: colors.danger[500], borderColor: colors.danger[500] },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
     dangerBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.danger[500], justifyContent: 'center', alignItems: 'center', shadowColor: colors.danger[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

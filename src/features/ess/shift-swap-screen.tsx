@@ -22,6 +22,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { showErrorMessage } from '@/components/ui/utils';
 import { useCancelShiftSwap, useCreateShiftSwap } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyShiftSwaps } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
     PENDING: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
@@ -67,11 +68,11 @@ function CreateShiftSwapModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Request Shift Swap</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Request Shift Swap</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         {/* Current Shift ID */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Current Shift ID <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -88,7 +89,7 @@ function CreateShiftSwapModal({
 
                         {/* Requested Shift ID */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Requested Shift ID <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -105,7 +106,7 @@ function CreateShiftSwapModal({
 
                         {/* Swap Date */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Swap Date <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={styles.inputWrap}>
@@ -122,7 +123,7 @@ function CreateShiftSwapModal({
 
                         {/* Reason */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Reason <Text className="text-danger-500">*</Text>
                             </Text>
                             <View style={[styles.inputWrap, { height: 100 }]}>
@@ -141,7 +142,7 @@ function CreateShiftSwapModal({
 
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}>
-                            <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                         <Pressable
                             onPress={() => onSave({ currentShiftId: currentShiftId.trim(), requestedShiftId: requestedShiftId.trim(), swapDate: swapDate.trim(), reason: reason.trim() })}
@@ -160,6 +161,9 @@ function CreateShiftSwapModal({
 // ── Main Screen ──────────────────────────────────────────────────
 
 export function ShiftSwapScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -205,13 +209,13 @@ export function ShiftSwapScreen() {
         <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-bold text-primary-950">Swap Date: {item.swapDate ?? '--'}</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mt-1">Current: {item.currentShiftName ?? item.currentShiftId ?? '--'}</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mt-0.5">Requested: {item.requestedShiftName ?? item.requestedShiftId ?? '--'}</Text>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Swap Date: {item.swapDate ?? '--'}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-1">Current: {item.currentShiftName ?? item.currentShiftId ?? '--'}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Requested: {item.requestedShiftName ?? item.requestedShiftId ?? '--'}</Text>
                 </View>
                 <StatusBadge status={item.status ?? 'PENDING'} />
             </View>
-            {item.reason && <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.reason}</Text>}
+            {item.reason && <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={2}>{item.reason}</Text>}
             {item.createdAt && <Text className="font-inter text-[10px] text-neutral-400 mt-1">Requested: {item.createdAt}</Text>}
             {item.status === 'PENDING' && (
                 <Pressable onPress={() => handleCancel(item.id)} style={styles.cancelActionBtn}>
@@ -222,7 +226,7 @@ export function ShiftSwapScreen() {
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="Shift Swap Requests" onMenuPress={open} />
             <FlashList
                 data={swaps}
@@ -244,18 +248,19 @@ export function ShiftSwapScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    card: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
     cancelActionBtn: { marginTop: 10, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, borderColor: colors.danger[200], backgroundColor: colors.danger[50] },
 });
+const styles = createStyles(false);

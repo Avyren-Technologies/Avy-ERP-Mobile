@@ -11,6 +11,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 interface FilterChip {
     key: string;
@@ -35,6 +36,9 @@ export function SearchBar({
     activeFilter,
     onFilterChange,
 }: SearchBarProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const [focused, setFocused] = React.useState(false);
 
     return (
@@ -111,7 +115,7 @@ export function SearchBar({
                                 {filter.count !== undefined && (
                                     <View style={[styles.chipBadge, isActive && styles.chipBadgeActive]}>
                                         <Text
-                                            className={`font-inter text-[10px] font-bold ${isActive ? 'text-primary-600' : 'text-neutral-500'
+                                            className={`font-inter text-[10px] font-bold ${isActive ? 'text-primary-600' : 'text-neutral-500 dark:text-neutral-400'
                                                 }`}
                                         >
                                             {filter.count}
@@ -127,17 +131,17 @@ export function SearchBar({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         gap: 12,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 14,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         height: 48,
         shadowColor: colors.primary[900],
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
     },
     inputWrapperFocused: {
         borderColor: colors.primary[400],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     searchIcon: {
         marginRight: 10,
@@ -176,9 +180,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         gap: 6,
     },
     chipActive: {
@@ -186,7 +190,7 @@ const styles = StyleSheet.create({
         borderColor: colors.primary[600],
     },
     chipBadge: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 8,
         paddingHorizontal: 6,
         paddingVertical: 1,
@@ -197,3 +201,4 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.9)',
     },
 });
+const styles = createStyles(false);

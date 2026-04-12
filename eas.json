@@ -8,12 +8,11 @@
       "autoIncrement": true,
       "distribution": "internal",
       "environment": "production",
-      "buildType": "apk",
       "ios": {
         "image": "latest"
       },
       "android": {
-        "buildType": "app-bundle",
+        "buildType": "apk",
         "image": "latest"
       },
       "env": {

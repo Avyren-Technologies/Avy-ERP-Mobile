@@ -38,6 +38,7 @@ import {
     useUpdateBiometricDevice,
 } from '@/features/company-admin/api/use-biometric-mutations';
 import { useBiometricDevices } from '@/features/company-admin/api/use-biometric-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -85,13 +86,13 @@ function StatusBadge({ status }: { status: string }) {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -116,7 +117,7 @@ function StatsHeader({ devices }: { devices: BiometricDevice[] }) {
             ].map(stat => (
                 <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color }]}>
                     <Text className={`font-inter text-lg font-bold ${stat.textColor}`}>{stat.value}</Text>
-                    <Text className="font-inter text-[10px] text-neutral-500">{stat.label}</Text>
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{stat.label}</Text>
                 </View>
             ))}
         </View>
@@ -183,41 +184,41 @@ function DeviceFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
                         {initialData ? 'Edit Device' : 'Add Device'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Device Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Device Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Main Gate Scanner" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <ChipSelector label="Brand" options={BRANDS} value={brand} onSelect={setBrand} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Device ID <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Device ID <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. ZK-001" placeholderTextColor={colors.neutral[400]} value={deviceId} onChangeText={setDeviceId} /></View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 2 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">IP Address <Text className="text-danger-500">*</Text></Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">IP Address <Text className="text-danger-500">*</Text></Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="192.168.1.100" placeholderTextColor={colors.neutral[400]} value={ip} onChangeText={setIp} keyboardType="numeric" /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Port</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Port</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="4370" placeholderTextColor={colors.neutral[400]} value={port} onChangeText={setPort} keyboardType="numeric" /></View>
                             </View>
                         </View>
                         <ChipSelector label="Sync Mode" options={SYNC_MODES} value={syncMode} onSelect={setSyncMode} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Sync Interval (min)</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Sync Interval (min)</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="15" placeholderTextColor={colors.neutral[400]} value={syncInterval} onChangeText={setSyncInterval} keyboardType="numeric" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Location ID</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Location ID</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Optional" placeholderTextColor={colors.neutral[400]} value={locationId} onChangeText={setLocationId} /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Add Device'}</Text>
                         </Pressable>
@@ -242,10 +243,10 @@ function DeviceCard({ item, index, onEdit, onDelete, onTest, onSync, isTesting, 
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             <StatusBadge status={item.status ?? 'OFFLINE'} />
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">{item.brand} | {item.deviceId}</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.brand} | {item.deviceId}</Text>
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -253,11 +254,11 @@ function DeviceCard({ item, index, onEdit, onDelete, onTest, onSync, isTesting, 
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">IP: {item.ip}:{item.port}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">IP: {item.ip}:{item.port}</Text>
                     </View>
                     {item.lastSyncAt && (
                         <View style={styles.metaChip}>
-                            <Text className="font-inter text-[10px] text-neutral-500">Sync: {formatSyncTime(item.lastSyncAt)}</Text>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Sync: {formatSyncTime(item.lastSyncAt)}</Text>
                         </View>
                     )}
                 </View>
@@ -279,6 +280,9 @@ function DeviceCard({ item, index, onEdit, onDelete, onTest, onSync, isTesting, 
 // ============ MAIN COMPONENT ============
 
 export function BiometricDeviceScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -363,8 +367,8 @@ export function BiometricDeviceScreen() {
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <View>
-                <Text className="font-inter text-2xl font-bold text-primary-950">Biometric Devices</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500">{devices.length} device{devices.length !== 1 ? 's' : ''}</Text>
+                <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Biometric Devices</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{devices.length} device{devices.length !== 1 ? 's' : ''}</Text>
             </View>
             <View style={{ marginTop: 16 }}>
                 <StatsHeader devices={devices} />
@@ -404,31 +408,32 @@ export function BiometricDeviceScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center' },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

@@ -36,6 +36,7 @@ import { useEntityAuditLogs } from '@/features/super-admin/api/use-audit-queries
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { CompanyDetailEditModal } from '@/features/super-admin/company-detail-edit-modal';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -228,7 +229,7 @@ function SectionHeader({ title, iconType, onEdit }: { title: string; iconType: s
     return (
         <View style={styles.sectionHeader}>
             <SectionIcon type={iconType} color={colors.primary[500]} />
-            <Text className="font-inter text-sm font-bold text-primary-900" style={{ flex: 1 }}>
+            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100" style={{ flex: 1 }}>
                 {title}
             </Text>
             {onEdit ? (
@@ -432,10 +433,10 @@ function SectionIcon({ type, color }: { type: string; color: string }) {
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <View style={styles.infoRow}>
-            <Text className="font-inter text-xs font-medium text-neutral-500">
+            <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                 {label}
             </Text>
-            <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
+            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={2}>
                 {value}
             </Text>
         </View>
@@ -447,7 +448,7 @@ function ChipRow({ items, variant = 'primary' }: { items: string[]; variant?: 'p
     const textClass = variant === 'success'
         ? 'font-inter text-xs font-semibold text-success-700'
         : variant === 'neutral'
-            ? 'font-inter text-xs font-semibold text-neutral-600'
+            ? 'font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400'
             : 'font-inter text-xs font-semibold text-primary-700';
     return (
         <View style={styles.chipRow}>
@@ -464,7 +465,7 @@ function ToggleChip({ label, enabled }: { label: string; enabled: boolean }) {
     return (
         <View style={[styles.toggleChip, enabled ? styles.toggleChipEnabled : styles.toggleChipDisabled]}>
             <View style={[styles.toggleDot, { backgroundColor: enabled ? colors.success[500] : colors.neutral[300] }]} />
-            <Text className={`font-inter text-xs font-semibold ${enabled ? 'text-success-700' : 'text-neutral-500'}`}>
+            <Text className={`font-inter text-xs font-semibold ${enabled ? 'text-success-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                 {label}
             </Text>
         </View>
@@ -552,7 +553,7 @@ function AuditHistorySection({ companyId }: { companyId: string }) {
                                             {formatTimestamp(log.createdAt ?? log.timestamp ?? '')}
                                         </Text>
                                     </View>
-                                    <Text className="font-inter text-sm font-semibold text-primary-950" numberOfLines={2}>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={2}>
                                         {log.description ?? log.action ?? ''}
                                     </Text>
                                     {log.performedBy && (
@@ -573,6 +574,9 @@ function AuditHistorySection({ companyId }: { companyId: string }) {
 // ============ MAIN COMPONENT ============
 
 export function CompanyDetailScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -625,7 +629,7 @@ export function CompanyDetailScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
                 <Text className="font-inter text-base font-semibold text-danger-600">Failed to load company</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500 text-center">
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400 text-center">
                     {(error as any)?.message ?? 'An error occurred.'}
                 </Text>
                 <Pressable onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary[500] }}>
@@ -934,7 +938,7 @@ export function CompanyDetailScreen() {
                             <InfoRow label="Week Starts" value={company.weekStart} />
                             <InfoRow label="Timezone" value={company.timezone} />
                             <View style={styles.infoRow}>
-                                <Text className="font-inter text-xs font-medium text-neutral-500">
+                                <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                     Working Days
                                 </Text>
                                 <ChipRow items={company.workingDays} variant="primary" />
@@ -950,7 +954,7 @@ export function CompanyDetailScreen() {
                             <InfoRow label="Language" value={company.language} />
                             <InfoRow label="Date Format" value={company.dateFormat} />
                             <View style={styles.infoRow}>
-                                <Text className="mb-2 font-inter text-xs font-medium text-neutral-500">
+                                <Text className="mb-2 font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                     Integrations & Features
                                 </Text>
                                 <View style={styles.chipRow}>
@@ -979,7 +983,7 @@ export function CompanyDetailScreen() {
                                     ]}
                                 >
                                     <View style={[styles.serverDot, { backgroundColor: colors.success[500] }]} />
-                                    <Text className={`font-inter text-xs font-semibold ${endpointType === 'default' ? 'text-primary-700' : 'text-neutral-500'}`}>
+                                    <Text className={`font-inter text-xs font-semibold ${endpointType === 'default' ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                                         Default (Avyren)
                                     </Text>
                                 </Pressable>
@@ -991,7 +995,7 @@ export function CompanyDetailScreen() {
                                     ]}
                                 >
                                     <View style={[styles.serverDot, { backgroundColor: colors.info[500] }]} />
-                                    <Text className={`font-inter text-xs font-semibold ${endpointType === 'custom' ? 'text-primary-700' : 'text-neutral-500'}`}>
+                                    <Text className={`font-inter text-xs font-semibold ${endpointType === 'custom' ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}>
                                         Custom URL
                                     </Text>
                                 </Pressable>
@@ -1045,7 +1049,7 @@ export function CompanyDetailScreen() {
                                 <View style={styles.locationCardHeader}>
                                     <View style={{ flex: 1 }}>
                                         <View style={styles.locationNameRow}>
-                                            <Text className="font-inter text-sm font-bold text-primary-950">
+                                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                                 {loc.name}
                                             </Text>
                                             {loc.isHQ && (
@@ -1056,17 +1060,17 @@ export function CompanyDetailScreen() {
                                                 </View>
                                             )}
                                         </View>
-                                        <Text className="font-inter text-xs font-medium text-neutral-500">
+                                        <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                             {loc.code}  ·  {loc.type}
                                         </Text>
                                     </View>
                                     <View style={[styles.locationStatusDot, { backgroundColor: loc.status === 'Active' ? colors.success[500] : colors.neutral[300] }]} />
                                 </View>
                                 <View style={styles.locationMeta}>
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {loc.city}, {loc.state}
                                     </Text>
-                                    <Text className="font-inter text-xs text-neutral-500">
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                         GSTIN: {loc.gstin}
                                     </Text>
                                 </View>
@@ -1102,10 +1106,10 @@ export function CompanyDetailScreen() {
                             <View key={idx} style={[styles.sectionCard, styles.contactCard]}>
                                 <View style={styles.contactHeader}>
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-bold text-primary-950">
+                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                             {contact.name}
                                         </Text>
-                                        <Text className="font-inter text-xs text-neutral-500">
+                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                             {contact.designation}  ·  {contact.department}
                                         </Text>
                                     </View>
@@ -1116,10 +1120,10 @@ export function CompanyDetailScreen() {
                                     </View>
                                 </View>
                                 <View style={styles.contactDetails}>
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {contact.email}
                                     </Text>
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {contact.mobile}
                                     </Text>
                                 </View>
@@ -1133,7 +1137,7 @@ export function CompanyDetailScreen() {
                         <View style={styles.sectionCard}>
                             <InfoRow label="Day Boundary" value={`${company.dayStartTime} — ${company.dayEndTime}`} />
                             <View style={styles.infoRow}>
-                                <Text className="font-inter text-xs font-medium text-neutral-500">
+                                <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                     Weekly Offs
                                 </Text>
                                 <ChipRow items={company.weeklyOffs} variant="neutral" />
@@ -1142,7 +1146,7 @@ export function CompanyDetailScreen() {
                         {company.shifts.map((shift, idx) => (
                             <View key={idx} style={[styles.sectionCard, styles.shiftCard]}>
                                 <View style={styles.shiftHeader}>
-                                    <Text className="font-inter text-sm font-bold text-primary-950">
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                         {shift.name}
                                     </Text>
                                     <Text className="font-inter text-xs font-semibold text-primary-600">
@@ -1159,7 +1163,7 @@ export function CompanyDetailScreen() {
                                     )}
                                     {shift.downtimeSlots.map((dt, dtIdx) => (
                                         <View key={dtIdx} style={styles.downtimeChip}>
-                                            <Text className="font-inter text-[10px] font-medium text-neutral-600">
+                                            <Text className="font-inter text-[10px] font-medium text-neutral-600 dark:text-neutral-400">
                                                 {dt.type}: {dt.duration}
                                             </Text>
                                         </View>
@@ -1176,10 +1180,10 @@ export function CompanyDetailScreen() {
                             {company.noSeries.map((series, idx) => (
                                 <View key={idx} style={[styles.noSeriesRow, idx === company.noSeries.length - 1 && { borderBottomWidth: 0 }]}>
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-xs font-medium text-neutral-500">
+                                        <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                             {series.screen}
                                         </Text>
-                                        <Text className="font-inter text-sm font-bold text-primary-950" style={{ fontFamily: 'monospace' }}>
+                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" style={{ fontFamily: 'monospace' }}>
                                             {series.preview}
                                         </Text>
                                     </View>
@@ -1202,7 +1206,7 @@ export function CompanyDetailScreen() {
                                     <Text className="font-inter text-lg font-bold text-warning-600">
                                         {idleCount}
                                     </Text>
-                                    <Text className="font-inter text-[10px] font-medium text-neutral-500">
+                                    <Text className="font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
                                         Idle Reasons
                                     </Text>
                                 </View>
@@ -1211,7 +1215,7 @@ export function CompanyDetailScreen() {
                                     <Text className="font-inter text-lg font-bold text-danger-600">
                                         {alarmCount}
                                     </Text>
-                                    <Text className="font-inter text-[10px] font-medium text-neutral-500">
+                                    <Text className="font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
                                         Alarm Reasons
                                     </Text>
                                 </View>
@@ -1219,10 +1223,10 @@ export function CompanyDetailScreen() {
                             {company.iotReasons.map((reason, idx) => (
                                 <View key={idx} style={[styles.iotReasonRow, idx === company.iotReasons.length - 1 && { borderBottomWidth: 0 }]}>
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950">
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                                             {reason.reason}
                                         </Text>
-                                        <Text className="font-inter text-xs text-neutral-500">
+                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                             {reason.department}
                                         </Text>
                                     </View>
@@ -1268,16 +1272,16 @@ export function CompanyDetailScreen() {
                             {/* User Tier & Limits */}
                             <View style={styles.userLimitsRow}>
                                 <View style={styles.userLimitInfo}>
-                                    <Text className="font-inter text-xs font-medium text-neutral-500">
+                                    <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                         Active Users
                                     </Text>
-                                    <Text className="font-inter text-2xl font-bold text-primary-950">
+                                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                                         {company.userCount}
                                     </Text>
                                 </View>
                                 <View style={styles.userLimitDivider} />
                                 <View style={styles.userLimitInfo}>
-                                    <Text className="font-inter text-xs font-medium text-neutral-500">
+                                    <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                         Max Limit
                                     </Text>
                                     <View style={styles.maxUserInput}>
@@ -1328,10 +1332,10 @@ export function CompanyDetailScreen() {
                                         </Text>
                                     </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-bold text-primary-950">
+                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                             {user.fullName}
                                         </Text>
-                                        <Text className="font-inter text-xs text-neutral-500" style={{ fontFamily: 'monospace' }}>
+                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" style={{ fontFamily: 'monospace' }}>
                                             {user.username ? `@${user.username}` : '—'}
                                         </Text>
                                     </View>
@@ -1342,10 +1346,10 @@ export function CompanyDetailScreen() {
                                     </View>
                                 </View>
                                 <View style={styles.userMeta}>
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {[user.department, user.location].filter(Boolean).join('  ·  ') || '—'}
                                     </Text>
-                                    <Text className="font-inter text-xs text-neutral-500">
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                         {user.email}
                                     </Text>
                                 </View>
@@ -1394,34 +1398,34 @@ export function CompanyDetailScreen() {
                         <View style={styles.sectionCard}>
                             <View style={styles.billingGrid}>
                                 <View style={styles.billingItem}>
-                                    <Text className="font-inter text-xs text-neutral-500">Plan</Text>
-                                    <Text className="font-inter text-sm font-bold text-primary-950">
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Plan</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                         {tier?.label ?? company.userTier}
                                     </Text>
                                 </View>
                                 <View style={styles.billingItem}>
-                                    <Text className="font-inter text-xs text-neutral-500">Billing</Text>
-                                    <Text className="font-inter text-sm font-bold text-primary-950">
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Billing</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                         {company.billingCycle === 'annual' ? 'Annual (2 months free)' : 'Monthly'}
                                     </Text>
                                 </View>
                                 {/* Pricing hidden — uncomment when pricing is finalized
                                 <View style={styles.billingItem}>
-                                    <Text className="font-inter text-xs text-neutral-500">Amount</Text>
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Amount</Text>
                                     <Text className="font-inter text-sm font-bold text-success-600">
                                         {company.monthlyAmount}/mo
                                     </Text>
                                 </View>
                                 */}
                                 <View style={styles.billingItem}>
-                                    <Text className="font-inter text-xs text-neutral-500">Next Renewal</Text>
-                                    <Text className="font-inter text-sm font-bold text-primary-950">
+                                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Next Renewal</Text>
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                                         {company.nextRenewal}
                                     </Text>
                                 </View>
                                 {company.trialDays > 0 ? (
                                     <View style={styles.billingItem}>
-                                        <Text className="font-inter text-xs text-neutral-500">Trial Period</Text>
+                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Trial Period</Text>
                                         <Text className="font-inter text-sm font-bold text-info-600">
                                             {company.trialDays} days
                                         </Text>
@@ -1447,7 +1451,7 @@ export function CompanyDetailScreen() {
                         <View style={styles.sectionCard}>
                             {/* Current Status */}
                             <View style={styles.statusCurrentRow}>
-                                <Text className="font-inter text-xs font-medium text-neutral-500">Current Status</Text>
+                                <Text className="font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">Current Status</Text>
                                 <StatusBadge status={badgeStatus} />
                             </View>
 
@@ -1545,10 +1549,10 @@ export function CompanyDetailScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerGradient: {
         paddingBottom: 24,
@@ -1660,14 +1664,14 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
         justifyContent: 'center',
         alignItems: 'center',
     },
     sectionCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         shadowColor: colors.primary[900],
@@ -1676,7 +1680,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     infoRow: {
         paddingVertical: 10,
@@ -1703,7 +1707,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -1719,9 +1723,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     toggleChip: {
         flexDirection: 'row',
@@ -1737,8 +1741,8 @@ const styles = StyleSheet.create({
         borderColor: colors.success[200],
     },
     toggleChipDisabled: {
-        backgroundColor: colors.neutral[50],
-        borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     toggleDot: {
         width: 6,
@@ -1760,12 +1764,12 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 12,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
-        backgroundColor: colors.neutral[50],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     },
     serverToggleActive: {
         borderColor: colors.primary[400],
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     serverDot: {
         width: 8,
@@ -1787,10 +1791,10 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     customUrlInput: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         height: 44,
         justifyContent: 'center',
@@ -1805,7 +1809,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     // Locations
     locationCard: {
@@ -1857,7 +1861,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -1882,7 +1886,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -1917,9 +1921,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     // No. Series
     noSeriesRow: {
@@ -1934,7 +1938,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -2014,7 +2018,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 4,
@@ -2032,7 +2036,7 @@ const styles = StyleSheet.create({
     },
     usageBarBg: {
         height: 6,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 3,
         overflow: 'hidden',
     },
@@ -2052,7 +2056,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
         justifyContent: 'center',
@@ -2083,21 +2087,21 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     moduleChipActive: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
     moduleChipInactive: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     manageModulesButton: {
         marginTop: 14,
         paddingVertical: 10,
         alignItems: 'center',
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     // Billing
     billingGrid: {
@@ -2154,3 +2158,4 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
 });
+const styles = createStyles(false);

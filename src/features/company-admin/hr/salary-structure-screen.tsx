@@ -33,11 +33,12 @@ import {
     useUpdateSalaryStructure,
 } from '@/features/company-admin/api/use-payroll-mutations';
 import { useSalaryComponents, useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
 type CTCBasis = 'CTC' | 'Take Home';
-type CalcMethod = 'Fixed' | '% of Basic' | '% of Gross' | 'Formula';
+type CalcMethod = 'FIXED' | 'PERCENT_OF_BASIC' | 'PERCENT_OF_GROSS' | 'FORMULA';
 
 interface StructureComponent {
     componentId: string;
@@ -61,20 +62,26 @@ interface SalaryStructureItem {
 // ============ CONSTANTS ============
 
 const CTC_OPTIONS: CTCBasis[] = ['CTC', 'Take Home'];
-const CALC_METHODS: CalcMethod[] = ['Fixed', '% of Basic', '% of Gross', 'Formula'];
+const CALC_METHODS: CalcMethod[] = ['FIXED', 'PERCENT_OF_BASIC', 'PERCENT_OF_GROSS', 'FORMULA'];
+const CALC_LABELS: Record<string, string> = {
+    'FIXED': 'Fixed',
+    'PERCENT_OF_BASIC': '% of Basic',
+    'PERCENT_OF_GROSS': '% of Gross',
+    'FORMULA': 'Formula',
+};
 
 // ============ SHARED ATOMS ============
 
-function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
+function ChipSelector({ label, options, value, onSelect, labels }: { label: string; options: string[]; value: string; onSelect: (v: string) => void; labels?: Record<string, string> }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{labels?.[opt] ?? opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -86,13 +93,13 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 function MultiChipSelector({ label, options, value, onToggle }: { label: string; options: { id: string; label: string }[]; value: string[]; onToggle: (id: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = value.includes(opt.id);
                     return (
                         <Pressable key={opt.id} onPress={() => onToggle(opt.id)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt.label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt.label}</Text>
                         </Pressable>
                     );
                 })}
@@ -105,9 +112,9 @@ function Dropdown({ label, value, options, onSelect, placeholder }: { label: str
     const [open, setOpen] = React.useState(false);
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <Pressable onPress={() => setOpen(true)} style={styles.dropdownBtn}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -117,12 +124,12 @@ function Dropdown({ label, value, options, onSelect, placeholder }: { label: str
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             {options.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                                 </Pressable>
                             ))}
                         </ScrollView>
@@ -179,7 +186,7 @@ function SalaryStructureForm({
     };
 
     const addComponent = () => {
-        setComponents(prev => [...prev, { componentId: '', componentName: '', calculationMethod: 'Fixed', value: 0, formula: '' }]);
+        setComponents(prev => [...prev, { componentId: '', componentName: '', calculationMethod: 'FIXED', value: 0, formula: '' }]);
     };
 
     const updateComponent = (index: number, updates: Partial<StructureComponent>) => {
@@ -205,15 +212,17 @@ function SalaryStructureForm({
     const ctcNum = Number(sampleCTC) || 0;
     const monthlyGross = Math.round(ctcNum / 12);
     const previewRows = React.useMemo(() => {
+        // First pass: compute basic amount
+        const basicComp = components.find(cc => cc.componentName?.toLowerCase().includes('basic'));
+        const basicVal = basicComp?.calculationMethod === 'FIXED' ? basicComp.value : Math.round(monthlyGross * 0.4);
+
         return components.filter(c => c.componentId).map(c => {
             let monthly = 0;
-            if (c.calculationMethod === 'Fixed') {
+            if (c.calculationMethod === 'FIXED') {
                 monthly = c.value;
-            } else if (c.calculationMethod === '% of Basic') {
-                const basicComp = components.find(cc => cc.componentName?.toLowerCase().includes('basic'));
-                const basicVal = basicComp?.calculationMethod === 'Fixed' ? basicComp.value : Math.round(monthlyGross * 0.4);
+            } else if (c.calculationMethod === 'PERCENT_OF_BASIC') {
                 monthly = Math.round(basicVal * (c.value / 100));
-            } else if (c.calculationMethod === '% of Gross') {
+            } else if (c.calculationMethod === 'PERCENT_OF_GROSS') {
                 monthly = Math.round(monthlyGross * (c.value / 100));
             }
             return { name: c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component', monthly };
@@ -230,28 +239,28 @@ function SalaryStructureForm({
                     <Pressable onPress={onClose} style={styles.backBtn}>
                         <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">
+                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">
                         {initialData ? 'Edit Structure' : 'Add Structure'}
                     </Text>
                     <View style={{ width: 36 }} />
                 </View>
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]} keyboardShouldPersistTaps="handled">
                     {/* Basic */}
-                    <Text className="mb-2 mt-2 font-inter text-xs font-bold text-neutral-500">Basic Information</Text>
+                    <Text className="mb-2 mt-2 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Basic Information</Text>
                     <View style={styles.sectionCard}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Standard CTC"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Code <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Code <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "STD-CTC"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={setCode} autoCapitalize="characters" /></View>
                         </View>
                         <ChipSelector label="CTC Basis" options={CTC_OPTIONS} value={ctcBasis} onSelect={v => setCtcBasis(v as CTCBasis)} />
                     </View>
 
                     {/* Applicability */}
-                    <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500">Applicability</Text>
+                    <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Applicability</Text>
                     <View style={styles.sectionCard}>
                         {gradeOptions.length > 0 && <MultiChipSelector label="Grades" options={gradeOptions} value={grades} onToggle={id => toggleArray(grades, setGrades, id)} />}
                         {designationOptions.length > 0 && <MultiChipSelector label="Designations" options={designationOptions} value={designations} onToggle={id => toggleArray(designations, setDesignations, id)} />}
@@ -259,7 +268,7 @@ function SalaryStructureForm({
                     </View>
 
                     {/* Components */}
-                    <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500">Components</Text>
+                    <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Components</Text>
                     {components.map((comp, idx) => (
                         <View key={idx} style={styles.sectionCard}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -276,17 +285,17 @@ function SalaryStructureForm({
                                 }}
                                 placeholder="Select component..."
                             />
-                            <ChipSelector label="Calculation" options={CALC_METHODS} value={comp.calculationMethod} onSelect={v => updateComponent(idx, { calculationMethod: v as CalcMethod })} />
-                            {comp.calculationMethod !== 'Formula' ? (
+                            <ChipSelector label="Calculation" options={CALC_METHODS} value={comp.calculationMethod} onSelect={v => updateComponent(idx, { calculationMethod: v as CalcMethod })} labels={CALC_LABELS} />
+                            {comp.calculationMethod !== 'FORMULA' ? (
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                                        {comp.calculationMethod === 'Fixed' ? 'Amount' : 'Percentage (%)'}
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                        {comp.calculationMethod === 'FIXED' ? 'Amount' : 'Percentage (%)'}
                                     </Text>
                                     <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={comp.value ? String(comp.value) : ''} onChangeText={v => updateComponent(idx, { value: Number(v) || 0 })} keyboardType="decimal-pad" /></View>
                                 </View>
                             ) : (
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Formula</Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Formula</Text>
                                     <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "BASIC * 0.12"' placeholderTextColor={colors.neutral[400]} value={comp.formula} onChangeText={v => updateComponent(idx, { formula: v })} /></View>
                                 </View>
                             )}
@@ -300,19 +309,19 @@ function SalaryStructureForm({
                     {/* Preview */}
                     {components.length > 0 && (
                         <>
-                            <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500">Monthly Breakup Preview</Text>
+                            <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Monthly Breakup Preview</Text>
                             <View style={styles.sectionCard}>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Sample Annual CTC</Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Sample Annual CTC</Text>
                                     <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
-                                        <Text className="mr-1 font-inter text-sm text-neutral-500">&#8377;</Text>
+                                        <Text className="mr-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">&#8377;</Text>
                                         <TextInput style={[styles.textInput, { flex: 1 }]} value={sampleCTC} onChangeText={setSampleCTC} keyboardType="number-pad" placeholder="1000000" placeholderTextColor={colors.neutral[400]} />
                                     </View>
                                 </View>
                                 {previewRows.map((row, idx) => (
                                     <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                        <Text className="font-inter text-xs text-neutral-600">{row.name}</Text>
-                                        <Text className="font-inter text-xs font-semibold text-primary-950">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                                        <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">{row.name}</Text>
+                                        <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
                                     </View>
                                 ))}
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
@@ -344,13 +353,13 @@ function SalaryStructureCard({ item, index, onEdit, onDelete }: { item: SalarySt
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             <View style={styles.codeBadge}><Text className="font-inter text-[10px] font-bold text-primary-600">{item.code}</Text></View>
                             <View style={[styles.ctcBadge, { backgroundColor: item.ctcBasis === 'CTC' ? colors.info[50] : colors.accent[50] }]}>
                                 <Text style={{ color: item.ctcBasis === 'CTC' ? colors.info[700] : colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.ctcBasis}</Text>
                             </View>
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             {item.components.length} component{item.components.length !== 1 ? 's' : ''}
                         </Text>
                     </View>
@@ -361,10 +370,10 @@ function SalaryStructureCard({ item, index, onEdit, onDelete }: { item: SalarySt
                 {(item.applicableGrades.length > 0 || item.applicableDesignations.length > 0) && (
                     <View style={styles.cardMeta}>
                         {item.applicableGrades.map(g => (
-                            <View key={g} style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">{g}</Text></View>
+                            <View key={g} style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{g}</Text></View>
                         ))}
                         {item.applicableDesignations.map(d => (
-                            <View key={d} style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">{d}</Text></View>
+                            <View key={d} style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{d}</Text></View>
                         ))}
                     </View>
                 )}
@@ -376,6 +385,9 @@ function SalaryStructureCard({ item, index, onEdit, onDelete }: { item: SalarySt
 // ============ MAIN ============
 
 export function SalaryStructureScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -419,7 +431,7 @@ export function SalaryStructureScreen() {
             components: (item.components ?? []).map((c: any) => ({
                 componentId: c.componentId ?? '',
                 componentName: c.componentName ?? '',
-                calculationMethod: c.calculationMethod ?? 'Fixed',
+                calculationMethod: c.calculationMethod ?? 'FIXED',
                 value: c.value ?? 0,
                 formula: c.formula ?? '',
             })),
@@ -456,8 +468,8 @@ export function SalaryStructureScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Salary Structures</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{items.length} structure{items.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Salary Structures</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} structure{items.length !== 1 ? 's' : ''}</Text>
             <View style={{ marginTop: 16 }}><SearchBar value={search} onChangeText={setSearch} placeholder="Search by name or code..." /></View>
         </Animated.View>
     );
@@ -490,38 +502,38 @@ export function SalaryStructureScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     scrollContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    codeBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    codeBadge: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     ctcBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     addBtn: {
@@ -537,3 +549,4 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
     },
 });
+const styles = createStyles(false);

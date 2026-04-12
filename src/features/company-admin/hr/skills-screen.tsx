@@ -37,6 +37,7 @@ import {
     useUpdateSkillMapping,
     useDeleteSkillMapping,
 } from '@/features/company-admin/api/use-performance-mutations';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -191,36 +192,36 @@ function SkillFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.sheetModal, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 100 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">
                         {initialData ? 'Edit Skill' : 'Add Skill'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Skill Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Skill Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. React Native" placeholderTextColor={colors.neutral[400]} value={form.name} onChangeText={v => update('name', v)} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Category</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Category</Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                 {CATEGORIES.map(cat => {
                                     const sel = cat === form.category;
                                     return (
                                         <Pressable key={cat} onPress={() => update('category', cat)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{CATEGORY_LABELS[cat]}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{CATEGORY_LABELS[cat]}</Text>
                                         </Pressable>
                                     );
                                 })}
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}>
                                 <TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Skill description..." placeholderTextColor={colors.neutral[400]} value={form.description} onChangeText={v => update('description', v)} multiline />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => isValid && onSave({ ...form })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Add Skill'}</Text>
                         </Pressable>
@@ -270,13 +271,13 @@ function MappingFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.sheetModal, { paddingBottom: insets.bottom + 20, marginTop: insets.top + 80 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Map Skill</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">Map Skill</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
                         {/* Skill picker */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Skill <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Skill <Text className="text-danger-500">*</Text></Text>
                             <Pressable onPress={() => setSkillPickerVisible(true)} style={styles.dropdownBtn}>
-                                <Text className={`font-inter text-sm ${selectedSkillName ? 'font-semibold text-primary-950' : 'text-neutral-400'}`}>{selectedSkillName || 'Select skill...'}</Text>
+                                <Text className={`font-inter text-sm ${selectedSkillName ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}>{selectedSkillName || 'Select skill...'}</Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
                             <Modal visible={skillPickerVisible} transparent animationType="slide" onRequestClose={() => setSkillPickerVisible(false)}>
@@ -284,12 +285,12 @@ function MappingFormModal({
                                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSkillPickerVisible(false)} />
                                     <View style={[styles.pickerSheet, { maxHeight: '50%' }]}>
                                         <View style={styles.sheetHandle} />
-                                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">Select Skill</Text>
+                                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Select Skill</Text>
                                         <ScrollView showsVerticalScrollIndicator={false}>
                                             {skillOptions.map(s => (
                                                 <Pressable key={s.id} onPress={() => { update('skillId', s.id); setSkillPickerVisible(false); }}
                                                     style={{ paddingVertical: 12, paddingHorizontal: 4, backgroundColor: s.id === form.skillId ? colors.primary[50] : undefined, borderRadius: 8, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                                    <Text className={`font-inter text-sm ${s.id === form.skillId ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{s.name}</Text>
+                                                    <Text className={`font-inter text-sm ${s.id === form.skillId ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{s.name}</Text>
                                                 </Pressable>
                                             ))}
                                         </ScrollView>
@@ -299,18 +300,18 @@ function MappingFormModal({
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Employee <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Employee <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Employee name..." placeholderTextColor={colors.neutral[400]} value={form.employeeName} onChangeText={v => update('employeeName', v)} /></View>
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Required Level</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Required Level</Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                 {PROFICIENCY_LEVELS.map(l => {
                                     const sel = l === form.requiredLevel;
                                     return (
                                         <Pressable key={String(l)} onPress={() => update('requiredLevel', l)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l} - {PROFICIENCY_LABELS[l]}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{l} - {PROFICIENCY_LABELS[l]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -318,13 +319,13 @@ function MappingFormModal({
                         </View>
 
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Current Level</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Current Level</Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                 {PROFICIENCY_LEVELS.map(l => {
                                     const sel = l === form.currentLevel;
                                     return (
                                         <Pressable key={String(l)} onPress={() => update('currentLevel', l)} style={[styles.chip, sel && styles.chipActive]}>
-                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600'}`}>{l} - {PROFICIENCY_LABELS[l]}</Text>
+                                            <Text className={`font-inter text-xs font-semibold ${sel ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{l} - {PROFICIENCY_LABELS[l]}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -332,7 +333,7 @@ function MappingFormModal({
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => isValid && onSave({ ...form })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : 'Map Skill'}</Text>
                         </Pressable>
@@ -351,8 +352,8 @@ function SkillCard({ item, index, onEdit, onDelete }: { item: SkillItem; index: 
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
-                        {item.description ? <Text className="mt-1 font-inter text-xs text-neutral-500" numberOfLines={2}>{item.description}</Text> : null}
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
+                        {item.description ? <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{item.description}</Text> : null}
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -360,7 +361,7 @@ function SkillCard({ item, index, onEdit, onDelete }: { item: SkillItem; index: 
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
                     <CategoryBadge category={item.category} />
-                    <Text className="font-inter text-xs text-neutral-500">{item.mappingsCount} mapping{item.mappingsCount !== 1 ? 's' : ''}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.mappingsCount} mapping{item.mappingsCount !== 1 ? 's' : ''}</Text>
                     {!item.isActive && (
                         <View style={[styles.badge, { backgroundColor: colors.danger[50] }]}>
                             <Text style={{ color: colors.danger[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Inactive</Text>
@@ -382,8 +383,8 @@ function MappingCard({ item, index, onDelete }: { item: SkillMappingItem; index:
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.skillName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.skillName}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <View style={[styles.badge, { backgroundColor: gapColor + '15' }]}>
@@ -405,6 +406,9 @@ function MappingCard({ item, index, onDelete }: { item: SkillMappingItem; index:
 type TabKey = 'library' | 'mappings';
 
 export function SkillsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -516,15 +520,15 @@ export function SkillsScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Skills & Mapping</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Skills & Mapping</Text>
 
             {/* Tab switch */}
             <View style={styles.tabBar}>
                 <Pressable onPress={() => { setActiveTab('library'); setSearch(''); }} style={[styles.tab, activeTab === 'library' && styles.tabActive]}>
-                    <Text className={`font-inter text-sm font-semibold ${activeTab === 'library' ? 'text-white' : 'text-neutral-600'}`}>Skill Library</Text>
+                    <Text className={`font-inter text-sm font-semibold ${activeTab === 'library' ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>Skill Library</Text>
                 </Pressable>
                 <Pressable onPress={() => { setActiveTab('mappings'); setSearch(''); }} style={[styles.tab, activeTab === 'mappings' && styles.tabActive]}>
-                    <Text className={`font-inter text-sm font-semibold ${activeTab === 'mappings' ? 'text-white' : 'text-neutral-600'}`}>Mappings</Text>
+                    <Text className={`font-inter text-sm font-semibold ${activeTab === 'mappings' ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>Mappings</Text>
                 </Pressable>
             </View>
 
@@ -533,19 +537,19 @@ export function SkillsScreen() {
                 <View style={styles.statsRow}>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-primary-600">{gapStats.total}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Total</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Total</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-success-600">{gapStats.met}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Met</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Met</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-danger-600">{gapStats.gaps}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Gaps</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Gaps</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text className="font-inter text-lg font-bold text-warning-600">{gapStats.avgGap.toFixed(1)}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">Avg Gap</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Avg Gap</Text>
                     </View>
                 </View>
             )}
@@ -607,40 +611,41 @@ export function SkillsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     gradientHeader: { paddingBottom: 16, paddingHorizontal: 20 },
     headerRowTop: { flexDirection: 'row', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    tabBar: { flexDirection: 'row', gap: 8, marginTop: 12, backgroundColor: colors.neutral[100], borderRadius: 14, padding: 4 },
+    tabBar: { flexDirection: 'row', gap: 8, marginTop: 12, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], borderRadius: 14, padding: 4 },
     tab: { flex: 1, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
     tabActive: { backgroundColor: colors.primary[600] },
     statsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-    statBox: { flex: 1, backgroundColor: colors.white, borderRadius: 14, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.primary[50] },
+    statBox: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50] },
     profTrack: { height: 6, backgroundColor: colors.neutral[200], borderRadius: 3, overflow: 'hidden', position: 'relative' },
     profFill: { height: '100%', borderRadius: 3 },
     profTarget: { position: 'absolute', top: -2, width: 2, height: 10, backgroundColor: colors.primary[900], borderRadius: 1 },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6,
     },
-    pickerSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
-    sheetModal: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    pickerSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 },
+    sheetModal: { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

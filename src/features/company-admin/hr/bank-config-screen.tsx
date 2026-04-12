@@ -23,6 +23,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useUpdateBankConfig } from '@/features/company-admin/api/use-payroll-mutations';
 import { useBankConfig } from '@/features/company-admin/api/use-payroll-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -51,7 +52,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
     return (
         <View style={styles.sectionCard}>
             <Text className="mb-1 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">{title}</Text>
-            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 leading-relaxed">{subtitle}</Text>}
+            {subtitle && <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">{subtitle}</Text>}
             {!subtitle && <View style={{ height: 8 }} />}
             {children}
         </View>
@@ -61,13 +62,13 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -80,8 +81,8 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
     return (
         <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">{label}</Text>
-                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500">{subtitle}</Text>}
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{label}</Text>
+                {subtitle && <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</Text>}
             </View>
             <Switch value={value} onValueChange={onToggle} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={value ? colors.primary[600] : colors.neutral[300]} />
         </View>
@@ -91,6 +92,9 @@ function ToggleRow({ label, subtitle, value, onToggle }: { label: string; subtit
 // ============ MAIN ============
 
 export function BankConfigScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useBankConfig();
@@ -156,20 +160,20 @@ export function BankConfigScreen() {
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     <SectionCard title="Bank Details" subtitle="Primary bank account for salary payments">
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Bank Name</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Bank Name</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "HDFC Bank"' placeholderTextColor={colors.neutral[400]} value={form.bankName} onChangeText={v => updateForm({ bankName: v })} autoCapitalize="words" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Account Number</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Account Number</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Enter account number" placeholderTextColor={colors.neutral[400]} value={form.accountNumber} onChangeText={v => updateForm({ accountNumber: v })} keyboardType="number-pad" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">IFSC Code</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">IFSC Code</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "HDFC0001234"' placeholderTextColor={colors.neutral[400]} value={form.ifscCode} onChangeText={v => updateForm({ ifscCode: v.toUpperCase() })} autoCapitalize="characters" /></View>
                             <Text className="mt-1 font-inter text-[10px] text-neutral-400">Auto-lookup will verify IFSC code</Text>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Branch Name</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Branch Name</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Branch name" placeholderTextColor={colors.neutral[400]} value={form.branchName} onChangeText={v => updateForm({ branchName: v })} autoCapitalize="words" /></View>
                         </View>
                     </SectionCard>
@@ -177,7 +181,7 @@ export function BankConfigScreen() {
                     <SectionCard title="Payment Settings" subtitle="How salaries are disbursed">
                         <ChipSelector label="Payment Mode" options={PAYMENT_MODES} value={form.paymentMode} onSelect={v => updateForm({ paymentMode: v as PaymentMode })} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">File Format</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">File Format</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Bank-specific file format identifier" placeholderTextColor={colors.neutral[400]} value={form.fileFormat} onChangeText={v => updateForm({ fileFormat: v })} /></View>
                         </View>
                         <ToggleRow label="Auto-Push on Approval" subtitle="Automatically initiate payment when payroll is approved" value={form.autoPushOnApproval} onToggle={v => updateForm({ autoPushOnApproval: v })} />
@@ -197,22 +201,22 @@ export function BankConfigScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     scrollContent: { paddingHorizontal: 24 },
     sectionCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     fieldWrap: { marginTop: 12, marginBottom: 4 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     saveBar: {
         position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 24, paddingTop: 12,
@@ -223,3 +227,4 @@ const styles = StyleSheet.create({
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
     },
 });
+const styles = createStyles(false);

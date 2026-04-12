@@ -29,6 +29,7 @@ import {
     useCreateGeofence,
     useUpdateGeofence,
 } from '@/features/company-admin/api/use-geofence-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -53,6 +54,9 @@ const DEFAULT_REGION: Region = {
 // ============ SCREEN ============
 
 export function GeofenceEditorScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const params = useLocalSearchParams<{
@@ -303,7 +307,7 @@ export function GeofenceEditorScreen() {
                     <Animated.View entering={FadeInUp.duration(400).delay(150)} style={styles.formSection}>
                         {/* Name */}
                         <View style={styles.fieldGroup}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Geofence Name <Text className="font-inter text-danger-500">*</Text>
                             </Text>
                             <TextInput
@@ -317,7 +321,7 @@ export function GeofenceEditorScreen() {
 
                         {/* Coordinates (read-only) */}
                         <View style={styles.fieldGroup}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Coordinates
                             </Text>
                             <View style={styles.coordRow}>
@@ -325,7 +329,7 @@ export function GeofenceEditorScreen() {
                                     <Text className="font-inter text-[10px] text-neutral-400">
                                         LAT
                                     </Text>
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {latitude.toFixed(6)}
                                     </Text>
                                 </View>
@@ -333,7 +337,7 @@ export function GeofenceEditorScreen() {
                                     <Text className="font-inter text-[10px] text-neutral-400">
                                         LNG
                                     </Text>
-                                    <Text className="font-inter text-xs text-neutral-600">
+                                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                         {longitude.toFixed(6)}
                                     </Text>
                                 </View>
@@ -342,7 +346,7 @@ export function GeofenceEditorScreen() {
 
                         {/* Radius Chip Selector */}
                         <View style={styles.fieldGroup}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Radius
                             </Text>
                             <View style={styles.radiusRow}>
@@ -358,7 +362,7 @@ export function GeofenceEditorScreen() {
                                             onPress={() => setRadius(opt.value)}
                                         >
                                             <Text
-                                                className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600'}`}
+                                                className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
                                             >
                                                 {opt.label}
                                             </Text>
@@ -370,7 +374,7 @@ export function GeofenceEditorScreen() {
 
                         {/* Address */}
                         <View style={styles.fieldGroup}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                 Address
                             </Text>
                             <TextInput
@@ -386,10 +390,10 @@ export function GeofenceEditorScreen() {
                         {/* Set as Default */}
                         <View style={styles.toggleRow}>
                             <View style={{ flex: 1 }}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950">
+                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                                     Set as Default
                                 </Text>
-                                <Text className="font-inter text-xs text-neutral-500">
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                     Used as the primary geofence for this location
                                 </Text>
                             </View>
@@ -487,10 +491,10 @@ const placesStyles = {
 
 // ============ STYLESHEET ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     },
     headerGradient: {
         paddingHorizontal: 20,
@@ -570,7 +574,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -589,10 +593,10 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     textInput: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 14,
@@ -605,7 +609,7 @@ const styles = StyleSheet.create({
     },
     coordBox: {
         flex: 1,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 8,
@@ -619,9 +623,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     radiusChipActive: {
         backgroundColor: colors.primary[600],
@@ -630,12 +634,12 @@ const styles = StyleSheet.create({
     toggleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         padding: 14,
         marginBottom: 24,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     saveBtn: {
         borderRadius: 14,
@@ -648,3 +652,4 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
 });
+const styles = createStyles(false);

@@ -8,6 +8,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 interface NoPermissionScreenProps {
     /** Override the default title. */
@@ -50,6 +51,9 @@ export function NoPermissionScreen({
     backLabel = "Go Back",
     action,
 }: NoPermissionScreenProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -101,10 +105,10 @@ export function NoPermissionScreen({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -121,7 +125,7 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -138,3 +142,4 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 });
+const styles = createStyles(false);

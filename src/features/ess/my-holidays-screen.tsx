@@ -16,6 +16,7 @@ import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useMyHolidays } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 type HolidayType = 'NATIONAL' | 'REGIONAL' | 'COMPANY' | 'OPTIONAL';
 
@@ -36,6 +37,9 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 export function MyHolidaysScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { open } = useSidebar();
     const fmt = useCompanyFormatter();
@@ -52,19 +56,19 @@ export function MyHolidaysScreen() {
         <Animated.View entering={FadeInDown.delay(index * 60).springify()} style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-bold text-primary-950">{item.name}</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mt-1">{formatDate(item.date)}</Text>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.name}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-1">{formatDate(item.date)}</Text>
                 </View>
                 <TypeBadge type={item.type ?? 'NATIONAL'} />
             </View>
             {item.description ? (
-                <Text className="font-inter text-xs text-neutral-600 mt-2" numberOfLines={2}>{item.description}</Text>
+                <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 mt-2" numberOfLines={2}>{item.description}</Text>
             ) : null}
         </Animated.View>
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white }}>
             <AppTopHeader title="Holiday Calendar" onMenuPress={open} />
 
             {/* Year selector chips */}
@@ -105,13 +109,13 @@ export function MyHolidaysScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     yearRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
     yearChip: {
         paddingHorizontal: 20,
         paddingVertical: 8,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -120,10 +124,10 @@ const styles = StyleSheet.create({
         borderColor: colors.primary[600],
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         padding: 16,
         marginBottom: 12,
         shadowColor: colors.primary[900],
@@ -136,3 +140,4 @@ const styles = StyleSheet.create({
     typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     empty: { alignItems: 'center', paddingTop: 60 },
 });
+const styles = createStyles(false);

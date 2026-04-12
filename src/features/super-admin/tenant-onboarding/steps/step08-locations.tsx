@@ -69,7 +69,7 @@ function FacilityTypeSelector({
 
     return (
         <View style={S.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 Facility Type <Text className="text-danger-500">*</Text>
             </Text>
             <FormSelect
@@ -186,7 +186,7 @@ function GeoFencingField({
                                 >
                                     {locationName}
                                 </Text>
-                                <Text className="font-inter text-xs text-neutral-500">
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                     {radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} radius ·{' '}
                                     {shape}
                                 </Text>
@@ -296,7 +296,7 @@ function PlantBranchCard({
                         style={[S.hqToggleBtn, isHQ && S.hqToggleBtnActive]}
                     >
                         <Text
-                            className={`font-inter text-[10px] font-bold ${isHQ ? 'text-primary-700' : 'text-neutral-500'}`}
+                            className={`font-inter text-[10px] font-bold ${isHQ ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}
                         >
                             {isHQ ? '★ HQ' : 'Set HQ'}
                         </Text>
@@ -537,7 +537,7 @@ export function Step8Locations({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.infoCard}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     Define all physical locations — plants, branches, offices, and warehouses — under
                     this company. Each location can have its own address, geo-fencing boundary, GST
                     registration, and contact person.

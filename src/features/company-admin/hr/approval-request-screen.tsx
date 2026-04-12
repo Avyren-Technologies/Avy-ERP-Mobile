@@ -25,6 +25,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useApproveRequest, useRejectRequest } from '@/features/company-admin/api/use-ess-mutations';
 import { useApprovalRequests, usePendingApprovals } from '@/features/company-admin/api/use-ess-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -81,6 +82,21 @@ function titleCaseStatus(s: string): RequestStatus {
         escalated: 'Escalated', in_progress: 'Pending',
     };
     return map[lower] ?? 'Pending';
+}
+
+/** Extract employee name from various response shapes */
+function extractEmployeeName(raw: any): string {
+    // Nested employee object (if backend includes relation)
+    if (raw.employee?.firstName || raw.employee?.lastName) {
+        return `${raw.employee.firstName ?? ''} ${raw.employee.lastName ?? ''}`.trim();
+    }
+    // Explicit name fields
+    if (raw.employeeName) return raw.employeeName;
+    if (raw.requesterName) return raw.requesterName;
+    // Snapshot data from createRequest
+    if (raw.data?.employee_name) return raw.data.employee_name;
+    if (raw.data?.employeeName) return raw.data.employeeName;
+    return 'Employee';
 }
 
 /** Build a summary from the request data payload */
@@ -160,15 +176,15 @@ function RequestCard({
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                         <AvatarCircle name={item.requesterName} />
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.requesterName}</Text>
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.submittedDate}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.requesterName}</Text>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.submittedDate}</Text>
                         </View>
                     </View>
                     <StatusBadge status={item.status} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                     <EntityBadge type={item.entityType} />
-                    <Text className="font-inter text-xs text-neutral-600 flex-1" numberOfLines={2}>{item.summary}</Text>
+                    <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400 flex-1" numberOfLines={2}>{item.summary}</Text>
                 </View>
                 {item.totalSteps > 0 && (
                     <View style={{ marginTop: 8 }}>
@@ -195,6 +211,9 @@ function RequestCard({
 // ============ MAIN COMPONENT ============
 
 export function ApprovalRequestScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -216,7 +235,7 @@ export function ApprovalRequestScreen() {
             const entityType = ENTITY_LABELS[item.entityType] ?? item.entityType ?? '';
             return {
                 id: item.id ?? '',
-                requesterName: item.requesterName ?? item.employeeName ?? item.data?.employeeId ?? 'Employee',
+                requesterName: extractEmployeeName(item),
                 entityType,
                 summary: item.summary ?? item.description ?? buildSummary(item.entityType, item.data),
                 submittedDate: item.submittedDate ?? item.createdAt ?? '',
@@ -266,8 +285,8 @@ export function ApprovalRequestScreen() {
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Approval Queue</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{items.length} request{items.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Approval Queue</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} request{items.length !== 1 ? 's' : ''}</Text>
             {/* Tab Selector */}
             <View style={styles.tabRow}>
                 {(['pending', 'all'] as TabKey[]).map(t => {
@@ -275,7 +294,7 @@ export function ApprovalRequestScreen() {
                     const label = t === 'pending' ? `Pending (${pendingItems.length})` : 'All Requests';
                     return (
                         <Pressable key={t} onPress={() => setTab(t)} style={[styles.tabBtn, active && styles.tabBtnActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{label}</Text>
                         </Pressable>
                     );
                 })}
@@ -288,7 +307,7 @@ export function ApprovalRequestScreen() {
                             const active = s === statusFilter;
                             return (
                                 <Pressable key={s} onPress={() => setStatusFilter(s)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                                    <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{s}</Text>
+                                    <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{s}</Text>
                                 </Pressable>
                             );
                         })}
@@ -326,22 +345,22 @@ export function ApprovalRequestScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     tabRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
-    tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200], alignItems: 'center' },
+    tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], alignItems: 'center' },
     tabBtnActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     entityBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
@@ -353,6 +372,7 @@ const styles = StyleSheet.create({
     actionRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, borderRadius: 10, backgroundColor: colors.success[600] },
     rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, borderRadius: 10, backgroundColor: colors.danger[50], borderWidth: 1, borderColor: colors.danger[200] },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
 });
+const styles = createStyles(false);

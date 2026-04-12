@@ -25,6 +25,7 @@ import {
     usePlatformSupportStats,
     usePlatformSupportTickets,
 } from '@/features/super-admin/api/use-support-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -183,7 +184,7 @@ function StatsRow({ stats }: { stats: any }) {
                     <Text className="font-inter text-xl font-bold" style={{ color: card.color }}>
                         {stats?.[card.key] ?? 0}
                     </Text>
-                    <Text className="font-inter text-xs text-neutral-500">{card.label}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{card.label}</Text>
                 </Animated.View>
             ))}
         </ScrollView>
@@ -257,14 +258,14 @@ function TicketCard({ ticket, onPress }: { ticket: any; onPress: () => void }) {
                 </Text>
             </View>
 
-            <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>
+            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                 {ticket.companyName ?? ticket.company?.name ?? 'Unknown Company'}
             </Text>
 
             <View style={styles.ticketBadges}>
                 {/* Category chip */}
                 <View style={[styles.badge, { backgroundColor: colors.neutral[100] }]}>
-                    <Text className="font-inter text-[10px] font-semibold text-neutral-600">
+                    <Text className="font-inter text-[10px] font-semibold text-neutral-600 dark:text-neutral-400">
                         {formatCategoryLabel(ticket.category)}
                     </Text>
                 </View>
@@ -293,6 +294,9 @@ function TicketCard({ ticket, onPress }: { ticket: any; onPress: () => void }) {
 // ============ MAIN SCREEN ============
 
 export function SupportDashboardScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -448,10 +452,10 @@ export function SupportDashboardScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         paddingBottom: 20,
@@ -472,7 +476,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     statCard: {
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderRadius: 14,
         padding: 14,
         width: 130,
@@ -509,9 +513,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 7,
         borderRadius: 20,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     chipActive: {
         backgroundColor: colors.primary[600],
@@ -529,7 +533,7 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     ticketCard: {
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         marginHorizontal: 20,
         marginBottom: 10,
         borderRadius: 14,
@@ -582,3 +586,4 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 });
+const styles = createStyles(false);

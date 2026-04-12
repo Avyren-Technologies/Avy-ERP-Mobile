@@ -42,6 +42,7 @@ import {
     useUpdateRequisition,
 } from '@/features/company-admin/api/use-recruitment-mutations';
 import { useCandidates, useInterviews, useOffers, useRequisitions } from '@/features/company-admin/api/use-recruitment-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -237,11 +238,11 @@ function Dropdown({
 
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label} {required && <Text className="text-danger-500">*</Text>}
             </Text>
             <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
-                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+                <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
                     {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
                 </Text>
                 <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -251,7 +252,7 @@ function Dropdown({
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
                         <View style={styles.sheetHandle} />
-                        <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
                         <View style={[styles.inputWrap, { marginBottom: 12 }]}>
                             <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
                         </View>
@@ -259,7 +260,7 @@ function Dropdown({
                             {filteredOptions.map(opt => (
                                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
                                     style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                                    <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                                 </Pressable>
                             ))}
                             {filteredOptions.length === 0 && <Text className="py-4 text-center font-inter text-sm text-neutral-400">No options found</Text>}
@@ -274,13 +275,13 @@ function Dropdown({
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
                         </Pressable>
                     );
                 })}
@@ -343,57 +344,57 @@ function RequisitionFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
                         {initialData ? 'Edit Requisition' : 'New Requisition'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Job Title <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Job Title <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Senior React Developer" placeholderTextColor={colors.neutral[400]} value={title} onChangeText={setTitle} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Department <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Engineering" placeholderTextColor={colors.neutral[400]} value={department} onChangeText={setDepartment} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">No. of Openings</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">No. of Openings</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="1" placeholderTextColor={colors.neutral[400]} value={openings} onChangeText={setOpenings} keyboardType="number-pad" /></View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Budget Min</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Budget Min</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={budgetMin} onChangeText={setBudgetMin} keyboardType="number-pad" /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Budget Max</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Budget Max</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={budgetMax} onChangeText={setBudgetMax} keyboardType="number-pad" /></View>
                             </View>
                         </View>
                         <ChipSelector label="Employment Type" options={['Full-Time', 'Part-Time', 'Contract', 'Intern']} value={EMPLOYMENT_TYPE_LABELS[employmentType] ?? 'Full-Time'} onSelect={v => setEmploymentType(EMPLOYMENT_TYPE_MAP[v] ?? 'FULL_TIME')} />
                         <ChipSelector label="Priority" options={['Low', 'Medium', 'High', 'Urgent']} value={PRIORITY_LABELS[priority] ?? 'Medium'} onSelect={v => setPriority(PRIORITY_MAP[v] ?? 'MEDIUM')} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Location</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Location</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Bangalore, Remote" placeholderTextColor={colors.neutral[400]} value={location} onChangeText={setLocation} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Requirements</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Requirements</Text>
                             <View style={[styles.inputWrap, { height: 80, paddingVertical: 10 }]}>
                                 <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Skills, qualifications, etc." placeholderTextColor={colors.neutral[400]} value={requirements} onChangeText={setRequirements} multiline />
                             </View>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Experience Min (yrs)</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Experience Min (yrs)</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={experienceMin} onChangeText={setExperienceMin} keyboardType="number-pad" /></View>
                             </View>
                             <View style={[styles.fieldWrap, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Experience Max (yrs)</Text>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Experience Max (yrs)</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={experienceMax} onChangeText={setExperienceMax} keyboardType="number-pad" /></View>
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ title: title.trim(), department: department.trim(), openings: Number(openings) || 1, budgetMin: Number(budgetMin) || 0, budgetMax: Number(budgetMax) || 0, employmentType, priority, location: location.trim() || undefined, requirements: requirements.trim() || undefined, experienceMin: experienceMin ? Number(experienceMin) : undefined, experienceMax: experienceMax ? Number(experienceMax) : undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -430,20 +431,20 @@ function CandidateFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Add Candidate</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Add Candidate</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Full name" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Email <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Email <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="email@example.com" placeholderTextColor={colors.neutral[400]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
                         </View>
                         <ChipSelector label="Source" options={[...CANDIDATE_SOURCES]} value={source} onSelect={v => setSource(v as CandidateSource)} />
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ requisitionId, name: name.trim(), email: email.trim(), source, stage: 'Applied', rating: 0 })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Adding...' : 'Add Candidate'}</Text>
                         </Pressable>
@@ -481,24 +482,24 @@ function InterviewFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Schedule Interview</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Schedule Interview</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <Dropdown label="Candidate" value={candidateId} options={candidateOptions} onSelect={setCandidateId} placeholder="Select candidate..." required />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Round</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Round</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="1" placeholderTextColor={colors.neutral[400]} value={round} onChangeText={setRound} keyboardType="number-pad" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Date & Time <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Date & Time <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD HH:MM" placeholderTextColor={colors.neutral[400]} value={datetime} onChangeText={setDatetime} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Panelists</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Panelists</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Comma separated names" placeholderTextColor={colors.neutral[400]} value={panelists} onChangeText={setPanelists} /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ candidateId, candidateName: candidateOptions.find(c => c.id === candidateId)?.label ?? '', round: Number(round) || 1, datetime: datetime.trim(), panelists: panelists.split(',').map(p => p.trim()).filter(Boolean), status: 'Scheduled' })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Scheduling...' : 'Schedule'}</Text>
                         </Pressable>
@@ -535,21 +536,21 @@ function CompleteInterviewModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Complete Interview</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Complete Interview</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 300 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Feedback Rating (1-10) <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Feedback Rating (1-10) <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 8" placeholderTextColor={colors.neutral[400]} value={rating} onChangeText={setRating} keyboardType="number-pad" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Feedback Notes</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Feedback Notes</Text>
                             <View style={[styles.inputWrap, { height: 100, paddingVertical: 10 }]}>
                                 <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Optional notes about the interview..." placeholderTextColor={colors.neutral[400]} value={notes} onChangeText={setNotes} multiline />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ feedbackRating: ratingNum, feedbackNotes: notes.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : 'Complete'}</Text>
                         </Pressable>
@@ -588,30 +589,30 @@ function OfferFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Create Offer</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Create Offer</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <Dropdown label="Candidate" value={candidateId} options={candidateOptions} onSelect={setCandidateId} placeholder="Select candidate..." required />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Offered CTC <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Offered CTC <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 1200000" placeholderTextColor={colors.neutral[400]} value={offeredCTC} onChangeText={setOfferedCTC} keyboardType="number-pad" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Joining Date <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Joining Date <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={joiningDate} onChangeText={setJoiningDate} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Valid Until</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Valid Until</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={validUntil} onChangeText={setValidUntil} /></View>
                         </View>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Notes</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Notes</Text>
                             <View style={[styles.inputWrap, { height: 80, paddingVertical: 10 }]}>
                                 <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Additional notes..." placeholderTextColor={colors.neutral[400]} value={notes} onChangeText={setNotes} multiline />
                             </View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ candidateId, offeredCTC: Number(offeredCTC) || 0, joiningDate: joiningDate.trim(), validUntil: validUntil.trim() || undefined, notes: notes.trim() || undefined })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Creating...' : 'Create Offer'}</Text>
                         </Pressable>
@@ -641,15 +642,15 @@ function RejectReasonModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Rejection Reason</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Rejection Reason</Text>
                     <View style={styles.fieldWrap}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reason</Text>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Reason</Text>
                         <View style={[styles.inputWrap, { height: 100, paddingVertical: 10 }]}>
                             <TextInput style={[styles.textInput, { flex: 1, textAlignVertical: 'top' }]} placeholder="Why is the offer being rejected?" placeholderTextColor={colors.neutral[400]} value={reason} onChangeText={setReason} multiline />
                         </View>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave(reason.trim())} disabled={isSaving} style={[styles.saveBtn, isSaving && { opacity: 0.5 }, { backgroundColor: colors.danger[600] }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Rejecting...' : 'Reject Offer'}</Text>
                         </Pressable>
@@ -679,19 +680,19 @@ function RequisitionCard({ item, index, onPress, onStatusChange, onDelete }: {
             <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.title}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.department}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.title}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.department}</Text>
                     </View>
                     <ReqStatusBadge status={item.status} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 11a4 4 0 100-8 4 4 0 000 8zM20 8v6M23 11h-6" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                        <Text className="font-inter text-xs text-neutral-500">{item.openings} opening{item.openings !== 1 ? 's' : ''}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.openings} opening{item.openings !== 1 ? 's' : ''}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                        <Text className="font-inter text-xs text-neutral-500">{item.candidateCount} candidate{item.candidateCount !== 1 ? 's' : ''}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.candidateCount} candidate{item.candidateCount !== 1 ? 's' : ''}</Text>
                     </View>
                     {(item.budgetMin > 0 || item.budgetMax > 0) && (
                         <Text className="font-inter text-xs text-neutral-400">{'₹'}{item.budgetMin.toLocaleString('en-IN')}-{item.budgetMax.toLocaleString('en-IN')}</Text>
@@ -726,8 +727,8 @@ function CandidateCard({ item, index, onAdvance, onReject, onDelete }: {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                         <AvatarCircle name={item.name} />
                         <View style={{ flex: 1 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500" numberOfLines={1}>{item.email}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{item.email}</Text>
                         </View>
                     </View>
                     <StageBadge stage={item.stage} />
@@ -767,8 +768,8 @@ function InterviewCard({ item, index, onComplete, onCancel }: {
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.candidateName}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.datetime}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.candidateName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.datetime}</Text>
                     </View>
                     <IntStatusBadge status={item.status} />
                 </View>
@@ -777,7 +778,7 @@ function InterviewCard({ item, index, onComplete, onCancel }: {
                         <Text style={{ color: colors.primary[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Round {item.round}</Text>
                     </View>
                     {item.panelists.length > 0 && (
-                        <Text className="font-inter text-xs text-neutral-500" numberOfLines={1}>Panel: {item.panelists.join(', ')}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1}>Panel: {item.panelists.join(', ')}</Text>
                     )}
                 </View>
                 {item.status === 'Scheduled' && (
@@ -809,8 +810,8 @@ function OfferCard({ item, index, onSend, onAccept, onReject, onWithdraw, onEdit
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.candidateName}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.candidateName}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             {'₹'}{item.offeredCTC.toLocaleString('en-IN')} CTC
                         </Text>
                     </View>
@@ -820,7 +821,7 @@ function OfferCard({ item, index, onSend, onAccept, onReject, onWithdraw, onEdit
                     {item.joiningDate ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke={colors.neutral[400]} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                            <Text className="font-inter text-xs text-neutral-500">Joining: {item.joiningDate}</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Joining: {item.joiningDate}</Text>
                         </View>
                     ) : null}
                     {item.validUntil ? (
@@ -865,6 +866,9 @@ function OfferCard({ item, index, onSend, onAccept, onReject, onWithdraw, onEdit
 // ============ MAIN COMPONENT ============
 
 export function RequisitionsScreen({ initialSection = 'requisitions' as Section }: { initialSection?: Section } = {}) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -1148,20 +1152,20 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
 
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950">Job Requisitions</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500">{requisitions.length} requisition{requisitions.length !== 1 ? 's' : ''}</Text>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Job Requisitions</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{requisitions.length} requisition{requisitions.length !== 1 ? 's' : ''}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ gap: 8 }}>
                 {sectionTabs.map(tab => {
                     const active = tab.key === activeSection;
                     return (
                         <Pressable key={tab.key} onPress={() => setActiveSection(tab.key)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{tab.label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{tab.label}</Text>
                         </Pressable>
                     );
                 })}
             </ScrollView>
             {selectedReqId && activeSection !== 'requisitions' && (
-                <View style={{ marginTop: 8, backgroundColor: colors.primary[50], borderRadius: 10, padding: 8 }}>
+                <View style={{ marginTop: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 10, padding: 8 }}>
                     <Text className="font-inter text-xs text-primary-600">
                         Viewing: {requisitions.find(r => r.id === selectedReqId)?.title ?? 'Selected Requisition'}
                     </Text>
@@ -1174,7 +1178,7 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
                         const active = s === statusFilter;
                         return (
                             <Pressable key={s} onPress={() => setStatusFilter(s)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                                <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{s}</Text>
+                                <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{s}</Text>
                             </Pressable>
                         );
                     })}
@@ -1243,42 +1247,43 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     lifecycleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
     actionRow: { flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
     approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, borderRadius: 10, backgroundColor: colors.success[600] },
     rejectActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 36, borderRadius: 10, backgroundColor: colors.danger[50], borderWidth: 1, borderColor: colors.danger[200] },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
     dropdownBtn: {
-        backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14, height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     actionBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

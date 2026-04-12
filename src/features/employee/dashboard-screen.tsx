@@ -56,6 +56,7 @@ import type {
     DashboardWeeklyChartDay,
 } from '@/lib/api/ess';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TRACK_H = 64;
@@ -2152,6 +2153,9 @@ function DashboardSkeleton() {
 // ================================================================
 
 export function EmployeeDashboard() {
+  const isDark = useIsDark();
+  const S = _createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const user = useAuthStore.use.user();
     const permissions = useAuthStore.use.permissions();
@@ -2193,7 +2197,7 @@ export function EmployeeDashboard() {
     return (
         <View style={S.container}>
             <ScrollView
-                contentContainerStyle={[S.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+                contentContainerStyle={[S.scrollContent, { paddingBottom: insets.bottom + 120 }]}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -2258,10 +2262,10 @@ export function EmployeeDashboard() {
 // STYLES
 // ================================================================
 
-const S = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     scrollContent: {
         flexGrow: 1,
@@ -2372,7 +2376,7 @@ const S = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         shadowColor: '#000',
         shadowOpacity: 0.04,
         shadowOffset: { width: 0, height: 2 },
@@ -2552,7 +2556,7 @@ const S = StyleSheet.create({
         height: THUMB_SIZE - 8,
         borderRadius: 12,
         marginLeft: 4,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',
@@ -2573,7 +2577,7 @@ const S = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -2621,7 +2625,7 @@ const S = StyleSheet.create({
         backgroundColor: colors.warning[50],
     },
     calDayWeekOff: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     calShiftDot: {
         width: 5,
@@ -2652,7 +2656,7 @@ const S = StyleSheet.create({
         borderRadius: 16,
         padding: 14,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
@@ -2732,7 +2736,7 @@ const S = StyleSheet.create({
         shadowRadius: 10,
         elevation: 6,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         minWidth: 120,
     },
 
@@ -2760,7 +2764,7 @@ const S = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[100],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -2801,7 +2805,7 @@ const S = StyleSheet.create({
     },
     leaveBarBg: {
         height: 8,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 4,
         overflow: 'hidden',
     },
@@ -2834,7 +2838,7 @@ const S = StyleSheet.create({
         gap: 8,
     },
     hoursChip: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 6,
         paddingVertical: 3,
         borderRadius: 8,
@@ -2887,7 +2891,7 @@ const S = StyleSheet.create({
         marginTop: 14,
         paddingVertical: 10,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         alignItems: 'center',
     },
 
@@ -2900,7 +2904,7 @@ const S = StyleSheet.create({
         paddingHorizontal: 4,
     },
     holidayListItemHighlight: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderRadius: 14,
         paddingHorizontal: 10,
         borderWidth: 1,
@@ -2916,7 +2920,7 @@ const S = StyleSheet.create({
     },
     holidayDivider: {
         height: 1,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         marginHorizontal: 4,
     },
 
@@ -2935,3 +2939,4 @@ const S = StyleSheet.create({
         paddingVertical: 12,
     },
 });
+const S = _createStyles(false);

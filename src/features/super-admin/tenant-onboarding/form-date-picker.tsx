@@ -6,6 +6,7 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 
 import { S } from './shared-styles';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 function formatDateDDMMYYYY(date: Date): string {
     const day = `${date.getDate()}`.padStart(2, '0');
@@ -51,6 +52,8 @@ export function FormDatePicker({
     hint?: string;
     error?: string;
 }) {
+  const isDark = useIsDark();
+  const styles = _createStyles(isDark);
     const [open, setOpen] = React.useState(false);
     const [pickerView, setPickerView] = React.useState<PickerView>('calendar');
     const selectedDate = React.useMemo(() => {
@@ -111,7 +114,7 @@ export function FormDatePicker({
 
     return (
         <View style={S.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label}
                 {required && <Text className="text-danger-500"> *</Text>}
             </Text>
@@ -124,7 +127,7 @@ export function FormDatePicker({
                 ]}
             >
                 <Text
-                    className={`font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`}
+                    className={`font-inter text-sm ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                 >
                     {value || 'DD/MM/YYYY'}
                 </Text>
@@ -376,7 +379,7 @@ export function FormDatePicker({
                                                                 : inCurrentMonth
                                                                   ? isToday
                                                                     ? 'font-semibold text-primary-700'
-                                                                    : 'text-primary-900'
+                                                                    : 'text-primary-900 dark:text-primary-100'
                                                                   : 'text-neutral-300'
                                                         }`}
                                                     >
@@ -400,7 +403,7 @@ export function FormDatePicker({
                                         setOpen(false);
                                     }}
                                 >
-                                    <Text className="font-inter text-xs font-semibold text-neutral-500">
+                                    <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                                         {value ? 'Clear' : 'Cancel'}
                                     </Text>
                                 </Pressable>
@@ -425,7 +428,7 @@ export function FormDatePicker({
     );
 }
 
-const styles = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     overlay: {
         flex: 1,
         justifyContent: 'center',
@@ -437,9 +440,9 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 320,
         borderRadius: 20,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 12,
         paddingTop: 12,
         paddingBottom: 8,
@@ -461,20 +464,20 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     monthYearBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     weekdayRow: {
         flexDirection: 'row',
@@ -497,7 +500,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     dayCellToday: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1.5,
         borderColor: colors.primary[200],
     },
@@ -526,9 +529,9 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     pickerCellSelected: {
         backgroundColor: colors.primary[600],
@@ -540,7 +543,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     pickerCellToday: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderColor: colors.primary[300],
     },
     footerRow: {
@@ -559,10 +562,11 @@ const styles = StyleSheet.create({
     },
     footerPrimaryBtn: {
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
         paddingHorizontal: 14,
         paddingVertical: 8,
     },
 });
+const styles = _createStyles(false);

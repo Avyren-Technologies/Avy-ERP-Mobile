@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
     ActivityIndicator,
     Dimensions,
+    Image,
     LayoutAnimation,
     Pressable,
     ScrollView,
@@ -24,6 +25,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_FULL_WIDTH = Math.min(280, SCREEN_WIDTH * 0.8);
@@ -69,6 +71,7 @@ interface SidebarProps {
     userName: string;
     userRole: string;
     userInitials: string;
+    profilePhotoUrl?: string | null;
     onSignOut: () => void;
     collapsible?: boolean;
 }
@@ -84,6 +87,9 @@ export function SidebarNavIcon({
     color: string;
     size?: number;
 }) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const props = {
         stroke: color,
         strokeWidth: '1.8',
@@ -233,7 +239,7 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
             </View>
             <View style={styles.navLabelRow}>
                 <Text
-                    className={`font-inter text-sm font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-600'}`}
+                    className={`font-inter text-sm font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
                     numberOfLines={1}
                 >
                     {item.label}
@@ -263,6 +269,7 @@ export function Sidebar({
     userName,
     userRole,
     userInitials,
+    profilePhotoUrl,
     onSignOut,
     collapsible = false,
 }: SidebarProps) {
@@ -429,14 +436,21 @@ export function Sidebar({
                     <View style={styles.decorCircle2} />
 
                     <View style={styles.headerRow}>
-                        <LinearGradient
-                            colors={[colors.accent[300], colors.primary[400]]}
-                            style={styles.avatar}
-                        >
-                            <Text className="font-inter text-base font-bold text-white">
-                                {userInitials}
-                            </Text>
-                        </LinearGradient>
+                        {profilePhotoUrl ? (
+                            <Image
+                                source={{ uri: profilePhotoUrl }}
+                                style={styles.avatar}
+                            />
+                        ) : (
+                            <LinearGradient
+                                colors={[colors.accent[300], colors.primary[400]]}
+                                style={styles.avatar}
+                            >
+                                <Text className="font-inter text-base font-bold text-white">
+                                    {userInitials}
+                                </Text>
+                            </LinearGradient>
+                        )}
 
                         <Animated.View style={[styles.userInfoWrap, labelOpacityStyle]}>
                             <Text
@@ -567,7 +581,7 @@ export function Sidebar({
                                                     >
                                                         <View style={[styles.childBranch, child.isActive && styles.childBranchActive]} />
                                                         <Text
-                                                            className={`font-inter text-xs font-semibold ${child.isActive ? 'text-primary-700' : 'text-neutral-500'}`}
+                                                            className={`font-inter text-xs font-semibold ${child.isActive ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}
                                                             numberOfLines={1}
                                                         >
                                                             {child.label}
@@ -632,7 +646,7 @@ export function Sidebar({
                                     {/* Section header: static label for non-collapsible, nav-item style for collapsible */}
                                     {section.title && (isNonCollapsible ? (
                                         <View style={styles.sectionTitleWrap}>
-                                            <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-600">
+                                            <Text className="mb-1 font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
                                                 {section.title}
                                             </Text>
                                         </View>
@@ -656,7 +670,7 @@ export function Sidebar({
                                             </View>
                                             <View style={styles.navLabelRow}>
                                                 <Text
-                                                    className={`font-inter text-sm font-semibold ${sectionHasActive ? 'text-primary-700' : 'text-neutral-600'}`}
+                                                    className={`font-inter text-sm font-semibold ${sectionHasActive ? 'text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
                                                     numberOfLines={1}
                                                 >
                                                     {section.title}
@@ -699,7 +713,7 @@ export function Sidebar({
                                                 >
                                                     <View style={[styles.childBranch, item.isActive && styles.childBranchActive]} />
                                                     <Text
-                                                        className={`font-inter text-xs font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-500'}`}
+                                                        className={`font-inter text-xs font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}
                                                         numberOfLines={1}
                                                     >
                                                         {item.label}
@@ -731,7 +745,7 @@ export function Sidebar({
                                                         >
                                                             <View style={[styles.childBranch, child.isActive && styles.childBranchActive]} />
                                                             <Text
-                                                                className={`font-inter text-xs font-semibold ${child.isActive ? 'text-primary-700' : 'text-neutral-500'}`}
+                                                                className={`font-inter text-xs font-semibold ${child.isActive ? 'text-primary-700' : 'text-neutral-500 dark:text-neutral-400'}`}
                                                                 numberOfLines={1}
                                                             >
                                                                 {child.label}
@@ -860,7 +874,7 @@ export function useSidebar() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     backdrop: {
         backgroundColor: 'rgba(0,0,0,0.45)',
     },
@@ -869,7 +883,7 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         bottom: 0,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         shadowColor: colors.primary[900],
         shadowOffset: { width: 8, height: 0 },
         shadowOpacity: 0.18,
@@ -971,10 +985,10 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     navItemActive: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     navItemPressed: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     navIconWrap: {
         width: 38,
@@ -982,11 +996,11 @@ const styles = StyleSheet.create({
         borderRadius: 11,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         flexShrink: 0,
     },
     navIconWrapActive: {
-        backgroundColor: colors.primary[100],
+        backgroundColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     navLabelRow: {
         flex: 1,
@@ -1032,10 +1046,10 @@ const styles = StyleSheet.create({
         marginVertical: 1,
     },
     childItemActive: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     childItemPressed: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
     },
     childBranch: {
         position: 'absolute',
@@ -1101,7 +1115,7 @@ const styles = StyleSheet.create({
     moduleSeparatorLine: {
         flex: 1,
         height: 1,
-        backgroundColor: colors.primary[100],
+        backgroundColor: isDark ? colors.primary[800] : colors.primary[100],
     },
     searchBarContainer: {
         paddingHorizontal: 12,
@@ -1111,7 +1125,7 @@ const styles = StyleSheet.create({
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 0,
@@ -1146,3 +1160,4 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 });
+const styles = createStyles(false);

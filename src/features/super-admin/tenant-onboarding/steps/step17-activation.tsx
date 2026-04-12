@@ -88,7 +88,7 @@ export function Step17Activation({
             </LinearGradient>
 
             <SectionCard title="Set Company Status">
-                <Text className="mb-3 font-inter text-xs text-neutral-500">
+                <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     Select the activation status for this tenant:
                 </Text>
                 {[
@@ -119,11 +119,11 @@ export function Step17Activation({
                         <View style={[S.statusDot, { backgroundColor: opt.color }]} />
                         <View style={{ flex: 1 }}>
                             <Text
-                                className={`font-inter text-sm font-bold ${currentStatus === opt.status ? 'text-primary-700' : 'text-primary-950'}`}
+                                className={`font-inter text-sm font-bold ${currentStatus === opt.status ? 'text-primary-700' : 'text-primary-950 dark:text-white'}`}
                             >
                                 {opt.status}
                             </Text>
-                            <Text className="font-inter text-xs text-neutral-500">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 {opt.subtitle}
                             </Text>
                         </View>
@@ -140,12 +140,12 @@ export function Step17Activation({
             </SectionCard>
 
             <SectionCard title="Provisioning Checklist">
-                <Text className="mb-3 font-inter text-xs text-neutral-500">
+                <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     Verify all phases are complete before going live:
                 </Text>
                 {CHECKLIST_PHASES.map((phase) => (
                     <View key={phase.phase} style={S.checklistPhase}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                             {phase.phase}
                         </Text>
                         {phase.items.map((item) => (
@@ -159,7 +159,7 @@ export function Step17Activation({
                                         strokeLinejoin="round"
                                     />
                                 </Svg>
-                                <Text className="ml-2 font-inter text-xs text-neutral-600">
+                                <Text className="ml-2 font-inter text-xs text-neutral-600 dark:text-neutral-400">
                                     {item}
                                 </Text>
                             </View>

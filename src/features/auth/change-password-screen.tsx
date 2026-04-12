@@ -23,10 +23,14 @@ import colors from '@/components/ui/colors';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useChangePasswordMutation } from '@/features/auth/use-auth-mutations';
 import { createLogger } from '@/lib/logger';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const logger = createLogger('ChangePasswordScreen');
 
 export function ChangePasswordScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const changePasswordMutation = useChangePasswordMutation();
@@ -206,7 +210,7 @@ export function ChangePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F7FF',
@@ -251,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.primary[200],
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     paddingHorizontal: 16,
     fontSize: 15,
     color: colors.primary[800],
@@ -277,3 +281,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+const styles = createStyles(false);

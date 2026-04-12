@@ -53,6 +53,7 @@ import {
     GEO_RADIUS_OPTIONS,
     INDIAN_STATES,
 } from '@/features/super-admin/tenant-onboarding/constants';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ HELPERS ============
 
@@ -144,7 +145,7 @@ function LocationCard({
                         <View style={styles.nameContainer}>
                             <View style={styles.nameRow}>
                                 <Text
-                                    className="font-inter text-sm font-bold text-primary-950"
+                                    className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                                     numberOfLines={1}
                                     style={{ flex: 1 }}
                                 >
@@ -158,7 +159,7 @@ function LocationCard({
                                     </View>
                                 )}
                             </View>
-                            <Text className="font-inter text-xs text-neutral-500">
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 {location.code || 'No code'}
                             </Text>
                         </View>
@@ -207,7 +208,7 @@ function LocationCard({
                                     fill="none"
                                 />
                             </Svg>
-                            <Text className="font-inter text-[11px] text-neutral-600" numberOfLines={1}>
+                            <Text className="font-inter text-[11px] text-neutral-600 dark:text-neutral-400" numberOfLines={1}>
                                 {[location.city, location.state].filter(Boolean).join(', ')}
                             </Text>
                         </View>
@@ -232,7 +233,7 @@ function LocationCard({
                                     fill="none"
                                 />
                             </Svg>
-                            <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
+                            <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                                 {location.contactName}
                             </Text>
                         </View>
@@ -443,7 +444,7 @@ function GeofencesSection({
                         >
                             <View style={gfStyles.cardTop}>
                                 <View style={gfStyles.cardNameRow}>
-                                    <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1} style={{ flexShrink: 1 }}>
+                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1} style={{ flexShrink: 1 }}>
                                         {gf.name}
                                     </Text>
                                     {gf.isDefault && (
@@ -472,7 +473,7 @@ function GeofencesSection({
                                                 />
                                                 <Circle cx="12" cy="7" r="4" stroke={colors.neutral[500]} strokeWidth="2" fill="none" />
                                             </Svg>
-                                            <Text className="font-inter text-[10px] font-semibold text-neutral-600">
+                                            <Text className="font-inter text-[10px] font-semibold text-neutral-600 dark:text-neutral-400">
                                                 {empCount}
                                             </Text>
                                         </View>
@@ -480,7 +481,7 @@ function GeofencesSection({
                                 </View>
                             </View>
                             {gf.address ? (
-                                <Text className="font-inter mt-1 text-[11px] text-neutral-500" numberOfLines={1}>
+                                <Text className="font-inter mt-1 text-[11px] text-neutral-500 dark:text-neutral-400" numberOfLines={1}>
                                     {gf.address}
                                 </Text>
                             ) : null}
@@ -565,30 +566,30 @@ function EditLocationSheet({
                 keyboardDismissMode="interactive"
             >
                 {/* Sheet Header */}
-                <Text className="mb-1 font-inter text-lg font-bold text-primary-950">
+                <Text className="mb-1 font-inter text-lg font-bold text-primary-950 dark:text-white">
                     Edit Location
                 </Text>
-                <Text className="mb-4 font-inter text-xs text-neutral-500">
+                <Text className="mb-4 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     {form.name} ({form.code})
                 </Text>
 
                 {/* Name & Code (read-only display) */}
                 <View style={styles.readOnlyField}>
-                    <Text className="mb-1 font-inter text-xs font-bold text-primary-900">
+                    <Text className="mb-1 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Name
                     </Text>
                     <View style={styles.readOnlyValue}>
-                        <Text className="font-inter text-sm text-neutral-600">
+                        <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                             {form.name}
                         </Text>
                     </View>
                 </View>
                 <View style={styles.readOnlyField}>
-                    <Text className="mb-1 font-inter text-xs font-bold text-primary-900">
+                    <Text className="mb-1 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Code
                     </Text>
                     <View style={styles.readOnlyValue}>
-                        <Text className="font-inter text-sm text-neutral-600">
+                        <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                             {form.code}
                         </Text>
                     </View>
@@ -758,6 +759,9 @@ function EditLocationSheet({
 // ============ MAIN COMPONENT ============
 
 export function LocationManagementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -947,10 +951,10 @@ export function LocationManagementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     searchSection: {
         paddingHorizontal: 24,
@@ -960,7 +964,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -970,7 +974,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardHeader: {
         flexDirection: 'row',
@@ -1000,7 +1004,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     hqBadge: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
@@ -1062,7 +1066,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     editBtn: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         borderWidth: 1,
         borderColor: colors.primary[200],
     },
@@ -1078,7 +1082,7 @@ const styles = StyleSheet.create({
     },
     // Bottom sheet
     sheetBg: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
     },
@@ -1094,12 +1098,12 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     readOnlyValue: {
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     saveBtn: {
         height: 52,
@@ -1115,6 +1119,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
 });
+const styles = createStyles(false);
 
 const gfStyles = StyleSheet.create({
     header: {

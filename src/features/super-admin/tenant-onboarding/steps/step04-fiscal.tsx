@@ -39,7 +39,7 @@ function DayOfMonthPicker({
 
     return (
         <View style={S.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label}
             </Text>
             <Pressable
@@ -49,7 +49,7 @@ function DayOfMonthPicker({
                     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
                 ]}
             >
-                <Text className={`font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`}>
+                <Text className={`font-inter text-sm ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
                     {value ? `Day ${value} of month` : 'Select day'}
                 </Text>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
@@ -71,7 +71,7 @@ function DayOfMonthPicker({
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(8, 15, 40, 0.28)', paddingHorizontal: 28 }}>
                     <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
                     <View style={{ width: '100%', maxWidth: 300, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200], padding: 16, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 15 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950 mb-3">Select Day of Month</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">Select Day of Month</Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                             {days.map((d) => (
                                 <Pressable
@@ -88,14 +88,14 @@ function DayOfMonthPicker({
                                         borderColor: value === d ? colors.primary[600] : colors.neutral[200],
                                     }}
                                 >
-                                    <Text className={`font-inter text-xs font-semibold ${value === d ? 'text-white' : 'text-primary-900'}`}>
+                                    <Text className={`font-inter text-xs font-semibold ${value === d ? 'text-white' : 'text-primary-900 dark:text-primary-100'}`}>
                                         {d}
                                     </Text>
                                 </Pressable>
                             ))}
                         </View>
                         <Pressable onPress={() => setOpen(false)} style={{ marginTop: 12, alignItems: 'center' }}>
-                            <Text className="font-inter text-xs text-neutral-500">Cancel</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Cancel</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -140,7 +140,7 @@ export function Step4Fiscal({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <SectionCard title="Financial Year Setup">
-                <Text className="mb-4 font-inter text-sm text-neutral-600">
+                <Text className="mb-4 font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     Define the accounting period for the company.
                 </Text>
 
@@ -230,11 +230,11 @@ export function Step4Fiscal({
                     direction="up"
                 />
                 <View style={S.fieldWrap}>
-                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Timezone <Text className="text-danger-500">*</Text>
                     </Text>
                     <View style={[S.fieldInput, { justifyContent: 'center' }]}>
-                        <Text className="font-inter text-sm text-primary-950">
+                        <Text className="font-inter text-sm text-primary-950 dark:text-white">
                             {IST_TIMEZONE}
                         </Text>
                     </View>
@@ -246,7 +246,7 @@ export function Step4Fiscal({
 
             {/* ---- Non-Working Days ---- */}
             <SectionCard title="Non-Working Days">
-                <Text className="mb-3 font-inter text-xs text-neutral-500">
+                <Text className="mb-3 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                     Select your company's weekly off days. Highlighted days are non-working.
                 </Text>
                 {errors?.workingDays ? (

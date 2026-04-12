@@ -41,6 +41,7 @@ import {
     useIncentiveConfigs,
     useIncentiveRecords,
 } from '@/features/company-admin/api/use-production-incentive-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -74,7 +75,7 @@ const BASIS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-    DRAFT: { bg: colors.neutral[100], text: 'text-neutral-600' },
+    DRAFT: { bg: colors.neutral[100], text: 'text-neutral-600 dark:text-neutral-400' },
     COMPUTED: { bg: colors.info[50], text: 'text-info-700' },
     MERGED: { bg: colors.success[50], text: 'text-success-700' },
     PENDING: { bg: colors.warning[50], text: 'text-warning-700' },
@@ -103,7 +104,7 @@ function StatusBadge({ status }: { status: string }) {
 function ActiveBadge({ active }: { active: boolean }) {
     return (
         <View style={[styles.typeBadge, { backgroundColor: active ? colors.success[50] : colors.neutral[100] }]}>
-            <Text className={`font-inter text-[10px] font-bold ${active ? 'text-success-700' : 'text-neutral-500'}`}>{active ? 'Active' : 'Inactive'}</Text>
+            <Text className={`font-inter text-[10px] font-bold ${active ? 'text-success-700' : 'text-neutral-500 dark:text-neutral-400'}`}>{active ? 'Active' : 'Inactive'}</Text>
         </View>
     );
 }
@@ -113,13 +114,13 @@ function ActiveBadge({ active }: { active: boolean }) {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt.replace('_', ' ')}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt.replace('_', ' ')}</Text>
                         </Pressable>
                     );
                 })}
@@ -137,7 +138,7 @@ function TabSelector({ tab, onSelect }: { tab: 'configs' | 'records'; onSelect: 
                 const active = t === tab;
                 return (
                     <Pressable key={t} onPress={() => onSelect(t)} style={[styles.chip, active && styles.chipActive]}>
-                        <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{t === 'configs' ? 'Configurations' : 'Records'}</Text>
+                        <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{t === 'configs' ? 'Configurations' : 'Records'}</Text>
                     </Pressable>
                 );
             })}
@@ -200,27 +201,27 @@ function ConfigFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
                         {initialData ? 'Edit Config' : 'Add Config'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 480 }}>
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Name <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. Assembly Line Incentive" placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} /></View>
                         </View>
                         <ChipSelector label="Basis" options={BASES} value={basis} onSelect={setBasis} />
                         <ChipSelector label="Cycle" options={CYCLES} value={cycle} onSelect={setCycle} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Department</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Department</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Optional" placeholderTextColor={colors.neutral[400]} value={department} onChangeText={setDepartment} /></View>
                         </View>
                         <View style={styles.toggleRow}>
-                            <Text className="font-inter text-sm font-semibold text-primary-950">Active</Text>
+                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Active</Text>
                             <Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isActive ? colors.primary[600] : colors.neutral[300]} />
                         </View>
                         {/* Slabs */}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <Text className="font-inter text-xs font-bold text-primary-900">Slabs</Text>
+                            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Slabs</Text>
                             <Pressable onPress={addSlab}><Text className="font-inter text-xs font-bold text-primary-600">+ Add Slab</Text></Pressable>
                         </View>
                         {slabs.map((s, i) => (
@@ -235,7 +236,7 @@ function ConfigFormModal({
                         ))}
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={!name.trim() || isSaving} style={[styles.saveBtn, (!name.trim() || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Create'}</Text>
                         </Pressable>
@@ -255,7 +256,7 @@ function ConfigCard({ item, index, onEdit, onDelete }: { item: IncentiveConfig; 
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.name}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             <BasisBadge basis={item.basis} />
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
@@ -267,9 +268,9 @@ function ConfigCard({ item, index, onEdit, onDelete }: { item: IncentiveConfig; 
                     </Pressable>
                 </View>
                 <View style={styles.cardMeta}>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">Cycle: {item.cycle}</Text></View>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">Slabs: {item.slabs?.length ?? 0}</Text></View>
-                    {item.department ? <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">{item.department}</Text></View> : null}
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Cycle: {item.cycle}</Text></View>
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Slabs: {item.slabs?.length ?? 0}</Text></View>
+                    {item.department ? <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.department}</Text></View> : null}
                 </View>
             </Pressable>
         </Animated.View>
@@ -284,13 +285,13 @@ function RecordCard({ item, index }: { item: IncentiveRecord; index: number }) {
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{item.employeeName ?? item.employeeId}</Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">{item.configName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.employeeName ?? item.employeeId}</Text>
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.configName}</Text>
                     </View>
                     <StatusBadge status={item.status ?? 'DRAFT'} />
                 </View>
                 <View style={styles.cardMeta}>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500">Output: {item.outputUnits ?? 0}</Text></View>
+                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Output: {item.outputUnits ?? 0}</Text></View>
                     <View style={[styles.metaChip, { backgroundColor: colors.success[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-success-700">{'₹'}{Number(item.amount ?? 0).toLocaleString('en-IN')}</Text>
                     </View>
@@ -303,6 +304,9 @@ function RecordCard({ item, index }: { item: IncentiveRecord; index: number }) {
 // ============ MAIN COMPONENT ============
 
 export function ProductionIncentiveScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -382,8 +386,8 @@ export function ProductionIncentiveScreen() {
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <View>
-                <Text className="font-inter text-2xl font-bold text-primary-950">Production Incentives</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500">
+                <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Production Incentives</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                     {tab === 'configs' ? `${configs.length} config${configs.length !== 1 ? 's' : ''}` : `${records.length} record${records.length !== 1 ? 's' : ''}`}
                 </Text>
             </View>
@@ -448,31 +452,32 @@ export function ProductionIncentiveScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     typeBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], marginBottom: 4 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
+const styles = createStyles(false);

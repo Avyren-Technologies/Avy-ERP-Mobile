@@ -4,6 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 function formatDateDDMMYYYY(date: Date): string {
     const day = `${date.getDate()}`.padStart(2, '0');
@@ -51,6 +52,8 @@ export function DatePickerField({
     error?: string;
     editable?: boolean;
 }) {
+  const isDark = useIsDark();
+  const S = _createStyles(isDark);
     const [open, setOpen] = React.useState(false);
     const [pickerView, setPickerView] = React.useState<PickerView>('calendar');
     const selectedDate = React.useMemo(() => {
@@ -111,7 +114,7 @@ export function DatePickerField({
 
     return (
         <View style={S.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 {label}
                 {required && <Text className="text-danger-500"> *</Text>}
             </Text>
@@ -127,7 +130,7 @@ export function DatePickerField({
                 ]}
             >
                 <Text
-                    className={`font-inter text-sm ${value ? 'text-primary-950' : 'text-neutral-400'}`}
+                    className={`font-inter text-sm ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
                 >
                     {value || 'YYYY-MM-DD'}
                 </Text>
@@ -377,7 +380,7 @@ export function DatePickerField({
                                                                 : inCurrentMonth
                                                                   ? isToday
                                                                     ? 'font-semibold text-primary-700'
-                                                                    : 'text-primary-900'
+                                                                    : 'text-primary-900 dark:text-primary-100'
                                                                   : 'text-neutral-300'
                                                         }`}
                                                     >
@@ -401,7 +404,7 @@ export function DatePickerField({
                                         setOpen(false);
                                     }}
                                 >
-                                    <Text className="font-inter text-xs font-semibold text-neutral-500">
+                                    <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                                         {value ? 'Clear' : 'Cancel'}
                                     </Text>
                                 </Pressable>
@@ -427,21 +430,22 @@ export function DatePickerField({
     );
 }
 
-const S = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     fieldWrap: { marginBottom: 16 },
     fieldInput: {
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         borderRadius: 12,
         height: 48,
         paddingHorizontal: 16,
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
     },
     fieldInputReadOnly: {
-        backgroundColor: colors.neutral[50],
-        borderColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     },
 });
+const S = _createStyles(false);
 
 const styles = StyleSheet.create({
     overlay: {

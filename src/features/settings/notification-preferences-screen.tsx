@@ -16,6 +16,7 @@ import { ChevronLeft, Lock } from 'lucide-react-native';
 
 import { Text } from '@/components/ui';
 import { showSuccess, showErrorMessage, showError } from '@/components/ui/utils';
+import { useAuthStore } from '@/features/auth/use-auth-store';
 import {
     notificationApi,
     type NotificationPreferenceData,
@@ -109,6 +110,8 @@ export function NotificationPreferencesScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const queryClient = useQueryClient();
+    const userRole = useAuthStore.use.userRole();
+    const isAdmin = userRole === 'company-admin' || userRole === 'super-admin';
 
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: notificationPreferencesKey,
@@ -503,24 +506,28 @@ export function NotificationPreferencesScreen() {
                     ))}
                 </View>
 
-                <Text className="font-inter" style={styles.sectionTitle}>
-                    Test Notification
-                </Text>
-                <View style={styles.card}>
-                    <Text className="font-inter" style={styles.testDesc}>
-                        Send a test notification to yourself to verify delivery through your enabled channels.
-                    </Text>
-                    <TouchableOpacity
-                        style={styles.testBtn}
-                        onPress={() => testMutation.mutate()}
-                        disabled={testMutation.isPending}
-                        activeOpacity={0.8}
-                    >
-                        <Text className="font-inter" style={styles.testBtnText}>
-                            {testMutation.isPending ? 'Sending…' : 'Send Test Notification'}
+                {isAdmin && (
+                    <>
+                        <Text className="font-inter" style={styles.sectionTitle}>
+                            Test Notification
                         </Text>
-                    </TouchableOpacity>
-                </View>
+                        <View style={styles.card}>
+                            <Text className="font-inter" style={styles.testDesc}>
+                                Send a test notification to yourself to verify delivery through your enabled channels.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.testBtn}
+                                onPress={() => testMutation.mutate()}
+                                disabled={testMutation.isPending}
+                                activeOpacity={0.8}
+                            >
+                                <Text className="font-inter" style={styles.testBtnText}>
+                                    {testMutation.isPending ? 'Sending…' : 'Send Test Notification'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </>
+                )}
             </ScrollView>
         </View>
     );

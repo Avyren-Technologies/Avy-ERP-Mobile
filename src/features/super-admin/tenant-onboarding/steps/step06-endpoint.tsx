@@ -72,7 +72,7 @@ export function Step6Endpoint({
     return (
         <Animated.View entering={FadeInUp.duration(300)}>
             <View style={S.infoCard}>
-                <Text className="font-inter text-sm text-neutral-600">
+                <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
                     Configure where this tenant connects for backend APIs. Most tenants should use
                     the default Avyren cloud endpoint.
                 </Text>
@@ -97,10 +97,10 @@ export function Step6Endpoint({
                             },
                         ]}
                     >
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             Default Cloud
                         </Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             Managed by Avyren with auto scaling, backups, and monitoring.
                         </Text>
                     </Pressable>
@@ -122,10 +122,10 @@ export function Step6Endpoint({
                             },
                         ]}
                     >
-                        <Text className="font-inter text-sm font-bold text-primary-950">
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                             Custom Endpoint
                         </Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             Dedicated private cloud or on-premise deployment.
                         </Text>
                     </Pressable>
@@ -190,7 +190,7 @@ export function Step6Endpoint({
                             </Pressable>
                             {verifyState !== 'idle' && (
                                 <Text
-                                    className={`font-inter text-xs ${verifyState === 'success' ? 'text-success-700' : verifyState === 'error' ? 'text-danger-600' : 'text-neutral-500'}`}
+                                    className={`font-inter text-xs ${verifyState === 'success' ? 'text-success-700' : verifyState === 'error' ? 'text-danger-600' : 'text-neutral-500 dark:text-neutral-400'}`}
                                     style={{ flex: 1 }}
                                 >
                                     {verifyMessage}

@@ -41,8 +41,12 @@ import {
 } from '@/features/auth/use-auth-store';
 import { useNavigationManifest } from '@/features/company-admin/api/use-company-admin-queries';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
+import { useQuery } from '@tanstack/react-query';
 import { checkPermission } from '@/lib/api/auth';
 import { client } from '@/lib/api/client';
+import { essApi } from '@/lib/api/ess';
+import { useFileUrl } from '@/hooks/use-file-url';
+import { useIsDark } from '@/hooks/use-is-dark';
 import { getToken } from '@/lib/auth/utils';
 import { useIsFirstTime } from '@/lib/hooks/use-is-first-time';
 import { getItem, setItem } from '@/lib/storage';
@@ -119,9 +123,22 @@ function AppSidebar() {
     const signOut = useAuth.use.signOut();
     const user = useAuth.use.user();
     const userRole = useAuth.use.userRole();
+    const permissions = useAuth.use.permissions();
+    const status = useAuth.use.status();
 
     const { data: manifestData } = useNavigationManifest();
     usePermissionRefresh();
+
+    const canFetchEssProfile = checkPermission(permissions, 'ess:view-profile');
+    const { data: myProfileData } = useQuery({
+        queryKey: ['sidebar', 'my-profile-avatar'],
+        queryFn: () => essApi.getMyProfile(),
+        enabled: status === 'signIn' && canFetchEssProfile,
+        staleTime: 5 * 60 * 1000,
+        retry: false,
+    });
+    const profilePhotoKey = (myProfileData as any)?.data?.profilePhotoUrl;
+    const { url: profilePhotoUrl } = useFileUrl({ key: profilePhotoKey });
 
     /**
      * Build sidebar sections from the navigation manifest API.
@@ -174,6 +191,7 @@ function AppSidebar() {
             userName={getDisplayName(user)}
             userRole={getUserRoleDisplayLabel(user, userRole)}
             userInitials={getUserInitials(user)}
+            profilePhotoUrl={profilePhotoUrl}
             onSignOut={signOut}
             collapsible={false}
         />
@@ -193,6 +211,8 @@ function BiometricPromptModal({
     onEnable: () => void;
     onSkip: () => void;
 }) {
+    const isDark = useIsDark();
+    const biometricStyles = createBiometricStyles(isDark);
     return (
         <Modal transparent animationType="fade" statusBarTranslucent>
             <View style={biometricStyles.overlay}>
@@ -216,7 +236,7 @@ function BiometricPromptModal({
     );
 }
 
-const biometricStyles = StyleSheet.create({
+const createBiometricStyles = (isDark: boolean) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -225,7 +245,7 @@ const biometricStyles = StyleSheet.create({
         paddingHorizontal: 32,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 24,
         paddingVertical: 32,
         paddingHorizontal: 24,
@@ -241,7 +261,7 @@ const biometricStyles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
@@ -250,7 +270,7 @@ const biometricStyles = StyleSheet.create({
         fontFamily: 'Inter',
         fontSize: 20,
         fontWeight: '700',
-        color: colors.neutral[900],
+        color: isDark ? colors.charcoal[100] : colors.neutral[900],
         marginBottom: 8,
         textAlign: 'center',
     },
@@ -258,7 +278,7 @@ const biometricStyles = StyleSheet.create({
         fontFamily: 'Inter',
         fontSize: 14,
         fontWeight: '400',
-        color: colors.neutral[500],
+        color: isDark ? colors.neutral[400] : colors.neutral[500],
         textAlign: 'center',
         lineHeight: 20,
         marginBottom: 24,
@@ -296,6 +316,7 @@ const biometricStyles = StyleSheet.create({
 
 function TabLayoutInner() {
     'use no memo'; // Reanimated shared values are incompatible with React Compiler
+    const isDark = useIsDark();
     const status = useAuth.use.status();
     const userRole = useAuth.use.userRole();
     const permissions = useAuth.use.permissions();
@@ -554,7 +575,7 @@ function TabLayoutInner() {
                             right: 0,
                         }, tabBarAnimStyle]}>
                             <View style={{
-                                backgroundColor: colors.white,
+                                backgroundColor: isDark ? '#1A1730' : colors.white,
                                 borderTopWidth: 0,
                                 elevation: 12,
                                 shadowColor: colors.primary[900],

@@ -27,6 +27,7 @@ import {
     useMyInvoices,
     useMySubscription,
 } from '@/features/company-admin/api/use-company-admin-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -153,7 +154,7 @@ function SubscriptionCard({ sub, isLoading }: { sub: SubscriptionInfo | null; is
                         <Path d="M1 10h22" stroke={colors.primary[600]} strokeWidth="1.8" />
                     </Svg>
                 </View>
-                <Text className="flex-1 font-inter text-base font-bold text-primary-950">
+                <Text className="flex-1 font-inter text-base font-bold text-primary-950 dark:text-white">
                     Subscription
                 </Text>
                 <StatusBadge status={mapSubscriptionStatus(sub.status)} />
@@ -164,12 +165,12 @@ function SubscriptionCard({ sub, isLoading }: { sub: SubscriptionInfo | null; is
             {rows.map((row, i) => (
                 <View key={i} style={styles.detailRow}>
                     <Text className="font-inter text-xs text-neutral-400">{row.label}</Text>
-                    <Text className="font-inter text-xs font-semibold text-primary-950">{row.value}</Text>
+                    <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{row.value}</Text>
                 </View>
             ))}
 
             <View style={[styles.detailRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100] }]}>
-                <Text className="font-inter text-sm font-bold text-primary-900">Base Price</Text>
+                <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">Base Price</Text>
                 <Text className="font-inter text-lg font-bold text-primary-700">
                     {formatCurrency(sub.tierBasePrice)}
                     <Text className="font-inter text-xs text-neutral-400">/{(sub.billingType || 'month').toLowerCase()}</Text>
@@ -211,7 +212,7 @@ function CostBreakdownSection({ data, isLoading }: { data: CostBreakdownData | n
                         <Rect x="14" y="14" width="7" height="7" rx="1.5" stroke={colors.accent[600]} strokeWidth="1.8" fill="none" />
                     </Svg>
                 </View>
-                <Text className="flex-1 font-inter text-base font-bold text-primary-950">
+                <Text className="flex-1 font-inter text-base font-bold text-primary-950 dark:text-white">
                     Cost Breakdown
                 </Text>
             </View>
@@ -220,8 +221,8 @@ function CostBreakdownSection({ data, isLoading }: { data: CostBreakdownData | n
 
             {/* Tier info */}
             <View style={styles.detailRow}>
-                <Text className="flex-1 font-inter text-xs text-neutral-500">Tier ({data.tier.label})</Text>
-                <Text className="font-inter text-xs font-semibold text-primary-900">
+                <Text className="flex-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">Tier ({data.tier.label})</Text>
+                <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">
                     {formatCurrency(data.tier.basePrice)} + {formatCurrency(data.tier.perUserPrice)}/user
                 </Text>
             </View>
@@ -231,15 +232,15 @@ function CostBreakdownSection({ data, isLoading }: { data: CostBreakdownData | n
             {/* Module breakdown */}
             {data.modules.map((mod) => (
                 <View key={mod.moduleId} style={styles.detailRow}>
-                    <Text className="flex-1 font-inter text-xs text-neutral-500">{mod.moduleName}</Text>
-                    <Text className="font-inter text-xs font-semibold text-primary-900">
+                    <Text className="flex-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{mod.moduleName}</Text>
+                    <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">
                         {formatCurrency(mod.effectivePrice)}/mo
                     </Text>
                 </View>
             ))}
 
             <View style={[styles.detailRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100] }]}>
-                <Text className="font-inter text-sm font-bold text-primary-900">Monthly Total</Text>
+                <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">Monthly Total</Text>
                 <Text className="font-inter text-sm font-bold text-primary-700">
                     {formatCurrency(data.totals.monthly)}
                 </Text>
@@ -247,7 +248,7 @@ function CostBreakdownSection({ data, isLoading }: { data: CostBreakdownData | n
             {data.totals.annual > 0 && (
                 <View style={styles.detailRow}>
                     <Text className="font-inter text-xs text-neutral-400">Annual</Text>
-                    <Text className="font-inter text-xs font-semibold text-neutral-600">
+                    <Text className="font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                         {formatCurrency(data.totals.annual)}
                     </Text>
                 </View>
@@ -262,7 +263,7 @@ function RecentInvoiceRow({ item }: { item: InvoiceItem }) {
     return (
         <View style={styles.invoiceRow}>
             <View style={{ flex: 1 }}>
-                <Text className="font-inter text-sm font-semibold text-primary-950">
+                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
                     {item.invoiceNumber}
                 </Text>
                 <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">
@@ -285,6 +286,9 @@ function RecentInvoiceRow({ item }: { item: InvoiceItem }) {
 // ============ MAIN SCREEN ============
 
 export function BillingDashboardScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { toggle } = useSidebar();
@@ -386,7 +390,7 @@ export function BillingDashboardScreen() {
                                 <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={colors.info[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
                         </View>
-                        <Text className="flex-1 font-inter text-base font-bold text-primary-950">
+                        <Text className="flex-1 font-inter text-base font-bold text-primary-950 dark:text-white">
                             Recent Invoices
                         </Text>
                         <Pressable onPress={() => router.push('/company/billing-invoices' as any)}>
@@ -436,7 +440,7 @@ export function BillingDashboardScreen() {
                                 <Path d="M14 2v6h6" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                             </Svg>
                         </LinearGradient>
-                        <Text className="mt-1.5 font-inter text-[10px] font-semibold text-primary-900">Invoices</Text>
+                        <Text className="mt-1.5 font-inter text-[10px] font-semibold text-primary-900 dark:text-primary-100">Invoices</Text>
                     </Pressable>
 
                     <Pressable
@@ -452,7 +456,7 @@ export function BillingDashboardScreen() {
                                 <Path d="M1 10h22" stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" />
                             </Svg>
                         </LinearGradient>
-                        <Text className="mt-1.5 font-inter text-[10px] font-semibold text-primary-900">Payments</Text>
+                        <Text className="mt-1.5 font-inter text-[10px] font-semibold text-primary-900 dark:text-primary-100">Payments</Text>
                     </Pressable>
 
                     <Pressable
@@ -470,7 +474,7 @@ export function BillingDashboardScreen() {
                                 <Rect x="14" y="14" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" fill="none" />
                             </Svg>
                         </LinearGradient>
-                        <Text className="mt-1.5 font-inter text-[10px] font-semibold text-primary-900">Modules</Text>
+                        <Text className="mt-1.5 font-inter text-[10px] font-semibold text-primary-900 dark:text-primary-100">Modules</Text>
                     </Pressable>
                 </Animated.View>
             </ScrollView>
@@ -480,10 +484,10 @@ export function BillingDashboardScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     scrollContent: {
         padding: 20,
@@ -491,7 +495,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     sectionCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 16,
         padding: 16,
         shadowColor: colors.primary[900],
@@ -514,7 +518,7 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         marginVertical: 12,
     },
     detailRow: {
@@ -548,3 +552,4 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
     },
 });
+const styles = createStyles(false);

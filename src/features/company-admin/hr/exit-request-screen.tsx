@@ -29,6 +29,7 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { useExitRequests } from '@/features/company-admin/api/use-offboarding-queries';
 import { useCreateExitRequest, useUpdateExitRequest } from '@/features/company-admin/api/use-offboarding-mutations';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -117,11 +118,11 @@ function Dropdown({
 
   return (
     <View style={styles.fieldWrap}>
-      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
         {label} {required && <Text className="text-danger-500">*</Text>}
       </Text>
       <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
-        <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950' : 'text-neutral-400'}`} numberOfLines={1}>
+        <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
           {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
         </Text>
         <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -131,7 +132,7 @@ function Dropdown({
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
           <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
             <View style={styles.sheetHandle} />
-            <Text className="font-inter text-base font-bold text-primary-950 mb-3">{label}</Text>
+            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
             <View style={[styles.inputWrap, { marginBottom: 12 }]}>
               <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
             </View>
@@ -139,7 +140,7 @@ function Dropdown({
               {filteredOptions.map(opt => (
                 <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
                   style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                  <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950'}`}>{opt.label}</Text>
+                  <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
                 </Pressable>
               ))}
               {filteredOptions.length === 0 && (
@@ -156,13 +157,13 @@ function Dropdown({
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
   return (
     <View style={styles.fieldWrap}>
-      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map(opt => {
           const selected = opt === value;
           return (
             <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-              <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt}</Text>
+              <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt}</Text>
             </Pressable>
           );
         })}
@@ -203,7 +204,7 @@ function InitiateExitModal({
         <View style={[styles.formSheet, { paddingBottom: insets.bottom + 16, maxHeight: '85%' }]}>
           <View style={styles.sheetHandle} />
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Initiate Exit</Text>
+            <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Initiate Exit</Text>
 
             <Dropdown
               label="Employee" value={employeeId} options={employeeOptions}
@@ -216,7 +217,7 @@ function InitiateExitModal({
             />
 
             <View style={styles.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                 Resignation Date <Text className="text-danger-500">*</Text>
               </Text>
               <View style={styles.inputWrap}>
@@ -226,7 +227,7 @@ function InitiateExitModal({
             </View>
 
             <View style={styles.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Last Working Date</Text>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Last Working Date</Text>
               <View style={styles.inputWrap}>
                 <TextInput style={styles.textInput} value={lastWorkingDate} onChangeText={setLastWorkingDate}
                   placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} />
@@ -234,12 +235,12 @@ function InitiateExitModal({
             </View>
 
             <View style={[styles.fieldWrap, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-              <Text className="font-inter text-sm font-semibold text-primary-900">Notice Period Waiver</Text>
+              <Text className="font-inter text-sm font-semibold text-primary-900 dark:text-primary-100">Notice Period Waiver</Text>
               <Switch value={noticeWaiver} onValueChange={setNoticeWaiver} trackColor={{ true: colors.primary[500], false: colors.neutral[200] }} />
             </View>
 
             <View style={styles.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reason / Notes</Text>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Reason / Notes</Text>
               <View style={styles.inputWrap}>
                 <TextInput style={[styles.textInput, { minHeight: 60 }]} value={reason} onChangeText={setReason}
                   placeholder="Optional notes..." placeholderTextColor={colors.neutral[400]} multiline />
@@ -269,7 +270,7 @@ function ExitRequestCard({ item, index, onPress }: { item: ExitRequestItem; inde
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
           <AvatarCircle name={item.employeeName} />
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text className="font-inter text-sm font-bold text-primary-950" numberOfLines={1}>{item.employeeName}</Text>
+            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <SeparationBadge type={item.separationType} />
               <StatusBadge status={item.status} />
@@ -279,15 +280,15 @@ function ExitRequestCard({ item, index, onPress }: { item: ExitRequestItem; inde
         <View style={styles.cardRow}>
           <View style={styles.cardField}>
             <Text className="font-inter text-[10px] text-neutral-400">Resignation Date</Text>
-            <Text className="font-inter text-xs font-semibold text-primary-900">{item.resignationDate || '--'}</Text>
+            <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{item.resignationDate || '--'}</Text>
           </View>
           <View style={styles.cardField}>
             <Text className="font-inter text-[10px] text-neutral-400">Last Working Day</Text>
-            <Text className="font-inter text-xs font-semibold text-primary-900">{item.lastWorkingDate || '--'}</Text>
+            <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{item.lastWorkingDate || '--'}</Text>
           </View>
           <View style={styles.cardField}>
             <Text className="font-inter text-[10px] text-neutral-400">Notice (days)</Text>
-            <Text className="font-inter text-xs font-semibold text-primary-900">{item.noticePeriodDays ?? '--'}</Text>
+            <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{item.noticePeriodDays ?? '--'}</Text>
           </View>
         </View>
       </Pressable>
@@ -298,6 +299,9 @@ function ExitRequestCard({ item, index, onPress }: { item: ExitRequestItem; inde
 // ============ MAIN SCREEN ============
 
 export function ExitRequestScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
   const router = useRouter();
@@ -362,7 +366,7 @@ export function ExitRequestScreen() {
             const active = s === statusFilter;
             return (
               <Pressable key={s} onPress={() => setStatusFilter(s)} style={[styles.filterChip, active && styles.filterChipActive]}>
-                <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{s}</Text>
+                <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{s}</Text>
               </Pressable>
             );
           })}
@@ -404,20 +408,20 @@ export function ExitRequestScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
   header: { paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   card: {
-    backgroundColor: colors.white, borderRadius: 16, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: colors.neutral[100],
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
   },
   cardRow: { flexDirection: 'row', gap: 12 },
   cardField: { flex: 1 },
   avatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[50],
+    width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     alignItems: 'center', justifyContent: 'center',
   },
   statusBadge: {
@@ -430,11 +434,11 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100,
-    borderWidth: 1, borderColor: colors.neutral[200], backgroundColor: colors.white,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], backgroundColor: isDark ? '#1A1730' : colors.white,
   },
   filterChipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
   formSheet: {
-    backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingHorizontal: 20, paddingTop: 12,
   },
   sheetHandle: {
@@ -443,8 +447,8 @@ const styles = StyleSheet.create({
   },
   fieldWrap: { marginBottom: 16 },
   inputWrap: {
-    borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12,
-    backgroundColor: colors.neutral[50], paddingHorizontal: 14,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], borderRadius: 12,
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], paddingHorizontal: 14,
   },
   textInput: {
     fontFamily: 'Inter', fontSize: 14, color: colors.primary[950],
@@ -452,12 +456,12 @@ const styles = StyleSheet.create({
   },
   dropdownBtn: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12,
-    backgroundColor: colors.neutral[50], paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], borderRadius: 12,
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], paddingHorizontal: 14, paddingVertical: 12,
   },
   chip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100,
-    borderWidth: 1, borderColor: colors.neutral[200], backgroundColor: colors.neutral[50],
+    borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
   },
   chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
   saveBtn: {
@@ -465,3 +469,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginTop: 8,
   },
 });
+const styles = createStyles(false);

@@ -15,20 +15,20 @@ export const leaveKeys = {
 
   // Leave Types
   leaveTypes: (params?: LeaveTypeListParams) =>
-    [...leaveKeys.all, 'leave-types', params] as const,
+    params ? [...leaveKeys.all, 'leave-types', params] as const : [...leaveKeys.all, 'leave-types'] as const,
   leaveType: (id: string) => [...leaveKeys.all, 'leave-type', id] as const,
 
   // Leave Policies
   policies: (params?: LeavePolicyListParams) =>
-    [...leaveKeys.all, 'policies', params] as const,
+    params ? [...leaveKeys.all, 'policies', params] as const : [...leaveKeys.all, 'policies'] as const,
 
   // Leave Balances
   balances: (params?: LeaveBalanceListParams) =>
-    [...leaveKeys.all, 'balances', params] as const,
+    params ? [...leaveKeys.all, 'balances', params] as const : [...leaveKeys.all, 'balances'] as const,
 
   // Leave Requests
   requests: (params?: LeaveRequestListParams) =>
-    [...leaveKeys.all, 'requests', params] as const,
+    params ? [...leaveKeys.all, 'requests', params] as const : [...leaveKeys.all, 'requests'] as const,
   request: (id: string) => [...leaveKeys.all, 'request', id] as const,
 
   // Summary / Dashboard

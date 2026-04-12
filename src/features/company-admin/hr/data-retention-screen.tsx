@@ -43,6 +43,7 @@ import {
     useRetentionCheckDue,
     useRetentionPolicies,
 } from '@/features/company-admin/api/use-retention-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -119,13 +120,13 @@ function TypeBadge({ type }: { type: string }) {
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
     return (
         <View style={styles.fieldWrap}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">{label}</Text>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{label}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {options.map(opt => {
                     const selected = opt === value;
                     return (
                         <Pressable key={opt} onPress={() => onSelect(opt)} style={[styles.chip, selected && styles.chipActive]}>
-                            <Text className={`font-inter text-[10px] font-semibold ${selected ? 'text-white' : 'text-neutral-600'}`}>{opt.replace(/_/g, ' ')}</Text>
+                            <Text className={`font-inter text-[10px] font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt.replace(/_/g, ' ')}</Text>
                         </Pressable>
                     );
                 })}
@@ -179,23 +180,23 @@ function PolicyFormModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
                         {initialData ? 'Edit Policy' : 'Add Policy'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
                         <ChipSelector label="Data Category" options={DATA_CATEGORIES} value={category} onSelect={setCategory} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Retention Years <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Retention Years <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 7" placeholderTextColor={colors.neutral[400]} value={years} onChangeText={setYears} keyboardType="numeric" /></View>
                         </View>
                         <ChipSelector label="Action After Retention" options={RETENTION_ACTIONS} value={action} onSelect={setAction} />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Description</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
                             <View style={[styles.inputWrap, { height: 80 }]}><TextInput style={[styles.textInput, { textAlignVertical: 'top' }]} placeholder="Optional description..." placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline /></View>
                         </View>
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={() => onSave({ id: initialData?.id, category, retentionYears: Number(years), action, description })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Saving...' : initialData ? 'Update' : 'Add Policy'}</Text>
                         </Pressable>
@@ -226,7 +227,7 @@ function DueCheckModal({
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-4">Retention Check</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Retention Check</Text>
                     {isLoading ? (
                         <View style={{ paddingTop: 20 }}><SkeletonCard /><SkeletonCard /></View>
                     ) : items.length === 0 ? (
@@ -234,8 +235,8 @@ function DueCheckModal({
                             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.success[50], justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                                 <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.success[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </View>
-                            <Text className="font-inter text-sm font-bold text-primary-950">All Clear</Text>
-                            <Text className="font-inter text-xs text-neutral-500 mt-1">No overdue retention records.</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">All Clear</Text>
+                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-1">No overdue retention records.</Text>
                         </View>
                     ) : (
                         <ScrollView showsVerticalScrollIndicator={false}>
@@ -254,7 +255,7 @@ function DueCheckModal({
                         </ScrollView>
                     )}
                     <Pressable onPress={onClose} style={[styles.cancelBtn, { marginTop: 16 }]}>
-                        <Text className="font-inter text-sm font-semibold text-neutral-600">Close</Text>
+                        <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Close</Text>
                     </Pressable>
                 </View>
             </View>
@@ -270,8 +271,8 @@ function PolicyCard({ item, index, onEdit, onDelete }: { item: RetentionPolicy; 
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{item.category?.replace(/_/g, ' ')}</Text>
-                        {item.description ? <Text className="mt-0.5 font-inter text-[10px] text-neutral-500" numberOfLines={1}>{item.description}</Text> : null}
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.category?.replace(/_/g, ' ')}</Text>
+                        {item.description ? <Text className="mt-0.5 font-inter text-[10px] text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{item.description}</Text> : null}
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -279,7 +280,7 @@ function PolicyCard({ item, index, onEdit, onDelete }: { item: RetentionPolicy; 
                 </View>
                 <View style={styles.cardMeta}>
                     <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500">{item.retentionYears} years</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.retentionYears} years</Text>
                     </View>
                     <View style={[styles.metaChip, { backgroundColor: colors.primary[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-primary-700">{item.action}</Text>
@@ -300,10 +301,10 @@ function RequestCard({ item, index, onProcess }: { item: AccessRequest; index: n
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950">{item.employeeName}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.employeeName}</Text>
                             <TypeBadge type={item.type} />
                         </View>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500">
+                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                             {item.createdAt ? fmt.date(item.createdAt) : ''}
                         </Text>
                     </View>
@@ -332,8 +333,8 @@ function ConsentCard({ item, index, onToggle, isToggling }: { item: ConsentRecor
             <View style={styles.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flex: 1, marginRight: 12 }}>
-                        <Text className="font-inter text-sm font-semibold text-primary-950">{item.consentType?.replace(/_/g, ' ')}</Text>
-                        <Text className="mt-0.5 font-inter text-xs text-neutral-500">{item.employeeName ?? item.employeeId}</Text>
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{item.consentType?.replace(/_/g, ' ')}</Text>
+                        <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.employeeName ?? item.employeeId}</Text>
                     </View>
                     <Switch
                         value={item.granted}
@@ -351,6 +352,9 @@ function ConsentCard({ item, index, onToggle, isToggling }: { item: ConsentRecor
 // ============ MAIN COMPONENT ============
 
 export function DataRetentionScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -450,8 +454,8 @@ export function DataRetentionScreen() {
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">Data Retention</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">GDPR & Compliance</Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Data Retention</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">GDPR & Compliance</Text>
                 </View>
                 <Pressable onPress={handleCheckDue} style={styles.dueBtn}>
                     <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={colors.warning[600]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /><Path d="M12 9v4M12 17h.01" stroke={colors.warning[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -465,7 +469,7 @@ export function DataRetentionScreen() {
                     const active = tab.id === activeTab;
                     return (
                         <Pressable key={tab.id} onPress={() => { setActiveTab(tab.id); setSearch(''); }} style={[styles.chip, active && styles.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600'}`}>{tab.label}</Text>
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{tab.label}</Text>
                         </Pressable>
                     );
                 })}
@@ -518,34 +522,35 @@ export function DataRetentionScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 16 },
     listContent: { paddingHorizontal: 24 },
     dueBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.warning[50] },
     card: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    cardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     badge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
     actionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
     fab: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
     dueCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, backgroundColor: colors.warning[50], borderRadius: 14, borderWidth: 1, borderColor: colors.warning[200], marginBottom: 8 },
     dueCount: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.warning[100], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
 });
+const styles = createStyles(false);

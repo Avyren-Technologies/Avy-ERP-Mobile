@@ -39,6 +39,7 @@ import {
     useUpdateIOTReason,
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyIOTReasons } from '@/features/company-admin/api/use-company-admin-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
 
@@ -135,10 +136,10 @@ function IOTReasonFormModal({
                         </Svg>
                     </Pressable>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text className="font-inter text-lg font-bold text-primary-950">
+                        <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
                             {initialData ? 'Edit IOT Reason' : 'Add IOT Reason'}
                         </Text>
-                        <Text className="font-inter text-[10px] text-neutral-500">
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             Create or update your machine downtime categories
                         </Text>
                     </View>
@@ -162,7 +163,7 @@ function IOTReasonFormModal({
                     >
                         {/* Reason Type Selection */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Reason Type</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase">Reason Type</Text>
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 {REASON_TYPES.map(t => (
                                     <Pressable
@@ -170,7 +171,7 @@ function IOTReasonFormModal({
                                         onPress={() => setReasonType(t)}
                                         style={[styles.chip, { flex: 1 }, reasonType === t && (t === 'Machine Idle' ? styles.chipWarning : styles.chipDanger)]}
                                     >
-                                        <Text className={`font-inter text-center text-xs font-semibold ${reasonType === t ? 'text-white' : 'text-neutral-600'}`}>
+                                        <Text className={`font-inter text-center text-xs font-semibold ${reasonType === t ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>
                                             {t}
                                         </Text>
                                     </Pressable>
@@ -180,7 +181,7 @@ function IOTReasonFormModal({
 
                         {/* Reason Input */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Reason Label <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase">Reason Label <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}>
                                 <TextInput
                                     style={styles.textInput}
@@ -195,7 +196,7 @@ function IOTReasonFormModal({
 
                         {/* Description Input */}
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Description</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase">Description</Text>
                             <View style={[styles.inputWrap, styles.multilineWrap, { height: 100 }]}>
                                 <TextInput
                                     style={[styles.textInput, styles.multilineInput]}
@@ -212,12 +213,12 @@ function IOTReasonFormModal({
 
                         {/* Department Picker */}
                         <View style={[styles.fieldWrap, { zIndex: deptDropOpen ? 1200 : 1, position: 'relative' }]}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">Department</Text>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase">Department</Text>
                             <Pressable
                                 onPress={() => setDeptDropOpen(v => !v)}
                                 style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
                             >
-                                <Text className={`flex-1 font-inter text-sm ${department ? 'text-primary-950' : 'text-neutral-400'}`}>
+                                <Text className={`flex-1 font-inter text-sm ${department ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}>
                                     {department || 'Select Department'}
                                 </Text>
                                 <Svg width={14} height={14} viewBox="0 0 24 24">
@@ -233,7 +234,7 @@ function IOTReasonFormModal({
                                                 onPress={() => { setDepartment(item); setDeptDropOpen(false); }}
                                                 style={{ padding: 15, backgroundColor: item === department ? colors.primary[50] : '#fff', borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.neutral[50] }}
                                             >
-                                                <Text className={`font-inter text-sm ${item === department ? 'font-bold text-primary-700' : 'text-primary-950'}`}>
+                                                <Text className={`font-inter text-sm ${item === department ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
                                                     {item}
                                                 </Text>
                                             </Pressable>
@@ -247,8 +248,8 @@ function IOTReasonFormModal({
                         {reasonType === 'Machine Idle' && (
                             <View style={[styles.toggleRow, { marginTop: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.neutral[50] }]}>
                                 <View style={{ flex: 1 }}>
-                                    <Text className="font-inter text-sm font-semibold text-primary-950">Planned Event</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-500">Scheduled downtime activities</Text>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Planned Event</Text>
+                                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Scheduled downtime activities</Text>
                                 </View>
                                 <Switch
                                     value={planned}
@@ -260,7 +261,7 @@ function IOTReasonFormModal({
 
                         {/* Duration Setting */}
                         <View style={[styles.fieldWrap, { marginTop: 10 }]}>
-                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 uppercase">
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase">
                                 {planned ? 'Default Time (min)' : 'Threshold Time (min)'}
                             </Text>
                             <View style={styles.inputWrap}>
@@ -280,7 +281,7 @@ function IOTReasonFormModal({
                         {/* Form Buttons */}
                         <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20 }}>
                             <Pressable onPress={onClose} style={[styles.cancelBtn, { height: 56 }]}>
-                                <Text className="font-inter text-sm font-bold text-neutral-600">DISCARD</Text>
+                                <Text className="font-inter text-sm font-bold text-neutral-600 dark:text-neutral-400">DISCARD</Text>
                             </Pressable>
                             <Pressable
                                 onPress={handleSave}
@@ -336,11 +337,11 @@ function IOTReasonCard({
                                 </View>
                             )}
                         </View>
-                        <Text className="mt-1.5 font-inter text-sm font-bold text-primary-950" numberOfLines={1}>
+                        <Text className="mt-1.5 font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>
                             {item.reason}
                         </Text>
                         {item.department ? (
-                            <Text className="mt-0.5 font-inter text-xs text-neutral-500">
+                            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
                                 {item.department}
                             </Text>
                         ) : null}
@@ -353,7 +354,7 @@ function IOTReasonCard({
                 </View>
 
                 {item.description ? (
-                    <Text className="mt-2 font-inter text-xs text-neutral-500" numberOfLines={2}>
+                    <Text className="mt-2 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>
                         {item.description}
                     </Text>
                 ) : null}
@@ -365,6 +366,9 @@ function IOTReasonCard({
 // ============ MAIN COMPONENT ============
 
 export function IOTReasonManagementScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
@@ -442,10 +446,10 @@ export function IOTReasonManagementScreen() {
     const renderHeader = () => (
         <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.headerContent}>
-                <Text className="font-inter text-2xl font-bold text-primary-950">
+                <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                     IOT Reasons
                 </Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500">
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
                     {reasons.length} reason{reasons.length !== 1 ? 's' : ''} configured
                 </Text>
             </View>
@@ -545,10 +549,10 @@ export function IOTReasonManagementScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     headerBar: {
         flexDirection: 'row',
@@ -560,7 +564,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -586,7 +590,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 20,
         padding: 16,
         marginBottom: 12,
@@ -596,10 +600,10 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
         borderWidth: 1,
-        borderColor: colors.primary[50],
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     cardPressed: {
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         transform: [{ scale: 0.98 }],
     },
     cardHeader: {
@@ -620,7 +624,7 @@ const styles = StyleSheet.create({
     },
     // Form sheet
     formSheet: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingHorizontal: 24,
@@ -638,10 +642,10 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     inputWrap: {
-        backgroundColor: colors.neutral[50],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
         paddingHorizontal: 14,
         height: 46,
         justifyContent: 'center',
@@ -669,9 +673,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     chipWarning: {
         backgroundColor: colors.warning[500],
@@ -695,7 +699,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 1200,
-        backgroundColor: '#fff',
+        backgroundColor: isDark ? '#1A1730' : '#fff',
         borderRadius: 10,
         borderWidth: 1,
         borderColor: colors.primary[200],
@@ -711,11 +715,11 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 14,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1.5,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     },
     saveBtn: {
         flex: 1,
@@ -731,3 +735,4 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
 });
+const styles = createStyles(false);

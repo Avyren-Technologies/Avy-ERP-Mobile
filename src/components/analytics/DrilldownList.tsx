@@ -12,6 +12,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 export interface DrilldownColumn {
   key: string;
@@ -103,6 +104,9 @@ export function DrilldownList({
   searchPlaceholder = 'Search...',
   expandedRowRender,
 }: DrilldownListProps) {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const totalPages = total ? Math.ceil(total / pageSize) : 1;
 
   const renderHeader = useCallback(
@@ -117,7 +121,7 @@ export function DrilldownList({
               { alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' },
             ]}
           >
-            <Text className="font-inter text-[12px] font-bold text-neutral-500">
+            <Text className="font-inter text-[12px] font-bold text-neutral-500 dark:text-neutral-400">
               {col.label}
             </Text>
           </View>
@@ -181,7 +185,7 @@ export function DrilldownList({
             </Text>
           </Pressable>
 
-          <Text className="font-inter text-[13px] text-neutral-500">
+          <Text className="font-inter text-[13px] text-neutral-500 dark:text-neutral-400">
             {page} / {totalPages}
           </Text>
 
@@ -207,17 +211,17 @@ export function DrilldownList({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     gap: 12,
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
     paddingHorizontal: 14,
     height: 46,
     gap: 10,
@@ -228,11 +232,11 @@ const styles = StyleSheet.create({
     color: colors.neutral[800],
   },
   tableContainer: {
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.neutral[100],
+    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
     shadowColor: colors.black,
     shadowOpacity: 0.04,
     shadowOffset: { width: 0, height: 2 },
@@ -243,7 +247,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 14,
     paddingVertical: 13,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral[100],
   },
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowEven: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
   },
   cell: {
     paddingHorizontal: 4,
@@ -268,7 +272,7 @@ const styles = StyleSheet.create({
   expandedContent: {
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     borderBottomWidth: 1,
     borderBottomColor: colors.primary[100],
   },
@@ -289,3 +293,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+const styles = createStyles(false);

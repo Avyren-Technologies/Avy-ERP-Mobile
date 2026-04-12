@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import {
   ChevronRight,
   Fingerprint,
-  Globe,
+  // Globe,  // temporarily unused — Language option disabled
   KeyRound,
   LogOut,
   Moon,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react-native';
 import * as React from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,26 +35,46 @@ import {
   getUserRoleDisplayLabel,
   useAuthStore,
 } from '@/features/auth/use-auth-store';
-import { authApi } from '@/lib/api/auth';
+import { useQuery } from '@tanstack/react-query';
+import { authApi, checkPermission } from '@/lib/api/auth';
+import { essApi } from '@/lib/api/ess';
 import { getToken } from '@/lib/auth/utils';
+import { useFileUrl } from '@/hooks/use-file-url';
 import { getItem, removeItem, setItem } from '@/lib/storage';
 
-import { LanguageItem } from './components/language-item';
+// import { LanguageItem } from './components/language-item';  // temporarily disabled
 import { ThemeItem } from './components/theme-item';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_TOKEN_KEY = 'biometric_token';
 
 export function SettingsScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
   const signOut = useAuthStore.use.signOut();
   const user = useAuthStore.use.user();
   const userRole = useAuthStore.use.userRole();
+  const permissions = useAuthStore.use.permissions();
+  const status = useAuthStore.use.status();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const displayName = getDisplayName(user);
   const initials = getUserInitials(user);
   const roleLabel = getUserRoleDisplayLabel(user, userRole);
+
+  const canFetchEssProfile = checkPermission(permissions, 'ess:view-profile');
+  const { data: myProfileData } = useQuery({
+    queryKey: ['settings', 'my-profile-avatar'],
+    queryFn: () => essApi.getMyProfile(),
+    enabled: status === 'signIn' && canFetchEssProfile,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const profilePhotoKey = (myProfileData as any)?.data?.profilePhotoUrl;
+  const { url: profilePhotoUrl } = useFileUrl({ key: profilePhotoKey });
 
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
   const [biometricEnabled, setBiometricEnabled] = React.useState(false);
@@ -155,7 +176,7 @@ export function SettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={[colors.gradient.surface, colors.white]}
+        colors={isDark ? ['#0F0D1A', '#1A1730'] : [colors.gradient.surface, colors.white]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -166,8 +187,8 @@ export function SettingsScreen() {
       >
         {/* Header */}
         <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
-          <Text className="font-inter text-2xl font-bold text-primary-950">Settings</Text>
-          <Text className="mt-1 font-inter text-sm text-neutral-500">Preferences & Security</Text>
+          <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Settings</Text>
+          <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Preferences & Security</Text>
         </Animated.View>
 
         {/* Profile Card */}
@@ -185,12 +206,19 @@ export function SettingsScreen() {
               <View style={styles.profileDecor1} />
               <View style={styles.profileDecor2} />
               <View style={styles.profileContent}>
-                <LinearGradient
-                  colors={[colors.accent[300], colors.primary[400]]}
-                  style={styles.profileAvatar}
-                >
-                  <Text className="font-inter text-xl font-bold text-white">{initials}</Text>
-                </LinearGradient>
+                {profilePhotoUrl ? (
+                  <Image
+                    source={{ uri: profilePhotoUrl }}
+                    style={styles.profileAvatar}
+                  />
+                ) : (
+                  <LinearGradient
+                    colors={[colors.accent[300], colors.primary[400]]}
+                    style={styles.profileAvatar}
+                  >
+                    <Text className="font-inter text-xl font-bold text-white">{initials}</Text>
+                  </LinearGradient>
+                )}
                 <View style={styles.profileInfo}>
                   <Text className="font-inter text-base font-bold text-white">{displayName}</Text>
                   <Text className="font-inter text-xs text-primary-200">{user?.email ?? ''}</Text>
@@ -222,10 +250,10 @@ export function SettingsScreen() {
               <Shield size={20} color={colors.white} />
             </LinearGradient>
             <View style={styles.menuContent}>
-              <Text className="font-inter text-sm font-bold text-primary-950">
+              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                 Two-Factor Authentication
               </Text>
-              <Text className="font-inter text-xs text-neutral-500">
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                 {mfaSetupLoading ? 'Loading...' : 'Set up or reset authenticator app'}
               </Text>
             </View>
@@ -245,10 +273,10 @@ export function SettingsScreen() {
                 <Fingerprint size={20} color={colors.white} />
               </LinearGradient>
               <View style={styles.menuContent}>
-                <Text className="font-inter text-sm font-bold text-primary-950">
+                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                   Biometric Login
                 </Text>
-                <Text className="font-inter text-xs text-neutral-500">
+                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                   Sign in with Face ID or fingerprint
                 </Text>
               </View>
@@ -274,10 +302,10 @@ export function SettingsScreen() {
               <KeyRound size={20} color={colors.white} />
             </LinearGradient>
             <View style={styles.menuContent}>
-              <Text className="font-inter text-sm font-bold text-primary-950">
+              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                 Change Password
               </Text>
-              <Text className="font-inter text-xs text-neutral-500">
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
                 Update your account password
               </Text>
             </View>
@@ -291,7 +319,7 @@ export function SettingsScreen() {
             Preferences
           </Text>
 
-          {/* Language — wrapped in card style */}
+          {/* Language — temporarily disabled
           <View style={styles.menuItem}>
             <LinearGradient
               colors={[colors.primary[500], colors.accent[500]]}
@@ -303,6 +331,7 @@ export function SettingsScreen() {
               <LanguageItem />
             </View>
           </View>
+          */}
 
           {/* Theme — wrapped in card style */}
           <View style={styles.menuItem}>
@@ -332,8 +361,8 @@ export function SettingsScreen() {
               <User size={20} color={colors.white} />
             </LinearGradient>
             <View style={styles.menuContent}>
-              <Text className="font-inter text-sm font-bold text-primary-950">App Name</Text>
-              <Text className="font-inter text-xs text-neutral-500">{Env.EXPO_PUBLIC_NAME}</Text>
+              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">App Name</Text>
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{Env.EXPO_PUBLIC_NAME}</Text>
             </View>
           </View>
 
@@ -345,8 +374,8 @@ export function SettingsScreen() {
               <Text className="font-inter text-xs font-bold text-white">v</Text>
             </LinearGradient>
             <View style={styles.menuContent}>
-              <Text className="font-inter text-sm font-bold text-primary-950">Version</Text>
-              <Text className="font-inter text-xs text-neutral-500">{Env.EXPO_PUBLIC_VERSION}</Text>
+              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Version</Text>
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{Env.EXPO_PUBLIC_VERSION}</Text>
             </View>
           </View>
         </Animated.View>
@@ -370,10 +399,10 @@ export function SettingsScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
+const createStyles = (isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gradient.surface,
+    backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
   },
   header: {
     paddingHorizontal: 24,
@@ -457,7 +486,7 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? '#1A1730' : colors.white,
     borderRadius: 18,
     padding: 14,
     shadowColor: colors.primary[900],
@@ -466,10 +495,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 1,
     borderWidth: 1,
-    borderColor: colors.primary[50],
+    borderColor: isDark ? colors.primary[900] : colors.primary[50],
   },
   menuItemPressed: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
     transform: [{ scale: 0.98 }],
   },
   menuIcon: {
@@ -506,3 +535,4 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
 });
+const styles = createStyles(false);

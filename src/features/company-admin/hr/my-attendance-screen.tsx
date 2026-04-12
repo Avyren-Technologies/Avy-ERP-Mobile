@@ -25,10 +25,11 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useRegularizeAttendance } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyAttendance } from '@/features/company-admin/api/use-ess-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
-type DayStatus = 'present' | 'absent' | 'late' | 'leave' | 'weekend' | 'holiday' | 'none';
+type DayStatus = 'present' | 'absent' | 'late' | 'leave' | 'weekend' | 'holiday' | 'half_day' | 'early_exit' | 'incomplete' | 'regularized' | 'lop' | 'none';
 
 interface DayRecord {
     date: string;
@@ -55,6 +56,11 @@ const DAY_STATUS_COLORS: Record<DayStatus, string> = {
     leave: colors.info[500],
     weekend: colors.neutral[300],
     holiday: colors.accent[400],
+    half_day: colors.warning[400],
+    early_exit: colors.warning[600],
+    incomplete: colors.danger[400],
+    regularized: colors.success[400],
+    lop: colors.danger[600],
     none: 'transparent',
 };
 
@@ -107,7 +113,7 @@ function MonthCalendar({ year, month, records, selectedDay, onSelectDay }: {
                     const dotColor = DAY_STATUS_COLORS[cell.status];
                     return (
                         <Pressable key={cell.day} onPress={() => onSelectDay(cell.day)} style={[styles.dayCell, isSelected && styles.dayCellSelected]}>
-                            <Text className={`font-inter text-xs ${isSelected ? 'font-bold text-white' : 'text-primary-950'}`}>{cell.day}</Text>
+                            <Text className={`font-inter text-xs ${isSelected ? 'font-bold text-white' : 'text-primary-950 dark:text-white'}`}>{cell.day}</Text>
                             {cell.status !== 'none' && <View style={[styles.dayDot, { backgroundColor: dotColor }]} />}
                         </Pressable>
                     );
@@ -115,10 +121,17 @@ function MonthCalendar({ year, month, records, selectedDay, onSelectDay }: {
             </View>
             {/* Legend */}
             <View style={styles.legend}>
-                {(['present', 'absent', 'late', 'leave'] as DayStatus[]).map(s => (
-                    <View key={s} style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: DAY_STATUS_COLORS[s] }]} />
-                        <Text className="font-inter text-[10px] text-neutral-500 capitalize">{s}</Text>
+                {([
+                    { key: 'present' as DayStatus, label: 'Present' },
+                    { key: 'absent' as DayStatus, label: 'Absent' },
+                    { key: 'late' as DayStatus, label: 'Late' },
+                    { key: 'leave' as DayStatus, label: 'Leave' },
+                    { key: 'half_day' as DayStatus, label: 'Half Day' },
+                    { key: 'regularized' as DayStatus, label: 'Regularized' },
+                ]).map(s => (
+                    <View key={s.key} style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: DAY_STATUS_COLORS[s.key] }]} />
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{s.label}</Text>
                     </View>
                 ))}
             </View>
@@ -191,12 +204,12 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }:
                 <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
                     <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 mb-1">Request Regularization</Text>
-                    <Text className="font-inter text-xs text-neutral-500 mb-4">Date: {date}</Text>
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-1">Request Regularization</Text>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mb-4">Date: {date}</Text>
 
                     {/* Issue Type */}
                     <View style={styles.fieldWrap}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Issue Type <Text className="text-danger-500">*</Text></Text>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Issue Type <Text className="text-danger-500">*</Text></Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
                             <View style={{ flexDirection: 'row', gap: 6, paddingVertical: 4 }}>
                                 {ISSUE_TYPES.map((t) => (
@@ -205,7 +218,7 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }:
                                         onPress={() => setIssueType(t.value)}
                                         style={[styles.chip, issueType === t.value && styles.chipActive]}
                                     >
-                                        <Text className={`font-inter text-[11px] font-bold ${issueType === t.value ? 'text-white' : 'text-neutral-600'}`}>{t.label}</Text>
+                                        <Text className={`font-inter text-[11px] font-bold ${issueType === t.value ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{t.label}</Text>
                                     </Pressable>
                                 ))}
                             </View>
@@ -215,13 +228,13 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }:
                     {/* Conditional time fields */}
                     {showPunchIn && (
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Corrected Punch In</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Corrected Punch In</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="09:00" placeholderTextColor={colors.neutral[400]} value={punchIn} onChangeText={setPunchIn} /></View>
                         </View>
                     )}
                     {showPunchOut && (
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Corrected Punch Out</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Corrected Punch Out</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="18:00" placeholderTextColor={colors.neutral[400]} value={punchOut} onChangeText={setPunchOut} /></View>
                         </View>
                     )}
@@ -232,13 +245,13 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }:
                     )}
 
                     <View style={styles.fieldWrap}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">Reason <Text className="text-danger-500">*</Text></Text>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Reason <Text className="text-danger-500">*</Text></Text>
                         <View style={[styles.inputWrap, { height: 80 }]}>
                             <TextInput style={[styles.textInput, { textAlignVertical: 'top', paddingTop: 10 }]} placeholder="Reason for regularization..." placeholderTextColor={colors.neutral[400]} value={reason} onChangeText={setReason} multiline numberOfLines={3} />
                         </View>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text></Pressable>
+                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable onPress={handleSubmit} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Submitting...' : 'Submit'}</Text>
                         </Pressable>
@@ -252,6 +265,9 @@ function RegularizeModal({ visible, onClose, onSubmit, isSaving, date, record }:
 // ============ MAIN COMPONENT ============
 
 export function MyAttendanceScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const fmt = useCompanyFormatter();
@@ -271,15 +287,32 @@ export function MyAttendanceScreen() {
 
     const data = React.useMemo(() => {
         const raw: any = (response as any)?.data ?? response ?? {};
-        const records: DayRecord[] = (raw.records ?? raw.days ?? []).map((r: any) => ({
+        const mapStatus = (s: string): DayStatus => {
+            switch ((s ?? '').toUpperCase()) {
+                case 'PRESENT': return 'present';
+                case 'ABSENT': return 'absent';
+                case 'LATE': return 'late';
+                case 'ON_LEAVE': return 'leave';
+                case 'HALF_DAY': return 'half_day';
+                case 'EARLY_EXIT': return 'early_exit';
+                case 'INCOMPLETE': return 'incomplete';
+                case 'HOLIDAY': return 'holiday';
+                case 'WEEK_OFF': return 'weekend';
+                case 'REGULARIZED': return 'regularized';
+                case 'LOP': return 'lop';
+                default: return (s ?? 'none').toLowerCase() as DayStatus;
+            }
+        };
+        const recordsArr = Array.isArray(raw) ? raw : (raw.records ?? raw.days ?? []);
+        const records: DayRecord[] = recordsArr.map((r: any) => ({
             date: r.date ?? '', day: r.day ?? new Date(r.date).getDate(),
-            status: (r.status ?? 'none').toLowerCase() as DayStatus,
+            status: mapStatus(r.status),
             punchIn: r.punchIn ?? r.checkIn ?? '', punchOut: r.punchOut ?? r.checkOut ?? '',
-            workedHours: r.workedHours ?? r.totalHours ?? 0,
+            workedHours: Number(r.workedHours ?? r.totalHours ?? 0),
         }));
         const summary: AttendanceSummary = {
-            present: raw.present ?? records.filter((r: DayRecord) => r.status === 'present').length,
-            absent: raw.absent ?? records.filter((r: DayRecord) => r.status === 'absent').length,
+            present: raw.present ?? records.filter((r: DayRecord) => r.status === 'present' || r.status === 'regularized').length,
+            absent: raw.absent ?? records.filter((r: DayRecord) => r.status === 'absent' || r.status === 'lop').length,
             late: raw.late ?? records.filter((r: DayRecord) => r.status === 'late').length,
             leave: raw.leave ?? raw.onLeave ?? records.filter((r: DayRecord) => r.status === 'leave').length,
         };
@@ -310,7 +343,7 @@ export function MyAttendanceScreen() {
             <AppTopHeader title="My Attendance" onMenuPress={toggle} />
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             >
                 {isLoading ? (
@@ -324,7 +357,7 @@ export function MyAttendanceScreen() {
                             <Pressable onPress={goBack} style={styles.navArrow}>
                                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
-                            <Text className="font-inter text-sm font-bold text-primary-950">{MONTH_NAMES[month]} {year}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_NAMES[month]} {year}</Text>
                             <Pressable onPress={goForward} style={styles.navArrow}>
                                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                             </Pressable>
@@ -340,7 +373,7 @@ export function MyAttendanceScreen() {
                             {kpiItems.map((item, idx) => (
                                 <Animated.View key={item.label} entering={FadeInUp.duration(350).delay(200 + idx * 60)} style={[styles.kpiCard, { borderLeftColor: item.color, borderLeftWidth: 3 }]}>
                                     <Text className="font-inter text-xl font-bold" style={{ color: item.color }}>{item.value}</Text>
-                                    <Text className="mt-0.5 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{item.label}</Text>
+                                    <Text className="mt-0.5 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{item.label}</Text>
                                 </Animated.View>
                             ))}
                         </View>
@@ -351,10 +384,10 @@ export function MyAttendanceScreen() {
                                 <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">
                                     {selectedDateStr} - {selectedRecord.status.charAt(0).toUpperCase() + selectedRecord.status.slice(1)}
                                 </Text>
-                                <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500">Punch In</Text><Text className="font-inter text-sm font-semibold text-primary-950">{formatTime(selectedRecord.punchIn)}</Text></View>
-                                <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500">Punch Out</Text><Text className="font-inter text-sm font-semibold text-primary-950">{formatTime(selectedRecord.punchOut)}</Text></View>
-                                <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500">Hours Worked</Text><Text className="font-inter text-sm font-semibold text-primary-950">{selectedRecord.workedHours > 0 ? `${selectedRecord.workedHours.toFixed(1)} hrs` : '--'}</Text></View>
-                                {(selectedRecord.status === 'absent' || !selectedRecord.punchIn) && (
+                                <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Punch In</Text><Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatTime(selectedRecord.punchIn)}</Text></View>
+                                <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Punch Out</Text><Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatTime(selectedRecord.punchOut)}</Text></View>
+                                <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Hours Worked</Text><Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{selectedRecord.workedHours > 0 ? `${selectedRecord.workedHours.toFixed(1)} hrs` : '--'}</Text></View>
+                                {(['absent', 'late', 'half_day', 'early_exit', 'incomplete', 'lop'].includes(selectedRecord.status) || !selectedRecord.punchIn || !selectedRecord.punchOut) && (
                                     <Pressable onPress={() => setRegVisible(true)} style={styles.regBtn}>
                                         <Text className="font-inter text-xs font-bold text-primary-600">Request Regularization</Text>
                                     </Pressable>
@@ -371,23 +404,23 @@ export function MyAttendanceScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     headerContent: { paddingTop: 8, paddingBottom: 16 },
     scrollContent: { paddingHorizontal: 24 },
     monthNav: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        backgroundColor: colors.white, borderRadius: 16, padding: 12, marginBottom: 16,
-        borderWidth: 1, borderColor: colors.primary[50],
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 12, marginBottom: 16,
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
     },
-    navArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    navArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     calendarCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 16,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 16,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     weekRow: { flexDirection: 'row', marginBottom: 8 },
     weekCell: { flex: 1, alignItems: 'center', paddingVertical: 4 },
@@ -400,24 +433,25 @@ const styles = StyleSheet.create({
     legendDot: { width: 8, height: 8, borderRadius: 4 },
     kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
     kpiCard: {
-        flex: 1, minWidth: '45%', backgroundColor: colors.white, borderRadius: 16, padding: 14,
+        flex: 1, minWidth: '45%', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 14,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     detailCard: {
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-    regBtn: { marginTop: 10, height: 36, borderRadius: 10, borderWidth: 1.5, borderColor: colors.primary[200], backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
-    formSheet: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    regBtn: { marginTop: 10, height: 36, borderRadius: 10, borderWidth: 1.5, borderColor: colors.primary[200], backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     fieldWrap: { marginBottom: 14 },
-    inputWrap: { backgroundColor: colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
+    inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 46, justifyContent: 'center' },
     textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.neutral[200] },
+    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.neutral[100], borderWidth: 1, borderColor: colors.neutral[200] },
+    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
 });
+const styles = createStyles(false);

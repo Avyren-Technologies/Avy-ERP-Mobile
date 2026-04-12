@@ -16,6 +16,7 @@ import { FormDatePicker, FormInput, FormSelect, RadioOption, SectionCard } from 
 import type { Step1Form } from '../types';
 import { BUSINESS_TYPES, COMPANY_STATUSES, INDUSTRIES } from '../constants';
 import { S } from '../shared-styles';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 const RESERVED_SLUGS = new Set([
     'admin', 'www', 'api', 'app', 'staging', 'dev', 'test', 'demo',
@@ -68,6 +69,8 @@ export function Step1Identity({
     setForm: (f: Partial<Step1Form>) => void;
     errors?: Record<string, string>;
 }) {
+  const isDark = useIsDark();
+  const ls = _createStyles(isDark);
     const [showOptions, setShowOptions] = React.useState(false);
     const [permissionError, setPermissionError] = React.useState('');
     const lastAutoCodeRef = React.useRef('');
@@ -463,7 +466,7 @@ export function Step1Identity({
     );
 }
 
-const ls = StyleSheet.create({
+const _createStyles = (isDark: boolean) => StyleSheet.create({
     logoThumb: {
         width: 56,
         height: 56,
@@ -473,8 +476,8 @@ const ls = StyleSheet.create({
         marginTop: 8,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.primary[100],
-        backgroundColor: colors.white,
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         overflow: 'hidden',
         shadowColor: colors.primary[900],
         shadowOffset: { width: 0, height: 2 },
@@ -491,7 +494,8 @@ const ls = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: colors.neutral[100],
+        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
         marginHorizontal: 16,
     },
 });
+const ls = _createStyles(false);

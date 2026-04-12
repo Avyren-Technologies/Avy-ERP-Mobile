@@ -27,6 +27,7 @@ import {
     useSalaryRegister,
     useVarianceReport,
 } from '@/features/company-admin/api/use-payroll-run-queries';
+import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
@@ -68,7 +69,7 @@ function MonthYearPicker({ month, year, onMonthChange, onYearChange }: {
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text className="font-inter text-sm font-bold text-primary-950">{MONTH_LABELS[month - 1]} {year}</Text>
+                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[month - 1]} {year}</Text>
             </View>
             <Pressable onPress={() => { if (month === 12) { onMonthChange(1); onYearChange(year + 1); } else { onMonthChange(month + 1); } }} style={styles.dateArrow}>
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -192,14 +193,14 @@ function ReportTableView({ type, month, year, onBack }: {
                 <Pressable onPress={onBack} style={styles.backBtn}>
                     <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                 </Pressable>
-                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950">{reportConfig.title}</Text>
+                <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">{reportConfig.title}</Text>
                 <View style={{ width: 36 }} />
             </View>
             <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={FadeInDown.duration(400)}>
                     <View style={styles.reportPeriod}>
-                        <Text className="font-inter text-xs text-neutral-500">Period</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-950">{MONTH_LABELS[month - 1]} {year}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Period</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[month - 1]} {year}</Text>
                     </View>
 
                     {isLoading ? (
@@ -215,7 +216,7 @@ function ReportTableView({ type, month, year, onBack }: {
                                 <View style={styles.tableHeader}>
                                     {columns.map(col => (
                                         <View key={col.key} style={[styles.tableCell, col.key === 'employeeName' ? { minWidth: 140 } : { minWidth: 90 }]}>
-                                            <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{col.label}</Text>
+                                            <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{col.label}</Text>
                                         </View>
                                     ))}
                                 </View>
@@ -227,7 +228,7 @@ function ReportTableView({ type, month, year, onBack }: {
                                             <View style={[styles.tableRow, isVarianceHighlight && { backgroundColor: colors.warning[50] }]}>
                                                 {columns.map(col => (
                                                     <View key={col.key} style={[styles.tableCell, col.key === 'employeeName' ? { minWidth: 140 } : { minWidth: 90 }]}>
-                                                        <Text className="font-inter text-xs text-primary-950" numberOfLines={1}>
+                                                        <Text className="font-inter text-xs text-primary-950 dark:text-white" numberOfLines={1}>
                                                             {col.format ? col.format(row[col.key]) : (row[col.key] ?? '--')}
                                                         </Text>
                                                     </View>
@@ -255,8 +256,8 @@ function ReportCardItem({ item, index, onPress }: { item: ReportCardData; index:
                     <ReportIcon type={item.type} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 14 }}>
-                    <Text className="font-inter text-sm font-bold text-primary-950">{item.title}</Text>
-                    <Text className="mt-1 font-inter text-xs text-neutral-500">{item.description}</Text>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.title}</Text>
+                    <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.description}</Text>
                 </View>
                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 6l6 6-6 6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
@@ -267,6 +268,9 @@ function ReportCardItem({ item, index, onPress }: { item: ReportCardData; index:
 // ============ MAIN COMPONENT ============
 
 export function PayrollReportScreen() {
+  const isDark = useIsDark();
+  const styles = createStyles(isDark);
+
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const now = new Date();
@@ -293,8 +297,8 @@ export function PayrollReportScreen() {
             <AppTopHeader title="Payroll Reports" onMenuPress={toggle} />
             <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={FadeInDown.duration(400)}>
-                    <Text className="font-inter text-2xl font-bold text-primary-950">Reports</Text>
-                    <Text className="mt-1 font-inter text-sm text-neutral-500">Generate and view payroll reports</Text>
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Reports</Text>
+                    <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Generate and view payroll reports</Text>
                 </Animated.View>
 
                 <View style={{ marginTop: 16, marginBottom: 20 }}>
@@ -311,35 +315,35 @@ export function PayrollReportScreen() {
 
 // ============ STYLES ============
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.gradient.surface },
+const createStyles = (isDark: boolean) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
     headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     listContent: { paddingHorizontal: 24 },
     monthYearPicker: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16,
-        padding: 12, borderWidth: 1, borderColor: colors.primary[50],
+        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16,
+        padding: 12, borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
     },
-    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
     reportCard: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: colors.primary[50],
+        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },
-    reportCardPressed: { backgroundColor: colors.primary[50], transform: [{ scale: 0.98 }] },
+    reportCardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
     iconWrap: {
         width: 48, height: 48, borderRadius: 14,
         justifyContent: 'center', alignItems: 'center',
     },
     // Report table view
     reportPeriod: {
-        backgroundColor: colors.primary[50], borderRadius: 12, padding: 12,
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 12, padding: 12,
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
     },
     tableHeader: {
-        flexDirection: 'row', backgroundColor: colors.neutral[50], borderRadius: 10, paddingVertical: 10,
+        flexDirection: 'row', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 10, paddingVertical: 10,
         borderBottomWidth: 1, borderBottomColor: colors.neutral[200],
     },
     tableRow: {
@@ -348,3 +352,4 @@ const styles = StyleSheet.create({
     },
     tableCell: { paddingHorizontal: 8, justifyContent: 'center' },
 });
+const styles = createStyles(false);

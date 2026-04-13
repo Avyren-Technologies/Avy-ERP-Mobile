@@ -97,6 +97,11 @@ function mapManifestIcon(icon: string): SidebarIconType {
         'alert-triangle': 'settings', 'gavel': 'settings',
         'wrench': 'settings', 'factory': 'settings', 'plane': 'settings', 'gift': 'settings',
         'message-square': 'settings',
+        // Visitor Management icons
+        'eye': 'dashboard', 'scan-line': 'settings', 'list': 'reports',
+        'repeat': 'settings', 'truck': 'companies', 'siren': 'support',
+        'bar-chart-2': 'reports', 'history': 'reports', 'tag': 'settings',
+        'door-open': 'settings', 'shield-alert': 'audit',
     };
     return MAP[icon] ?? 'settings';
 }

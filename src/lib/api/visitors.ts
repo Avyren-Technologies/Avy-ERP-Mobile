@@ -91,6 +91,12 @@ export const visitorsApi = {
   listRecurringPasses: (params?: Record<string, unknown>) =>
     client.get('/visitors/recurring-passes', { params }),
 
+  createRecurringPass: (data: Record<string, unknown>) =>
+    client.post('/visitors/recurring-passes', data),
+
+  revokeRecurringPass: (id: string) =>
+    client.post(`/visitors/recurring-passes/${id}/revoke`),
+
   checkInRecurringPass: (id: string) =>
     client.post(`/visitors/recurring-passes/${id}/check-in`),
 
@@ -101,18 +107,64 @@ export const visitorsApi = {
   createVehiclePass: (data: Record<string, unknown>) =>
     client.post('/visitors/vehicle-passes', data),
 
+  recordVehicleExit: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/vehicle-passes/${id}/exit`, data),
+
   listMaterialPasses: (params?: Record<string, unknown>) =>
     client.get('/visitors/material-passes', { params }),
 
   createMaterialPass: (data: Record<string, unknown>) =>
     client.post('/visitors/material-passes', data),
 
+  markMaterialReturned: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/material-passes/${id}/return`, data),
+
   // ── Group Visits ────────────────────────────────────────────────────
   listGroupVisits: (params?: Record<string, unknown>) =>
     client.get('/visitors/group-visits', { params }),
 
+  createGroupVisit: (data: Record<string, unknown>) =>
+    client.post('/visitors/group-visits', data),
+
   batchCheckIn: (id: string) =>
     client.post(`/visitors/group-visits/${id}/batch-check-in`),
+
+  batchCheckOut: (id: string) =>
+    client.post(`/visitors/group-visits/${id}/batch-check-out`),
+
+  // ── Denied Entries ──────────────────────────────────────────────────
+  listDeniedEntries: (params?: Record<string, unknown>) =>
+    client.get('/visitors/denied-entries', { params }),
+
+  // ── Reports ────────────────────────────────────────────────────────
+  getDailyLog: (params?: Record<string, unknown>) =>
+    client.get('/visitors/reports/daily-log', { params }),
+
+  getReportSummary: (params?: Record<string, unknown>) =>
+    client.get('/visitors/reports/summary', { params }),
+
+  getOverstayReport: (params?: Record<string, unknown>) =>
+    client.get('/visitors/reports/overstay', { params }),
+
+  getVisitorAnalytics: (params?: Record<string, unknown>) =>
+    client.get('/visitors/reports/analytics', { params }),
+
+  // ── Visit History ──────────────────────────────────────────────────
+  listVisitHistory: (params?: Record<string, unknown>) =>
+    client.get('/visitors/history', { params }),
+
+  // ── Safety Inductions ──────────────────────────────────────────────
+  listSafetyInductions: (params?: Record<string, unknown>) =>
+    client.get('/visitors/safety-inductions', { params }),
+
+  createSafetyInduction: (data: Record<string, unknown>) =>
+    client.post('/visitors/safety-inductions', data),
+
+  updateSafetyInduction: (id: string, data: Record<string, unknown>) =>
+    client.put(`/visitors/safety-inductions/${id}`, data),
+
+  deleteSafetyInduction: (id: string) =>
+    client.delete(`/visitors/safety-inductions/${id}`),
 
   // ── Emergency ───────────────────────────────────────────────────────
   triggerEmergency: (data: Record<string, unknown>) =>

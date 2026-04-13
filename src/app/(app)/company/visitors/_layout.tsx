@@ -13,6 +13,13 @@ export default function VisitorsLayout() {
       <Stack.Screen name="gates" />
       <Stack.Screen name="watchlist" />
       <Stack.Screen name="emergency" />
+      <Stack.Screen name="recurring-passes" />
+      <Stack.Screen name="group-visits" />
+      <Stack.Screen name="vehicle-passes" />
+      <Stack.Screen name="material-passes" />
+      <Stack.Screen name="denied-entries" />
+      <Stack.Screen name="reports" />
+      <Stack.Screen name="history" />
       <Stack.Screen name="settings" />
     </Stack>
   );

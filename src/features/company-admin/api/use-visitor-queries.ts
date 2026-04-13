@@ -48,6 +48,28 @@ export const visitorKeys = {
     [...visitorKeys.all, 'vehicle-passes', params] as const,
   materialPasses: (params?: Record<string, unknown>) =>
     [...visitorKeys.all, 'material-passes', params] as const,
+
+  // Denied Entries
+  deniedEntries: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'denied-entries', params] as const,
+
+  // Reports
+  dailyLog: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'daily-log', params] as const,
+  reportSummary: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'report-summary', params] as const,
+  overstayReport: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'overstay-report', params] as const,
+  visitorAnalytics: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'visitor-analytics', params] as const,
+
+  // Visit History
+  visitHistory: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'visit-history', params] as const,
+
+  // Safety Inductions
+  safetyInductions: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'safety-inductions', params] as const,
 };
 
 // --- Visit Queries ---
@@ -170,6 +192,70 @@ export function useMaterialPasses(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: visitorKeys.materialPasses(params),
     queryFn: () => visitorsApi.listMaterialPasses(params),
+  });
+}
+
+// --- Denied Entry Queries ---
+
+/** List denied entries (read-only) */
+export function useDeniedEntries(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.deniedEntries(params),
+    queryFn: () => visitorsApi.listDeniedEntries(params),
+  });
+}
+
+// --- Report Queries ---
+
+/** Daily visitor log */
+export function useDailyLog(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.dailyLog(params),
+    queryFn: () => visitorsApi.getDailyLog(params),
+  });
+}
+
+/** Report summary */
+export function useReportSummary(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.reportSummary(params),
+    queryFn: () => visitorsApi.getReportSummary(params),
+  });
+}
+
+/** Overstay report */
+export function useOverstayReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.overstayReport(params),
+    queryFn: () => visitorsApi.getOverstayReport(params),
+  });
+}
+
+/** Visitor analytics */
+export function useVisitorAnalytics(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.visitorAnalytics(params),
+    queryFn: () => visitorsApi.getVisitorAnalytics(params),
+  });
+}
+
+// --- Visit History Queries ---
+
+/** List historical visits */
+export function useVisitHistory(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.visitHistory(params),
+    queryFn: () => visitorsApi.listVisitHistory(params),
+  });
+}
+
+// --- Safety Induction Queries ---
+
+/** List safety inductions */
+export function useSafetyInductions(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.safetyInductions(params),
+    queryFn: () => visitorsApi.listSafetyInductions(params),
   });
 }
 

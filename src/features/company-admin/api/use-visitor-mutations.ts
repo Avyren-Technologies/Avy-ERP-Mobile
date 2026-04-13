@@ -235,6 +235,31 @@ export function useCheckWatchlist() {
 
 // ── Recurring Passes ─────────────────────────────────────────────────
 
+/** Create a recurring pass */
+export function useCreateRecurringPass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      visitorsApi.createRecurringPass(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.recurringPasses() });
+    },
+    onError: showError,
+  });
+}
+
+/** Revoke a recurring pass */
+export function useRevokeRecurringPass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => visitorsApi.revokeRecurringPass(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.recurringPasses() });
+    },
+    onError: showError,
+  });
+}
+
 /** Check in a recurring pass */
 export function useCheckInRecurringPass() {
   const queryClient = useQueryClient();
@@ -264,6 +289,19 @@ export function useCreateVehiclePass() {
   });
 }
 
+/** Record vehicle exit */
+export function useRecordVehicleExit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      visitorsApi.recordVehicleExit(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePasses() });
+    },
+    onError: showError,
+  });
+}
+
 /** Create a material pass */
 export function useCreateMaterialPass() {
   const queryClient = useQueryClient();
@@ -277,13 +315,54 @@ export function useCreateMaterialPass() {
   });
 }
 
+/** Mark material as returned */
+export function useMarkMaterialReturned() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      visitorsApi.markMaterialReturned(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.materialPasses() });
+    },
+    onError: showError,
+  });
+}
+
 // ── Group Visits ─────────────────────────────────────────────────────
+
+/** Create a group visit */
+export function useCreateGroupVisit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      visitorsApi.createGroupVisit(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.groupVisits() });
+    },
+    onError: showError,
+  });
+}
 
 /** Batch check-in for a group visit */
 export function useBatchCheckIn() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => visitorsApi.batchCheckIn(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.groupVisits() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.dashboardToday() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.stats() });
+    },
+    onError: showError,
+  });
+}
+
+/** Batch check-out for a group visit */
+export function useBatchCheckOut() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => visitorsApi.batchCheckOut(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.groupVisits() });
       queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });
@@ -330,6 +409,48 @@ export function useResolveEmergency() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.musterList() });
       queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });
+    },
+    onError: showError,
+  });
+}
+
+// ── Config ───────────────────────────────────────────────────────────
+
+// ── Safety Inductions ───────────────────────────────────────────────
+
+/** Create a safety induction */
+export function useCreateSafetyInduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      visitorsApi.createSafetyInduction(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.safetyInductions() });
+    },
+    onError: showError,
+  });
+}
+
+/** Update a safety induction */
+export function useUpdateSafetyInduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      visitorsApi.updateSafetyInduction(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.safetyInductions() });
+    },
+    onError: showError,
+  });
+}
+
+/** Delete a safety induction */
+export function useDeleteSafetyInduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => visitorsApi.deleteSafetyInduction(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.safetyInductions() });
     },
     onError: showError,
   });

@@ -38,12 +38,28 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
     const wentToBackground = useRef(false);
     const isAuthenticating = useRef(false);
 
+    const canUseBiometrics = useCallback(async () => {
+        const [hasHardware, isEnrolled] = await Promise.all([
+            LocalAuthentication.hasHardwareAsync(),
+            LocalAuthentication.isEnrolledAsync(),
+        ]);
+
+        return hasHardware && isEnrolled;
+    }, []);
+
     const authenticate = useCallback(async () => {
         if (isAuthenticating.current) return;
         isAuthenticating.current = true;
         setAuthFailed(false);
 
         try {
+            const biometricAvailable = await canUseBiometrics();
+            if (!biometricAvailable) {
+                setLocked(false);
+                setAuthFailed(false);
+                return;
+            }
+
             const result = await LocalAuthentication.authenticateAsync({
                 promptMessage: 'Unlock Avy ERP',
                 cancelLabel: 'Cancel',
@@ -61,7 +77,7 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
         } finally {
             isAuthenticating.current = false;
         }
-    }, []);
+    }, [canUseBiometrics]);
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
@@ -80,13 +96,22 @@ export function BiometricLockGate({ children }: { children: React.ReactNode }) {
                 const biometricEnabled = getItem<boolean>(BIOMETRIC_ENABLED_KEY);
                 if (!biometricEnabled) return;
 
-                setLocked(true);
-                setAuthFailed(false);
+                void (async () => {
+                    const biometricAvailable = await canUseBiometrics();
+                    if (!biometricAvailable) {
+                        setLocked(false);
+                        setAuthFailed(false);
+                        return;
+                    }
+
+                    setLocked(true);
+                    setAuthFailed(false);
+                })();
             }
         });
 
         return () => subscription.remove();
-    }, []);
+    }, [canUseBiometrics]);
 
     // Auto-prompt biometric when lock activates
     useEffect(() => {

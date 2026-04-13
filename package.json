@@ -1,6 +1,6 @@
 {
   "name": "avy-erpapp",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "private": true,
   "packageManager": "pnpm@10.12.3",
   "repository": {

@@ -6,13 +6,13 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "distribution": "internal",
+      "distribution": "store",
       "environment": "production",
       "ios": {
         "image": "latest"
       },
       "android": {
-        "buildType": "apk",
+        "buildType": "app-bundle",
         "image": "latest"
       },
       "env": {

@@ -22,6 +22,8 @@ export * from './sidebar';
 export * from './skeleton';
 export * from './text';
 export * from './utils';
+export { AppUpdateGate } from './app-update-gate';
+export { OtaUpdateScreen } from './ota-update-screen';
 
 // export base components from react-native
 export {

@@ -35,6 +35,13 @@ const GOOGLE_SERVICES_BY_ENV: Record<
 };
 
 function resolveGoogleServicesFile(): string | undefined {
+  // 1. EAS Build file secret — set via `eas env:create --type file`
+  //    EAS writes the file to a temp path and sets the env var to that path.
+  if (process.env.GOOGLE_SERVICES_JSON) {
+    return process.env.GOOGLE_SERVICES_JSON;
+  }
+
+  // 2. Local env-specific file (for local builds / development)
   const env = Env.EXPO_PUBLIC_APP_ENV;
   const envRelative = GOOGLE_SERVICES_BY_ENV[env];
   const envPath = join(process.cwd(), envRelative);
@@ -42,6 +49,7 @@ function resolveGoogleServicesFile(): string | undefined {
     return `./${envRelative}`;
   }
 
+  // 3. Fallback: merged google-services.json (all Firebase clients in one file)
   const mergedPath = join(process.cwd(), 'google-services.json');
   if (existsSync(mergedPath)) {
     return './google-services.json';

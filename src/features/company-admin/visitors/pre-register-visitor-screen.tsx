@@ -1,8 +1,10 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,7 +21,7 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
-import { showSuccess } from '@/components/ui/utils';
+import { showSuccess, showWarning } from '@/components/ui/utils';
 
 import { useCreateVisit } from '@/features/company-admin/api/use-visitor-mutations';
 import { useVisitorTypes } from '@/features/company-admin/api/use-visitor-queries';
@@ -55,7 +57,26 @@ export function PreRegisterVisitorScreen() {
   const [selectedTypeId, setSelectedTypeId] = React.useState('');
   const [vehiclePlate, setVehiclePlate] = React.useState('');
   const [notes, setNotes] = React.useState('');
+  const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const capturePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      showWarning('Camera permission is required to capture visitor photo');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: true,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setVisitorPhoto(result.assets[0].uri);
+    }
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -86,6 +107,7 @@ export function PreRegisterVisitorScreen() {
         visitorTypeId: selectedTypeId || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
         notes: notes.trim() || undefined,
+        visitorPhoto: visitorPhoto ?? undefined,
         isWalkIn: false,
       },
       {
@@ -188,6 +210,39 @@ export function PreRegisterVisitorScreen() {
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-4">Additional Information</Text>
               {renderField('Vehicle Number', vehiclePlate, setVehiclePlate, { placeholder: 'License plate', autoCapitalize: 'characters' })}
               {renderField('Notes', notes, setNotes, { placeholder: 'Any additional notes...', multiline: true })}
+
+              {/* Visitor Photo */}
+              <View style={s.fieldWrap}>
+                <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Visitor Photo</Text>
+                {visitorPhoto ? (
+                  <View style={{ alignItems: 'center', gap: 10 }}>
+                    <Image source={{ uri: visitorPhoto }} style={s.photoPreview} />
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      <Pressable onPress={capturePhoto} style={s.photoBtn}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24">
+                          <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                        </Svg>
+                        <Text className="font-inter text-xs font-semibold text-primary-600 ml-1.5">Retake</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setVisitorPhoto(null)} style={s.photoBtn}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24">
+                          <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                        <Text className="font-inter text-xs font-semibold text-danger-500 ml-1.5">Remove</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <Pressable onPress={capturePhoto} style={s.captureBtn}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24">
+                      <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                    </Svg>
+                    <Text className="font-inter text-sm font-semibold text-primary-600 ml-2">Capture Photo</Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
 
             {/* Actions */}
@@ -218,4 +273,7 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
   chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
   cancelBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
   submitBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+  captureBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 50, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary[200], borderStyle: 'dashed', backgroundColor: isDark ? '#1E1B4B' : colors.primary[50] },
+  photoPreview: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: colors.primary[200] },
+  photoBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: isDark ? '#1A1730' : colors.neutral[50], borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
 });

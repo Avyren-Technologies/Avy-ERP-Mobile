@@ -1,9 +1,13 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -23,7 +27,7 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { showSuccess } from '@/components/ui/utils';
+import { showSuccess, showWarning } from '@/components/ui/utils';
 
 import {
   useCheckInVisit,
@@ -55,7 +59,26 @@ function WalkInForm({
   const [purpose, setPurpose] = React.useState('');
   const [hostName, setHostName] = React.useState('');
   const [selectedTypeId, setSelectedTypeId] = React.useState('');
+  const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const capturePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      showWarning('Camera permission is required to capture visitor photo');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: true,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setVisitorPhoto(result.assets[0].uri);
+    }
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -76,6 +99,7 @@ function WalkInForm({
       purpose: purpose.trim(),
       hostName: hostName.trim() || undefined,
       visitorTypeId: selectedTypeId || undefined,
+      visitorPhoto: visitorPhoto ?? undefined,
       isWalkIn: true,
     });
   };
@@ -172,6 +196,39 @@ function WalkInForm({
         </View>
       )}
 
+      {/* Visitor Photo */}
+      <View style={formStyles.fieldWrap}>
+        <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Visitor Photo</Text>
+        {visitorPhoto ? (
+          <View style={{ alignItems: 'center', gap: 10 }}>
+            <Image source={{ uri: visitorPhoto }} style={formStyles.photoPreview} />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable onPress={capturePhoto} style={formStyles.photoBtn}>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                  <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                </Svg>
+                <Text className="font-inter text-xs font-semibold text-primary-600 ml-1.5">Retake</Text>
+              </Pressable>
+              <Pressable onPress={() => setVisitorPhoto(null)} style={formStyles.photoBtn}>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                  <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+                <Text className="font-inter text-xs font-semibold text-danger-500 ml-1.5">Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable onPress={capturePhoto} style={formStyles.captureBtn}>
+            <Svg width={20} height={20} viewBox="0 0 24 24">
+              <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+            </Svg>
+            <Text className="font-inter text-sm font-semibold text-primary-600 ml-2">Take Photo</Text>
+          </Pressable>
+        )}
+      </View>
+
       {/* Submit */}
       <Pressable onPress={handleSubmit} disabled={isSaving} style={[formStyles.submitBtn, isSaving && { opacity: 0.5 }]}>
         <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Registering...' : 'CHECK IN WALK-IN'}</Text>
@@ -237,6 +294,28 @@ export function GateCheckInScreen() {
 
   const [activeTab, setActiveTab] = React.useState<'code' | 'walkin'>('code');
   const [visitCode, setVisitCode] = React.useState('');
+  const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
+  const [showScanner, setShowScanner] = React.useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const scanProcessedRef = React.useRef(false);
+
+  const capturePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      showWarning('Camera permission is required to capture visitor photo');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: true,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setVisitorPhoto(result.assets[0].uri);
+    }
+  };
 
   const { data: todayResponse, isLoading, refetch, isFetching } = useDashboardToday({ status: 'PRE_REGISTERED,APPROVED' });
   const { data: typesResponse } = useVisitorTypes();
@@ -259,11 +338,12 @@ export function GateCheckInScreen() {
   const handleCodeCheckIn = () => {
     if (!visitCode.trim()) return;
     checkInMutation.mutate(
-      { id: visitCode.trim() },
+      { id: visitCode.trim(), data: visitorPhoto ? { visitorPhoto } : undefined },
       {
         onSuccess: () => {
           showSuccess('Visitor checked in successfully');
           setVisitCode('');
+          setVisitorPhoto(null);
         },
       },
     );
@@ -271,10 +351,11 @@ export function GateCheckInScreen() {
 
   const handleExpectedCheckIn = (visitId: string) => {
     checkInMutation.mutate(
-      { id: visitId },
+      { id: visitId, data: visitorPhoto ? { visitorPhoto } : undefined },
       {
         onSuccess: () => {
           showSuccess('Visitor checked in successfully');
+          setVisitorPhoto(null);
         },
       },
     );
@@ -286,6 +367,32 @@ export function GateCheckInScreen() {
         showSuccess('Walk-in visitor registered and checked in');
       },
     });
+  };
+
+  const handleScanQR = async () => {
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) return;
+    }
+    scanProcessedRef.current = false;
+    setShowScanner(true);
+  };
+
+  const handleBarcodeScanned = (result: { data: string }) => {
+    if (scanProcessedRef.current) return;
+    scanProcessedRef.current = true;
+    setShowScanner(false);
+    setVisitCode(result.data);
+    // Auto-trigger check-in with the scanned code
+    checkInMutation.mutate(
+      { id: result.data.trim() },
+      {
+        onSuccess: () => {
+          showSuccess('Visitor checked in successfully');
+          setVisitCode('');
+        },
+      },
+    );
   };
 
   return (
@@ -331,6 +438,15 @@ export function GateCheckInScreen() {
                     />
                   </View>
                   <Pressable
+                    onPress={handleScanQR}
+                    style={s.scanQrBtn}
+                  >
+                    <Svg width={20} height={20} viewBox="0 0 24 24">
+                      <Path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      <Path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7z" stroke={colors.white} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                  </Pressable>
+                  <Pressable
                     onPress={handleCodeCheckIn}
                     disabled={checkInMutation.isPending || !visitCode.trim()}
                     style={[s.codeSubmitBtn, (!visitCode.trim() || checkInMutation.isPending) && { opacity: 0.5 }]}
@@ -339,6 +455,41 @@ export function GateCheckInScreen() {
                       <Path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
                   </Pressable>
+                </View>
+              </Animated.View>
+
+              {/* Visitor Photo Capture */}
+              <Animated.View entering={FadeInDown.duration(400).delay(100)} style={{ marginTop: 16 }}>
+                <View style={[s.codeCard, { padding: 16 }]}>
+                  <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">Visitor Photo</Text>
+                  {visitorPhoto ? (
+                    <View style={{ alignItems: 'center', gap: 10 }}>
+                      <Image source={{ uri: visitorPhoto }} style={formStyles.photoPreview} />
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <Pressable onPress={capturePhoto} style={formStyles.photoBtn}>
+                          <Svg width={16} height={16} viewBox="0 0 24 24">
+                            <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                          </Svg>
+                          <Text className="font-inter text-xs font-semibold text-primary-600 ml-1.5">Retake</Text>
+                        </Pressable>
+                        <Pressable onPress={() => setVisitorPhoto(null)} style={formStyles.photoBtn}>
+                          <Svg width={16} height={16} viewBox="0 0 24 24">
+                            <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          </Svg>
+                          <Text className="font-inter text-xs font-semibold text-danger-500 ml-1.5">Remove</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <Pressable onPress={capturePhoto} style={formStyles.captureBtn}>
+                      <Svg width={20} height={20} viewBox="0 0 24 24">
+                        <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                      </Svg>
+                      <Text className="font-inter text-sm font-semibold text-primary-600 ml-2">Take Photo</Text>
+                    </Pressable>
+                  )}
                 </View>
               </Animated.View>
 
@@ -375,12 +526,53 @@ export function GateCheckInScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* QR Scanner Modal */}
+      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+        <View style={scannerStyles.container}>
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={handleBarcodeScanned}
+          />
+          {/* Overlay with scan window */}
+          <View style={scannerStyles.overlay}>
+            <View style={scannerStyles.topOverlay} />
+            <View style={scannerStyles.middleRow}>
+              <View style={scannerStyles.sideOverlay} />
+              <View style={scannerStyles.scanWindow}>
+                {/* Corner markers */}
+                <View style={[scannerStyles.corner, scannerStyles.cornerTL]} />
+                <View style={[scannerStyles.corner, scannerStyles.cornerTR]} />
+                <View style={[scannerStyles.corner, scannerStyles.cornerBL]} />
+                <View style={[scannerStyles.corner, scannerStyles.cornerBR]} />
+              </View>
+              <View style={scannerStyles.sideOverlay} />
+            </View>
+            <View style={scannerStyles.bottomOverlay}>
+              <Text className="font-inter text-sm text-white text-center mt-6">Align QR code within the frame</Text>
+            </View>
+          </View>
+          {/* Close button */}
+          <Pressable
+            onPress={() => setShowScanner(false)}
+            style={[scannerStyles.closeBtn, { top: insets.top + 12 }]}
+          >
+            <Svg width={20} height={20} viewBox="0 0 24 24">
+              <Path d="M18 6L6 18M6 6l12 12" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Pressable>
+        </View>
+      </Modal>
+
       <ConfirmModal {...confirmModalProps} />
     </View>
   );
 }
 
 // ============ STYLES ============
+
+const SCAN_WINDOW_SIZE = 250;
 
 const createStyles = (isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
@@ -391,6 +583,23 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
   codeCard: { backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50] },
   codeInputRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   codeSubmitBtn: { width: 50, height: 50, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center' },
+  scanQrBtn: { width: 50, height: 50, borderRadius: 14, backgroundColor: colors.accent[600], justifyContent: 'center', alignItems: 'center' },
+});
+
+const scannerStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  topOverlay: { flex: 1, width: '100%', backgroundColor: 'rgba(0,0,0,0.6)' },
+  middleRow: { flexDirection: 'row', width: '100%' },
+  sideOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  scanWindow: { width: SCAN_WINDOW_SIZE, height: SCAN_WINDOW_SIZE, borderRadius: 16, overflow: 'hidden' },
+  bottomOverlay: { flex: 1, width: '100%', backgroundColor: 'rgba(0,0,0,0.6)' },
+  corner: { position: 'absolute', width: 28, height: 28, borderColor: colors.primary[400], borderWidth: 3 },
+  cornerTL: { top: 0, left: 0, borderBottomWidth: 0, borderRightWidth: 0, borderTopLeftRadius: 12 },
+  cornerTR: { top: 0, right: 0, borderBottomWidth: 0, borderLeftWidth: 0, borderTopRightRadius: 12 },
+  cornerBL: { bottom: 0, left: 0, borderTopWidth: 0, borderRightWidth: 0, borderBottomLeftRadius: 12 },
+  cornerBR: { bottom: 0, right: 0, borderTopWidth: 0, borderLeftWidth: 0, borderBottomRightRadius: 12 },
+  closeBtn: { position: 'absolute', right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
 });
 
 const formStyles = StyleSheet.create({
@@ -403,4 +612,7 @@ const formStyles = StyleSheet.create({
   submitBtn: { height: 52, borderRadius: 14, backgroundColor: colors.success[600], justifyContent: 'center', alignItems: 'center', marginTop: 8, shadowColor: colors.success[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
   expectedCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.primary[50] },
   checkInBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.success[600], borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  captureBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 50, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary[200], borderStyle: 'dashed', backgroundColor: colors.primary[50] },
+  photoPreview: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: colors.primary[200] },
+  photoBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.neutral[50], borderWidth: 1, borderColor: colors.neutral[200] },
 });

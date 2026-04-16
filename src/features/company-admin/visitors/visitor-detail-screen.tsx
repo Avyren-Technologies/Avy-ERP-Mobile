@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
@@ -360,9 +361,26 @@ export function VisitorDetailScreen() {
             </View>
           </Animated.View>
 
+          {/* QR Code */}
+          {visit.visitCode ? (
+            <Animated.View entering={FadeInDown.duration(400).delay(300)} style={s.sectionWrap}>
+              <View style={[s.detailCard, { alignItems: 'center', paddingVertical: 20 }]}>
+                <Text className="font-inter text-xs font-semibold uppercase tracking-wider" style={{ color: isDark ? colors.neutral[400] : colors.neutral[500], marginBottom: 12 }}>
+                  Visit QR Code
+                </Text>
+                <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 12 }}>
+                  <QRCode value={visit.visitCode} size={160} />
+                </View>
+                <Text className="font-inter text-sm" style={{ color: isDark ? colors.neutral[300] : colors.neutral[600], marginTop: 8, fontFamily: 'Inter' }}>
+                  {visit.visitCode}
+                </Text>
+              </View>
+            </Animated.View>
+          ) : null}
+
           {/* Actions */}
           {(canCheckIn || canCheckOut || canApprove || canExtend || canCancel) && (
-            <Animated.View entering={FadeInDown.duration(400).delay(300)} style={s.sectionWrap}>
+            <Animated.View entering={FadeInDown.duration(400).delay(400)} style={s.sectionWrap}>
               <View style={s.detailCard}>
                 <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">Actions</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -403,7 +421,7 @@ export function VisitorDetailScreen() {
 
           {/* Timeline */}
           {visit.timeline.length > 0 && (
-            <Animated.View entering={FadeInDown.duration(400).delay(400)} style={s.sectionWrap}>
+            <Animated.View entering={FadeInDown.duration(400).delay(500)} style={s.sectionWrap}>
               <View style={s.detailCard}>
                 <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">Timeline</Text>
                 {visit.timeline.map((event: TimelineEvent, idx: number) => (

@@ -1,222 +1,285 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import * as DocumentPicker from 'expo-document-picker';
 import * as React from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { DateTime } from 'luxon';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { DatePickerField } from '@/components/ui/date-picker';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ── Types ──
 
-interface ClaimOvertimeModalProps {
-  visible: boolean;
-  onClose: () => void;
+interface Attachment {
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number;
+}
+
+export interface ClaimOvertimeSheetHandle {
+  present: () => void;
+  dismiss: () => void;
+}
+
+interface ClaimOvertimeSheetProps {
   onSubmit: (data: { date: string; hours: number; reason: string; attachments?: string[] }) => void;
   isSubmitting: boolean;
 }
 
 // ── Component ──
 
-export function ClaimOvertimeModal({
-  visible,
-  onClose,
-  onSubmit,
-  isSubmitting,
-}: ClaimOvertimeModalProps) {
-  const isDark = useIsDark();
-  const s = createStyles(isDark);
-  const insets = useSafeAreaInsets();
+export const ClaimOvertimeSheet = forwardRef<ClaimOvertimeSheetHandle, ClaimOvertimeSheetProps>(
+  function ClaimOvertimeSheet({ onSubmit, isSubmitting }, ref) {
+    const isDark = useIsDark();
+    const s = createStyles(isDark);
+    const sheetRef = useRef<React.ComponentRef<typeof BottomSheetModal>>(null);
+    const snapPoints = useMemo(() => ['75%', '92%'], []);
 
-  const [date, setDate] = React.useState('');
-  const [hours, setHours] = React.useState(1);
-  const [reason, setReason] = React.useState('');
-  const [attachmentUrl, setAttachmentUrl] = React.useState('');
-  const [attachments, setAttachments] = React.useState<string[]>([]);
+    const [date, setDate] = React.useState('');
+    const [hours, setHours] = React.useState(1);
+    const [reason, setReason] = React.useState('');
+    const [attachments, setAttachments] = React.useState<Attachment[]>([]);
 
-  React.useEffect(() => {
-    if (visible) {
+    const resetForm = useCallback(() => {
       setDate('');
       setHours(1);
       setReason('');
-      setAttachmentUrl('');
       setAttachments([]);
-    }
-  }, [visible]);
+    }, []);
 
-  const today = DateTime.now();
-  const minDate = today.minus({ days: 30 });
+    useImperativeHandle(ref, () => ({
+      present: () => {
+        resetForm();
+        sheetRef.current?.present();
+      },
+      dismiss: () => {
+        sheetRef.current?.dismiss();
+      },
+    }));
 
-  const isDateValid = (() => {
-    if (!date.trim()) return false;
-    const parsed = DateTime.fromFormat(date.trim(), 'yyyy-MM-dd');
-    if (!parsed.isValid) return false;
-    return parsed >= minDate.startOf('day') && parsed <= today.endOf('day');
-  })();
+    const renderBackdrop = useCallback(
+      (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />,
+      [],
+    );
 
-  const isReasonValid = reason.trim().length >= 10 && reason.trim().length <= 500;
-  const isValid = isDateValid && hours >= 0.5 && hours <= 24 && isReasonValid;
+    const handleDismiss = useCallback(() => {
+      resetForm();
+    }, [resetForm]);
 
-  const incrementHours = () => setHours((h) => Math.min(24, +(h + 0.5).toFixed(1)));
-  const decrementHours = () => setHours((h) => Math.max(0.5, +(h - 0.5).toFixed(1)));
+    // Date constraints: last 30 days up to yesterday
+    const today = DateTime.now();
+    const minDate = today.minus({ days: 30 });
+    const yesterday = today.minus({ days: 1 });
 
-  const addAttachment = () => {
-    const url = attachmentUrl.trim();
-    if (url && attachments.length < 5 && !attachments.includes(url)) {
-      setAttachments((prev) => [...prev, url]);
-      setAttachmentUrl('');
-    }
-  };
+    const minDateStr = minDate.toFormat('yyyy-MM-dd');
+    const maxDateStr = yesterday.toFormat('yyyy-MM-dd');
 
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
+    const isDateValid = (() => {
+      if (!date.trim()) return false;
+      const parsed = DateTime.fromFormat(date.trim(), 'yyyy-MM-dd');
+      if (!parsed.isValid) return false;
+      return parsed >= minDate.startOf('day') && parsed <= yesterday.endOf('day');
+    })();
 
-  const handleSubmit = () => {
-    onSubmit({
-      date: date.trim(),
-      hours,
-      reason: reason.trim(),
-      attachments: attachments.length > 0 ? attachments : undefined,
-    });
-  };
+    const dateError = (() => {
+      if (!date.trim()) return undefined;
+      if (!isDateValid) return `Select a date between ${minDateStr} and ${maxDateStr}`;
+      return undefined;
+    })();
 
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={[s.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-          <View style={s.sheetHandle} />
+    const isReasonValid = reason.trim().length >= 10 && reason.trim().length <= 500;
+    const isValid = isDateValid && hours >= 0.5 && hours <= 24 && isReasonValid;
+
+    const incrementHours = () => setHours((h) => Math.min(24, +(h + 0.5).toFixed(1)));
+    const decrementHours = () => setHours((h) => Math.max(0.5, +(h - 0.5).toFixed(1)));
+
+    // File picker
+    const pickDocument = async () => {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf'],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets) {
+        const newFiles: Attachment[] = result.assets.map((asset) => ({
+          fileName: asset.name,
+          fileUrl: asset.uri,
+          fileSize: asset.size,
+        }));
+        setAttachments((prev) => {
+          const combined = [...prev, ...newFiles];
+          return combined.slice(0, 5); // max 5
+        });
+      }
+    };
+
+    const removeAttachment = (index: number) => {
+      setAttachments((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const formatFileSize = (size?: number) => {
+      if (!size) return '';
+      if (size < 1024) return `${size} B`;
+      if (size < 1024 * 1024) return `${(size / 1024).toFixed(0)} KB`;
+      return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const handleSubmit = () => {
+      onSubmit({
+        date: date.trim(),
+        hours,
+        reason: reason.trim(),
+        attachments: attachments.length > 0 ? attachments.map((a) => a.fileUrl) : undefined,
+      });
+    };
+
+    return (
+      <BottomSheetModal
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        enableDynamicSizing={false}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={s.sheetBackground}
+        handleIndicatorStyle={s.handleIndicator}
+        onDismiss={handleDismiss}
+      >
+        <BottomSheetScrollView
+          contentContainerStyle={s.content}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">
             Claim Overtime
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 460 }}>
-            {/* Date */}
-            <View style={s.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                Date <Text className="text-danger-500">*</Text>
-              </Text>
-              <View style={s.inputWrap}>
-                <TextInput
-                  style={[s.textInput, isDark && s.textInputDark]}
-                  placeholder="YYYY-MM-DD (last 30 days)"
-                  placeholderTextColor={colors.neutral[400]}
-                  value={date}
-                  onChangeText={setDate}
-                  autoCapitalize="none"
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-              {date.trim().length > 0 && !isDateValid && (
-                <Text className="font-inter text-[10px] text-danger-500 mt-1">
-                  Enter a valid date within the last 30 days (YYYY-MM-DD)
+          {/* Date */}
+          <DatePickerField
+            label="Date"
+            value={date}
+            onChange={setDate}
+            required
+            hint={`Select a date within the last 30 days (up to yesterday)`}
+            error={dateError}
+          />
+
+          {/* Hours Stepper */}
+          <View style={s.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Hours <Text className="text-danger-500">*</Text>
+            </Text>
+            <View style={s.stepperRow}>
+              <Pressable onPress={decrementHours} style={[s.stepperBtn, hours <= 0.5 && { opacity: 0.4 }]}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M5 12h14" stroke={colors.primary[600]} strokeWidth="2.5" strokeLinecap="round" />
+                </Svg>
+              </Pressable>
+              <View style={s.stepperValueWrap}>
+                <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
+                  {hours.toFixed(1)}h
                 </Text>
-              )}
+              </View>
+              <Pressable onPress={incrementHours} style={[s.stepperBtn, hours >= 24 && { opacity: 0.4 }]}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2.5" strokeLinecap="round" />
+                </Svg>
+              </Pressable>
             </View>
+            <Text className="font-inter text-[10px] text-neutral-400 mt-1">
+              0.5 hour increments (min 0.5, max 24)
+            </Text>
+          </View>
 
-            {/* Hours Stepper */}
-            <View style={s.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                Hours <Text className="text-danger-500">*</Text>
-              </Text>
-              <View style={s.stepperRow}>
-                <Pressable onPress={decrementHours} style={[s.stepperBtn, hours <= 0.5 && { opacity: 0.4 }]}>
-                  <Svg width={18} height={18} viewBox="0 0 24 24">
-                    <Path d="M5 12h14" stroke={colors.primary[600]} strokeWidth="2.5" strokeLinecap="round" />
-                  </Svg>
-                </Pressable>
-                <View style={s.stepperValueWrap}>
-                  <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">
-                    {hours.toFixed(1)}h
+          {/* Reason */}
+          <View style={s.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Reason <Text className="text-danger-500">*</Text>
+            </Text>
+            <View style={[s.inputWrap, { height: 100 }]}>
+              <TextInput
+                style={[s.textInput, isDark && s.textInputDark, { textAlignVertical: 'top', paddingTop: 10 }]}
+                placeholder="Describe the overtime work (10-500 characters)..."
+                placeholderTextColor={colors.neutral[400]}
+                value={reason}
+                onChangeText={setReason}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+              />
+            </View>
+            <Text className="font-inter text-[10px] text-neutral-400 mt-1 text-right">
+              {reason.length}/500
+            </Text>
+          </View>
+
+          {/* Attachments */}
+          <View style={s.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Attachments ({attachments.length}/5)
+            </Text>
+            {attachments.length < 5 && (
+              <Pressable onPress={pickDocument} style={s.uploadBtn}>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                  <Path
+                    d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+                    stroke={colors.primary[600]}
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+                <Text className="font-inter text-xs font-bold text-primary-600">Upload File</Text>
+              </Pressable>
+            )}
+            {attachments.map((file, idx) => (
+              <View key={idx} style={s.attachmentRow}>
+                <Svg width={14} height={14} viewBox="0 0 24 24">
+                  <Path
+                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                    stroke={colors.primary[500]}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M14 2v6h6"
+                    stroke={colors.primary[500]}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+                <View style={{ flex: 1 }}>
+                  <Text className="font-inter text-xs text-primary-700 dark:text-primary-300" numberOfLines={1}>
+                    {file.fileName}
                   </Text>
+                  {file.fileSize != null && (
+                    <Text className="font-inter text-[10px] text-neutral-400">
+                      {formatFileSize(file.fileSize)}
+                    </Text>
+                  )}
                 </View>
-                <Pressable onPress={incrementHours} style={[s.stepperBtn, hours >= 24 && { opacity: 0.4 }]}>
-                  <Svg width={18} height={18} viewBox="0 0 24 24">
-                    <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2.5" strokeLinecap="round" />
+                <Pressable onPress={() => removeAttachment(idx)} hitSlop={8}>
+                  <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" strokeLinecap="round" />
                   </Svg>
                 </Pressable>
               </View>
-              <Text className="font-inter text-[10px] text-neutral-400 mt-1">
-                0.5 hour increments (min 0.5, max 24)
-              </Text>
-            </View>
+            ))}
+            {attachments.length === 0 && (
+              <Text className="font-inter text-[10px] text-neutral-400 mt-1">No attachments added yet</Text>
+            )}
+          </View>
 
-            {/* Reason */}
-            <View style={s.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                Reason <Text className="text-danger-500">*</Text>
-              </Text>
-              <View style={[s.inputWrap, { height: 100 }]}>
-                <TextInput
-                  style={[s.textInput, isDark && s.textInputDark, { textAlignVertical: 'top', paddingTop: 10 }]}
-                  placeholder="Describe the overtime work (10-500 characters)..."
-                  placeholderTextColor={colors.neutral[400]}
-                  value={reason}
-                  onChangeText={setReason}
-                  multiline
-                  numberOfLines={4}
-                  maxLength={500}
-                />
-              </View>
-              <Text className="font-inter text-[10px] text-neutral-400 mt-1 text-right">
-                {reason.length}/500
-              </Text>
-            </View>
-
-            {/* Attachments */}
-            <View style={s.fieldWrap}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                Attachments ({attachments.length}/5)
-              </Text>
-              {attachments.length < 5 && (
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <View style={[s.inputWrap, { flex: 1 }]}>
-                    <TextInput
-                      style={[s.textInput, isDark && s.textInputDark]}
-                      placeholder="Paste URL..."
-                      placeholderTextColor={colors.neutral[400]}
-                      value={attachmentUrl}
-                      onChangeText={setAttachmentUrl}
-                      autoCapitalize="none"
-                      keyboardType="url"
-                    />
-                  </View>
-                  <Pressable
-                    onPress={addAttachment}
-                    style={[s.addBtn, !attachmentUrl.trim() && { opacity: 0.4 }]}
-                    disabled={!attachmentUrl.trim()}
-                  >
-                    <Text className="font-inter text-xs font-bold text-white">Add</Text>
-                  </Pressable>
-                </View>
-              )}
-              {attachments.map((url, idx) => (
-                <View key={idx} style={s.attachmentRow}>
-                  <Text className="font-inter text-xs text-primary-700 dark:text-primary-300 flex-1" numberOfLines={1}>
-                    {url}
-                  </Text>
-                  <Pressable onPress={() => removeAttachment(idx)}>
-                    <Svg width={16} height={16} viewBox="0 0 24 24">
-                      <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" strokeLinecap="round" />
-                    </Svg>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-
+          {/* Action Buttons */}
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-            <Pressable onPress={onClose} style={s.cancelBtn}>
+            <Pressable onPress={() => sheetRef.current?.dismiss()} style={s.cancelBtn}>
               <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
             </Pressable>
             <Pressable
@@ -229,30 +292,34 @@ export function ClaimOvertimeModal({
               </Text>
             </Pressable>
           </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+
+          <View style={{ height: 40 }} />
+        </BottomSheetScrollView>
+      </BottomSheetModal>
+    );
+  },
+);
+
+// Keep backward-compatible named export
+export { ClaimOvertimeSheet as ClaimOvertimeModal };
 
 // ── Styles ──
 
 const createStyles = (isDark: boolean) =>
   StyleSheet.create({
-    formSheet: {
+    sheetBackground: {
       backgroundColor: isDark ? '#1A1730' : colors.white,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
-      paddingHorizontal: 24,
-      paddingTop: 12,
     },
-    sheetHandle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
+    handleIndicator: {
       backgroundColor: colors.neutral[300],
-      alignSelf: 'center',
-      marginBottom: 16,
+      width: 40,
+    },
+    content: {
+      paddingHorizontal: 24,
+      paddingTop: 8,
+      paddingBottom: 40,
     },
     fieldWrap: { marginBottom: 14 },
     inputWrap: {
@@ -297,13 +364,17 @@ const createStyles = (isDark: boolean) =>
       justifyContent: 'center',
       alignItems: 'center',
     },
-    addBtn: {
+    uploadBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
       height: 46,
       paddingHorizontal: 16,
       borderRadius: 12,
-      backgroundColor: colors.primary[600],
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: isDark ? '#1E1B4B' : colors.primary[50],
+      borderWidth: 1.5,
+      borderColor: isDark ? colors.neutral[700] : colors.primary[200],
+      borderStyle: 'dashed',
     },
     attachmentRow: {
       flexDirection: 'row',
@@ -311,7 +382,7 @@ const createStyles = (isDark: boolean) =>
       gap: 8,
       marginTop: 8,
       paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingVertical: 10,
       borderRadius: 8,
       backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
       borderWidth: 1,

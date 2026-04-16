@@ -25,7 +25,7 @@ import {
   useMyOvertimeSummary,
   useClaimOvertime,
 } from '@/features/ess/overtime/use-overtime-queries';
-import { ClaimOvertimeModal } from '@/features/ess/overtime/claim-overtime-modal';
+import { ClaimOvertimeSheet, type ClaimOvertimeSheetHandle } from '@/features/ess/overtime/claim-overtime-modal';
 import {
   OvertimeRequestDetailSheet,
   type OvertimeDetailSheetHandle,
@@ -223,9 +223,9 @@ export function MyOvertimeScreen() {
   const fmt = useCompanyFormatter();
 
   const detailSheetRef = React.useRef<OvertimeDetailSheetHandle>(null);
+  const claimSheetRef = React.useRef<ClaimOvertimeSheetHandle>(null);
 
   const [filter, setFilter] = React.useState<FilterOption>('ALL');
-  const [formVisible, setFormVisible] = React.useState(false);
 
   const summaryQuery = useMyOvertimeSummary();
   const listQuery = useMyOvertimeRequests(
@@ -256,7 +256,7 @@ export function MyOvertimeScreen() {
       onConfirm: () => {
         claimMutation.mutate(data, {
           onSuccess: () => {
-            setFormVisible(false);
+            claimSheetRef.current?.dismiss();
             showSuccess('Overtime claim submitted successfully');
           },
           onError: (err: any) =>
@@ -436,11 +436,10 @@ export function MyOvertimeScreen() {
         }
       />
 
-      <FAB onPress={() => setFormVisible(true)} />
+      <FAB onPress={() => claimSheetRef.current?.present()} />
 
-      <ClaimOvertimeModal
-        visible={formVisible}
-        onClose={() => setFormVisible(false)}
+      <ClaimOvertimeSheet
+        ref={claimSheetRef}
         onSubmit={handleClaim}
         isSubmitting={claimMutation.isPending}
       />

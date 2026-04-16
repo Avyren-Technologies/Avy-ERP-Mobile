@@ -1,5 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -239,13 +240,14 @@ function MiniCalendar({
 // ============ APPLY LEAVE — FULL-SCREEN MODAL ============
 
 function ApplyLeaveModal({
-    visible, onClose, onSave, isSaving, balances
+    visible, onClose, onSave, isSaving, balances, defaultLeaveTypeId,
 }: Readonly<{
     visible: boolean;
     onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     isSaving: boolean;
     balances: LeaveBalance[];
+    defaultLeaveTypeId?: string;
 }>) {
     const insets = useSafeAreaInsets();
     const [leaveTypeId, setLeaveTypeId] = React.useState('');
@@ -274,7 +276,7 @@ function ApplyLeaveModal({
     });
 
     const handleShow = () => {
-        setLeaveTypeId('');
+        setLeaveTypeId(defaultLeaveTypeId ?? '');
         setFromDate('');
         setToDate('');
         setIsHalfDay(false);
@@ -531,6 +533,7 @@ export function MyLeaveScreen() {
   const isDark = useIsDark();
   const st = _createStyles(isDark);
 
+    const params = useLocalSearchParams<{ leaveTypeId?: string; preselected?: string }>();
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch, isFetching } = useMyLeaveBalance();
@@ -539,6 +542,15 @@ export function MyLeaveScreen() {
     const cancelLeave   = useCancelLeave();
     const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
     const [formVisible, setFormVisible] = React.useState(false);
+    const [preselectedLeaveTypeId, setPreselectedLeaveTypeId] = React.useState<string | undefined>();
+
+    // Auto-open apply modal when navigated with comp-off deep link params
+    React.useEffect(() => {
+        if (params.preselected === 'COMPENSATORY' && params.leaveTypeId) {
+            setPreselectedLeaveTypeId(params.leaveTypeId);
+            setFormVisible(true);
+        }
+    }, [params.preselected, params.leaveTypeId]);
 
     const data = React.useMemo(() => {
         const raw: any = (response as any)?.data ?? response;
@@ -676,10 +688,11 @@ export function MyLeaveScreen() {
 
             <ApplyLeaveModal
                 visible={formVisible}
-                onClose={() => setFormVisible(false)}
+                onClose={() => { setFormVisible(false); setPreselectedLeaveTypeId(undefined); }}
                 onSave={handleApply}
                 isSaving={applyMutation.isPending}
                 balances={data.balances}
+                defaultLeaveTypeId={preselectedLeaveTypeId}
             />
             <ConfirmModal {...confirmModalProps} />
         </View>

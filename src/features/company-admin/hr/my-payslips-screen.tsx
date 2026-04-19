@@ -40,6 +40,7 @@ interface PayslipItem {
     grossEarnings: number;
     totalDeductions: number;
     netPay: number;
+    arrearsAmount: number;
     earnings: { label: string; amount: number }[];
     deductions: { label: string; amount: number }[];
 }
@@ -86,6 +87,12 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
                                     <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatCurrency(e.amount)}</Text>
                                 </View>
                             ))}
+                            {item.arrearsAmount > 0 && (
+                                <View style={styles.detailRow}>
+                                    <Text className="font-inter text-sm font-medium text-accent-600">Arrears</Text>
+                                    <Text className="font-inter text-sm font-semibold text-accent-600">{formatCurrency(item.arrearsAmount)}</Text>
+                                </View>
+                            )}
                             <View style={[styles.detailRow, styles.totalRow]}>
                                 <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Gross Earnings</Text>
                                 <Text className="font-inter text-sm font-bold text-success-600">{formatCurrency(item.grossEarnings)}</Text>
@@ -214,6 +221,7 @@ export function MyPayslipsScreen() {
             grossEarnings: item.grossEarnings ?? item.gross ?? 0,
             totalDeductions: item.totalDeductions ?? item.deductions ?? 0,
             netPay: item.netPay ?? item.net ?? 0,
+            arrearsAmount: Number(item.arrearsAmount) || 0,
             earnings: item.earnings ?? [],
             deductions: item.deductionDetails ?? item.deductionBreakdown ?? [],
         }));

@@ -48,7 +48,7 @@ import { useIsDark } from '@/hooks/use-is-dark';
 
 interface PFForm {
     employeeRate: string; employerEPFRate: string; epsRate: string; edliRate: string; adminChargeRate: string;
-    wageCeiling: string; vpfEnabled: boolean; excludedComponents: string;
+    wageCeiling: string; vpfEnabled: boolean; vpfMaxRate: string; excludedComponents: string;
 }
 
 interface ESIForm { employeeRate: string; employerRate: string; wageCeiling: string; }
@@ -360,7 +360,7 @@ export function StatutoryConfigScreen() {
     const toggleSection = (key: keyof typeof collapsed) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
     // PF form
-    const [pfForm, setPFForm] = React.useState<PFForm>({ employeeRate: '12', employerEPFRate: '3.67', epsRate: '8.33', edliRate: '0.5', adminChargeRate: '0.5', wageCeiling: '15000', vpfEnabled: false, excludedComponents: '' });
+    const [pfForm, setPFForm] = React.useState<PFForm>({ employeeRate: '12', employerEPFRate: '3.67', epsRate: '8.33', edliRate: '0.5', adminChargeRate: '0.5', wageCeiling: '15000', vpfEnabled: false, vpfMaxRate: '', excludedComponents: '' });
     const [pfDirty, setPFDirty] = React.useState(false);
     React.useEffect(() => {
         if (pfResponse) {
@@ -370,6 +370,7 @@ export function StatutoryConfigScreen() {
                     employeeRate: String(d.employeeRate ?? '12'), employerEPFRate: String(d.employerEPFRate ?? '3.67'),
                     epsRate: String(d.epsRate ?? '8.33'), edliRate: String(d.edliRate ?? '0.5'), adminChargeRate: String(d.adminChargeRate ?? '0.5'),
                     wageCeiling: String(d.wageCeiling ?? '15000'), vpfEnabled: d.vpfEnabled ?? false,
+                    vpfMaxRate: d.vpfMaxRate ? String(d.vpfMaxRate) : '',
                     excludedComponents: d.excludedComponents ?? '',
                 });
                 setPFDirty(false);
@@ -451,6 +452,7 @@ export function StatutoryConfigScreen() {
             ...pfForm, employeeRate: Number(pfForm.employeeRate), employerEPFRate: Number(pfForm.employerEPFRate),
             epsRate: Number(pfForm.epsRate), edliRate: Number(pfForm.edliRate), adminChargeRate: Number(pfForm.adminChargeRate),
             wageCeiling: Number(pfForm.wageCeiling),
+            vpfMaxRate: pfForm.vpfMaxRate ? Number(pfForm.vpfMaxRate) : null,
         } as unknown as Record<string, unknown>, { onSuccess: () => setPFDirty(false) });
     };
 
@@ -528,6 +530,12 @@ export function StatutoryConfigScreen() {
                         <NumberField label="Admin Charge Rate" value={pfForm.adminChargeRate} onChange={v => { setPFForm(p => ({ ...p, adminChargeRate: v })); setPFDirty(true); }} placeholder="0.5" suffix="%" />
                         <NumberField label="Wage Ceiling" value={pfForm.wageCeiling} onChange={v => { setPFForm(p => ({ ...p, wageCeiling: v })); setPFDirty(true); }} placeholder="15000" suffix="₹" />
                         <ToggleRow label="VPF Enabled" subtitle="Allow Voluntary Provident Fund" value={pfForm.vpfEnabled} onToggle={v => { setPFForm(p => ({ ...p, vpfEnabled: v })); setPFDirty(true); }} />
+                        {pfForm.vpfEnabled && (
+                            <View>
+                                <NumberField label="Maximum VPF Rate (%)" value={pfForm.vpfMaxRate} onChange={v => { setPFForm(p => ({ ...p, vpfMaxRate: v })); setPFDirty(true); }} placeholder="0" suffix="%" />
+                                <Text className="mt-0.5 ml-1 font-inter text-[10px] text-neutral-400">Leave empty for no cap</Text>
+                            </View>
+                        )}
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Excluded Components</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Comma-separated" placeholderTextColor={colors.neutral[400]} value={pfForm.excludedComponents} onChangeText={v => { setPFForm(p => ({ ...p, excludedComponents: v })); setPFDirty(true); }} /></View>

@@ -39,6 +39,7 @@ interface PayslipItem {
     netPay: number;
     grossPay: number;
     totalDeductions: number;
+    arrearsAmount: number;
     emailed: boolean;
     earnings: { label: string; amount: number }[];
     deductions: { label: string; amount: number }[];
@@ -148,6 +149,14 @@ function PayslipDetail({ payslip, onBack, onEmail, isEmailing }: {
                     {/* Earnings */}
                     <PayslipTable title="Earnings" items={payslip.earnings} color={colors.success[600]} />
 
+                    {/* Arrears */}
+                    {payslip.arrearsAmount > 0 && (
+                        <View style={styles.arrearsCard}>
+                            <Text className="font-inter text-xs font-bold uppercase tracking-wider text-accent-600 mb-1">Arrears</Text>
+                            <Text className="font-inter text-sm font-semibold text-accent-600">{formatCurrency(payslip.arrearsAmount)}</Text>
+                        </View>
+                    )}
+
                     {/* Deductions */}
                     <PayslipTable title="Deductions" items={payslip.deductions} color={colors.danger[600]} />
 
@@ -232,6 +241,7 @@ export function PayslipScreen() {
             netPay: item.netPay ?? 0,
             grossPay: item.grossPay ?? 0,
             totalDeductions: item.totalDeductions ?? 0,
+            arrearsAmount: Number(item.arrearsAmount) || 0,
             emailed: item.emailed ?? false,
             earnings: Array.isArray(item.earnings) ? item.earnings : [],
             deductions: Array.isArray(item.deductions) ? item.deductions : [],
@@ -252,6 +262,7 @@ export function PayslipScreen() {
             netPay: raw.netPay ?? 0,
             grossPay: raw.grossPay ?? 0,
             totalDeductions: raw.totalDeductions ?? 0,
+            arrearsAmount: Number(raw.arrearsAmount) || 0,
             emailed: raw.emailed ?? false,
             earnings: Array.isArray(raw.earnings) ? raw.earnings : [],
             deductions: Array.isArray(raw.deductions) ? raw.deductions : [],
@@ -360,6 +371,11 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 16, marginBottom: 12,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
         borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
+    },
+    arrearsCard: {
+        backgroundColor: isDark ? '#1A1730' : colors.accent[50], borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 12,
+        borderWidth: 1, borderColor: isDark ? colors.accent[800] : colors.accent[200],
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     },
     tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     actionBtn: {

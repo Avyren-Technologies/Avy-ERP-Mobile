@@ -38,6 +38,8 @@ interface DayRecord {
     punchIn: string;
     punchOut: string;
     workedHours: number;
+    geoStatus?: string;
+    appliedBreakDeductionMinutes?: number;
 }
 
 interface AttendanceSummary {
@@ -387,6 +389,26 @@ export function MyAttendanceScreen() {
                                 <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Punch In</Text><Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatTime(selectedRecord.punchIn)}</Text></View>
                                 <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Punch Out</Text><Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatTime(selectedRecord.punchOut)}</Text></View>
                                 <View style={styles.detailRow}><Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Hours Worked</Text><Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{selectedRecord.workedHours > 0 ? `${selectedRecord.workedHours.toFixed(1)} hrs` : '--'}</Text></View>
+                                {selectedRecord.geoStatus && (
+                                    <View style={styles.detailRow}>
+                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Geofence</Text>
+                                        <Text className={`font-inter text-xs font-bold ${
+                                            selectedRecord.geoStatus === 'INSIDE_GEOFENCE' ? 'text-success-600' :
+                                            selectedRecord.geoStatus === 'OUTSIDE_GEOFENCE' ? 'text-danger-600' : 'text-neutral-400'
+                                        }`}>
+                                            {selectedRecord.geoStatus === 'INSIDE_GEOFENCE' ? 'Inside' :
+                                             selectedRecord.geoStatus === 'OUTSIDE_GEOFENCE' ? 'Outside' : 'N/A'}
+                                        </Text>
+                                    </View>
+                                )}
+                                {(selectedRecord.appliedBreakDeductionMinutes ?? 0) > 0 && (
+                                    <View style={styles.detailRow}>
+                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Break Deducted</Text>
+                                        <Text className="font-inter text-xs text-neutral-700 dark:text-neutral-300">
+                                            {selectedRecord.appliedBreakDeductionMinutes} min
+                                        </Text>
+                                    </View>
+                                )}
                                 {(['absent', 'late', 'half_day', 'early_exit', 'incomplete', 'lop'].includes(selectedRecord.status) || !selectedRecord.punchIn || !selectedRecord.punchOut) && (
                                     <Pressable onPress={() => setRegVisible(true)} style={styles.regBtn}>
                                         <Text className="font-inter text-xs font-bold text-primary-600">Request Regularization</Text>

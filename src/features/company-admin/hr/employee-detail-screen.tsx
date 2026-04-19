@@ -1251,6 +1251,15 @@ export function EmployeeDetailScreen() {
         new Date().toISOString().split('T')[0],
     );
 
+    // Status action menu state
+    const [showStatusMenu, setShowStatusMenu] = React.useState(false);
+
+    // R2 file upload hook for employee documents
+    const { upload: uploadDocToR2, isUploading: isDocUploading } = useFileUpload({
+        category: 'employee-document',
+        entityId: employeeId || 'new',
+    });
+
     // Load draft on mount (create mode only)
     React.useEffect(() => {
         if (!isCreateMode) return;
@@ -1711,7 +1720,7 @@ export function EmployeeDetailScreen() {
         }
     };
 
-    // Document upload handler
+    // Document upload handler — R2 presigned URL flow
     const handleUploadDocument = async () => {
         if (!employeeId) {
             showErrorMessage('Please save the employee first before uploading documents.');
@@ -1725,20 +1734,35 @@ export function EmployeeDetailScreen() {
             });
             if (result.canceled || !result.assets?.length) return;
             const asset = result.assets[0];
-            const formData = new FormData();
-            formData.append('file', {
+            const file = new ExpoFile(asset.uri);
+            const fileSize = file.size ?? asset.size ?? 0;
+
+            // Step 1 & 2: Upload file to R2 via presigned URL
+            const r2Key = await uploadDocToR2({
                 uri: asset.uri,
                 name: asset.name,
                 type: asset.mimeType ?? 'application/octet-stream',
-            } as any);
+                size: fileSize,
+            });
+            if (!r2Key) return; // upload failed, error already shown by hook
+
+            // Step 3: Register document with backend using JSON body
+            const docType = asset.name.split('.').slice(0, -1).join('.') || 'Document';
             uploadMutation.mutate(
-                { employeeId, data: formData },
+                {
+                    employeeId,
+                    data: {
+                        documentType: docType,
+                        fileUrl: r2Key,
+                        fileName: asset.name,
+                    },
+                },
                 {
                     onSuccess: () => {
                         showSuccess('Document Uploaded', 'Document has been uploaded successfully.');
                     },
                     onError: (err: any) => {
-                        showErrorMessage(err?.message ?? 'Failed to upload document.');
+                        showErrorMessage(err?.message ?? 'Failed to save document record.');
                     },
                 },
             );
@@ -1954,53 +1978,45 @@ export function EmployeeDetailScreen() {
         }
     };
 
-    const handleStatusAction = () => {
+    const handleStatusAction = (targetStatus: string, actionLabel: string) => {
         if (isCreateMode) return;
+        setShowStatusMenu(false);
 
-        let action = '';
-        let newStatus = '';
-        let variant: 'primary' | 'warning' | 'danger' = 'primary';
-
-        switch (employeeStatus) {
-            case 'Probation':
-                action = 'Confirm Employee';
-                newStatus = 'Confirmed';
-                variant = 'primary';
-                break;
-            case 'Active':
-            case 'Confirmed':
-                action = 'Initiate Exit';
-                newStatus = 'On Notice';
-                variant = 'warning';
-                break;
-            case 'On Notice':
-                action = 'Complete Exit';
-                newStatus = 'Exited';
-                variant = 'danger';
-                break;
-            default:
-                return;
+        // For deactivation, open the exit form
+        if (targetStatus === 'EXITED') {
+            handleDeactivate();
+            return;
         }
 
+        const variant: 'primary' | 'warning' | 'danger' =
+            targetStatus === 'ON_NOTICE' ? 'warning'
+            : targetStatus === 'SUSPENDED' ? 'warning'
+            : 'primary';
+
         confirmModal.show({
-            title: action,
-            message: newStatus === 'On Notice'
+            title: actionLabel,
+            message: targetStatus === 'ON_NOTICE'
                 ? `Are you sure you want to put ${employeeName || 'this employee'} on notice? You will be able to set the last working date.`
-                : `Are you sure you want to ${action.toLowerCase()} for ${employeeName || 'this employee'}?`,
-            confirmText: action,
+                : `Are you sure you want to ${actionLabel.toLowerCase()} for ${employeeName || 'this employee'}?`,
+            confirmText: actionLabel,
             variant,
             onConfirm: () => {
-                const statusData: Record<string, unknown> = { status: newStatus };
-                // Include lastWorkingDate when transitioning to On Notice or Exited
-                if (newStatus === 'On Notice' || newStatus === 'Exited') {
+                const statusData: Record<string, unknown> = { status: targetStatus };
+                if (targetStatus === 'ON_NOTICE') {
                     statusData.lastWorkingDate = lastWorkingDate || new Date().toISOString().split('T')[0];
                 }
                 statusMutation.mutate(
                     { id: employeeId, data: statusData },
                     {
                         onSuccess: () => {
-                            setEmployeeStatus(newStatus as EmployeeStatus);
-                            showSuccess('Status Updated', `Employee status changed to ${newStatus}.`);
+                            const displayMap: Record<string, EmployeeStatus> = {
+                                CONFIRMED: 'Confirmed',
+                                ON_NOTICE: 'On Notice',
+                                SUSPENDED: 'Suspended',
+                                ACTIVE: 'Active',
+                            };
+                            setEmployeeStatus(displayMap[targetStatus] || (targetStatus as EmployeeStatus));
+                            showSuccess('Status Updated', `Employee status changed to ${displayMap[targetStatus] || targetStatus}.`);
                         },
                         onError: (err: any) => {
                             showErrorMessage(err?.message ?? 'Failed to update status.');
@@ -2196,7 +2212,7 @@ export function EmployeeDetailScreen() {
                         docs={docItems}
                         employeeId={employeeId}
                         onUpload={handleUploadDocument}
-                        isUploading={uploadMutation.isPending}
+                        isUploading={isDocUploading || uploadMutation.isPending}
                     />
                 )}
                 {activeTab === 'timeline' && (
@@ -2261,10 +2277,10 @@ export function EmployeeDetailScreen() {
 
                 return (
                     <View style={[st.bottomBar, { paddingBottom: insets.bottom + 80 }]}>
-                        {/* Status action (edit mode only) */}
+                        {/* Status Action menu button (edit mode only) */}
                         {!isCreateMode && employeeStatus !== 'Exited' && (
                             <Pressable
-                                onPress={handleStatusAction}
+                                onPress={() => setShowStatusMenu(true)}
                                 style={({ pressed }) => [
                                     st.statusActionBtn,
                                     pressed && { opacity: 0.85 },
@@ -2273,32 +2289,10 @@ export function EmployeeDetailScreen() {
                                 disabled={statusMutation.isPending}
                             >
                                 <Text className="font-inter text-sm font-semibold text-primary-600">
-                                    {employeeStatus === 'Probation'
-                                        ? 'Confirm Employee'
-                                        : employeeStatus === 'On Notice'
-                                          ? 'Complete Exit'
-                                          : 'Initiate Exit'}
+                                    Status Action
                                 </Text>
-                            </Pressable>
-                        )}
-
-                        {/* Deactivate button (edit mode, not already exited) */}
-                        {!isCreateMode && employeeStatus !== 'Exited' && employeeStatus !== 'On Notice' && (
-                            <Pressable
-                                onPress={handleDeactivate}
-                                style={({ pressed }) => [
-                                    st.deactivateBtn,
-                                    pressed && { opacity: 0.85 },
-                                ]}
-                            >
-                                <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-                                    <Path
-                                        d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
-                                        stroke={colors.danger[600]}
-                                        strokeWidth="1.8"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
+                                <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{ marginLeft: 4 }}>
+                                    <Path d="M6 9l6 6 6-6" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </Svg>
                             </Pressable>
                         )}
@@ -2359,6 +2353,122 @@ export function EmployeeDetailScreen() {
             <ConfirmModal {...confirmModal.modalProps} />
             <ConfirmModal {...resetConfirmModal.modalProps} />
             <ConfirmModal {...deactivateModal.modalProps} />
+
+            {/* Status Action Menu */}
+            <Modal
+                visible={showStatusMenu}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowStatusMenu(false)}
+            >
+                <Pressable
+                    style={st.statusMenuOverlay}
+                    onPress={() => setShowStatusMenu(false)}
+                >
+                    <Animated.View entering={FadeInDown.duration(200)} style={st.statusMenuSheet}>
+                        <View style={st.statusMenuHeader}>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
+                                Status Action
+                            </Text>
+                            <Pressable onPress={() => setShowStatusMenu(false)} hitSlop={8}>
+                                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M18 6L6 18M6 6l12 12" stroke={colors.neutral[500]} strokeWidth="2" strokeLinecap="round" />
+                                </Svg>
+                            </Pressable>
+                        </View>
+
+                        {/* Confirm Employee */}
+                        {(employeeStatus === 'Probation' || employeeStatus === 'Suspended') && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.neutral[100] }]}
+                                onPress={() => handleStatusAction('CONFIRMED', 'Confirm Employee')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M20 6L9 17l-5-5" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-primary-700">
+                                    Confirm Employee
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Activate (from Suspended) */}
+                        {employeeStatus === 'Suspended' && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.neutral[100] }]}
+                                onPress={() => handleStatusAction('ACTIVE', 'Activate Employee')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M20 6L9 17l-5-5" stroke={colors.success[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-success-700">
+                                    Activate Employee
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Suspend */}
+                        {employeeStatus !== 'Suspended' && employeeStatus !== 'On Notice' && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.warning[50] }]}
+                                onPress={() => handleStatusAction('SUSPENDED', 'Suspend Employee')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M10 9v6M14 9v6M12 2a10 10 0 100 20 10 10 0 000-20z" stroke={colors.warning[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-warning-700">
+                                    Suspend
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Initiate Exit (On Notice) */}
+                        {employeeStatus !== 'On Notice' && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.accent[50] }]}
+                                onPress={() => handleStatusAction('ON_NOTICE', 'Initiate Exit (On Notice)')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M12 9v4M12 17h.01M12 2a10 10 0 100 20 10 10 0 000-20z" stroke={colors.accent[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-accent-700">
+                                    Initiate Exit (On Notice)
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Complete Exit (from On Notice) */}
+                        {employeeStatus === 'On Notice' && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.danger[50] }]}
+                                onPress={() => handleStatusAction('EXITED', 'Complete Exit')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke={colors.danger[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-danger-600">
+                                    Complete Exit
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Deactivate (Exit) — always available unless already on notice */}
+                        {employeeStatus !== 'On Notice' && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, { borderTopWidth: 1, borderTopColor: colors.neutral[200] }, pressed && { backgroundColor: colors.danger[50] }]}
+                                onPress={() => handleStatusAction('EXITED', 'Deactivate (Exit)')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M12.5 7a4 4 0 100-8 4 4 0 000 8zM23 11l-6 6M17 11l6 6" stroke={colors.danger[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-danger-600">
+                                    Deactivate (Exit)
+                                </Text>
+                            </Pressable>
+                        )}
+                    </Animated.View>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
@@ -2680,6 +2790,7 @@ const _createStyles = (isDark: boolean) => StyleSheet.create({
         flex: 1,
         height: 48,
         borderRadius: 14,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
@@ -2729,6 +2840,36 @@ const _createStyles = (isDark: boolean) => StyleSheet.create({
         alignItems: 'center',
         backgroundColor: colors.danger[600],
         marginBottom: 8,
+    },
+    statusMenuOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
+    },
+    statusMenuSheet: {
+        backgroundColor: isDark ? '#1A1730' : colors.white,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 32,
+    },
+    statusMenuHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : colors.neutral[200],
+    },
+    statusMenuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        borderRadius: 10,
     },
 });
 const st = _createStyles(false);

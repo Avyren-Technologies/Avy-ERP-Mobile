@@ -517,7 +517,7 @@ export function useDeletePrevEmployment() {
 
 // ── Documents ─────────────────────────────────────────────────────────
 
-/** Upload a document for an employee */
+/** Create a document record for an employee (after R2 upload) */
 export function useUploadDocument() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -526,7 +526,7 @@ export function useUploadDocument() {
       data,
     }: {
       employeeId: string;
-      data: FormData;
+      data: { documentType: string; fileUrl: string; fileName?: string; documentNumber?: string; expiryDate?: string };
     }) => hrApi.uploadDocument(employeeId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

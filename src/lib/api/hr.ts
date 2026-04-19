@@ -199,10 +199,10 @@ export const hrApi = {
   listDocuments: (employeeId: string) =>
     client.get(`/hr/employees/${employeeId}/documents`),
 
-  uploadDocument: (employeeId: string, data: FormData) =>
-    client.post(`/hr/employees/${employeeId}/documents`, data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  uploadDocument: (
+    employeeId: string,
+    data: { documentType: string; fileUrl: string; fileName?: string; documentNumber?: string; expiryDate?: string },
+  ) => client.post(`/hr/employees/${employeeId}/documents`, data),
 
   deleteDocument: (employeeId: string, documentId: string) =>
     client.delete(

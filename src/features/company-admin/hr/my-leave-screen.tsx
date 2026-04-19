@@ -45,6 +45,12 @@ interface LeaveBalance {
     used: number;
     total: number;
     color: string;
+    openingBalance?: number;
+    accrued?: number;
+    adjusted?: number;
+    accrualFrequency?: string;
+    encashmentAllowed?: boolean;
+    maxEncashableDays?: number;
 }
 
 interface MyLeaveRequest {
@@ -117,6 +123,20 @@ function BalanceCard({ item, index }: Readonly<{ item: LeaveBalance; index: numb
                          <Text style={st.balanceTotal}> / {item.total}</Text>
                     </View>
                     <Text style={st.balanceSub}>Used</Text>
+                    <Text className="font-inter text-[9px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+                        {(item.openingBalance ?? 0) > 0 ? `CF: ${item.openingBalance} \u00B7 ` : ''}
+                        Accrued: {item.accrued ?? 0} \u00B7 Used: {item.used}
+                    </Text>
+                    {item.accrualFrequency && (
+                        <Text className="font-inter text-[8px] text-neutral-400 mt-0.5">
+                            Accrual: {item.accrualFrequency.charAt(0).toUpperCase() + item.accrualFrequency.slice(1).toLowerCase()}
+                        </Text>
+                    )}
+                    {item.encashmentAllowed && (
+                        <Text className="font-inter text-[8px] text-accent-500 mt-0.5">
+                            Encashable{item.maxEncashableDays ? ` (max ${item.maxEncashableDays}d)` : ''}
+                        </Text>
+                    )}
                 </View>
             </View>
         </Animated.View>
@@ -572,6 +592,12 @@ export function MyLeaveScreen() {
                 used:    taken,
                 total,
                 color:   BALANCE_COLORS[i % BALANCE_COLORS.length],
+                openingBalance: opening,
+                accrued,
+                adjusted,
+                accrualFrequency: b.accrualFrequency ?? undefined,
+                encashmentAllowed: b.encashmentAllowed ?? false,
+                maxEncashableDays: b.maxEncashableDays ? Number(b.maxEncashableDays) : undefined,
             };
         });
 

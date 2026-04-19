@@ -13,7 +13,7 @@ import {
     StyleSheet,
     View,
 } from 'react-native';
-import AnimatedRN, { FadeInDown } from 'react-native-reanimated';
+import AnimatedRN, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Line } from 'react-native-svg';
 
@@ -58,7 +58,35 @@ interface AttendanceRecord {
     checkInLongitude?: number | null;
 }
 
+interface RecentAttendanceRecord {
+    id: string;
+    date: string;
+    punchIn: string | null;
+    punchOut: string | null;
+    workedHours: number | null;
+    status: string;
+    overtimeHours: number | null;
+    geoStatus: string | null;
+    source: string | null;
+    shiftName: string | null;
+}
+
 type AttStatus = 'NOT_CHECKED_IN' | 'CHECKED_IN' | 'CHECKED_OUT' | 'NOT_LINKED';
+
+/* ── Status Colors for attendance records ── */
+
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+    PRESENT: { bg: colors.success[50], text: colors.success[700] },
+    ABSENT: { bg: colors.danger[50], text: colors.danger[700] },
+    LATE: { bg: colors.warning[50], text: colors.warning[700] },
+    HALF_DAY: { bg: colors.warning[50], text: colors.warning[600] },
+    EARLY_EXIT: { bg: colors.warning[50], text: colors.warning[700] },
+    ON_LEAVE: { bg: colors.primary[50], text: colors.primary[700] },
+    HOLIDAY: { bg: colors.accent[50], text: colors.accent[700] },
+    WEEK_OFF: { bg: colors.neutral[100], text: colors.neutral[600] },
+    INCOMPLETE: { bg: colors.danger[50], text: colors.danger[600] },
+    LOP: { bg: colors.danger[50], text: colors.danger[700] },
+};
 
 /* ── Helpers ── */
 
@@ -107,6 +135,9 @@ const BriefIcon = ({ s = 16, c = colors.primary[600] }) => (
 );
 const ActivityIcon = ({ s = 16, c = colors.success[600] }) => (
     <Svg width={s} height={s} viewBox="0 0 24 24" stroke={c} {...svgProps}><Path d="M22 12h-4l-3 9L9 3l-3 9H2" /></Svg>
+);
+const CalendarIcon = ({ s = 16, c = colors.primary[600] }) => (
+    <Svg width={s} height={s} viewBox="0 0 24 24" stroke={c} {...svgProps}><Path d="M19 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" /></Svg>
 );
 const TimerIcon = ({ s = 16, c = colors.success[600] }) => (
     <Svg width={s} height={s} viewBox="0 0 24 24" stroke={c} {...svgProps}><Circle cx="12" cy="13" r="8" /><Path d="M12 9v4l2 2" /><Path d="M5 3L2 6" /><Path d="M22 6l-3-3" /><Line x1="12" y1="1" x2="12" y2="3" /></Svg>
@@ -545,6 +576,41 @@ export function ShiftCheckInScreen() {
                         </View>
                     </Card>
 
+                    {/* Recent Attendance */}
+                    {(statusData as any)?.recentAttendance && (statusData as any).recentAttendance.length > 0 && (
+                        <AnimatedRN.View entering={FadeInUp.duration(350).delay(200)} style={$.recentCard}>
+                            <View style={$.recentHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                    <View style={$.cardIcon}><CalendarIcon /></View>
+                                    <Text className="font-inter text-sm font-bold" style={{ color: colors.primary[950] }}>Recent Attendance</Text>
+                                </View>
+                                <Text className="font-inter text-xs" style={{ color: colors.neutral[400] }}>Last 7 days</Text>
+                            </View>
+                            {((statusData as any).recentAttendance as RecentAttendanceRecord[]).map((rec) => (
+                                <View key={rec.id} style={$.recentRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="font-inter text-xs font-semibold" style={{ color: colors.primary[950] }}>
+                                            {fmt.date(rec.date)}
+                                        </Text>
+                                        <Text className="font-inter text-[10px]" style={{ color: colors.neutral[400] }}>
+                                            {rec.punchIn ? fmt.time(rec.punchIn) : '--:--'} → {rec.punchOut ? fmt.time(rec.punchOut) : '--:--'}
+                                        </Text>
+                                    </View>
+                                    <View style={{ alignItems: 'center', minWidth: 50 }}>
+                                        <Text className="font-inter text-xs" style={{ color: colors.neutral[600], fontVariant: ['tabular-nums'] }}>
+                                            {rec.workedHours != null ? `${rec.workedHours.toFixed(1)}h` : '--'}
+                                        </Text>
+                                    </View>
+                                    <View style={[$.recentStatusBadge, { backgroundColor: STATUS_COLORS[rec.status]?.bg ?? colors.neutral[100] }]}>
+                                        <Text className="font-inter" style={{ color: STATUS_COLORS[rec.status]?.text ?? colors.neutral[600], fontSize: 10, fontWeight: '700' }}>
+                                            {rec.status?.replace(/_/g, ' ')}
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </AnimatedRN.View>
+                    )}
+
                     <View style={{ height: insets.bottom + 24 }} />
                 </ScrollView>
             )}
@@ -616,5 +682,38 @@ const $ = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', gap: 6,
         backgroundColor: colors.warning[50], borderRadius: 8,
         paddingHorizontal: 12, paddingVertical: 6, marginTop: 8,
+    },
+
+    recentCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.neutral[100],
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    recentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.neutral[100],
+    },
+    recentStatusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        minWidth: 60,
+        alignItems: 'center',
     },
 });

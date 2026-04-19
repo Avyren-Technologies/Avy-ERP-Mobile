@@ -84,6 +84,8 @@ export function useApproveRequest() {
       queryClient.invalidateQueries({ queryKey: essKeys.request(id) });
       queryClient.invalidateQueries({ queryKey: essKeys.pendingApprovals() });
       queryClient.invalidateQueries({ queryKey: essKeys.pendingMssApprovals() });
+      queryClient.invalidateQueries({ queryKey: essKeys.teamAttendance() });
+      queryClient.invalidateQueries({ queryKey: essKeys.teamLeaveCalendar() });
     },
     onError: (error: any) => {
       showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to approve request');
@@ -103,6 +105,8 @@ export function useRejectRequest() {
       queryClient.invalidateQueries({ queryKey: essKeys.request(id) });
       queryClient.invalidateQueries({ queryKey: essKeys.pendingApprovals() });
       queryClient.invalidateQueries({ queryKey: essKeys.pendingMssApprovals() });
+      queryClient.invalidateQueries({ queryKey: essKeys.teamAttendance() });
+      queryClient.invalidateQueries({ queryKey: essKeys.teamLeaveCalendar() });
     },
     onError: (error: any) => {
       showErrorMessage(error?.response?.data?.message ?? error?.message ?? 'Failed to reject request');

@@ -332,8 +332,8 @@ export function TeamViewScreen() {
                         {teamLeaves.length === 0 ? (
                             <Text className="py-4 text-center font-inter text-xs text-neutral-400">No upcoming leaves</Text>
                         ) : (
-                            teamLeaves.map((l, i) => (
-                                <View key={i} style={styles.leaveRow}>
+                            teamLeaves.map((l: any, i: number) => (
+                                <View key={l.id ?? `leave-${l.employeeName}-${l.fromDate}-${i}`} style={styles.leaveRow}>
                                     <View style={{ flex: 1 }}>
                                         <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{l.employeeName}</Text>
                                         <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{l.leaveType} {'\u2022'} {l.fromDate} to {l.toDate}</Text>

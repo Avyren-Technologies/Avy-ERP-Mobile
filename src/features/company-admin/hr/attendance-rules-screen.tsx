@@ -1,5 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import type { AttendanceRule, DeductionType, PunchMode, PunchRounding, RoundingDirection, RoundingStrategy } from '@/lib/api/attendance';
+import type { AttendanceRule, DeductionType, GeofenceEnforcementMode, PunchMode, PunchRounding, RoundingDirection, RoundingStrategy } from '@/lib/api/attendance';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -47,6 +47,9 @@ const PUNCH_ROUNDING_LABELS: Record<string, string> = { NONE: 'None', NEAREST_5:
 const ROUNDING_DIRECTION_OPTIONS = ['NEAREST', 'UP', 'DOWN'];
 const ROUNDING_DIRECTION_LABELS: Record<string, string> = { NEAREST: 'Nearest', UP: 'Round Up', DOWN: 'Round Down' };
 
+const GEOFENCE_MODE_OPTIONS = ['OFF', 'WARN', 'STRICT'];
+const GEOFENCE_MODE_LABELS: Record<string, string> = { OFF: 'Off — Record silently', WARN: 'Warn — Allow + Notify', STRICT: 'Strict — Block if outside' };
+
 // ============ DEFAULTS (26 fields -- same as web) ============
 
 const DEFAULTS: AttendanceRule = {
@@ -75,6 +78,7 @@ const DEFAULTS: AttendanceRule = {
     ignoreLateOnWeekOff: true,
     selfieRequired: false,
     gpsRequired: false,
+    geofenceEnforcementMode: 'OFF',
     missingPunchAlert: true,
 };
 
@@ -340,6 +344,7 @@ export function AttendanceRulesScreen() {
                     <SectionCard title="Capture" sectionDescription="Configure what evidence is required when employees punch in or out.">
                         <ToggleRow label="Selfie Required" subtitle="Require selfie for attendance punch" value={rules.selfieRequired} onToggle={(v) => updateRule('selfieRequired', v)} />
                         <ToggleRow label="GPS Required" subtitle="Require GPS location for attendance punch" value={rules.gpsRequired} onToggle={(v) => updateRule('gpsRequired', v)} />
+                        {chipSelect<GeofenceEnforcementMode>(GEOFENCE_MODE_LABELS, GEOFENCE_MODE_OPTIONS, rules.geofenceEnforcementMode, (v) => updateRule('geofenceEnforcementMode', v), 'Geofence Enforcement', 'Controls whether employees are blocked from checking in outside the geofence area')}
                         <ToggleRow label="Missing Punch Alert" subtitle="Alert when employee has incomplete punches" value={rules.missingPunchAlert} onToggle={(v) => updateRule('missingPunchAlert', v)} />
                     </SectionCard>
                 </Animated.View>

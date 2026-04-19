@@ -9,6 +9,7 @@ export type PunchRounding = 'NONE' | 'NEAREST_5' | 'NEAREST_15';
 export type RoundingDirection = 'NEAREST' | 'UP' | 'DOWN';
 export type OTCalculationBasis = 'AFTER_SHIFT' | 'TOTAL_HOURS';
 export type OvertimeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID' | 'COMP_OFF_ACCRUED';
+export type GeofenceEnforcementMode = 'OFF' | 'WARN' | 'STRICT';
 export type OTMultiplierSource = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY' | 'NIGHT_SHIFT';
 
 export interface AttendanceRule {
@@ -48,6 +49,7 @@ export interface AttendanceRule {
   // Capture
   selfieRequired: boolean;
   gpsRequired: boolean;
+  geofenceEnforcementMode: GeofenceEnforcementMode;
   missingPunchAlert: boolean;
 }
 

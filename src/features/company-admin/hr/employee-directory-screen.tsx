@@ -702,11 +702,13 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
     searchSection: {
         paddingHorizontal: 24,
         paddingVertical: 16,
-        zIndex: 50,
+        zIndex: 1000,
+        elevation: 1000,
     },
     deptFilterRow: {
         marginTop: 8,
-        zIndex: 100,
+        zIndex: 1000,
+        elevation: 1000,
     },
     deptFilterBtn: {
         flexDirection: 'row',
@@ -729,7 +731,7 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         top: 44,
         left: 0,
         right: 0,
-        zIndex: 200,
+        zIndex: 9999,
         backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         borderWidth: 1,
@@ -738,7 +740,7 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,
         shadowRadius: 10,
-        elevation: 20,
+        elevation: 999,
         maxHeight: 240,
         overflow: 'hidden',
     },

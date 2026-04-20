@@ -32,11 +32,13 @@ import { useIsDark } from '@/hooks/use-is-dark';
 type DayStatus = 'present' | 'absent' | 'late' | 'leave' | 'weekend' | 'holiday' | 'half_day' | 'early_exit' | 'incomplete' | 'regularized' | 'lop' | 'none';
 
 interface DayRecord {
+    id?: string;          // attendance record DB id (undefined when no record)
     date: string;
     day: number;
     status: DayStatus;
     punchIn: string;
     punchOut: string;
+    isLate?: boolean;
     workedHours: number;
     geoStatus?: string;
     appliedBreakDeductionMinutes?: number;
@@ -307,10 +309,14 @@ export function MyAttendanceScreen() {
         };
         const recordsArr = Array.isArray(raw) ? raw : (raw.records ?? raw.days ?? []);
         const records: DayRecord[] = recordsArr.map((r: any) => ({
+            id: r.id,
             date: r.date ?? '', day: r.day ?? new Date(r.date).getDate(),
             status: mapStatus(r.status),
             punchIn: r.punchIn ?? r.checkIn ?? '', punchOut: r.punchOut ?? r.checkOut ?? '',
+            isLate: r.isLate ?? false,
             workedHours: Number(r.workedHours ?? r.totalHours ?? 0),
+            geoStatus: r.geoStatus,
+            appliedBreakDeductionMinutes: r.appliedBreakDeductionMinutes,
         }));
         const summary: AttendanceSummary = {
             present: raw.present ?? records.filter((r: DayRecord) => r.status === 'present' || r.status === 'regularized').length,
@@ -409,7 +415,7 @@ export function MyAttendanceScreen() {
                                         </Text>
                                     </View>
                                 )}
-                                {(['absent', 'late', 'half_day', 'early_exit', 'incomplete', 'lop'].includes(selectedRecord.status) || !selectedRecord.punchIn || !selectedRecord.punchOut) && (
+                                {(['absent', 'late', 'half_day', 'early_exit', 'incomplete', 'lop'].includes(selectedRecord.status) || !selectedRecord.punchIn || !selectedRecord.punchOut) && selectedDateStr < now.toISOString().split('T')[0] && (
                                     <Pressable onPress={() => setRegVisible(true)} style={styles.regBtn}>
                                         <Text className="font-inter text-xs font-bold text-primary-600">Request Regularization</Text>
                                     </Pressable>

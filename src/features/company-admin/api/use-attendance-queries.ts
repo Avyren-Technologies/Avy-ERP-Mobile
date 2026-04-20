@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import {
   attendanceApi,
+  getWeeklyReview,
+  getWeeklyReviewSummary,
   type AttendanceListParams,
   type AttendanceOverrideListParams,
   type HolidayListParams,
@@ -43,6 +45,12 @@ export const attendanceKeys = {
   // Overtime Requests
   overtimeRequests: (params?: OvertimeRequestListParams) =>
     params ? [...attendanceKeys.all, 'overtime-requests', params] as const : [...attendanceKeys.all, 'overtime-requests'] as const,
+
+  // Weekly Review
+  weeklyReview: (params: Record<string, unknown>) =>
+    [...attendanceKeys.all, 'weekly-review', params] as const,
+  weeklyReviewSummary: (params: Record<string, unknown>) =>
+    [...attendanceKeys.all, 'weekly-review-summary', params] as const,
 };
 
 // --- Attendance Record Queries ---
@@ -131,5 +139,25 @@ export function useOvertimeRequests(params?: OvertimeRequestListParams) {
   return useQuery({
     queryKey: attendanceKeys.overtimeRequests(params),
     queryFn: () => attendanceApi.getOvertimeRequests(params),
+  });
+}
+
+// --- Weekly Review ---
+
+/** List flagged attendance records for weekly review */
+export function useWeeklyReview(params: { weekStart: string; weekEnd: string; departmentId?: string; flag?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: attendanceKeys.weeklyReview(params as Record<string, unknown>),
+    queryFn: () => getWeeklyReview(params as any),
+    enabled: !!params.weekStart && !!params.weekEnd,
+  });
+}
+
+/** Summary flag counts for weekly review */
+export function useWeeklyReviewSummary(params: { weekStart: string; weekEnd: string }) {
+  return useQuery({
+    queryKey: attendanceKeys.weeklyReviewSummary(params as Record<string, unknown>),
+    queryFn: () => getWeeklyReviewSummary(params),
+    enabled: !!params.weekStart && !!params.weekEnd,
   });
 }

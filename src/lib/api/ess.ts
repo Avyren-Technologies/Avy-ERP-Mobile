@@ -391,6 +391,11 @@ export const essApi = {
     return r.data;
   },
 
+  getPayslipDetail: async (payslipId: string) => {
+    const r = await client.get(`/hr/ess/my-payslips/${payslipId}/detail`);
+    return r.data;
+  },
+
   downloadPayslipPdf: async (payslipId: string) => {
     const r = await client.get(`/hr/ess/my-payslips/${payslipId}/pdf`, { responseType: 'arraybuffer' });
     return r.data;

@@ -28,7 +28,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useDownloadPayslipPdf } from '@/features/company-admin/api/use-ess-mutations';
-import { useMyPayslips } from '@/features/company-admin/api/use-ess-queries';
+import { useMyPayslips, useMyPayslipDetail } from '@/features/company-admin/api/use-ess-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -43,6 +43,20 @@ interface PayslipItem {
     arrearsAmount: number;
     earnings: { label: string; amount: number }[];
     deductions: { label: string; amount: number }[];
+    employerContributions?: Record<string, number>;
+    overtimeHours?: number;
+    overtimeAmount?: number;
+    lopDays?: number;
+    workingDays?: number;
+    presentDays?: number;
+    ytd?: {
+        fyLabel: string;
+        grossEarnings: number;
+        totalDeductions: number;
+        netPay: number;
+        tdsAmount: number;
+    };
+    leaveBalance?: { type: string; code: string; balance: number; used: number; total: number }[];
 }
 
 // ============ HELPERS ============
@@ -61,6 +75,13 @@ const YEARS = Array.from({ length: 4 }, (_, i) => String(currentYear - i));
 
 // ============ PAYSLIP DETAIL MODAL ============
 
+const COMPONENT_LABELS: Record<string, string> = {
+    PF_EMPLOYER: 'Provident Fund (Employer)',
+    ESI_EMPLOYER: 'ESI (Employer)',
+    LWF_EMPLOYER: 'LWF (Employer)',
+    GRATUITY_PROVISION: 'Gratuity Provision',
+};
+
 function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading, downloadError }: {
     visible: boolean; onClose: () => void; item: PayslipItem | null;
     onDownload: (payslipId: string, month: string, year: string) => void; isDownloading: boolean;
@@ -68,6 +89,10 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
 }) {
     const insets = useSafeAreaInsets();
     if (!item) return null;
+
+    const employerEntries = item.employerContributions
+        ? Object.entries(item.employerContributions).filter(([, amt]) => Number(amt) > 0)
+        : [];
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -93,10 +118,23 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
                                     <Text className="font-inter text-sm font-semibold text-accent-600">{formatCurrency(item.arrearsAmount)}</Text>
                                 </View>
                             )}
+                            {/* OT Breakdown */}
+                            {item.overtimeAmount != null && Number(item.overtimeAmount) > 0 && (
+                                <View style={styles.detailRow}>
+                                    <Text className="font-inter text-sm text-primary-600">Overtime ({item.overtimeHours ?? 0} hrs)</Text>
+                                    <Text className="font-inter text-sm font-semibold text-primary-600">{formatCurrency(Number(item.overtimeAmount))}</Text>
+                                </View>
+                            )}
                             <View style={[styles.detailRow, styles.totalRow]}>
                                 <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Gross Earnings</Text>
                                 <Text className="font-inter text-sm font-bold text-success-600">{formatCurrency(item.grossEarnings)}</Text>
                             </View>
+                            {/* LOP Detail */}
+                            {Number(item.lopDays ?? 0) > 0 && (
+                                <Text className="font-inter text-[10px] text-neutral-400 mt-1">
+                                    LOP: {Number(item.lopDays)} days (Working: {item.workingDays}, Present: {Number(item.presentDays)})
+                                </Text>
+                            )}
                         </View>
 
                         {/* Deductions */}
@@ -114,11 +152,65 @@ function PayslipDetailModal({ visible, onClose, item, onDownload, isDownloading,
                             </View>
                         </View>
 
+                        {/* Employer Contributions */}
+                        {employerEntries.length > 0 && (
+                            <View style={styles.detailSection}>
+                                <Text className="font-inter text-xs font-bold uppercase tracking-wider text-info-600 mb-2">Employer Contributions</Text>
+                                {employerEntries.map(([code, amount]) => (
+                                    <View key={code} style={styles.detailRow}>
+                                        <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400">
+                                            {COMPONENT_LABELS[code] ?? code.replace(/_/g, ' ')}
+                                        </Text>
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{formatCurrency(Number(amount))}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+
                         {/* Net Pay */}
                         <View style={styles.netPayCard}>
                             <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">Net Pay</Text>
                             <Text className="font-inter text-2xl font-bold text-primary-700 mt-1">{formatCurrency(item.netPay)}</Text>
                         </View>
+
+                        {/* YTD Section */}
+                        {item.ytd && (
+                            <View style={[styles.detailSection, { borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 12 }]}>
+                                <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Year-to-Date (FY {item.ytd.fyLabel})</Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                    <View style={{ width: '48%' }}>
+                                        <Text className="font-inter text-[10px] text-neutral-400">Gross</Text>
+                                        <Text className="font-inter text-xs">{formatCurrency(item.ytd.grossEarnings)}</Text>
+                                    </View>
+                                    <View style={{ width: '48%' }}>
+                                        <Text className="font-inter text-[10px] text-neutral-400">Deductions</Text>
+                                        <Text className="font-inter text-xs">{formatCurrency(item.ytd.totalDeductions)}</Text>
+                                    </View>
+                                    <View style={{ width: '48%' }}>
+                                        <Text className="font-inter text-[10px] text-neutral-400">TDS</Text>
+                                        <Text className="font-inter text-xs">{formatCurrency(item.ytd.tdsAmount)}</Text>
+                                    </View>
+                                    <View style={{ width: '48%' }}>
+                                        <Text className="font-inter text-[10px] text-neutral-400">Net</Text>
+                                        <Text className="font-inter text-xs font-bold">{formatCurrency(item.ytd.netPay)}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Leave Balance */}
+                        {item.leaveBalance && item.leaveBalance.length > 0 && (
+                            <View style={[styles.detailSection, { borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8 }]}>
+                                <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">Leave Balance</Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                    {item.leaveBalance.map((l) => (
+                                        <Text key={l.code} className="font-inter text-[10px] text-neutral-400">
+                                            {l.code}: <Text className="font-inter text-[10px] font-semibold text-neutral-700 dark:text-neutral-300">{l.balance}/{l.total}</Text>
+                                        </Text>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
 
                         {/* Download */}
                         <Pressable onPress={() => onDownload(item.id, item.month, item.year)} disabled={isDownloading} style={[styles.downloadBtn, isDownloading && { opacity: 0.6 }]}>
@@ -192,6 +284,9 @@ export function MyPayslipsScreen() {
     const [detailVisible, setDetailVisible] = React.useState(false);
     const [downloadError, setDownloadError] = React.useState(false);
 
+    // Fetch enriched detail (YTD, leave balance, employer contributions) when modal opens
+    const { data: detailResponse } = useMyPayslipDetail(detailVisible && detailItem ? detailItem.id : null);
+
     const handleDownload = async (payslipId: string, month: string, year: string) => {
         try {
             setDownloadError(false);
@@ -224,8 +319,32 @@ export function MyPayslipsScreen() {
             arrearsAmount: Number(item.arrearsAmount) || 0,
             earnings: item.earnings ?? [],
             deductions: item.deductionDetails ?? item.deductionBreakdown ?? [],
+            employerContributions: item.employerContributions ?? undefined,
+            overtimeHours: item.overtimeHours != null ? Number(item.overtimeHours) : undefined,
+            overtimeAmount: item.overtimeAmount != null ? Number(item.overtimeAmount) : undefined,
+            lopDays: item.lopDays != null ? Number(item.lopDays) : undefined,
+            workingDays: item.workingDays != null ? Number(item.workingDays) : undefined,
+            presentDays: item.presentDays != null ? Number(item.presentDays) : undefined,
         }));
     }, [response]);
+
+    // Merge detail API response (YTD, leave balance) into the selected payslip
+    const enrichedDetailItem: PayslipItem | null = React.useMemo(() => {
+        if (!detailItem) return null;
+        const detailData = (detailResponse as any)?.data ?? detailResponse;
+        if (!detailData) return detailItem;
+        return {
+            ...detailItem,
+            employerContributions: detailData.employerContributions ?? detailItem.employerContributions,
+            overtimeHours: detailData.overtimeHours != null ? Number(detailData.overtimeHours) : detailItem.overtimeHours,
+            overtimeAmount: detailData.overtimeAmount != null ? Number(detailData.overtimeAmount) : detailItem.overtimeAmount,
+            lopDays: detailData.lopDays != null ? Number(detailData.lopDays) : detailItem.lopDays,
+            workingDays: detailData.workingDays != null ? Number(detailData.workingDays) : detailItem.workingDays,
+            presentDays: detailData.presentDays != null ? Number(detailData.presentDays) : detailItem.presentDays,
+            ytd: detailData.ytd ?? undefined,
+            leaveBalance: detailData.leaveBalance ?? undefined,
+        };
+    }, [detailItem, detailResponse]);
 
     const filtered = React.useMemo(() => payslips.filter(p => {
         if (p.year !== selectedYear) return false;
@@ -288,7 +407,7 @@ export function MyPayslipsScreen() {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
-            <PayslipDetailModal visible={detailVisible} onClose={() => setDetailVisible(false)} item={detailItem} onDownload={handleDownload} isDownloading={downloadPdf.isPending} downloadError={downloadError} />
+            <PayslipDetailModal visible={detailVisible} onClose={() => setDetailVisible(false)} item={enrichedDetailItem} onDownload={handleDownload} isDownloading={downloadPdf.isPending} downloadError={downloadError} />
         </View>
     );
 }

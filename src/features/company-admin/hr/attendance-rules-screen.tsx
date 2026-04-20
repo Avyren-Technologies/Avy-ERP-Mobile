@@ -1,5 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import type { AttendanceRule, DeductionType, GeofenceEnforcementMode, PunchMode, PunchRounding, RoundingDirection, RoundingStrategy } from '@/lib/api/attendance';
+import type { AttendanceRule, AttendanceMode, DeductionType, GeofenceEnforcementMode, LeaveCheckInMode, PunchMode, PunchRounding, RoundingDirection, RoundingStrategy, ShiftMappingStrategy } from '@/lib/api/attendance';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
@@ -50,7 +50,16 @@ const ROUNDING_DIRECTION_LABELS: Record<string, string> = { NEAREST: 'Nearest', 
 const GEOFENCE_MODE_OPTIONS = ['OFF', 'WARN', 'STRICT'];
 const GEOFENCE_MODE_LABELS: Record<string, string> = { OFF: 'Off — Record silently', WARN: 'Warn — Allow + Notify', STRICT: 'Strict — Block if outside' };
 
-// ============ DEFAULTS (26 fields -- same as web) ============
+const ATTENDANCE_MODE_OPTIONS = ['SHIFT_STRICT', 'SHIFT_RELAXED', 'FULLY_FLEXIBLE'];
+const ATTENDANCE_MODE_LABELS: Record<string, string> = { SHIFT_STRICT: 'Shift Strict', SHIFT_RELAXED: 'Shift Relaxed', FULLY_FLEXIBLE: 'Fully Flexible' };
+
+const LEAVE_CHECKIN_MODE_OPTIONS = ['STRICT', 'ALLOW_WITHIN_WINDOW', 'ALLOW_TILL_SHIFT_END', 'FULLY_FLEXIBLE'];
+const LEAVE_CHECKIN_MODE_LABELS: Record<string, string> = { STRICT: 'Strict', ALLOW_WITHIN_WINDOW: 'Allow Within Window', ALLOW_TILL_SHIFT_END: 'Allow Till Shift End', FULLY_FLEXIBLE: 'Fully Flexible' };
+
+const SHIFT_MAPPING_STRATEGY_OPTIONS = ['BEST_FIT_HOURS'];
+const SHIFT_MAPPING_STRATEGY_LABELS: Record<string, string> = { BEST_FIT_HOURS: 'Best Fit Hours' };
+
+// ============ DEFAULTS (37 fields -- same as web) ============
 
 const DEFAULTS: AttendanceRule = {
     dayBoundaryTime: '00:00',
@@ -80,6 +89,17 @@ const DEFAULTS: AttendanceRule = {
     gpsRequired: false,
     geofenceEnforcementMode: 'OFF',
     missingPunchAlert: true,
+    attendanceMode: 'SHIFT_STRICT' as AttendanceMode,
+    leaveCheckInMode: 'STRICT' as LeaveCheckInMode,
+    leaveAutoAdjustmentEnabled: true,
+    multipleShiftsPerDayEnabled: false,
+    minGapBetweenShiftsMinutes: null,
+    maxShiftsPerDay: null,
+    autoShiftMappingEnabled: false,
+    shiftMappingStrategy: 'BEST_FIT_HOURS' as ShiftMappingStrategy,
+    minShiftMatchPercentage: 50,
+    weeklyReviewEnabled: false,
+    weeklyReviewRemindersEnabled: false,
 };
 
 // ============ REUSABLE ============
@@ -346,6 +366,39 @@ export function AttendanceRulesScreen() {
                         <ToggleRow label="GPS Required" subtitle="Require GPS location for attendance punch" value={rules.gpsRequired} onToggle={(v) => updateRule('gpsRequired', v)} />
                         {chipSelect<GeofenceEnforcementMode>(GEOFENCE_MODE_LABELS, GEOFENCE_MODE_OPTIONS, rules.geofenceEnforcementMode, (v) => updateRule('geofenceEnforcementMode', v), 'Geofence Enforcement', 'Controls whether employees are blocked from checking in outside the geofence area')}
                         <ToggleRow label="Missing Punch Alert" subtitle="Alert when employee has incomplete punches" value={rules.missingPunchAlert} onToggle={(v) => updateRule('missingPunchAlert', v)} />
+                    </SectionCard>
+
+                    {/* 11. Attendance Mode */}
+                    <SectionCard title="Attendance Mode" sectionDescription="Control how strictly shift timing is enforced and how leave affects check-in windows.">
+                        {chipSelect<AttendanceMode>(ATTENDANCE_MODE_LABELS, ATTENDANCE_MODE_OPTIONS, rules.attendanceMode, (v) => updateRule('attendanceMode', v), 'Attendance Mode', 'Controls overall shift time window enforcement')}
+                        {chipSelect<LeaveCheckInMode>(LEAVE_CHECKIN_MODE_LABELS, LEAVE_CHECKIN_MODE_OPTIONS, rules.leaveCheckInMode, (v) => updateRule('leaveCheckInMode', v), 'Leave Check-In Mode', 'How approved leave affects the check-in time window')}
+                        <ToggleRow label="Leave Auto-Adjustment" subtitle="Automatically adjust leave based on actual hours worked (cancel/convert)" value={rules.leaveAutoAdjustmentEnabled} onToggle={(v) => updateRule('leaveAutoAdjustmentEnabled', v)} />
+                    </SectionCard>
+
+                    {/* 12. Multiple Shifts */}
+                    <SectionCard title="Multiple Shifts" sectionDescription="Allow employees to work across multiple shifts within the same day.">
+                        <ToggleRow label="Multiple Shifts Per Day" subtitle="Enable employees to check in for multiple shifts in one day" value={rules.multipleShiftsPerDayEnabled} onToggle={(v) => updateRule('multipleShiftsPerDayEnabled', v)} />
+                        {rules.multipleShiftsPerDayEnabled && (
+                            <>
+                                <NumberRow label="Min Gap Between Shifts" subtitle="Minimum gap between shift check-outs and check-ins" value={rules.minGapBetweenShiftsMinutes ?? 0} onChange={(v) => updateRule('minGapBetweenShiftsMinutes', v || null)} suffix="min" />
+                                <NumberRow label="Max Shifts Per Day" subtitle="Maximum number of shifts allowed per day" value={rules.maxShiftsPerDay ?? 2} onChange={(v) => updateRule('maxShiftsPerDay', v || null)} />
+                            </>
+                        )}
+                    </SectionCard>
+
+                    {/* 13. Shift Mapping & Review */}
+                    <SectionCard title="Shift Mapping & Review" sectionDescription="Auto-map employee work hours to the best-fit shift and enable weekly attendance review.">
+                        <ToggleRow label="Auto Shift Mapping" subtitle="Automatically map work hours to the closest shift on check-out" value={rules.autoShiftMappingEnabled} onToggle={(v) => updateRule('autoShiftMappingEnabled', v)} />
+                        {rules.autoShiftMappingEnabled && (
+                            <>
+                                {chipSelect<ShiftMappingStrategy>(SHIFT_MAPPING_STRATEGY_LABELS, SHIFT_MAPPING_STRATEGY_OPTIONS, rules.shiftMappingStrategy, (v) => updateRule('shiftMappingStrategy', v), 'Mapping Strategy', 'Algorithm used to match shifts')}
+                                <NumberRow label="Min Match Percentage" subtitle="Minimum overlap percentage to accept a shift match" value={rules.minShiftMatchPercentage} onChange={(v) => updateRule('minShiftMatchPercentage', v)} suffix="%" />
+                            </>
+                        )}
+                        <ToggleRow label="Weekly Review" subtitle="Enable weekly attendance review dashboard for HR" value={rules.weeklyReviewEnabled} onToggle={(v) => updateRule('weeklyReviewEnabled', v)} />
+                        {rules.weeklyReviewEnabled && (
+                            <ToggleRow label="Weekly Review Reminders" subtitle="Send reminder notifications to HR when the week ends" value={rules.weeklyReviewRemindersEnabled} onToggle={(v) => updateRule('weeklyReviewRemindersEnabled', v)} />
+                        )}
                     </SectionCard>
                 </Animated.View>
             </ScrollView>

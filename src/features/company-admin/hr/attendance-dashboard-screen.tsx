@@ -24,7 +24,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useAttendanceRecords, useAttendanceSummary } from '@/features/company-admin/api/use-attendance-queries';
+import { useAttendanceRecords, useAttendanceSummary, useWeeklyReview, useWeeklyReviewSummary } from '@/features/company-admin/api/use-attendance-queries';
+import { useMarkReviewed } from '@/features/company-admin/api/use-attendance-mutations';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -259,6 +260,143 @@ function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) 
     );
 }
 
+// ============ WEEKLY REVIEW HELPERS ============
+
+const FLAG_LABELS: Record<string, string> = {
+    MISSING_PUNCH: 'Missing Punch',
+    AUTO_MAPPED: 'Auto-Mapped',
+    WORKED_ON_LEAVE: 'On Leave',
+    LATE_BEYOND_THRESHOLD: 'Late',
+    MULTIPLE_SHIFT_ANOMALY: 'Multi-Shift',
+    OT_ANOMALY: 'OT Anomaly',
+};
+
+const FLAG_COLORS: Record<string, { bg: string; text: string }> = {
+    MISSING_PUNCH: { bg: colors.danger[50], text: 'text-danger-700' },
+    AUTO_MAPPED: { bg: colors.info[50], text: 'text-info-700' },
+    WORKED_ON_LEAVE: { bg: colors.warning[50], text: 'text-warning-700' },
+    LATE_BEYOND_THRESHOLD: { bg: colors.warning[50], text: 'text-warning-700' },
+    MULTIPLE_SHIFT_ANOMALY: { bg: colors.info[50], text: 'text-info-700' },
+    OT_ANOMALY: { bg: colors.danger[50], text: 'text-danger-700' },
+};
+
+function getWeekStart(): string {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now);
+    monday.setDate(diff);
+    return monday.toISOString().split('T')[0]!;
+}
+
+function getWeekEnd(): string {
+    const start = getWeekStart();
+    const d = new Date(start);
+    d.setDate(d.getDate() + 6);
+    return d.toISOString().split('T')[0]!;
+}
+
+function FlagBadge({ flag }: { flag: string }) {
+    const c = FLAG_COLORS[flag] ?? { bg: colors.neutral[100], text: 'text-neutral-600' };
+    return (
+        <View style={[styles.statusBadge, { backgroundColor: c.bg }]}>
+            <Text className={`font-inter text-[9px] font-bold ${c.text}`}>{FLAG_LABELS[flag] ?? flag}</Text>
+        </View>
+    );
+}
+
+function WeeklyKpiCard({ label, value, color, index }: { label: string; value: number; color: string; index: number }) {
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)} style={[styles.kpiCard, { borderLeftColor: color, borderLeftWidth: 3 }]}>
+            <Text className="font-inter text-xl font-bold" style={{ color }}>{value}</Text>
+            <Text className="mt-0.5 font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400" numberOfLines={1}>{label}</Text>
+        </Animated.View>
+    );
+}
+
+interface WeeklyRecord {
+    id: string;
+    employeeName: string;
+    employeeCode: string;
+    department: string;
+    date: string;
+    punchIn: string;
+    punchOut: string;
+    status: string;
+    shiftName: string;
+    shiftTime: string;
+    reviewFlags: string[];
+    isReviewed: boolean;
+}
+
+function WeeklyRecordCard({
+    item,
+    index,
+    isSelected,
+    onToggle,
+}: {
+    item: WeeklyRecord;
+    index: number;
+    isSelected: boolean;
+    onToggle: (id: string) => void;
+}) {
+    const fmt = useCompanyFormatter();
+    const formatTime = (time: string) => (!time ? '--:--' : fmt.time(time));
+    const initials = getInitials(item.employeeName);
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 30)}>
+            <View style={[styles.card, item.isReviewed && { opacity: 0.55 }]}>
+                <View style={styles.cardRow}>
+                    <Pressable
+                        onPress={() => !item.isReviewed && onToggle(item.id)}
+                        style={[
+                            {
+                                width: 24, height: 24, borderRadius: 6,
+                                borderWidth: 2, borderColor: isSelected ? colors.primary[600] : colors.neutral[300],
+                                backgroundColor: isSelected ? colors.primary[600] : 'transparent',
+                                justifyContent: 'center', alignItems: 'center', marginRight: 8,
+                            },
+                            item.isReviewed && { borderColor: colors.success[400], backgroundColor: colors.success[400] },
+                        ]}
+                    >
+                        {(isSelected || item.isReviewed) && (
+                            <Svg width={14} height={14} viewBox="0 0 24 24">
+                                <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                        )}
+                    </Pressable>
+                    <View style={styles.avatar}>
+                        <Text className="font-inter text-xs font-bold text-primary-600">{initials}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                            {item.employeeCode}{item.department ? ` \u2022 ${item.department}` : ''}
+                        </Text>
+                    </View>
+                    <StatusBadge status={item.status} />
+                </View>
+                <View style={styles.cardMeta}>
+                    <View style={styles.metaChip}>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.date ? fmt.date(item.date) : '--'}</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">In: {formatTime(item.punchIn)}</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Out: {formatTime(item.punchOut)}</Text>
+                    </View>
+                </View>
+                {item.reviewFlags && item.reviewFlags.length > 0 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                        {item.reviewFlags.map(f => <FlagBadge key={f} flag={f} />)}
+                    </View>
+                )}
+            </View>
+        </Animated.View>
+    );
+}
+
 // ============ MAIN COMPONENT ============
 
 export function AttendanceDashboardScreen() {
@@ -267,6 +405,10 @@ export function AttendanceDashboardScreen() {
 
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
+    const fmt = useCompanyFormatter();
+    const [activeTab, setActiveTab] = React.useState<'daily' | 'weekly'>('daily');
+
+    // ── Daily tab state ──
     const [selectedDate, setSelectedDate] = React.useState(new Date());
     const [selectedDeptId, setSelectedDeptId] = React.useState('');
 
@@ -338,6 +480,104 @@ export function AttendanceDashboardScreen() {
         });
     }, [recordsResponse]);
 
+    // ── Weekly Review tab state ──
+    const [weekStart, setWeekStart] = React.useState(getWeekStart);
+    const [weekEnd, setWeekEnd] = React.useState(getWeekEnd);
+    const [weeklyFlag, setWeeklyFlag] = React.useState('');
+    const [selectedReviewIds, setSelectedReviewIds] = React.useState<Set<string>>(new Set());
+
+    const { data: weeklyReviewResponse, isLoading: weeklyLoading, refetch: weeklyRefetch, isFetching: weeklyFetching } = useWeeklyReview({ weekStart, weekEnd, flag: weeklyFlag || undefined });
+    const { data: weeklySummaryResponse, isLoading: weeklySummaryLoading } = useWeeklyReviewSummary({ weekStart, weekEnd });
+    const markReviewedMutation = useMarkReviewed();
+
+    const weeklySummary = React.useMemo(() => {
+        const raw = (weeklySummaryResponse as any)?.data ?? weeklySummaryResponse ?? {};
+        // Flatten flagCounts to top-level for easier access
+        return { ...raw, ...(raw.flagCounts ?? {}) };
+    }, [weeklySummaryResponse]);
+
+    const weeklyRecords: WeeklyRecord[] = React.useMemo(() => {
+        const envelope = (weeklyReviewResponse as any)?.data ?? weeklyReviewResponse ?? {};
+        const raw = envelope?.records ?? envelope;
+        if (!Array.isArray(raw)) return [];
+        return raw.map((r: any) => {
+            const emp = r.employee ?? {};
+            return {
+                id: r.id ?? '',
+                employeeName: r.employeeName ?? ([emp.firstName, emp.lastName].filter(Boolean).join(' ') || '\u2014'),
+                employeeCode: r.employeeCode ?? emp.employeeId ?? '',
+                department: r.department ?? emp.department?.name ?? '',
+                date: r.date ?? '',
+                punchIn: r.punchIn ?? '',
+                punchOut: r.punchOut ?? '',
+                status: r.status ?? 'PRESENT',
+                shiftName: r.shift?.name ?? '',
+                shiftTime: r.shift ? `${r.shift.startTime} \u2013 ${r.shift.endTime}` : '',
+                reviewFlags: r.reviewFlags ?? [],
+                isReviewed: r.isReviewed ?? false,
+            };
+        });
+    }, [weeklyReviewResponse]);
+
+    const toggleReviewId = React.useCallback((id: string) => {
+        setSelectedReviewIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const handleMarkReviewed = React.useCallback(async () => {
+        if (selectedReviewIds.size === 0) return;
+        try {
+            await markReviewedMutation.mutateAsync({ recordIds: Array.from(selectedReviewIds) });
+            setSelectedReviewIds(new Set());
+        } catch (_err) {
+            // error is handled via React Query
+        }
+    }, [selectedReviewIds, markReviewedMutation]);
+
+    const weeklyFlagOptions = [
+        { value: '', label: 'All' },
+        { value: 'MISSING_PUNCH', label: 'Missing' },
+        { value: 'AUTO_MAPPED', label: 'Auto-Map' },
+        { value: 'WORKED_ON_LEAVE', label: 'On Leave' },
+        { value: 'LATE_BEYOND_THRESHOLD', label: 'Late' },
+        { value: 'MULTIPLE_SHIFT_ANOMALY', label: 'Multi' },
+        { value: 'OT_ANOMALY', label: 'OT' },
+    ];
+
+    const weeklyKpiItems = [
+        { label: 'Total Flagged', value: weeklySummary.totalRecords ?? 0, color: colors.primary[500] },
+        { label: 'Missing Punch', value: weeklySummary.MISSING_PUNCH ?? 0, color: colors.danger[500] },
+        { label: 'Auto-Mapped', value: weeklySummary.AUTO_MAPPED ?? 0, color: colors.info[500] },
+        { label: 'On Leave', value: weeklySummary.WORKED_ON_LEAVE ?? 0, color: colors.warning[500] },
+        { label: 'Late', value: weeklySummary.LATE_BEYOND_THRESHOLD ?? 0, color: colors.warning[600] },
+        { label: 'OT Anomaly', value: weeklySummary.OT_ANOMALY ?? 0, color: colors.danger[600] },
+    ];
+
+    // Navigate week
+    const goWeekBack = React.useCallback(() => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() - 7);
+        setWeekStart(d.toISOString().split('T')[0]!);
+        const e = new Date(d);
+        e.setDate(e.getDate() + 6);
+        setWeekEnd(e.toISOString().split('T')[0]!);
+        setSelectedReviewIds(new Set());
+    }, [weekStart]);
+
+    const goWeekForward = React.useCallback(() => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + 7);
+        setWeekStart(d.toISOString().split('T')[0]!);
+        const e = new Date(d);
+        e.setDate(e.getDate() + 6);
+        setWeekEnd(e.toISOString().split('T')[0]!);
+        setSelectedReviewIds(new Set());
+    }, [weekStart]);
+
     const renderItem = ({ item, index }: { item: AttendanceRecord; index: number }) => (
         <RecordCard item={item} index={index} />
     );
@@ -379,25 +619,160 @@ export function AttendanceDashboardScreen() {
         return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No records" message="No attendance records found for this date." /></View>;
     };
 
+    // ── Weekly Review list helpers ──
+    const renderWeeklyItem = ({ item, index }: { item: WeeklyRecord; index: number }) => (
+        <WeeklyRecordCard
+            item={item}
+            index={index}
+            isSelected={selectedReviewIds.has(item.id)}
+            onToggle={toggleReviewId}
+        />
+    );
+
+    const renderWeeklyHeader = () => (
+        <>
+            {/* Week Picker */}
+            <View style={styles.datePicker}>
+                <Pressable onPress={goWeekBack} style={styles.dateArrow}>
+                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                        <Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                </Pressable>
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
+                        {fmt.date(weekStart + 'T00:00:00Z')} - {fmt.date(weekEnd + 'T00:00:00Z')}
+                    </Text>
+                    <Text className="font-inter text-[10px] text-primary-500">Weekly Review</Text>
+                </View>
+                <Pressable onPress={goWeekForward} style={styles.dateArrow}>
+                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                        <Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                </Pressable>
+            </View>
+
+            {/* KPI Cards */}
+            <View style={styles.kpiGrid}>
+                {weeklyKpiItems.map((item, idx) => (
+                    <WeeklyKpiCard key={item.label} label={item.label} value={item.value} color={item.color} index={idx} />
+                ))}
+            </View>
+
+            {/* Flag Filter Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
+                {weeklyFlagOptions.map(opt => {
+                    const active = weeklyFlag === opt.value;
+                    return (
+                        <Pressable
+                            key={opt.value}
+                            onPress={() => { setWeeklyFlag(opt.value); setSelectedReviewIds(new Set()); }}
+                            style={[styles.filterChip, active && styles.filterChipActive]}
+                        >
+                            <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt.label}</Text>
+                        </Pressable>
+                    );
+                })}
+            </ScrollView>
+
+            <Text className="mb-2 mt-2 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">Flagged Records</Text>
+        </>
+    );
+
+    const renderWeeklyEmpty = () => {
+        if (weeklyLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
+        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No flagged records" message="No records requiring review for this week." /></View>;
+    };
+
     return (
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
             <AppTopHeader title="Attendance Dashboard" onMenuPress={toggle} />
 
-            <FlashList
-                data={records}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                ListHeaderComponent={renderHeader}
-                ListEmptyComponent={renderEmpty}
-                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                refreshControl={
-                    <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />
-                }
-            />
+            {/* Tab Switcher */}
+            <View style={{ flexDirection: 'row', marginHorizontal: 24, marginBottom: 12, backgroundColor: isDark ? '#1A1730' : colors.neutral[100], borderRadius: 12, padding: 3 }}>
+                <Pressable
+                    onPress={() => setActiveTab('daily')}
+                    style={{
+                        flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+                        backgroundColor: activeTab === 'daily' ? (isDark ? colors.primary[900] : colors.white) : 'transparent',
+                    }}
+                >
+                    <Text className={`font-inter text-xs font-bold ${activeTab === 'daily' ? 'text-primary-700 dark:text-primary-400' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                        Daily View
+                    </Text>
+                </Pressable>
+                <Pressable
+                    onPress={() => setActiveTab('weekly')}
+                    style={{
+                        flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+                        backgroundColor: activeTab === 'weekly' ? (isDark ? colors.primary[900] : colors.white) : 'transparent',
+                    }}
+                >
+                    <Text className={`font-inter text-xs font-bold ${activeTab === 'weekly' ? 'text-primary-700 dark:text-primary-400' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                        Weekly Review
+                    </Text>
+                </Pressable>
+            </View>
+
+            {/* Daily Tab */}
+            {activeTab === 'daily' && (
+                <FlashList
+                    data={records}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id}
+                    ListHeaderComponent={renderHeader}
+                    ListEmptyComponent={renderEmpty}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    refreshControl={
+                        <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />
+                    }
+                />
+            )}
+
+            {/* Weekly Review Tab */}
+            {activeTab === 'weekly' && (
+                <>
+                    <FlashList
+                        data={weeklyRecords}
+                        renderItem={renderWeeklyItem}
+                        keyExtractor={item => item.id}
+                        ListHeaderComponent={renderWeeklyHeader}
+                        ListEmptyComponent={renderWeeklyEmpty}
+                        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + (selectedReviewIds.size > 0 ? 100 : 40) }]}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        refreshControl={
+                            <RefreshControl refreshing={weeklyFetching && !weeklyLoading} onRefresh={() => weeklyRefetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />
+                        }
+                    />
+                    {/* Floating Mark Reviewed Bar */}
+                    {selectedReviewIds.size > 0 && (
+                        <View style={{
+                            position: 'absolute', bottom: insets.bottom + 16, left: 24, right: 24,
+                            backgroundColor: colors.primary[600], borderRadius: 16, paddingVertical: 14, paddingHorizontal: 20,
+                            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                            shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+                        }}>
+                            <Text className="font-inter text-sm font-bold text-white">{selectedReviewIds.size} selected</Text>
+                            <Pressable
+                                onPress={handleMarkReviewed}
+                                disabled={markReviewedMutation.isPending}
+                                style={{
+                                    backgroundColor: colors.white, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16,
+                                    opacity: markReviewedMutation.isPending ? 0.6 : 1,
+                                }}
+                            >
+                                <Text className="font-inter text-xs font-bold text-primary-700">
+                                    {markReviewedMutation.isPending ? 'Processing...' : 'Mark Reviewed'}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    )}
+                </>
+            )}
         </View>
     );
 }

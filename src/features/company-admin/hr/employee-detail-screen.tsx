@@ -779,6 +779,9 @@ function ProfessionalTab({
     locations,
     shifts,
     geofenceOptions,
+    isCreateMode,
+    employeeStatus,
+    onStatusChange,
 }: {
     form: ProfessionalForm;
     onChange: (updates: Partial<ProfessionalForm>) => void;
@@ -791,10 +794,21 @@ function ProfessionalTab({
     locations?: { id: string; name: string }[];
     shifts?: { id: string; name: string }[];
     geofenceOptions?: { id: string; name: string }[];
+    isCreateMode?: boolean;
+    employeeStatus?: EmployeeStatus;
+    onStatusChange?: (status: EmployeeStatus) => void;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Employment" />
+            {isCreateMode && onStatusChange && (
+                <ChipSelect
+                    label="Initial Status"
+                    options={['Probation', 'Active', 'Confirmed']}
+                    selected={employeeStatus || 'Probation'}
+                    onSelect={(v) => onStatusChange(v as EmployeeStatus)}
+                />
+            )}
             <DatePickerField label="Joining Date" value={form.joiningDate} onChange={(v) => onChange({ joiningDate: v })} required />
             <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required createRoute={{ route: '/company/hr/employee-types', label: 'Create Employee Type' }} />
             <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required createRoute={{ route: '/company/hr/designations', label: 'Create Designation' }} />
@@ -1190,7 +1204,7 @@ export function EmployeeDetailScreen() {
     const [bank, setBank] = React.useState<BankForm>(INITIAL_BANK);
     const [documents, setDocuments] = React.useState<DocumentsForm>(INITIAL_DOCUMENTS);
     const [profilePhotoUrl, setProfilePhotoUrl] = React.useState<string | null>(null);
-    const [employeeStatus, setEmployeeStatus] = React.useState<EmployeeStatus>('Active');
+    const [employeeStatus, setEmployeeStatus] = React.useState<EmployeeStatus>('Probation');
 
     // Login account state (only for new employees)
     const [createUserAccount, setCreateUserAccount] = React.useState(false);
@@ -1831,15 +1845,16 @@ export function EmployeeDetailScreen() {
             bankBranch: bank.bankBranch, accountNumber: bank.accountNumber,
             accountType: bank.accountType,
         },
+        // Initial status (for new employees)
+        initialStatus: employeeStatus.toUpperCase().replaceAll(' ', '_') as any,
         // Documents / Statutory
-        statutory: {
-            pan: documents.pan, aadhaar: documents.aadhaar,
-            uan: documents.uan, esiIpNumber: documents.esiIpNumber,
-            passport: documents.passport, dl: documents.dl,
-            voterId: documents.voterId,
-            
-            initialStatus: employeeStatus.toUpperCase().replaceAll(' ', '_') as any,
-        },
+        panNumber: documents.pan || undefined,
+        aadhaarNumber: documents.aadhaar || undefined,
+        uan: documents.uan || undefined,
+        esiIpNumber: documents.esiIpNumber || undefined,
+        passportNumber: documents.passport || undefined,
+        drivingLicence: documents.dl || undefined,
+        voterId: documents.voterId || undefined,
     });
 
     const handleSave = () => {
@@ -2010,10 +2025,11 @@ export function EmployeeDetailScreen() {
                     {
                         onSuccess: () => {
                             const displayMap: Record<string, EmployeeStatus> = {
+                                PROBATION: 'Probation',
+                                ACTIVE: 'Active',
                                 CONFIRMED: 'Confirmed',
                                 ON_NOTICE: 'On Notice',
                                 SUSPENDED: 'Suspended',
-                                ACTIVE: 'Active',
                             };
                             setEmployeeStatus(displayMap[targetStatus] || (targetStatus as EmployeeStatus));
                             showSuccess('Status Updated', `Employee status changed to ${displayMap[targetStatus] || targetStatus}.`);
@@ -2191,6 +2207,9 @@ export function EmployeeDetailScreen() {
                         locations={locationOptions}
                         shifts={shiftOptions}
                         geofenceOptions={geofenceOptions}
+                        isCreateMode={isCreateMode}
+                        employeeStatus={employeeStatus}
+                        onStatusChange={setEmployeeStatus}
                     />
                 )}
                 {activeTab === 'salary' && (
@@ -2377,32 +2396,47 @@ export function EmployeeDetailScreen() {
                             </Pressable>
                         </View>
 
-                        {/* Confirm Employee */}
-                        {(employeeStatus === 'Probation' || employeeStatus === 'Suspended') && (
+                        {/* Mark as Probation */}
+                        {employeeStatus !== 'Probation' && (
                             <Pressable
-                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.neutral[100] }]}
-                                onPress={() => handleStatusAction('CONFIRMED', 'Confirm Employee')}
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.warning[50] }]}
+                                onPress={() => handleStatusAction('PROBATION', 'Mark as Probation')}
                             >
                                 <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                                    <Path d="M20 6L9 17l-5-5" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <Path d="M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2" stroke={colors.warning[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                                 </Svg>
-                                <Text className="font-inter text-sm font-semibold text-primary-700">
-                                    Confirm Employee
+                                <Text className="font-inter text-sm font-semibold text-warning-700">
+                                    Mark as Probation
                                 </Text>
                             </Pressable>
                         )}
 
-                        {/* Activate (from Suspended) */}
-                        {employeeStatus === 'Suspended' && (
+                        {/* Mark as Active */}
+                        {employeeStatus !== 'Active' && (
                             <Pressable
                                 style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.neutral[100] }]}
-                                onPress={() => handleStatusAction('ACTIVE', 'Activate Employee')}
+                                onPress={() => handleStatusAction('ACTIVE', 'Mark as Active')}
                             >
                                 <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
                                     <Path d="M20 6L9 17l-5-5" stroke={colors.success[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </Svg>
                                 <Text className="font-inter text-sm font-semibold text-success-700">
-                                    Activate Employee
+                                    Mark as Active
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {/* Confirm Employee */}
+                        {employeeStatus !== 'Confirmed' && (
+                            <Pressable
+                                style={({ pressed }) => [st.statusMenuItem, pressed && { backgroundColor: colors.neutral[100] }]}
+                                onPress={() => handleStatusAction('CONFIRMED', 'Confirm Employee')}
+                            >
+                                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3" stroke={colors.primary[600]} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                                <Text className="font-inter text-sm font-semibold text-primary-700">
+                                    Confirm Employee
                                 </Text>
                             </Pressable>
                         )}

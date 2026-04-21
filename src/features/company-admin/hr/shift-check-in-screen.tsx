@@ -4,10 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Animated,
     Dimensions,
     PanResponder,
     Platform,
+    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -189,6 +191,8 @@ function SlideAction({
 }) {
     const pan = React.useRef(new Animated.Value(0)).current;
     const completedRef = React.useRef(false);
+    const onCompleteRef = React.useRef(onComplete);
+    onCompleteRef.current = onComplete; // Always keep latest callback
 
     // Reset when mode changes
     React.useEffect(() => {
@@ -214,7 +218,7 @@ function SlideAction({
                 if (x / MAX_SLIDE >= 0.75) {
                     completedRef.current = true;
                     Animated.spring(pan, { toValue: MAX_SLIDE, useNativeDriver: true, friction: 6 }).start(() => {
-                        onComplete();
+                        onCompleteRef.current();
                         setTimeout(() => {
                             pan.setValue(0);
                             completedRef.current = false;
@@ -346,6 +350,20 @@ export function ShiftCheckInScreen() {
     // Shift info: from the attendance record if checked in, or from currentShift if not yet checked in
     const shiftInfo = record?.shift ?? (statusData as any)?.currentShift ?? null;
 
+    // EMPLOYEE_CHOICE mode: shift selection
+    const [selectedShiftId, setSelectedShiftId] = React.useState<string>('');
+    const attendanceMode: string = (statusData as any)?.attendanceMode ?? '';
+    const companyShifts: Array<{ id: string; name: string; startTime: string; endTime: string; shiftType: string }> = (statusData as any)?.companyShifts ?? [];
+
+    React.useEffect(() => {
+        if (attendanceMode === 'EMPLOYEE_CHOICE' && companyShifts.length > 0 && !selectedShiftId) {
+            const currentShiftId = (statusData as any)?.currentShift?.id;
+            if (currentShiftId) {
+                setSelectedShiftId(currentShiftId);
+            }
+        }
+    }, [attendanceMode, companyShifts, statusData]);
+
     // Elapsed timer
     const [elapsed, setElapsed] = React.useState(0);
     React.useEffect(() => {
@@ -367,12 +385,16 @@ export function ShiftCheckInScreen() {
                     timestamp: new Date().toISOString(),
                     latitude: geo?.lat,
                     longitude: geo?.lng,
+                    ...(attendanceMode === 'EMPLOYEE_CHOICE' && selectedShiftId ? { selectedShiftId } : {}),
                 });
                 setOfflineCount(getQueueLength());
                 return { offline: true };
             }
             const body: any = {};
             if (geo) { body.latitude = geo.lat; body.longitude = geo.lng; }
+            if (attendanceMode === 'EMPLOYEE_CHOICE' && selectedShiftId) {
+                body.selectedShiftId = selectedShiftId;
+            }
             return (await client.post('/hr/attendance/check-in', body) as any).data;
         },
         onSuccess: () => {
@@ -420,10 +442,18 @@ export function ShiftCheckInScreen() {
         ? (canStartNewShift ? 'checkin' : 'done')
         : attStatus === 'CHECKED_IN' ? 'checkout' : 'checkin';
 
+    const [useSlideMode, setUseSlideMode] = React.useState(true);
+
     const handleSlideComplete = React.useCallback(() => {
-        if (slideMode === 'checkin') checkInMut.mutate();
+        if (slideMode === 'checkin') {
+            if (attendanceMode === 'EMPLOYEE_CHOICE' && companyShifts.length > 0 && !selectedShiftId) {
+                showErrorMessage('Please select a shift before checking in');
+                return;
+            }
+            checkInMut.mutate();
+        }
         else if (slideMode === 'checkout') checkOutMut.mutate();
-    }, [slideMode]);
+    }, [slideMode, checkInMut, checkOutMut, attendanceMode, companyShifts, selectedShiftId]);
 
     // Location & geofence info — available both before and after check-in
     const locationInfo = record?.location ?? (statusData as any)?.location ?? null;
@@ -507,8 +537,105 @@ export function ShiftCheckInScreen() {
                         )}
                     </AnimatedRN.View>
 
-                    {/* Slider */}
-                    <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} labelOverride={completedShifts > 0 && canStartNewShift ? 'Slide to Start New Shift' : undefined} />
+                    {/* Shift Selector (EMPLOYEE_CHOICE mode) */}
+                    {attendanceMode === 'EMPLOYEE_CHOICE' && companyShifts.length > 0 && slideMode === 'checkin' && (
+                        <AnimatedRN.View entering={FadeInDown.duration(350).delay(150)} style={{ marginHorizontal: -4 }}>
+                            <View style={{ backgroundColor: colors.primary[50], borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.primary[100] }}>
+                                <Text className="font-inter text-sm font-bold text-center" style={{ color: colors.primary[800], marginBottom: 10 }}>Select Your Shift</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 2 }}>
+                                    {companyShifts.map((s) => {
+                                        const isSelected = selectedShiftId === s.id;
+                                        return (
+                                            <Pressable
+                                                key={s.id}
+                                                onPress={() => setSelectedShiftId(s.id)}
+                                                style={{
+                                                    paddingHorizontal: 18, paddingVertical: 12, borderRadius: 14,
+                                                    backgroundColor: isSelected ? colors.primary[600] : colors.white,
+                                                    borderWidth: 1.5,
+                                                    borderColor: isSelected ? colors.primary[500] : colors.primary[200],
+                                                    alignItems: 'center', minWidth: 110,
+                                                    ...(isSelected ? { shadowColor: colors.primary[600], shadowOpacity: 0.3, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 4 } : {}),
+                                                }}
+                                            >
+                                                <Text className="font-inter text-sm font-bold" style={{ color: isSelected ? '#fff' : colors.primary[800] }}>{s.name}</Text>
+                                                <Text className="font-inter text-xs" style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : colors.primary[500], marginTop: 2 }}>{s.startTime} – {s.endTime}</Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </View>
+                        </AnimatedRN.View>
+                    )}
+
+                    {/* Action mode toggle */}
+                    {slideMode !== 'done' && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 6 }}>
+                            <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 20, padding: 3 }}>
+                                <Pressable
+                                    onPress={() => setUseSlideMode(true)}
+                                    style={{
+                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
+                                        backgroundColor: useSlideMode ? colors.white : 'transparent',
+                                        ...(useSlideMode ? { shadowColor: '#000', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, elevation: 2 } : {}),
+                                    }}
+                                >
+                                    <Text className="font-inter text-xs font-semibold" style={{ color: useSlideMode ? colors.primary[700] : colors.neutral[500] }}>Slide</Text>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() => setUseSlideMode(false)}
+                                    style={{
+                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
+                                        backgroundColor: !useSlideMode ? colors.white : 'transparent',
+                                        ...(!useSlideMode ? { shadowColor: '#000', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, elevation: 2 } : {}),
+                                    }}
+                                >
+                                    <Text className="font-inter text-xs font-semibold" style={{ color: !useSlideMode ? colors.primary[700] : colors.neutral[500] }}>Tap</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Slider / Tap Button */}
+                    {slideMode !== 'done' && (
+                        useSlideMode ? (
+                            <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} labelOverride={completedShifts > 0 && canStartNewShift ? 'Slide to Start New Shift' : undefined} />
+                        ) : (
+                            <AnimatedRN.View entering={FadeInDown.duration(300)} style={{ alignItems: 'center' }}>
+                                <Pressable
+                                    onPress={() => { if (!isBusy) handleSlideComplete(); }}
+                                    disabled={isBusy}
+                                    style={{
+                                        width: TRACK_W,
+                                        height: 56,
+                                        borderRadius: 16,
+                                        backgroundColor: slideMode === 'checkin' ? colors.success[500] : colors.danger[500],
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexDirection: 'row',
+                                        gap: 8,
+                                        opacity: isBusy ? 0.6 : 1,
+                                        shadowColor: slideMode === 'checkin' ? colors.success[600] : colors.danger[600],
+                                        shadowOpacity: 0.3,
+                                        shadowOffset: { width: 0, height: 4 },
+                                        shadowRadius: 8,
+                                        elevation: 6,
+                                    }}
+                                >
+                                    {isBusy ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <>
+                                            <ArrowIcon s={20} c="#fff" />
+                                            <Text className="font-inter text-base font-bold" style={{ color: '#fff' }}>
+                                                {slideMode === 'checkin' ? (completedShifts > 0 && canStartNewShift ? 'Start New Shift' : 'Check In') : 'Check Out'}
+                                            </Text>
+                                        </>
+                                    )}
+                                </Pressable>
+                            </AnimatedRN.View>
+                        )
+                    )}
 
                     {/* Schedule */}
                     <Card icon={<BriefIcon />} title="Today's Schedule" delay={300}>

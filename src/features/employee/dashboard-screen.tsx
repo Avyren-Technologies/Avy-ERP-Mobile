@@ -4,6 +4,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+    ActivityIndicator,
     Animated,
     Dimensions,
     PanResponder,
@@ -118,21 +119,41 @@ function normalizeDashboardData(raw: Record<string, unknown>): DashboardData {
     // Backend returns `attendanceStatus` + `currentShift` separately;
     // frontend expects a combined `shift: DashboardShiftInfo`.
     let shift: DashboardShiftInfo | null = data.shift ?? null;
-    if (!shift && data.attendanceStatus) {
-        const att = data.attendanceStatus as Record<string, any>;
+    if (!shift) {
+        const att = data.attendanceStatus as Record<string, any> | null;
         const cs = data.currentShift as Record<string, any> | null;
-        shift = {
-            shiftName: cs?.name ?? 'Unknown Shift',
-            startTime: cs?.startTime ?? '--:--',
-            endTime: cs?.endTime ?? '--:--',
-            status: att.status ?? 'NOT_CHECKED_IN',
-            attendanceRecordId: att.record?.id ?? null,
-            punchIn: att.record?.punchIn ?? null,
-            punchOut: att.record?.punchOut ?? null,
-            elapsedSeconds: att.elapsedSeconds ?? 0,
-            workedHours: att.record?.workedHours ?? null,
-            locationName: att.record?.location?.name ?? null,
-        };
+        if (att) {
+            shift = {
+                shiftName: att.record?.shift?.name ?? cs?.name ?? 'Unknown Shift',
+                startTime: att.record?.shift?.startTime ?? cs?.startTime ?? '--:--',
+                endTime: att.record?.shift?.endTime ?? cs?.endTime ?? '--:--',
+                status: att.status ?? 'NOT_CHECKED_IN',
+                attendanceRecordId: att.record?.id ?? null,
+                punchIn: att.record?.punchIn ?? null,
+                punchOut: att.record?.punchOut ?? null,
+                elapsedSeconds: att.elapsedSeconds ?? 0,
+                workedHours: att.record?.workedHours ?? null,
+                locationName: att.record?.location?.name ?? cs?.location?.name ?? null,
+                canStartNewShift: att.canStartNewShift ?? false,
+                completedShifts: att.completedShifts ?? 0,
+            };
+        } else if (cs) {
+            // attendanceStatus is null but currentShift exists — show shift with NOT_CHECKED_IN
+            shift = {
+                shiftName: cs.name ?? 'Unknown Shift',
+                startTime: cs.startTime ?? '--:--',
+                endTime: cs.endTime ?? '--:--',
+                status: 'NOT_CHECKED_IN',
+                attendanceRecordId: null,
+                punchIn: null,
+                punchOut: null,
+                elapsedSeconds: 0,
+                workedHours: null,
+                locationName: cs.location?.name ?? null,
+                canStartNewShift: false,
+                completedShifts: 0,
+            };
+        }
     }
 
     // Map backend `leaveBalance` → frontend `leaveBalances`
@@ -178,6 +199,8 @@ function normalizeDashboardData(raw: Record<string, unknown>): DashboardData {
         weeklyChart: data.weeklyChart ?? null,
         leaveDonut: data.leaveDonut ?? null,
         monthlyTrend: data.monthlyTrend ?? null,
+        attendanceMode: (data.attendanceStatus as Record<string, any>)?.attendanceMode ?? data.attendanceMode ?? '',
+        companyShifts: (data.attendanceStatus as Record<string, any>)?.companyShifts ?? data.companyShifts ?? [],
     };
 }
 
@@ -454,13 +477,17 @@ function SlideAction({
     mode,
     onComplete,
     loading,
+    labelOverride,
 }: {
     mode: 'checkin' | 'checkout' | 'done';
     onComplete: () => void;
     loading: boolean;
+    labelOverride?: string | undefined;
 }) {
     const pan = React.useRef(new Animated.Value(0)).current;
     const completedRef = React.useRef(false);
+    const onCompleteRef = React.useRef(onComplete);
+    onCompleteRef.current = onComplete; // Always keep latest callback
     const isDone = mode === 'done';
 
     if (isDone) {
@@ -488,7 +515,7 @@ function SlideAction({
                 if (x / MAX_SLIDE >= 0.75) {
                     completedRef.current = true;
                     Animated.spring(pan, { toValue: MAX_SLIDE, useNativeDriver: true, friction: 6 }).start(() => {
-                        onComplete();
+                        onCompleteRef.current(); // Use ref to always call latest callback
                         setTimeout(() => {
                             pan.setValue(0);
                             completedRef.current = false;
@@ -503,7 +530,7 @@ function SlideAction({
 
     const isCheckIn = mode === 'checkin';
     const trackColor = isCheckIn ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)';
-    const label = loading ? 'Processing...' : isCheckIn ? 'Slide to Check In' : 'Slide to Check Out';
+    const label = loading ? 'Processing...' : labelOverride ? labelOverride : isCheckIn ? 'Slide to Check In' : 'Slide to Check Out';
 
     return (
         <View style={{ alignItems: 'center', marginTop: 20 }}>
@@ -709,7 +736,7 @@ const AnnouncementsTicker = React.memo(function AnnouncementsTicker({ announceme
 // FIX 2: Shift Check-In Hero — Fixed Clock Display
 // ================================================================
 
-function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
+function ShiftCheckInHero({ shift, attendanceMode, companyShifts }: { shift: DashboardShiftInfo | null; attendanceMode: string; companyShifts: DashboardData['companyShifts'] }) {
     const queryClient = useQueryClient();
     const isNarrowScreen = SCREEN_WIDTH < 380;
     const fmt = useCompanyFormatter();
@@ -743,6 +770,19 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
         })();
     }, []);
 
+    // EMPLOYEE_CHOICE mode: shift selection
+    const [selectedShiftId, setSelectedShiftId] = React.useState<string>('');
+    React.useEffect(() => {
+        if (attendanceMode === 'EMPLOYEE_CHOICE' && companyShifts.length > 0 && !selectedShiftId) {
+            // Pre-select the employee's assigned shift if available
+            const currentShiftName = shift?.shiftName;
+            if (currentShiftName) {
+                const match = companyShifts.find((s) => s.name === currentShiftName);
+                if (match) setSelectedShiftId(match.id);
+            }
+        }
+    }, [attendanceMode, companyShifts, shift?.shiftName]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Elapsed timer
     const status = shift?.status ?? 'NOT_CHECKED_IN';
     const startRef = React.useRef(Date.now());
@@ -769,8 +809,11 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
     // Mutations
     const checkInMut = useMutation({
         mutationFn: async () => {
-            const body: Record<string, number> = {};
+            const body: Record<string, any> = {};
             if (geo) { body.latitude = geo.lat; body.longitude = geo.lng; }
+            if (attendanceMode === 'EMPLOYEE_CHOICE' && selectedShiftId) {
+                body.selectedShiftId = selectedShiftId;
+            }
             return (await client.post('/hr/attendance/check-in', body) as any).data;
         },
         onSuccess: () => {
@@ -778,7 +821,7 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
             queryClient.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
             queryClient.invalidateQueries({ queryKey: essKeys.dashboard() });
         },
-        onError: () => showErrorMessage('Failed to check in. Please try again.'),
+        onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? 'Failed to check in. Please try again.'),
     });
 
     const checkOutMut = useMutation({
@@ -792,20 +835,30 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
             queryClient.invalidateQueries({ queryKey: ['attendance', 'my-status'] });
             queryClient.invalidateQueries({ queryKey: essKeys.dashboard() });
         },
-        onError: () => showErrorMessage('Failed to check out. Please try again.'),
+        onError: (err: any) => showErrorMessage(err?.response?.data?.message ?? 'Failed to check out. Please try again.'),
     });
 
     const isBusy = checkInMut.isPending || checkOutMut.isPending;
+    const canStartNewShift = shift?.canStartNewShift === true;
+    const completedShifts = shift?.completedShifts ?? 0;
     const isCheckedIn = status === 'CHECKED_IN';
-    const isCheckedOut = status === 'CHECKED_OUT';
+    const isCheckedOut = status === 'CHECKED_OUT' && !canStartNewShift;
     const workedHrs = parseWorkedHours(shift?.workedHours);
 
     const slideMode = isCheckedOut ? 'done' : isCheckedIn ? 'checkout' : 'checkin';
 
+    const [useSlideMode, setUseSlideMode] = React.useState(true);
+
     const handleSlideComplete = React.useCallback(() => {
-        if (slideMode === 'checkin') checkInMut.mutate();
+        if (slideMode === 'checkin') {
+            if (attendanceMode === 'EMPLOYEE_CHOICE' && companyShifts.length > 0 && !selectedShiftId) {
+                showErrorMessage('Please select a shift before checking in');
+                return;
+            }
+            checkInMut.mutate();
+        }
         else if (slideMode === 'checkout') checkOutMut.mutate();
-    }, [slideMode, checkInMut, checkOutMut]);
+    }, [slideMode, checkInMut, checkOutMut, attendanceMode, companyShifts, selectedShiftId]);
 
     // Compact clock sizing to keep the hero card denser.
     const clockFontSize = isNarrowScreen ? 36 : 40;
@@ -912,9 +965,92 @@ function ShiftCheckInHero({ shift }: { shift: DashboardShiftInfo | null }) {
                         </>
                     )}
 
-                    {/* Slide action: hidden in completed state per UX requirement */}
+                    {/* Shift Selector (EMPLOYEE_CHOICE mode) */}
+                    {attendanceMode === 'EMPLOYEE_CHOICE' && companyShifts.length > 0 && slideMode === 'checkin' && (
+                        <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 12 }}>
+                            <Text className="font-inter text-sm font-semibold text-center" style={{ color: '#fff', marginBottom: 8 }}>Select Your Shift</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
+                                {companyShifts.map((s) => (
+                                    <Pressable
+                                        key={s.id}
+                                        onPress={() => setSelectedShiftId(s.id)}
+                                        style={{
+                                            paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
+                                            backgroundColor: selectedShiftId === s.id ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                                            borderWidth: 1.5, borderColor: selectedShiftId === s.id ? '#fff' : 'rgba(255,255,255,0.2)',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        <Text className="font-inter text-sm font-semibold" style={{ color: '#fff' }}>{s.name}</Text>
+                                        <Text className="font-inter text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{fmt.shiftTime(s.startTime)} – {fmt.shiftTime(s.endTime)}</Text>
+                                    </Pressable>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {/* Action mode toggle */}
                     {slideMode !== 'done' && (
-                        <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} />
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 6, marginTop: 8 }}>
+                            <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 20, padding: 3 }}>
+                                <Pressable
+                                    onPress={() => setUseSlideMode(true)}
+                                    style={{
+                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
+                                        backgroundColor: useSlideMode ? 'rgba(255,255,255,0.25)' : 'transparent',
+                                    }}
+                                >
+                                    <Text className="font-inter text-xs font-semibold" style={{ color: '#fff' }}>Slide</Text>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() => setUseSlideMode(false)}
+                                    style={{
+                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
+                                        backgroundColor: !useSlideMode ? 'rgba(255,255,255,0.25)' : 'transparent',
+                                    }}
+                                >
+                                    <Text className="font-inter text-xs font-semibold" style={{ color: '#fff' }}>Tap</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Slide action / Tap button: hidden in completed state per UX requirement */}
+                    {slideMode !== 'done' && (
+                        useSlideMode ? (
+                            <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} labelOverride={completedShifts > 0 && canStartNewShift ? 'Slide to Start New Shift' : undefined} />
+                        ) : (
+                            <AnimatedRN.View entering={FadeInDown.duration(300)} style={{ alignItems: 'center', marginTop: 20 }}>
+                                <Pressable
+                                    onPress={() => { if (!isBusy) handleSlideComplete(); }}
+                                    disabled={isBusy}
+                                    style={{
+                                        width: TRACK_W,
+                                        height: 56,
+                                        borderRadius: 16,
+                                        backgroundColor: slideMode === 'checkin' ? 'rgba(16,185,129,0.4)' : 'rgba(244,63,94,0.4)',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexDirection: 'row',
+                                        gap: 8,
+                                        opacity: isBusy ? 0.6 : 1,
+                                        borderWidth: 1,
+                                        borderColor: 'rgba(255,255,255,0.15)',
+                                    }}
+                                >
+                                    {isBusy ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <>
+                                            <ArrowIcon s={20} c="#fff" />
+                                            <Text className="font-inter text-base font-bold" style={{ color: '#fff' }}>
+                                                {slideMode === 'checkin' ? (completedShifts > 0 && canStartNewShift ? 'Start New Shift' : 'Check In') : 'Check Out'}
+                                            </Text>
+                                        </>
+                                    )}
+                                </Pressable>
+                            </AnimatedRN.View>
+                        )
                     )}
 
                     {/* Break schedule pills */}
@@ -2214,7 +2350,7 @@ export function EmployeeDashboard() {
                 <AnnouncementsTicker announcements={data.announcements} />
 
                 {/* SECTION 2: Shift Check-In Hero */}
-                <ShiftCheckInHero shift={data.shift} />
+                <ShiftCheckInHero shift={data.shift} attendanceMode={data.attendanceMode} companyShifts={data.companyShifts} />
 
                 {/* FIX 3: Shift Calendar — Full Month */}
                 <ShiftMonthCalendar calendar={data.shiftCalendar} />

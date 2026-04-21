@@ -50,8 +50,8 @@ const ROUNDING_DIRECTION_LABELS: Record<string, string> = { NEAREST: 'Nearest', 
 const GEOFENCE_MODE_OPTIONS = ['OFF', 'WARN', 'STRICT'];
 const GEOFENCE_MODE_LABELS: Record<string, string> = { OFF: 'Off — Record silently', WARN: 'Warn — Allow + Notify', STRICT: 'Strict — Block if outside' };
 
-const ATTENDANCE_MODE_OPTIONS = ['SHIFT_STRICT', 'SHIFT_RELAXED', 'FULLY_FLEXIBLE'];
-const ATTENDANCE_MODE_LABELS: Record<string, string> = { SHIFT_STRICT: 'Shift Strict', SHIFT_RELAXED: 'Shift Relaxed', FULLY_FLEXIBLE: 'Fully Flexible' };
+const ATTENDANCE_MODE_OPTIONS = ['SHIFT_STRICT', 'SHIFT_RELAXED', 'FULLY_FLEXIBLE', 'EMPLOYEE_CHOICE'];
+const ATTENDANCE_MODE_LABELS: Record<string, string> = { SHIFT_STRICT: 'Shift Strict', SHIFT_RELAXED: 'Shift Relaxed', FULLY_FLEXIBLE: 'Fully Flexible', EMPLOYEE_CHOICE: 'Employee Choice' };
 
 const LEAVE_CHECKIN_MODE_OPTIONS = ['STRICT', 'ALLOW_WITHIN_WINDOW', 'ALLOW_TILL_SHIFT_END', 'FULLY_FLEXIBLE'];
 const LEAVE_CHECKIN_MODE_LABELS: Record<string, string> = { STRICT: 'Strict', ALLOW_WITHIN_WINDOW: 'Allow Within Window', ALLOW_TILL_SHIFT_END: 'Allow Till Shift End', FULLY_FLEXIBLE: 'Fully Flexible' };

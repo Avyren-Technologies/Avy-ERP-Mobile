@@ -21,6 +21,8 @@ export interface DashboardShiftInfo {
   elapsedSeconds: number;
   workedHours: number | string | null;
   locationName: string | null;
+  canStartNewShift?: boolean;
+  completedShifts?: number;
 }
 
 export interface DashboardLeaveBalanceItem {
@@ -129,6 +131,8 @@ export interface DashboardData {
   weeklyChart: DashboardWeeklyChartDay[] | null;
   leaveDonut: DashboardLeaveDonutItem[] | null;
   monthlyTrend: DashboardMonthlyTrendItem[] | null;
+  attendanceMode: string;
+  companyShifts: Array<{ id: string; name: string; startTime: string; endTime: string; shiftType?: string }>;
 }
 
 // --- Types ---

@@ -47,15 +47,15 @@ import { useIsDark } from '@/hooks/use-is-dark';
 // ============ TYPES ============
 
 interface PFForm {
-    employeeRate: string; employerEPFRate: string; epsRate: string; edliRate: string; adminChargeRate: string;
+    employeeRate: string; employerEpfRate: string; employerEpsRate: string; employerEdliRate: string; adminChargeRate: string;
     wageCeiling: string; vpfEnabled: boolean; vpfMaxRate: string; excludedComponents: string;
 }
 
 interface ESIForm { employeeRate: string; employerRate: string; wageCeiling: string; }
 
-interface PTConfigItem { id: string; state: string; slabs: { from: number; to: number; tax: number }[]; frequency: string; registrationNumber: string; financialYear?: string; monthlyOverrides?: Record<string, number>; }
+interface PTConfigItem { id: string; state: string; slabs: { fromAmount: number; toAmount: number; taxAmount: number }[]; frequency: string; registrationNumber: string; financialYear?: string; monthlyOverrides?: Record<string, number>; }
 
-interface GratuityForm { formula: string; baseSalary: string; maxAmount: string; provisionMethod: string; trustEnabled: boolean; }
+interface GratuityForm { formula: string; baseSalary: string; maxAmount: string; provisionMethod: string; trustExists: boolean; }
 
 interface BonusForm { wageCeiling: string; minBonusPercent: string; maxBonusPercent: string; eligibilityDays: string; calculationPeriod: string; }
 
@@ -197,10 +197,12 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
         const overridesPayload: Record<string, number> = {};
         Object.entries(monthlyOverrides).forEach(([k, v]) => { if (v !== '') overridesPayload[k] = Number(v) || 0; });
         onSave({
-            state, frequency, registrationNumber: regNumber,
+            state,
+            frequency: frequency === 'Monthly' ? 'MONTHLY' : 'SEMI_ANNUAL',
+            registrationNumber: regNumber,
             financialYear: financialYear || undefined,
             monthlyOverrides: Object.keys(overridesPayload).length > 0 ? overridesPayload : undefined,
-            slabs: slabs.map(s => ({ from: Number(s.from) || 0, to: Number(s.to) || 0, tax: Number(s.tax) || 0 })),
+            slabs: slabs.map(s => ({ fromAmount: Number(s.from) || 0, toAmount: Number(s.to) || 0, taxAmount: Number(s.tax) || 0 })),
         });
     };
 
@@ -299,7 +301,8 @@ function LWFFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean
 
     const handleSave = () => {
         if (!state) return;
-        onSave({ state, employeeAmount: Number(empAmount) || 0, employerAmount: Number(erAmount) || 0, frequency });
+        const freqMap: Record<string, string> = { 'Monthly': 'MONTHLY', 'Half-Yearly': 'SEMI_ANNUAL', 'Annual': 'ANNUAL' };
+        onSave({ state, employeeAmount: Number(empAmount) || 0, employerAmount: Number(erAmount) || 0, frequency: freqMap[frequency] || 'MONTHLY' });
     };
 
     return (
@@ -359,19 +362,28 @@ export function StatutoryConfigScreen() {
     const [collapsed, setCollapsed] = React.useState({ pf: false, esi: true, pt: true, gratuity: true, bonus: true, lwf: true });
     const toggleSection = (key: keyof typeof collapsed) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
+    const [toast, setToast] = React.useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+    const triggerToast = (msg: string) => {
+        setToast({ show: true, msg });
+        setTimeout(() => setToast(p => ({ ...p, show: false })), 2500);
+    };
+
     // PF form
-    const [pfForm, setPFForm] = React.useState<PFForm>({ employeeRate: '12', employerEPFRate: '3.67', epsRate: '8.33', edliRate: '0.5', adminChargeRate: '0.5', wageCeiling: '15000', vpfEnabled: false, vpfMaxRate: '', excludedComponents: '' });
+    const [pfForm, setPFForm] = React.useState<PFForm>({ employeeRate: '12', employerEpfRate: '3.67', employerEpsRate: '8.33', employerEdliRate: '0.5', adminChargeRate: '0.5', wageCeiling: '15000', vpfEnabled: false, vpfMaxRate: '', excludedComponents: '' });
     const [pfDirty, setPFDirty] = React.useState(false);
     React.useEffect(() => {
         if (pfResponse) {
             const d = (pfResponse as any)?.data ?? pfResponse;
             if (d && typeof d === 'object') {
                 setPFForm({
-                    employeeRate: String(d.employeeRate ?? '12'), employerEPFRate: String(d.employerEPFRate ?? '3.67'),
-                    epsRate: String(d.epsRate ?? '8.33'), edliRate: String(d.edliRate ?? '0.5'), adminChargeRate: String(d.adminChargeRate ?? '0.5'),
+                    employeeRate: String(d.employeeRate ?? '12'), 
+                    employerEpfRate: String(d.employerEpfRate ?? '3.67'),
+                    employerEpsRate: String(d.employerEpsRate ?? '8.33'), 
+                    employerEdliRate: String(d.employerEdliRate ?? '0.5'), 
+                    adminChargeRate: String(d.adminChargeRate ?? '0.5'),
                     wageCeiling: String(d.wageCeiling ?? '15000'), vpfEnabled: d.vpfEnabled ?? false,
                     vpfMaxRate: d.vpfMaxRate ? String(d.vpfMaxRate) : '',
-                    excludedComponents: d.excludedComponents ?? '',
+                    excludedComponents: Array.isArray(d.excludedComponents) ? d.excludedComponents.join(', ') : '',
                 });
                 setPFDirty(false);
             }
@@ -403,15 +415,15 @@ export function StatutoryConfigScreen() {
     const [ptFormVisible, setPTFormVisible] = React.useState(false);
 
     // Gratuity form
-    const [gratuityForm, setGratuityForm] = React.useState<GratuityForm>({ formula: '(Basic * 15 * Years) / 26', baseSalary: 'Basic', maxAmount: '2000000', provisionMethod: 'Monthly', trustEnabled: false });
+    const [gratuityForm, setGratuityForm] = React.useState<GratuityForm>({ formula: '(lastBasic * 15 * yearsOfService) / 26', baseSalary: 'Basic', maxAmount: '2000000', provisionMethod: 'MONTHLY', trustExists: false });
     const [gratuityDirty, setGratuityDirty] = React.useState(false);
     React.useEffect(() => {
         if (gratuityResponse) {
             const d = (gratuityResponse as any)?.data ?? gratuityResponse;
             if (d && typeof d === 'object') {
                 setGratuityForm({
-                    formula: d.formula ?? '(Basic * 15 * Years) / 26', baseSalary: d.baseSalary ?? 'Basic',
-                    maxAmount: String(d.maxAmount ?? '2000000'), provisionMethod: d.provisionMethod ?? 'Monthly', trustEnabled: d.trustEnabled ?? false,
+                    formula: d.formula ?? '(lastBasic * 15 * yearsOfService) / 26', baseSalary: d.baseSalary ?? 'Basic',
+                    maxAmount: String(d.maxAmount ?? '2000000'), provisionMethod: d.provisionMethod ?? 'MONTHLY', trustExists: d.trustExists ?? false,
                 });
                 setGratuityDirty(false);
             }
@@ -419,16 +431,16 @@ export function StatutoryConfigScreen() {
     }, [gratuityResponse]);
 
     // Bonus form
-    const [bonusForm, setBonusForm] = React.useState<BonusForm>({ wageCeiling: '21000', minBonusPercent: '8.33', maxBonusPercent: '20', eligibilityDays: '30', calculationPeriod: 'April-March' });
+    const [bonusForm, setBonusForm] = React.useState<BonusForm>({ wageCeiling: '7000', minBonusPercent: '8.33', maxBonusPercent: '20', eligibilityDays: '30', calculationPeriod: 'APR_MAR' });
     const [bonusDirty, setBonusDirty] = React.useState(false);
     React.useEffect(() => {
         if (bonusResponse) {
             const d = (bonusResponse as any)?.data ?? bonusResponse;
             if (d && typeof d === 'object') {
                 setBonusForm({
-                    wageCeiling: String(d.wageCeiling ?? '21000'), minBonusPercent: String(d.minBonusPercent ?? '8.33'),
+                    wageCeiling: String(d.wageCeiling ?? '7000'), minBonusPercent: String(d.minBonusPercent ?? '8.33'),
                     maxBonusPercent: String(d.maxBonusPercent ?? '20'), eligibilityDays: String(d.eligibilityDays ?? '30'),
-                    calculationPeriod: d.calculationPeriod ?? 'April-March',
+                    calculationPeriod: d.calculationPeriod ?? 'APR_MAR',
                 });
                 setBonusDirty(false);
             }
@@ -449,44 +461,52 @@ export function StatutoryConfigScreen() {
     // Save handlers
     const handleSavePF = () => {
         updatePF.mutate({
-            ...pfForm, employeeRate: Number(pfForm.employeeRate), employerEPFRate: Number(pfForm.employerEPFRate),
-            epsRate: Number(pfForm.epsRate), edliRate: Number(pfForm.edliRate), adminChargeRate: Number(pfForm.adminChargeRate),
+            ...pfForm,
+            employeeRate: Number(pfForm.employeeRate),
+            employerEpfRate: Number(pfForm.employerEpfRate),
+            employerEpsRate: Number(pfForm.employerEpsRate),
+            employerEdliRate: Number(pfForm.employerEdliRate),
+            adminChargeRate: Number(pfForm.adminChargeRate),
             wageCeiling: Number(pfForm.wageCeiling),
             vpfMaxRate: pfForm.vpfMaxRate ? Number(pfForm.vpfMaxRate) : null,
-        } as unknown as Record<string, unknown>, { onSuccess: () => setPFDirty(false) });
+            excludedComponents: pfForm.excludedComponents ? pfForm.excludedComponents.split(',').map(s => s.trim()).filter(Boolean) : [],
+        } as unknown as Record<string, unknown>, { onSuccess: () => { setPFDirty(false); triggerToast('PF config saved'); } });
     };
 
     const handleSaveESI = () => {
         updateESI.mutate({
             employeeRate: Number(esiForm.employeeRate), employerRate: Number(esiForm.employerRate), wageCeiling: Number(esiForm.wageCeiling),
-        } as unknown as Record<string, unknown>, { onSuccess: () => setESIDirty(false) });
+        } as unknown as Record<string, unknown>, { onSuccess: () => { setESIDirty(false); triggerToast('ESI config saved'); } });
     };
 
     const handleSaveGratuity = () => {
         updateGratuity.mutate({
-            ...gratuityForm, maxAmount: Number(gratuityForm.maxAmount),
-        } as unknown as Record<string, unknown>, { onSuccess: () => setGratuityDirty(false) });
+            ...gratuityForm,
+            maxAmount: Number(gratuityForm.maxAmount),
+            provisionMethod: gratuityForm.provisionMethod === 'Monthly' ? 'MONTHLY' : (gratuityForm.provisionMethod === 'ACTUAL_AT_EXIT' ? 'ACTUAL_AT_EXIT' : 'MONTHLY'),
+        } as unknown as Record<string, unknown>, { onSuccess: () => { setGratuityDirty(false); triggerToast('Gratuity config saved'); } });
     };
 
     const handleSaveBonus = () => {
+        const periodMap: Record<string, string> = { 'April-March': 'APR_MAR', 'January-December': 'JAN_DEC', 'APR_MAR': 'APR_MAR', 'JAN_DEC': 'JAN_DEC' };
         updateBonus.mutate({
             wageCeiling: Number(bonusForm.wageCeiling), minBonusPercent: Number(bonusForm.minBonusPercent),
             maxBonusPercent: Number(bonusForm.maxBonusPercent), eligibilityDays: Number(bonusForm.eligibilityDays),
-            calculationPeriod: bonusForm.calculationPeriod,
-        } as unknown as Record<string, unknown>, { onSuccess: () => setBonusDirty(false) });
+            calculationPeriod: periodMap[bonusForm.calculationPeriod] || 'APR_MAR',
+        } as unknown as Record<string, unknown>, { onSuccess: () => { setBonusDirty(false); triggerToast('Bonus config saved'); } });
     };
 
     const handleDeletePT = (item: PTConfigItem) => {
         showConfirm({
             title: 'Delete PT Config', message: `Remove PT configuration for ${item.state}?`,
-            confirmText: 'Delete', variant: 'danger', onConfirm: () => deletePT.mutate(item.id),
+            confirmText: 'Delete', variant: 'danger', onConfirm: () => deletePT.mutate(item.id, { onSuccess: () => triggerToast('PT config removed') }),
         });
     };
 
     const handleDeleteLWF = (item: LWFItem) => {
         showConfirm({
             title: 'Delete LWF Config', message: `Remove LWF configuration for ${item.state}?`,
-            confirmText: 'Delete', variant: 'danger', onConfirm: () => deleteLWF.mutate(item.id),
+            confirmText: 'Delete', variant: 'danger', onConfirm: () => deleteLWF.mutate(item.id, { onSuccess: () => triggerToast('LWF config removed') }),
         });
     };
 
@@ -524,9 +544,9 @@ export function StatutoryConfigScreen() {
                     {/* PF */}
                     <SectionCard title="PF Configuration" subtitle="Provident Fund rates and limits" collapsed={collapsed.pf} onToggle={() => toggleSection('pf')}>
                         <NumberField label="Employee Rate" value={pfForm.employeeRate} onChange={v => { setPFForm(p => ({ ...p, employeeRate: v })); setPFDirty(true); }} placeholder="12" suffix="%" />
-                        <NumberField label="Employer EPF Rate" value={pfForm.employerEPFRate} onChange={v => { setPFForm(p => ({ ...p, employerEPFRate: v })); setPFDirty(true); }} placeholder="3.67" suffix="%" />
-                        <NumberField label="EPS Rate" value={pfForm.epsRate} onChange={v => { setPFForm(p => ({ ...p, epsRate: v })); setPFDirty(true); }} placeholder="8.33" suffix="%" />
-                        <NumberField label="EDLI Rate" value={pfForm.edliRate} onChange={v => { setPFForm(p => ({ ...p, edliRate: v })); setPFDirty(true); }} placeholder="0.5" suffix="%" />
+                        <NumberField label="Employer EPF Rate" value={pfForm.employerEpfRate} onChange={v => { setPFForm(p => ({ ...p, employerEpfRate: v })); setPFDirty(true); }} placeholder="3.67" suffix="%" />
+                        <NumberField label="Employer EPS Rate" value={pfForm.employerEpsRate} onChange={v => { setPFForm(p => ({ ...p, employerEpsRate: v })); setPFDirty(true); }} placeholder="8.33" suffix="%" />
+                        <NumberField label="Employer EDLI Rate" value={pfForm.employerEdliRate} onChange={v => { setPFForm(p => ({ ...p, employerEdliRate: v })); setPFDirty(true); }} placeholder="0.5" suffix="%" />
                         <NumberField label="Admin Charge Rate" value={pfForm.adminChargeRate} onChange={v => { setPFForm(p => ({ ...p, adminChargeRate: v })); setPFDirty(true); }} placeholder="0.5" suffix="%" />
                         <NumberField label="Wage Ceiling" value={pfForm.wageCeiling} onChange={v => { setPFForm(p => ({ ...p, wageCeiling: v })); setPFDirty(true); }} placeholder="15000" suffix="₹" />
                         <ToggleRow label="VPF Enabled" subtitle="Allow Voluntary Provident Fund" value={pfForm.vpfEnabled} onToggle={v => { setPFForm(p => ({ ...p, vpfEnabled: v })); setPFDirty(true); }} />
@@ -578,11 +598,8 @@ export function StatutoryConfigScreen() {
                         </View>
                         <ChipSelector label="Base Salary" options={['Basic', 'Basic+DA']} value={gratuityForm.baseSalary} onSelect={v => { setGratuityForm(p => ({ ...p, baseSalary: v })); setGratuityDirty(true); }} />
                         <NumberField label="Max Amount" value={gratuityForm.maxAmount} onChange={v => { setGratuityForm(p => ({ ...p, maxAmount: v })); setGratuityDirty(true); }} placeholder="2000000" suffix="₹" />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Provision Method</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="Monthly" placeholderTextColor={colors.neutral[400]} value={gratuityForm.provisionMethod} onChangeText={v => { setGratuityForm(p => ({ ...p, provisionMethod: v })); setGratuityDirty(true); }} /></View>
-                        </View>
-                        <ToggleRow label="Gratuity Trust" subtitle="Company-managed gratuity trust" value={gratuityForm.trustEnabled} onToggle={v => { setGratuityForm(p => ({ ...p, trustEnabled: v })); setGratuityDirty(true); }} />
+                        <ChipSelector label="Provision Method" options={['MONTHLY', 'ACTUAL_AT_EXIT']} value={gratuityForm.provisionMethod} onSelect={v => { setGratuityForm(p => ({ ...p, provisionMethod: v })); setGratuityDirty(true); }} />
+                        <ToggleRow label="Gratuity Trust" subtitle="Company-managed gratuity trust" value={gratuityForm.trustExists} onToggle={v => { setGratuityForm(p => ({ ...p, trustExists: v })); setGratuityDirty(true); }} />
                         <SaveSectionBtn onPress={handleSaveGratuity} isPending={updateGratuity.isPending} hasChanges={gratuityDirty} />
                     </SectionCard>
 
@@ -592,10 +609,7 @@ export function StatutoryConfigScreen() {
                         <NumberField label="Min Bonus %" value={bonusForm.minBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, minBonusPercent: v })); setBonusDirty(true); }} placeholder="8.33" suffix="%" />
                         <NumberField label="Max Bonus %" value={bonusForm.maxBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, maxBonusPercent: v })); setBonusDirty(true); }} placeholder="20" suffix="%" />
                         <NumberField label="Eligibility Days" value={bonusForm.eligibilityDays} onChange={v => { setBonusForm(p => ({ ...p, eligibilityDays: v })); setBonusDirty(true); }} placeholder="30" />
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Calculation Period</Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="April-March" placeholderTextColor={colors.neutral[400]} value={bonusForm.calculationPeriod} onChangeText={v => { setBonusForm(p => ({ ...p, calculationPeriod: v })); setBonusDirty(true); }} /></View>
-                        </View>
+                        <ChipSelector label="Calculation Period" options={['APR_MAR', 'JAN_DEC']} value={bonusForm.calculationPeriod} onSelect={v => { setBonusForm(p => ({ ...p, calculationPeriod: v })); setBonusDirty(true); }} />
                         <SaveSectionBtn onPress={handleSaveBonus} isPending={updateBonus.isPending} hasChanges={bonusDirty} />
                     </SectionCard>
 
@@ -621,14 +635,21 @@ export function StatutoryConfigScreen() {
             </ScrollView>
 
             <PTFormModal visible={ptFormVisible} onClose={() => setPTFormVisible(false)}
-                onSave={data => { createPT.mutate(data as Record<string, unknown>, { onSuccess: () => setPTFormVisible(false) }); }}
+                onSave={data => { createPT.mutate(data as Record<string, unknown>, { onSuccess: () => { setPTFormVisible(false); triggerToast('PT config added'); } }); }}
                 isSaving={createPT.isPending}
             />
             <LWFFormModal visible={lwfFormVisible} onClose={() => setLWFFormVisible(false)}
-                onSave={data => { createLWF.mutate(data as Record<string, unknown>, { onSuccess: () => setLWFFormVisible(false) }); }}
+                onSave={data => { createLWF.mutate(data as Record<string, unknown>, { onSuccess: () => { setLWFFormVisible(false); triggerToast('LWF config added'); } }); }}
                 isSaving={createLWF.isPending}
             />
             <ConfirmModal {...confirmModalProps} />
+
+            {toast.show && (
+                <Animated.View entering={FadeInDown.duration(250)} style={[styles.toast, { top: insets.top + 60 }]}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke={colors.success[600]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                    <Text className="font-inter text-sm font-semibold text-success-700">{toast.msg}</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -672,5 +693,11 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
     sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    toast: {
+        position: 'absolute', left: 20, right: 20, backgroundColor: colors.success[50], borderRadius: 12,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
+        borderWidth: 1, borderColor: colors.success[200],
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+    },
 });
 const styles = createStyles(false);

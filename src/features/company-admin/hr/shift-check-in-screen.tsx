@@ -180,10 +180,12 @@ function SlideAction({
     mode,
     onComplete,
     loading,
+    labelOverride,
 }: {
     mode: 'checkin' | 'checkout' | 'done';
     onComplete: () => void;
     loading: boolean;
+    labelOverride?: string | undefined;
 }) {
     const pan = React.useRef(new Animated.Value(0)).current;
     const completedRef = React.useRef(false);
@@ -228,7 +230,7 @@ function SlideAction({
     const isDone = mode === 'done';
     const isCheckIn = mode === 'checkin';
     const trackColor = isDone ? colors.neutral[300] : isCheckIn ? colors.success[500] : colors.danger[500];
-    const label = isDone ? 'Shift Complete' : loading ? 'Processing...' : isCheckIn ? 'Slide to Check In →' : 'Slide to Check Out →';
+    const label = isDone ? 'Shift Complete' : loading ? 'Processing...' : labelOverride ? `${labelOverride} →` : isCheckIn ? 'Slide to Check In →' : 'Slide to Check Out →';
 
     return (
         <AnimatedRN.View entering={FadeInDown.duration(400).delay(200)} style={{ alignItems: 'center' }}>
@@ -412,7 +414,11 @@ export function ShiftCheckInScreen() {
     });
 
     const isBusy = checkInMut.isPending || checkOutMut.isPending;
-    const slideMode = attStatus === 'CHECKED_OUT' ? 'done' : attStatus === 'CHECKED_IN' ? 'checkout' : 'checkin';
+    const canStartNewShift = (statusData as any)?.canStartNewShift === true;
+    const completedShifts: number = (statusData as any)?.completedShifts ?? 0;
+    const slideMode = attStatus === 'CHECKED_OUT'
+        ? (canStartNewShift ? 'checkin' : 'done')
+        : attStatus === 'CHECKED_IN' ? 'checkout' : 'checkin';
 
     const handleSlideComplete = React.useCallback(() => {
         if (slideMode === 'checkin') checkInMut.mutate();
@@ -476,6 +482,13 @@ export function ShiftCheckInScreen() {
                             <View style={$.clockIconBg}><ClockIcon s={18} c={colors.primary[600]} /></View>
                             <Text className="font-inter text-center" style={$.clockText}>{clockStr}</Text>
                             <View style={{ marginTop: 10 }}><StatusBadge status={attStatus} /></View>
+                            {completedShifts > 0 && canStartNewShift && (
+                                <View style={{ marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.primary[50] }}>
+                                    <Text className="font-inter text-xs font-semibold" style={{ color: colors.primary[700] }}>
+                                        {completedShifts} shift{completedShifts > 1 ? 's' : ''} completed — ready for next shift
+                                    </Text>
+                                </View>
+                            )}
                             {offlineCount > 0 && (
                                 <View style={$.offlineBadge}>
                                     <WarnIcon s={12} c={colors.warning[800]} />
@@ -495,7 +508,7 @@ export function ShiftCheckInScreen() {
                     </AnimatedRN.View>
 
                     {/* Slider */}
-                    <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} />
+                    <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} labelOverride={completedShifts > 0 && canStartNewShift ? 'Slide to Start New Shift' : undefined} />
 
                     {/* Schedule */}
                     <Card icon={<BriefIcon />} title="Today's Schedule" delay={300}>

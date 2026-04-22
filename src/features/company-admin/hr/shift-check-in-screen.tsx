@@ -28,6 +28,7 @@ import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { client } from '@/lib/api/client';
 import { enqueuePunch, getQueueLength, syncQueue } from '@/lib/offline-punch-queue';
+import { getCheckInUIMode, setCheckInUIMode } from '@/lib/storage';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -442,7 +443,15 @@ export function ShiftCheckInScreen() {
         ? (canStartNewShift ? 'checkin' : 'done')
         : attStatus === 'CHECKED_IN' ? 'checkout' : 'checkin';
 
-    const [useSlideMode, setUseSlideMode] = React.useState(true);
+    // Company-wide check-in UI mode from attendance rules (persisted in MMKV)
+    const checkInUIMode: string = (statusData as any)?.checkInUIMode ?? '';
+    const resolvedMode = checkInUIMode === 'SLIDE' || checkInUIMode === 'BUTTON' ? checkInUIMode : getCheckInUIMode();
+    const useSlideMode = resolvedMode !== 'BUTTON';
+    React.useEffect(() => {
+        if (checkInUIMode === 'SLIDE' || checkInUIMode === 'BUTTON') {
+            setCheckInUIMode(checkInUIMode as 'SLIDE' | 'BUTTON');
+        }
+    }, [checkInUIMode]);
 
     const handleSlideComplete = React.useCallback(() => {
         if (slideMode === 'checkin') {
@@ -568,35 +577,7 @@ export function ShiftCheckInScreen() {
                         </AnimatedRN.View>
                     )}
 
-                    {/* Action mode toggle */}
-                    {slideMode !== 'done' && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 6 }}>
-                            <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 20, padding: 3 }}>
-                                <Pressable
-                                    onPress={() => setUseSlideMode(true)}
-                                    style={{
-                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
-                                        backgroundColor: useSlideMode ? colors.white : 'transparent',
-                                        ...(useSlideMode ? { shadowColor: '#000', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, elevation: 2 } : {}),
-                                    }}
-                                >
-                                    <Text className="font-inter text-xs font-semibold" style={{ color: useSlideMode ? colors.primary[700] : colors.neutral[500] }}>Slide</Text>
-                                </Pressable>
-                                <Pressable
-                                    onPress={() => setUseSlideMode(false)}
-                                    style={{
-                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
-                                        backgroundColor: !useSlideMode ? colors.white : 'transparent',
-                                        ...(!useSlideMode ? { shadowColor: '#000', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, elevation: 2 } : {}),
-                                    }}
-                                >
-                                    <Text className="font-inter text-xs font-semibold" style={{ color: !useSlideMode ? colors.primary[700] : colors.neutral[500] }}>Tap</Text>
-                                </Pressable>
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Slider / Tap Button */}
+                    {/* Slider / Tap Button — mode controlled by company-wide attendance rule */}
                     {slideMode !== 'done' && (
                         useSlideMode ? (
                             <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} labelOverride={completedShifts > 0 && canStartNewShift ? 'Slide to Start New Shift' : undefined} />

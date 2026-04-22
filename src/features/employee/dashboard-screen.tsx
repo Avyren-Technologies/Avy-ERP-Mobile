@@ -41,6 +41,7 @@ import { useDashboard, essKeys } from '@/features/company-admin/api/use-ess-quer
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { checkPermission } from '@/lib/api/auth';
 import { client } from '@/lib/api/client';
+import { getCheckInUIMode, setCheckInUIMode } from '@/lib/storage';
 import { useUnreadNotificationCount } from '@/features/notifications/use-notification-count';
 import type {
     DashboardAnnouncement,
@@ -200,6 +201,7 @@ function normalizeDashboardData(raw: Record<string, unknown>): DashboardData {
         leaveDonut: data.leaveDonut ?? null,
         monthlyTrend: data.monthlyTrend ?? null,
         attendanceMode: (data.attendanceStatus as Record<string, any>)?.attendanceMode ?? data.attendanceMode ?? '',
+        checkInUIMode: (data.attendanceStatus as Record<string, any>)?.checkInUIMode ?? data.checkInUIMode ?? 'SLIDE',
         companyShifts: (data.attendanceStatus as Record<string, any>)?.companyShifts ?? data.companyShifts ?? [],
     };
 }
@@ -736,7 +738,7 @@ const AnnouncementsTicker = React.memo(function AnnouncementsTicker({ announceme
 // FIX 2: Shift Check-In Hero — Fixed Clock Display
 // ================================================================
 
-function ShiftCheckInHero({ shift, attendanceMode, companyShifts }: { shift: DashboardShiftInfo | null; attendanceMode: string; companyShifts: DashboardData['companyShifts'] }) {
+function ShiftCheckInHero({ shift, attendanceMode, checkInUIMode, companyShifts }: { shift: DashboardShiftInfo | null; attendanceMode: string; checkInUIMode: string; companyShifts: DashboardData['companyShifts'] }) {
     const queryClient = useQueryClient();
     const isNarrowScreen = SCREEN_WIDTH < 380;
     const fmt = useCompanyFormatter();
@@ -847,7 +849,14 @@ function ShiftCheckInHero({ shift, attendanceMode, companyShifts }: { shift: Das
 
     const slideMode = isCheckedOut ? 'done' : isCheckedIn ? 'checkout' : 'checkin';
 
-    const [useSlideMode, setUseSlideMode] = React.useState(true);
+    // Company-wide check-in UI mode from attendance rules (persisted in MMKV)
+    const resolvedMode = checkInUIMode === 'SLIDE' || checkInUIMode === 'BUTTON' ? checkInUIMode : getCheckInUIMode();
+    const useSlideMode = resolvedMode !== 'BUTTON';
+    React.useEffect(() => {
+        if (checkInUIMode === 'SLIDE' || checkInUIMode === 'BUTTON') {
+            setCheckInUIMode(checkInUIMode as 'SLIDE' | 'BUTTON');
+        }
+    }, [checkInUIMode]);
 
     const handleSlideComplete = React.useCallback(() => {
         if (slideMode === 'checkin') {
@@ -989,33 +998,7 @@ function ShiftCheckInHero({ shift, attendanceMode, companyShifts }: { shift: Das
                         </View>
                     )}
 
-                    {/* Action mode toggle */}
-                    {slideMode !== 'done' && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 6, marginTop: 8 }}>
-                            <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 20, padding: 3 }}>
-                                <Pressable
-                                    onPress={() => setUseSlideMode(true)}
-                                    style={{
-                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
-                                        backgroundColor: useSlideMode ? 'rgba(255,255,255,0.25)' : 'transparent',
-                                    }}
-                                >
-                                    <Text className="font-inter text-xs font-semibold" style={{ color: '#fff' }}>Slide</Text>
-                                </Pressable>
-                                <Pressable
-                                    onPress={() => setUseSlideMode(false)}
-                                    style={{
-                                        paddingHorizontal: 14, paddingVertical: 6, borderRadius: 17,
-                                        backgroundColor: !useSlideMode ? 'rgba(255,255,255,0.25)' : 'transparent',
-                                    }}
-                                >
-                                    <Text className="font-inter text-xs font-semibold" style={{ color: '#fff' }}>Tap</Text>
-                                </Pressable>
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Slide action / Tap button: hidden in completed state per UX requirement */}
+                    {/* Slide action / Tap button: mode controlled by company-wide attendance rule */}
                     {slideMode !== 'done' && (
                         useSlideMode ? (
                             <SlideAction mode={slideMode} onComplete={handleSlideComplete} loading={isBusy} labelOverride={completedShifts > 0 && canStartNewShift ? 'Slide to Start New Shift' : undefined} />
@@ -2350,7 +2333,7 @@ export function EmployeeDashboard() {
                 <AnnouncementsTicker announcements={data.announcements} />
 
                 {/* SECTION 2: Shift Check-In Hero */}
-                <ShiftCheckInHero shift={data.shift} attendanceMode={data.attendanceMode} companyShifts={data.companyShifts} />
+                <ShiftCheckInHero shift={data.shift} attendanceMode={data.attendanceMode} checkInUIMode={data.checkInUIMode} companyShifts={data.companyShifts} />
 
                 {/* FIX 3: Shift Calendar — Full Month */}
                 <ShiftMonthCalendar calendar={data.shiftCalendar} />

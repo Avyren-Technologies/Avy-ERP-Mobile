@@ -14,6 +14,7 @@ export type OTMultiplierSource = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY' | 'NIGHT_SHIF
 export type AttendanceMode = 'SHIFT_STRICT' | 'SHIFT_RELAXED' | 'FULLY_FLEXIBLE' | 'EMPLOYEE_CHOICE';
 export type LeaveCheckInMode = 'STRICT' | 'ALLOW_WITHIN_WINDOW' | 'ALLOW_TILL_SHIFT_END' | 'FULLY_FLEXIBLE';
 export type ShiftMappingStrategy = 'BEST_FIT_HOURS';
+export type CheckInUIMode = 'SLIDE' | 'BUTTON';
 export type ReviewFlag = 'MISSING_PUNCH' | 'AUTO_MAPPED' | 'WORKED_ON_LEAVE' | 'LATE_BEYOND_THRESHOLD' | 'MULTIPLE_SHIFT_ANOMALY' | 'OT_ANOMALY';
 
 export interface AttendanceRule {
@@ -55,6 +56,8 @@ export interface AttendanceRule {
   gpsRequired: boolean;
   geofenceEnforcementMode: GeofenceEnforcementMode;
   missingPunchAlert: boolean;
+  // Check-In UI Mode
+  checkInUIMode: CheckInUIMode;
   // Attendance Mode & Flexibility
   attendanceMode: AttendanceMode;
   leaveCheckInMode: LeaveCheckInMode;

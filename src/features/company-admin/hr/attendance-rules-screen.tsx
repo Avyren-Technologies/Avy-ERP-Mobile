@@ -1,10 +1,11 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import type { AttendanceRule, AttendanceMode, DeductionType, GeofenceEnforcementMode, LeaveCheckInMode, PunchMode, PunchRounding, RoundingDirection, RoundingStrategy, ShiftMappingStrategy } from '@/lib/api/attendance';
+import type { AttendanceRule, AttendanceMode, CheckInUIMode, DeductionType, GeofenceEnforcementMode, LeaveCheckInMode, PunchMode, PunchRounding, RoundingDirection, RoundingStrategy, ShiftMappingStrategy } from '@/lib/api/attendance';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -29,6 +30,7 @@ import { useAttendanceRules } from '@/features/company-admin/api/use-attendance-
 
 import { ChipSelector } from '@/features/super-admin/tenant-onboarding/atoms';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { setCheckInUIMode } from '@/lib/storage';
 
 // ============ OPTIONS (same as web) ============
 
@@ -58,6 +60,9 @@ const LEAVE_CHECKIN_MODE_LABELS: Record<string, string> = { STRICT: 'Strict', AL
 
 const SHIFT_MAPPING_STRATEGY_OPTIONS = ['BEST_FIT_HOURS'];
 const SHIFT_MAPPING_STRATEGY_LABELS: Record<string, string> = { BEST_FIT_HOURS: 'Best Fit Hours' };
+
+const CHECK_IN_UI_MODE_OPTIONS = ['SLIDE', 'BUTTON'];
+const CHECK_IN_UI_MODE_LABELS: Record<string, string> = { SLIDE: 'Slide to Check In', BUTTON: 'Tap Button' };
 
 // ============ DEFAULTS (37 fields -- same as web) ============
 
@@ -89,6 +94,7 @@ const DEFAULTS: AttendanceRule = {
     gpsRequired: false,
     geofenceEnforcementMode: 'OFF',
     missingPunchAlert: true,
+    checkInUIMode: 'SLIDE' as CheckInUIMode,
     attendanceMode: 'SHIFT_STRICT' as AttendanceMode,
     leaveCheckInMode: 'STRICT' as LeaveCheckInMode,
     leaveAutoAdjustmentEnabled: true,
@@ -224,6 +230,7 @@ export function AttendanceRulesScreen() {
   const styles = createStyles(isDark);
 
     const insets = useSafeAreaInsets();
+    const tabBarHeight = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
     const { toggle } = useSidebar();
     const { data: response, isLoading, error, refetch } = useAttendanceRules();
     const updateMutation = useUpdateAttendanceRules();
@@ -241,6 +248,10 @@ export function AttendanceRulesScreen() {
         if (response) {
             setRules({ ...serverRules });
             setHasChanges(false);
+            // Persist check-in UI mode to MMKV for offline access by employee screens
+            if (serverRules.checkInUIMode) {
+                setCheckInUIMode(serverRules.checkInUIMode);
+            }
         }
     }, [response]);
 
@@ -255,6 +266,10 @@ export function AttendanceRulesScreen() {
                 setHasChanges(false);
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 2500);
+                // Persist check-in UI mode to MMKV immediately on save
+                if (rules.checkInUIMode) {
+                    setCheckInUIMode(rules.checkInUIMode);
+                }
             },
         });
     };
@@ -290,7 +305,7 @@ export function AttendanceRulesScreen() {
 
             <AppTopHeader title="Attendance Rules" onMenuPress={toggle} />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + (hasChanges ? 120 : 40) }]} keyboardShouldPersistTaps="handled">
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + (hasChanges ? 120 : 40) }]} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
                     <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Attendance Rules</Text>
                     <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Configure time boundaries, thresholds, deductions, and processing rules</Text>
@@ -369,7 +384,8 @@ export function AttendanceRulesScreen() {
                     </SectionCard>
 
                     {/* 11. Attendance Mode */}
-                    <SectionCard title="Attendance Mode" sectionDescription="Control how strictly shift timing is enforced and how leave affects check-in windows.">
+                    <SectionCard title="Attendance Mode" sectionDescription="Control how strictly shift timing is enforced, check-in interaction style, and how leave affects check-in windows.">
+                        {chipSelect<CheckInUIMode>(CHECK_IN_UI_MODE_LABELS, CHECK_IN_UI_MODE_OPTIONS, rules.checkInUIMode, (v) => updateRule('checkInUIMode', v), 'Check-In UI Mode', 'Slide: employees swipe to check in/out. Tap Button: employees tap a button to check in/out. This applies company-wide on mobile.')}
                         {chipSelect<AttendanceMode>(ATTENDANCE_MODE_LABELS, ATTENDANCE_MODE_OPTIONS, rules.attendanceMode, (v) => updateRule('attendanceMode', v), 'Attendance Mode', 'Controls overall shift time window enforcement')}
                         {chipSelect<LeaveCheckInMode>(LEAVE_CHECKIN_MODE_LABELS, LEAVE_CHECKIN_MODE_OPTIONS, rules.leaveCheckInMode, (v) => updateRule('leaveCheckInMode', v), 'Leave Check-In Mode', 'How approved leave affects the check-in time window')}
                         <ToggleRow label="Leave Auto-Adjustment" subtitle="Automatically adjust leave based on actual hours worked (cancel/convert)" value={rules.leaveAutoAdjustmentEnabled} onToggle={(v) => updateRule('leaveAutoAdjustmentEnabled', v)} />
@@ -405,7 +421,7 @@ export function AttendanceRulesScreen() {
 
             {/* Save Bar */}
             {hasChanges && (
-                <Animated.View entering={FadeInDown.duration(300)} style={[styles.saveBar, { paddingBottom: insets.bottom + 16 }]}>
+                <Animated.View entering={FadeInDown.duration(300)} style={[styles.saveBar, { bottom: tabBarHeight, paddingBottom: 16 }]}>
                     <View style={styles.saveRow}>
                         <Pressable onPress={handleReset} style={styles.resetBtn}><Text className="font-inter text-sm font-bold text-neutral-600 dark:text-neutral-400">Reset</Text></Pressable>
                         <Pressable onPress={handleSave} disabled={updateMutation.isPending} style={[styles.saveBtnFull, updateMutation.isPending && { opacity: 0.5 }]}>

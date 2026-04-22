@@ -132,6 +132,7 @@ export interface DashboardData {
   leaveDonut: DashboardLeaveDonutItem[] | null;
   monthlyTrend: DashboardMonthlyTrendItem[] | null;
   attendanceMode: string;
+  checkInUIMode: string;
   companyShifts: Array<{ id: string; name: string; startTime: string; endTime: string; shiftType?: string }>;
 }
 

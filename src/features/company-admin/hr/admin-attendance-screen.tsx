@@ -348,6 +348,16 @@ export function AdminAttendanceScreen() {
   const autoSaveTimers = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const savedTimers = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+  // Cleanup timers on unmount
+  React.useEffect(() => {
+    const aTimers = autoSaveTimers.current;
+    const sTimers = savedTimers.current;
+    return () => {
+      Object.values(aTimers).forEach(clearTimeout);
+      Object.values(sTimers).forEach(clearTimeout);
+    };
+  }, []);
+
   const debouncedSearch = useDebounce(search, 300);
   const debouncedBookSearch = useDebounce(bookSearch, 300);
 
@@ -753,7 +763,10 @@ export function AdminAttendanceScreen() {
                   )}
                 </View>
                 <TouchableOpacity
+                  disabled={bookDate >= getTodayDateString()}
                   onPress={() => {
+                    const today = getTodayDateString();
+                    if (bookDate >= today) return;
                     const d = new Date(bookDate);
                     d.setDate(d.getDate() + 1);
                     const y = d.getFullYear();
@@ -763,7 +776,7 @@ export function AdminAttendanceScreen() {
                     setBookRowStates({});
                     setBookPage(1);
                   }}
-                  style={$.bookDateArrow}
+                  style={[$.bookDateArrow, bookDate >= getTodayDateString() && { opacity: 0.3 }]}
                 >
                   <Svg width={16} height={16} viewBox="0 0 24 24">
                     <Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />

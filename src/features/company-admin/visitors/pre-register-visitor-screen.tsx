@@ -20,12 +20,28 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { useSidebar } from '@/components/ui/sidebar';
 import { showSuccess, showWarning } from '@/components/ui/utils';
 
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateVisit } from '@/features/company-admin/api/use-visitor-mutations';
 import { useVisitorTypes } from '@/features/company-admin/api/use-visitor-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
+
+// ============ CONSTANTS ============
+
+const PURPOSE_OPTIONS = [
+  { id: 'MEETING', name: 'Meeting' },
+  { id: 'DELIVERY', name: 'Delivery' },
+  { id: 'MAINTENANCE', name: 'Maintenance / Repair' },
+  { id: 'AUDIT', name: 'Audit / Inspection' },
+  { id: 'INTERVIEW', name: 'Interview' },
+  { id: 'SITE_TOUR', name: 'Site Tour' },
+  { id: 'PERSONAL', name: 'Personal' },
+  { id: 'OTHER', name: 'Other' },
+];
 
 // ============ MAIN COMPONENT ============
 
@@ -38,6 +54,8 @@ export function PreRegisterVisitorScreen() {
 
   const createMutation = useCreateVisit();
   const { data: typesResponse } = useVisitorTypes();
+  const { data: employeesResponse } = useEmployees({ limit: 500 });
+  const { data: locationsResponse } = useCompanyLocations();
 
   const visitorTypes = React.useMemo(() => {
     const raw = (typesResponse as any)?.data ?? typesResponse ?? [];
@@ -45,18 +63,37 @@ export function PreRegisterVisitorScreen() {
     return raw.map((t: any) => ({ id: t.id ?? '', name: t.name ?? '' }));
   }, [typesResponse]);
 
+  const employeeOptions = React.useMemo(() => {
+    const raw = (employeesResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((e: any) => ({
+      id: e.id,
+      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
+    }));
+  }, [employeesResponse]);
+
+  const locationOptions = React.useMemo(() => {
+    const raw = (locationsResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((l: any) => ({
+      id: l.id,
+      name: l.name ?? l.code ?? l.id,
+    }));
+  }, [locationsResponse]);
+
   // Form state
   const [name, setName] = React.useState('');
   const [company, setCompany] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [purpose, setPurpose] = React.useState('');
-  const [hostName, setHostName] = React.useState('');
+  const [hostEmployeeId, setHostEmployeeId] = React.useState('');
+  const [plantId, setPlantId] = React.useState('');
   const [expectedDate, setExpectedDate] = React.useState('');
   const [expectedTime, setExpectedTime] = React.useState('');
   const [selectedTypeId, setSelectedTypeId] = React.useState('');
-  const [vehiclePlate, setVehiclePlate] = React.useState('');
-  const [notes, setNotes] = React.useState('');
+  const [vehicleRegNumber, setVehicleRegNumber] = React.useState('');
+  const [specialInstructions, setSpecialInstructions] = React.useState('');
   const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -81,9 +118,12 @@ export function PreRegisterVisitorScreen() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Visitor name is required';
-    if (!phone.trim()) e.phone = 'Phone number is required';
-    if (!purpose.trim()) e.purpose = 'Purpose is required';
+    if (!phone.trim()) e.phone = 'Mobile number is required';
+    else if (phone.trim().length !== 10) e.phone = 'Phone number must be exactly 10 digits';
+    if (!purpose) e.purpose = 'Purpose is required';
     if (!expectedDate.trim()) e.expectedDate = 'Expected date is required';
+    if (!plantId) e.plantId = 'Plant is required';
+    if (!selectedTypeId) e.visitorTypeId = 'Visitor type is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -91,24 +131,20 @@ export function PreRegisterVisitorScreen() {
   const handleSubmit = () => {
     if (!validate()) return;
 
-    const expectedArrival = expectedTime
-      ? `${expectedDate}T${expectedTime}:00`
-      : `${expectedDate}T09:00:00`;
-
     createMutation.mutate(
       {
         visitorName: name.trim(),
         visitorCompany: company.trim() || undefined,
-        visitorPhone: phone.trim(),
+        visitorMobile: `+91${phone.trim()}`,
         visitorEmail: email.trim() || undefined,
         purpose: purpose.trim(),
-        hostName: hostName.trim() || undefined,
-        expectedArrival,
+        hostEmployeeId: hostEmployeeId || undefined,
+        plantId,
+        expectedDate: expectedDate.trim(),
+        expectedTime: expectedTime.trim() || undefined,
         visitorTypeId: selectedTypeId || undefined,
-        vehiclePlate: vehiclePlate.trim() || undefined,
-        notes: notes.trim() || undefined,
-        visitorPhoto: visitorPhoto ?? undefined,
-        isWalkIn: false,
+        vehicleRegNumber: vehicleRegNumber.trim() || undefined,
+        specialInstructions: specialInstructions.trim() || undefined,
       },
       {
         onSuccess: () => {
@@ -173,43 +209,98 @@ export function PreRegisterVisitorScreen() {
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-4">Visitor Information</Text>
               {renderField('Visitor Name', name, setName, { required: true, error: errors.name, placeholder: 'Full name' })}
               {renderField('Company', company, setCompany, { placeholder: 'Organization' })}
-              {renderField('Phone', phone, setPhone, { required: true, error: errors.phone, placeholder: 'Phone number', keyboardType: 'phone-pad' })}
+
+              {/* Phone Number with country code */}
+              <View style={s.fieldWrap}>
+                <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+                  Phone Number <Text className="text-danger-500">*</Text>
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={[s.inputWrap, { width: 80, alignItems: 'center', flexDirection: 'row', paddingHorizontal: 10, gap: 4 }]}>
+                    <Text className="font-inter text-base">{'\u{1F1EE}\u{1F1F3}'}</Text>
+                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">+91</Text>
+                  </View>
+                  <View style={[s.inputWrap, { flex: 1 }, !!errors.phone && { borderColor: colors.danger[300] }]}>
+                    <TextInput
+                      style={[s.textInput, isDark && { color: colors.white }]}
+                      placeholder="98765 43210"
+                      placeholderTextColor={colors.neutral[400]}
+                      value={phone}
+                      onChangeText={(v) => {
+                        setPhone(v.replace(/[^0-9]/g, '').slice(0, 10));
+                        if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
+                      }}
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                    />
+                  </View>
+                </View>
+                {!!errors.phone && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.phone}</Text>}
+              </View>
+
               {renderField('Email', email, setEmail, { placeholder: 'Email address', keyboardType: 'email-address', autoCapitalize: 'none' })}
             </View>
 
             {/* Visit Details */}
             <View style={[s.sectionCard, { marginTop: 16 }]}>
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-4">Visit Details</Text>
-              {renderField('Purpose', purpose, setPurpose, { required: true, error: errors.purpose, placeholder: 'Purpose of visit', multiline: true })}
-              {renderField('Host Employee', hostName, setHostName, { placeholder: 'Who are they visiting?' })}
-              {renderField('Expected Date', expectedDate, setExpectedDate, { required: true, error: errors.expectedDate, placeholder: 'YYYY-MM-DD' })}
+
+              <DropdownField
+                label="Purpose of Visit"
+                selected={purpose}
+                onSelect={(v) => {
+                  setPurpose(v);
+                  if (errors.purpose) setErrors(prev => ({ ...prev, purpose: '' }));
+                }}
+                options={PURPOSE_OPTIONS}
+                placeholder="Select purpose..."
+                required
+                error={errors.purpose}
+              />
+
+              <DropdownField
+                label="Host Employee"
+                selected={hostEmployeeId}
+                onSelect={setHostEmployeeId}
+                options={employeeOptions}
+                placeholder="Select host employee..."
+              />
+
+              <DropdownField
+                label="Location (Plant)"
+                selected={plantId}
+                onSelect={(v) => {
+                  setPlantId(v);
+                  if (errors.plantId) setErrors(prev => ({ ...prev, plantId: '' }));
+                }}
+                options={locationOptions}
+                placeholder="Select location..."
+                required
+                error={errors.plantId}
+              />
+
+              {renderField('Expected Date', expectedDate, setExpectedDate, { required: true, error: errors.expectedDate, placeholder: 'YYYY-MM-DD (e.g. 2026-04-25)' })}
               {renderField('Expected Time', expectedTime, setExpectedTime, { placeholder: 'HH:MM (24h)' })}
 
-              {/* Visitor Type Chips */}
-              {visitorTypes.length > 0 && (
-                <View style={s.fieldWrap}>
-                  <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Visitor Type</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      {visitorTypes.map(vt => {
-                        const selected = vt.id === selectedTypeId;
-                        return (
-                          <Pressable key={vt.id} onPress={() => setSelectedTypeId(selected ? '' : vt.id)} style={[s.chip, selected && s.chipActive]}>
-                            <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{vt.name}</Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
-                </View>
-              )}
+              <DropdownField
+                label="Visitor Type"
+                selected={selectedTypeId}
+                onSelect={(v) => {
+                  setSelectedTypeId(v);
+                  if (errors.visitorTypeId) setErrors(prev => ({ ...prev, visitorTypeId: '' }));
+                }}
+                options={visitorTypes}
+                placeholder="Select visitor type..."
+                required
+                error={errors.visitorTypeId}
+              />
             </View>
 
             {/* Additional */}
             <View style={[s.sectionCard, { marginTop: 16 }]}>
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-4">Additional Information</Text>
-              {renderField('Vehicle Number', vehiclePlate, setVehiclePlate, { placeholder: 'License plate', autoCapitalize: 'characters' })}
-              {renderField('Notes', notes, setNotes, { placeholder: 'Any additional notes...', multiline: true })}
+              {renderField('Vehicle Reg Number', vehicleRegNumber, setVehicleRegNumber, { placeholder: 'License plate', autoCapitalize: 'characters' })}
+              {renderField('Special Instructions', specialInstructions, setSpecialInstructions, { placeholder: 'Any special instructions...', multiline: true })}
 
               {/* Visitor Photo */}
               <View style={s.fieldWrap}>
@@ -269,8 +360,6 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
   fieldWrap: { marginBottom: 16 },
   inputWrap: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 12, borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], paddingHorizontal: 14, height: 50, justifyContent: 'center' },
   textInput: { fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
-  chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
   cancelBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
   submitBtn: { flex: 1, height: 56, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
   captureBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 50, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary[200], borderStyle: 'dashed', backgroundColor: isDark ? '#1E1B4B' : colors.primary[50] },

@@ -151,6 +151,22 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = { FULL_TIME: 'Full-Time',
 const PRIORITY_MAP: Record<string, string> = { Low: 'LOW', Medium: 'MEDIUM', High: 'HIGH', Urgent: 'URGENT' };
 const PRIORITY_LABELS: Record<string, string> = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High', URGENT: 'Urgent' };
 
+function toSafeText(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (!value || typeof value !== 'object') return '';
+
+    const candidate = value as Record<string, unknown>;
+    const commonLabel = [candidate.name, candidate.title, candidate.label, candidate.code]
+        .find(part => typeof part === 'string' && part.trim().length > 0);
+
+    if (typeof commonLabel === 'string') return commonLabel;
+
+    const firstName = typeof candidate.firstName === 'string' ? candidate.firstName.trim() : '';
+    const lastName = typeof candidate.lastName === 'string' ? candidate.lastName.trim() : '';
+    return `${firstName} ${lastName}`.trim();
+}
+
 // ============ SHARED ATOMS ============
 
 function ReqStatusBadge({ status }: { status: ReqStatus }) {
@@ -915,7 +931,9 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         const raw = (reqResponse as any)?.data ?? reqResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', title: item.title ?? '', department: item.department ?? '',
+            id: item.id ?? '',
+            title: toSafeText(item.title),
+            department: toSafeText(item.department),
             openings: item.openings ?? 1, budgetMin: item.budgetMin ?? 0, budgetMax: item.budgetMax ?? 0,
             status: item.status ?? 'Draft', candidateCount: item.candidateCount ?? 0, createdAt: item.createdAt ?? '',
         }));
@@ -925,8 +943,12 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         const raw = (candResponse as any)?.data ?? candResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', requisitionId: item.requisitionId ?? '', name: item.name ?? '',
-            email: item.email ?? '', source: item.source ?? 'Other', stage: item.stage ?? 'Applied',
+            id: item.id ?? '',
+            requisitionId: item.requisitionId ?? '',
+            name: toSafeText(item.name),
+            email: toSafeText(item.email),
+            source: item.source ?? 'Other',
+            stage: item.stage ?? 'Applied',
             rating: item.rating ?? 0, appliedAt: item.appliedAt ?? '',
         }));
     }, [candResponse]);
@@ -936,7 +958,9 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
             id: item.id ?? '', requisitionId: item.requisitionId ?? '', candidateId: item.candidateId ?? '',
-            candidateName: item.candidateName ?? '', round: item.round ?? 1, datetime: item.datetime ?? '',
+            candidateName: toSafeText(item.candidateName ?? item.candidate),
+            round: item.round ?? 1,
+            datetime: toSafeText(item.datetime),
             panelists: item.panelists ?? [], status: item.status ?? 'Scheduled', feedback: item.feedback ?? '',
         }));
     }, [intResponse]);
@@ -946,7 +970,7 @@ export function RequisitionsScreen({ initialSection = 'requisitions' as Section 
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
             id: item.id ?? '', candidateId: item.candidateId ?? '',
-            candidateName: item.candidate?.name ?? item.candidateName ?? '',
+            candidateName: toSafeText(item.candidateName ?? item.candidate),
             offeredCTC: item.offeredCTC ?? 0, joiningDate: item.joiningDate ?? '',
             validUntil: item.validUntil ?? '', status: item.status ?? 'DRAFT',
             notes: item.notes ?? '',

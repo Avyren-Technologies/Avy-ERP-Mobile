@@ -18,7 +18,8 @@ export type FileCategory =
   | 'offboarding-doc'
   | 'transfer-letter'
   | 'policy-document'
-  | 'billing-invoice';
+  | 'billing-invoice'
+  | 'induction-content';
 
 interface RequestUploadPayload {
   category: FileCategory;

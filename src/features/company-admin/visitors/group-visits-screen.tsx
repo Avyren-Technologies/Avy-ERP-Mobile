@@ -24,10 +24,13 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess } from '@/components/ui/utils';
 
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useBatchCheckIn, useBatchCheckOut, useCreateGroupVisit } from '@/features/company-admin/api/use-visitor-mutations';
 import { useGroupVisits } from '@/features/company-admin/api/use-visitor-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -78,19 +81,46 @@ function CreateGroupModal({
   const isDark = useIsDark();
   const insets = useSafeAreaInsets();
   const [groupName, setGroupName] = React.useState('');
-  const [hostName, setHostName] = React.useState('');
-  const [totalMembers, setTotalMembers] = React.useState('');
+  const [hostEmployeeId, setHostEmployeeId] = React.useState('');
+  const [purpose, setPurpose] = React.useState('');
+  const [expectedDate, setExpectedDate] = React.useState('');
+  const [plantId, setPlantId] = React.useState('');
+  const [memberName1, setMemberName1] = React.useState('');
+  const [memberMobile1, setMemberMobile1] = React.useState('');
+  const [memberName2, setMemberName2] = React.useState('');
+  const [memberMobile2, setMemberMobile2] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  const { data: employeesResponse } = useEmployees({ limit: 500 });
+  const employeeOptions = React.useMemo(() => {
+    const raw = (employeesResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((e: any) => ({
+      id: e.id,
+      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
+    }));
+  }, [employeesResponse]);
+
+  const { data: locationsResponse } = useCompanyLocations();
+  const locationOptions = React.useMemo(() => {
+    const raw = (locationsResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((l: any) => ({ id: l.id, name: l.name ?? l.code ?? l.id }));
+  }, [locationsResponse]);
+
   React.useEffect(() => {
-    if (visible) { setGroupName(''); setHostName(''); setTotalMembers(''); setErrors({}); }
+    if (visible) { setGroupName(''); setHostEmployeeId(''); setPurpose(''); setExpectedDate(''); setPlantId(''); setMemberName1(''); setMemberMobile1(''); setMemberName2(''); setMemberMobile2(''); setErrors({}); }
   }, [visible]);
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!groupName.trim()) e.groupName = 'Group name is required';
-    if (!hostName.trim()) e.hostName = 'Host is required';
-    if (!totalMembers.trim() || isNaN(Number(totalMembers))) e.totalMembers = 'Valid member count is required';
+    if (!hostEmployeeId) e.hostEmployeeId = 'Host employee is required';
+    if (!purpose.trim()) e.purpose = 'Purpose is required';
+    if (!expectedDate.trim()) e.expectedDate = 'Expected date is required';
+    if (!plantId) e.plantId = 'Plant is required';
+    if (!memberName1.trim() || !memberMobile1.trim()) e.member1 = 'Member 1 name and mobile are required';
+    if (!memberName2.trim() || !memberMobile2.trim()) e.member2 = 'Member 2 name and mobile are required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -99,8 +129,14 @@ function CreateGroupModal({
     if (!validate()) return;
     onSave({
       groupName: groupName.trim(),
-      hostName: hostName.trim(),
-      totalMembers: Number(totalMembers),
+      hostEmployeeId,
+      purpose: purpose.trim(),
+      expectedDate: expectedDate.trim(),
+      plantId,
+      members: [
+        { visitorName: memberName1.trim(), visitorMobile: memberMobile1.trim() },
+        { visitorName: memberName2.trim(), visitorMobile: memberMobile2.trim() },
+      ],
     });
   };
 
@@ -132,24 +168,70 @@ function CreateGroupModal({
               {!!errors.groupName && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.groupName}</Text>}
             </View>
 
+            <DropdownField
+              label="Host Employee"
+              selected={hostEmployeeId}
+              onSelect={(v) => { setHostEmployeeId(v); if (errors.hostEmployeeId) setErrors(prev => ({ ...prev, hostEmployeeId: '' })); }}
+              options={employeeOptions}
+              placeholder="Select host employee..."
+              required
+              error={errors.hostEmployeeId}
+            />
+
             <View style={formStyles.fieldWrap}>
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
-                Host <Text className="text-danger-500">*</Text>
+                Purpose <Text className="text-danger-500">*</Text>
               </Text>
-              <View style={[formStyles.inputWrap, !!errors.hostName && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Host employee name" placeholderTextColor={colors.neutral[400]} value={hostName} onChangeText={(v) => { setHostName(v); if (errors.hostName) setErrors(prev => ({ ...prev, hostName: '' })); }} />
+              <View style={[formStyles.inputWrap, !!errors.purpose && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Factory tour, audit, etc." placeholderTextColor={colors.neutral[400]} value={purpose} onChangeText={(v) => { setPurpose(v); if (errors.purpose) setErrors(prev => ({ ...prev, purpose: '' })); }} />
               </View>
-              {!!errors.hostName && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.hostName}</Text>}
+              {!!errors.purpose && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.purpose}</Text>}
             </View>
 
             <View style={formStyles.fieldWrap}>
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
-                Total Members <Text className="text-danger-500">*</Text>
+                Expected Date <Text className="text-danger-500">*</Text>
               </Text>
-              <View style={[formStyles.inputWrap, !!errors.totalMembers && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Number of members" placeholderTextColor={colors.neutral[400]} value={totalMembers} onChangeText={(v) => { setTotalMembers(v); if (errors.totalMembers) setErrors(prev => ({ ...prev, totalMembers: '' })); }} keyboardType="number-pad" />
+              <View style={[formStyles.inputWrap, !!errors.expectedDate && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={expectedDate} onChangeText={(v) => { setExpectedDate(v); if (errors.expectedDate) setErrors(prev => ({ ...prev, expectedDate: '' })); }} />
               </View>
-              {!!errors.totalMembers && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.totalMembers}</Text>}
+              {!!errors.expectedDate && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.expectedDate}</Text>}
+            </View>
+
+            <DropdownField
+              label="Location (Plant)"
+              selected={plantId}
+              onSelect={(v) => { setPlantId(v); if (errors.plantId) setErrors(prev => ({ ...prev, plantId: '' })); }}
+              options={locationOptions}
+              placeholder="Select location..."
+              required
+              error={errors.plantId}
+            />
+
+            <Text className="mt-2 mb-1 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+              Member 1 <Text className="text-danger-500">*</Text>
+            </Text>
+            <View style={formStyles.fieldWrap}>
+              <View style={[formStyles.inputWrap, !!errors.member1 && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Name" placeholderTextColor={colors.neutral[400]} value={memberName1} onChangeText={setMemberName1} />
+              </View>
+              <View style={[formStyles.inputWrap, { marginTop: 8 }, !!errors.member1 && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Mobile (10+ digits)" placeholderTextColor={colors.neutral[400]} value={memberMobile1} onChangeText={setMemberMobile1} keyboardType="phone-pad" />
+              </View>
+              {!!errors.member1 && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.member1}</Text>}
+            </View>
+
+            <Text className="mt-2 mb-1 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+              Member 2 <Text className="text-danger-500">*</Text>
+            </Text>
+            <View style={formStyles.fieldWrap}>
+              <View style={[formStyles.inputWrap, !!errors.member2 && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Name" placeholderTextColor={colors.neutral[400]} value={memberName2} onChangeText={setMemberName2} />
+              </View>
+              <View style={[formStyles.inputWrap, { marginTop: 8 }, !!errors.member2 && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Mobile (10+ digits)" placeholderTextColor={colors.neutral[400]} value={memberMobile2} onChangeText={setMemberMobile2} keyboardType="phone-pad" />
+              </View>
+              {!!errors.member2 && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.member2}</Text>}
             </View>
 
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 24 }}>
@@ -267,11 +349,11 @@ export function GroupVisitsScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((g: any) => ({
       id: g.id ?? '',
-      groupName: g.groupName ?? g.name ?? '',
-      visitCode: g.visitCode ?? g.code ?? '',
-      hostName: g.hostName ?? g.host?.name ?? '',
-      expectedDate: g.expectedDate ?? g.visitDate ?? g.createdAt ?? '',
-      totalMembers: g.totalMembers ?? g.memberCount ?? 0,
+      groupName: g.groupName ?? '',
+      visitCode: g.visitCode ?? '',
+      hostName: g.hostEmployeeName ?? g.hostEmployeeId ?? '',
+      expectedDate: g.expectedDate ?? g.createdAt ?? '',
+      totalMembers: g.totalMembers ?? g.members?.length ?? 0,
       status: g.status ?? 'PLANNED',
     }));
   }, [response]);
@@ -285,12 +367,27 @@ export function GroupVisitsScreen() {
   const handleBatchCheckIn = (item: GroupVisitItem) => {
     showConfirm({
       title: 'Batch Check-In',
-      message: `Check in all ${item.totalMembers} members of "${item.groupName}"?`,
+      message: `Check in all ${item.totalMembers} members of "${item.groupName}"? You will need to provide a gate ID.`,
       confirmText: 'Check In All',
       variant: 'primary',
-      onConfirm: () => batchCheckInMutation.mutate(item.id, {
-        onSuccess: () => showSuccess('Batch check-in completed'),
-      }),
+      onConfirm: () => {
+        // The backend requires memberIds and checkInGateId.
+        // We fetch the group details and check in all EXPECTED members.
+        // For now, we send all member IDs from the cached response.
+        const raw = (response as any)?.data ?? response ?? [];
+        const group = Array.isArray(raw) ? raw.find((g: any) => g.id === item.id) : null;
+        const memberIds = (group?.members ?? [])
+          .filter((m: any) => m.status === 'EXPECTED')
+          .map((m: any) => m.id);
+        if (memberIds.length === 0) {
+          showSuccess('No members to check in');
+          return;
+        }
+        batchCheckInMutation.mutate(
+          { id: item.id, data: { memberIds, checkInGateId: group?.gateId ?? '' } },
+          { onSuccess: () => showSuccess('Batch check-in completed') },
+        );
+      },
     });
   };
 
@@ -300,9 +397,10 @@ export function GroupVisitsScreen() {
       message: `Check out all members of "${item.groupName}"?`,
       confirmText: 'Check Out All',
       variant: 'primary',
-      onConfirm: () => batchCheckOutMutation.mutate(item.id, {
-        onSuccess: () => showSuccess('Batch check-out completed'),
-      }),
+      onConfirm: () => batchCheckOutMutation.mutate(
+        { id: item.id, data: { checkOutMethod: 'SECURITY_DESK' } },
+        { onSuccess: () => showSuccess('Batch check-out completed') },
+      ),
     });
   };
 

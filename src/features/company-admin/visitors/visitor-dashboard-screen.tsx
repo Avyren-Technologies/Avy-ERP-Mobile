@@ -187,30 +187,31 @@ export function VisitorDashboardScreen() {
   const statsRaw = (statsResponse as any)?.data ?? statsResponse ?? {};
   const todayRaw = (todayResponse as any)?.data ?? todayResponse ?? {};
 
+  const todayStats = todayRaw.stats ?? {};
   const kpiStats: StatCard[] = React.useMemo(() => [
-    { label: 'Total Today', value: todayRaw.totalToday ?? statsRaw.totalToday ?? 0, color: colors.primary[600], bgColor: colors.primary[50], icon: 'users' },
-    { label: 'Checked In', value: todayRaw.checkedIn ?? statsRaw.checkedIn ?? 0, color: colors.success[600], bgColor: colors.success[50], icon: 'check-in' },
-    { label: 'Checked Out', value: todayRaw.checkedOut ?? statsRaw.checkedOut ?? 0, color: colors.neutral[600], bgColor: colors.neutral[100], icon: 'check-out' },
-    { label: 'On Site Now', value: todayRaw.onSite ?? statsRaw.onSite ?? 0, color: colors.info[600], bgColor: colors.info[50], icon: 'clock' },
-    { label: 'Pre-Registered', value: todayRaw.preRegistered ?? statsRaw.preRegistered ?? 0, color: colors.accent[600], bgColor: colors.accent[50], icon: 'calendar' },
-    { label: 'Overdue', value: todayRaw.overdue ?? statsRaw.overdue ?? 0, color: colors.danger[600], bgColor: colors.danger[50], icon: 'alert' },
-    { label: 'Watchlist Flags', value: todayRaw.watchlistFlags ?? statsRaw.watchlistFlags ?? 0, color: colors.warning[600], bgColor: colors.warning[50], icon: 'shield' },
-  ], [todayRaw, statsRaw]);
+    { label: 'Expected Today', value: todayStats.totalExpected ?? 0, color: colors.primary[600], bgColor: colors.primary[50], icon: 'users' },
+    { label: 'Checked In', value: todayStats.checkedIn ?? 0, color: colors.success[600], bgColor: colors.success[50], icon: 'check-in' },
+    { label: 'Checked Out', value: todayStats.checkedOut ?? 0, color: colors.neutral[600], bgColor: colors.neutral[100], icon: 'check-out' },
+    { label: 'On Site Now', value: todayStats.onSiteNow ?? 0, color: colors.info[600], bgColor: colors.info[50], icon: 'clock' },
+    { label: 'Walk-Ins', value: todayStats.walkIns ?? 0, color: colors.accent[600], bgColor: colors.accent[50], icon: 'calendar' },
+    { label: 'Overstaying', value: todayStats.overstaying ?? 0, color: colors.danger[600], bgColor: colors.danger[50], icon: 'alert' },
+    { label: 'No Shows', value: todayStats.noShows ?? 0, color: colors.warning[600], bgColor: colors.warning[50], icon: 'shield' },
+  ], [todayStats]);
 
   const visits: VisitItem[] = React.useMemo(() => {
-    const raw = todayRaw.visits ?? todayRaw.recentVisits ?? [];
+    const raw = todayRaw.visitors ?? [];
     if (!Array.isArray(raw)) return [];
     return raw.map((v: any) => ({
       id: v.id ?? '',
-      visitorName: v.visitorName ?? v.visitor?.name ?? '',
-      visitorCompany: v.visitorCompany ?? v.visitor?.company ?? '',
-      visitorType: v.visitorType?.name ?? v.typeName ?? '',
-      hostName: v.hostName ?? v.host?.name ?? '',
+      visitorName: v.visitorName ?? '',
+      visitorCompany: v.visitorCompany ?? '',
+      visitorType: v.visitorType?.name ?? '',
+      hostName: v.hostEmployeeName ?? v.hostEmployeeId ?? '',
       status: v.status ?? 'PRE_REGISTERED',
       checkInTime: v.checkInTime ?? null,
       checkOutTime: v.checkOutTime ?? null,
-      expectedArrival: v.expectedArrival ?? v.scheduledTime ?? null,
-      visitCode: v.visitCode ?? v.code ?? '',
+      expectedArrival: v.expectedDate ?? null,
+      visitCode: v.visitCode ?? '',
     }));
   }, [todayRaw]);
 

@@ -157,7 +157,31 @@ export function useUpdateVisitorType() {
   });
 }
 
-/** Delete a visitor type */
+/** Deactivate a visitor type */
+export function useDeactivateVisitorType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => visitorsApi.deactivateVisitorType(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.types() });
+    },
+    onError: showError,
+  });
+}
+
+/** Activate a visitor type */
+export function useActivateVisitorType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => visitorsApi.activateVisitorType(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.types() });
+    },
+    onError: showError,
+  });
+}
+
+/** Delete a visitor type (only if no visits) */
 export function useDeleteVisitorType() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -252,7 +276,7 @@ export function useCreateRecurringPass() {
 export function useRevokeRecurringPass() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => visitorsApi.revokeRecurringPass(id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => visitorsApi.revokeRecurringPass(id, { reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.recurringPasses() });
     },
@@ -264,7 +288,8 @@ export function useRevokeRecurringPass() {
 export function useCheckInRecurringPass() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => visitorsApi.checkInRecurringPass(id),
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      visitorsApi.checkInRecurringPass(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.recurringPasses() });
       queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });
@@ -347,7 +372,8 @@ export function useCreateGroupVisit() {
 export function useBatchCheckIn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => visitorsApi.batchCheckIn(id),
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      visitorsApi.batchCheckIn(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.groupVisits() });
       queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });
@@ -362,7 +388,8 @@ export function useBatchCheckIn() {
 export function useBatchCheckOut() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => visitorsApi.batchCheckOut(id),
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      visitorsApi.batchCheckOut(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.groupVisits() });
       queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });
@@ -405,7 +432,8 @@ export function useMarkSafe() {
 export function useResolveEmergency() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => visitorsApi.resolveEmergency(),
+    mutationFn: (data: Record<string, unknown>) =>
+      visitorsApi.resolveEmergency(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.musterList() });
       queryClient.invalidateQueries({ queryKey: visitorKeys.onSite() });

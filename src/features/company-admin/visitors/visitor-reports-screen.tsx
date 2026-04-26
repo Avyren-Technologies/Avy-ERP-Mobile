@@ -51,11 +51,11 @@ function DailyLogTab({ fmt }: { readonly fmt: ReturnType<typeof useCompanyFormat
     if (!Array.isArray(raw)) return [];
     return raw.map((v: any) => ({
       id: v.id ?? '',
-      visitorName: v.visitorName ?? v.visitor?.name ?? '',
+      visitorName: v.visitorName ?? '',
       status: v.status ?? '',
       checkInTime: v.checkInTime ?? null,
       checkOutTime: v.checkOutTime ?? null,
-      hostName: v.hostName ?? v.host?.name ?? '',
+      hostName: v.hostEmployeeId ?? '',
     }));
   }, [response]);
 
@@ -115,11 +115,10 @@ function SummaryTab() {
     const raw = (response as any)?.data ?? response ?? {};
     return {
       totalVisits: raw.totalVisits ?? 0,
-      checkedIn: raw.checkedIn ?? 0,
-      checkedOut: raw.checkedOut ?? 0,
-      preRegistered: raw.preRegistered ?? 0,
-      cancelled: raw.cancelled ?? 0,
-      averageDuration: raw.averageDuration ?? 'N/A',
+      avgDurationMinutes: raw.avgDurationMinutes != null ? Math.round(raw.avgDurationMinutes) : 'N/A',
+      byMethod: raw.byMethod ?? [],
+      byStatus: raw.byStatus ?? [],
+      byType: raw.byType ?? [],
     };
   }, [response]);
 
@@ -128,11 +127,10 @@ function SummaryTab() {
 
   const stats = [
     { label: 'Total Visits', value: summary.totalVisits, color: colors.primary[600] },
-    { label: 'Checked In', value: summary.checkedIn, color: colors.success[600] },
-    { label: 'Checked Out', value: summary.checkedOut, color: colors.neutral[500] },
-    { label: 'Pre-Registered', value: summary.preRegistered, color: colors.info[600] },
-    { label: 'Cancelled', value: summary.cancelled, color: colors.danger[500] },
-    { label: 'Avg Duration', value: summary.averageDuration, color: colors.accent[600] },
+    { label: 'Avg Duration (min)', value: summary.avgDurationMinutes, color: colors.success[600] },
+    { label: 'Reg. Methods', value: summary.byMethod.length, color: colors.neutral[500] },
+    { label: 'Status Types', value: summary.byStatus.length, color: colors.info[600] },
+    { label: 'Visitor Types', value: summary.byType.length, color: colors.danger[500] },
   ];
 
   return (
@@ -162,11 +160,11 @@ function OverstayTab({ fmt }: { readonly fmt: ReturnType<typeof useCompanyFormat
     if (!Array.isArray(raw)) return [];
     return raw.map((v: any) => ({
       id: v.id ?? '',
-      visitorName: v.visitorName ?? v.visitor?.name ?? '',
-      hostName: v.hostName ?? v.host?.name ?? '',
+      visitorName: v.visitorName ?? '',
+      hostName: v.hostEmployeeId ?? '',
       checkInTime: v.checkInTime ?? '',
-      expectedDuration: v.expectedDuration ?? '',
-      overstayMinutes: v.overstayMinutes ?? v.overstay ?? 0,
+      expectedDuration: v.expectedDurationMinutes ?? '',
+      overstayMinutes: (v.visitDurationMinutes ?? 0) - (v.expectedDurationMinutes ?? 0),
     }));
   }, [response]);
 
@@ -222,12 +220,11 @@ function AnalyticsTab() {
   const analytics = React.useMemo(() => {
     const raw = (response as any)?.data ?? response ?? {};
     return {
-      peakHour: raw.peakHour ?? 'N/A',
-      topVisitorType: raw.topVisitorType ?? 'N/A',
-      topHost: raw.topHost ?? 'N/A',
-      busiestDay: raw.busiestDay ?? 'N/A',
-      avgVisitsPerDay: raw.avgVisitsPerDay ?? 0,
-      repeatVisitorRate: raw.repeatVisitorRate ?? 'N/A',
+      totalVisits: raw.totalVisits ?? 0,
+      avgDurationMinutes: raw.avgDurationMinutes != null ? `${Math.round(raw.avgDurationMinutes)} min` : 'N/A',
+      preRegisteredPercent: raw.preRegisteredPercent ?? 0,
+      overstayRatePercent: raw.overstayRatePercent ?? 0,
+      safetyInductionCompletionPercent: raw.safetyInductionCompletionPercent ?? 0,
     };
   }, [response]);
 
@@ -235,12 +232,11 @@ function AnalyticsTab() {
   if (error) return <View style={{ paddingTop: 40, alignItems: 'center', paddingHorizontal: 24 }}><EmptyState icon="error" title="Failed to load" message="Check connection and retry." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;
 
   const metrics = [
-    { label: 'Peak Hour', value: analytics.peakHour, color: colors.primary[600] },
-    { label: 'Top Visitor Type', value: analytics.topVisitorType, color: colors.accent[600] },
-    { label: 'Top Host', value: analytics.topHost, color: colors.info[600] },
-    { label: 'Busiest Day', value: analytics.busiestDay, color: colors.warning[600] },
-    { label: 'Avg Visits/Day', value: analytics.avgVisitsPerDay, color: colors.success[600] },
-    { label: 'Repeat Rate', value: analytics.repeatVisitorRate, color: colors.danger[500] },
+    { label: 'Total Visits', value: analytics.totalVisits, color: colors.primary[600] },
+    { label: 'Avg Duration', value: analytics.avgDurationMinutes, color: colors.accent[600] },
+    { label: 'Pre-Registered %', value: `${analytics.preRegisteredPercent}%`, color: colors.info[600] },
+    { label: 'Overstay Rate', value: `${analytics.overstayRatePercent}%`, color: colors.danger[500] },
+    { label: 'Induction Rate', value: `${analytics.safetyInductionCompletionPercent}%`, color: colors.success[600] },
   ];
 
   return (

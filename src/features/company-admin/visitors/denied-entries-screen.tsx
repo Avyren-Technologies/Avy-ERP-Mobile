@@ -38,13 +38,16 @@ interface DeniedEntryItem {
 // ============ DENIAL REASON BADGE ============
 
 const REASON_COLOR: Record<string, { bg: string; text: string }> = {
-  WATCHLISTED: { bg: colors.warning[50], text: colors.warning[700] },
-  BLOCKED: { bg: colors.danger[50], text: colors.danger[700] },
-  ID_MISMATCH: { bg: colors.danger[50], text: colors.danger[700] },
-  UNAUTHORIZED: { bg: colors.neutral[100], text: colors.neutral[600] },
-  CAPACITY_FULL: { bg: colors.info[50], text: colors.info[700] },
-  HOST_UNAVAILABLE: { bg: colors.warning[50], text: colors.warning[700] },
-  EXPIRED_PASS: { bg: colors.neutral[100], text: colors.neutral[500] },
+  BLOCKLIST_MATCH: { bg: colors.danger[50], text: colors.danger[700] },
+  HOST_REJECTED: { bg: colors.warning[50], text: colors.warning[700] },
+  INDUCTION_FAILED: { bg: colors.danger[50], text: colors.danger[700] },
+  GATE_CLOSED: { bg: colors.neutral[100], text: colors.neutral[600] },
+  WRONG_DATE: { bg: colors.info[50], text: colors.info[700] },
+  WRONG_GATE: { bg: colors.info[50], text: colors.info[700] },
+  PASS_EXPIRED: { bg: colors.neutral[100], text: colors.neutral[500] },
+  APPROVAL_TIMEOUT: { bg: colors.warning[50], text: colors.warning[700] },
+  MANUAL_DENIAL: { bg: colors.danger[50], text: colors.danger[700] },
+  VISIT_CANCELLED: { bg: colors.neutral[100], text: colors.neutral[600] },
 };
 
 // ============ DENIED ENTRY CARD ============
@@ -125,12 +128,12 @@ export function DeniedEntriesScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((d: any) => ({
       id: d.id ?? '',
-      visitorName: d.visitorName ?? d.visitor?.name ?? '',
-      visitorMobile: d.visitorMobile ?? d.visitorPhone ?? d.visitor?.phone ?? '',
-      visitorCompany: d.visitorCompany ?? d.visitor?.company ?? '',
-      denialReason: d.denialReason ?? d.reason ?? 'UNAUTHORIZED',
-      gate: d.gate?.name ?? d.gateName ?? '',
-      deniedBy: d.deniedBy?.name ?? d.deniedByName ?? '',
+      visitorName: d.visitorName ?? '',
+      visitorMobile: d.visitorMobile ?? '',
+      visitorCompany: d.visitorCompany ?? '',
+      denialReason: d.denialReason ?? '',
+      gate: d.gateId ?? '',
+      deniedBy: d.deniedBy ?? '',
       deniedAt: d.deniedAt ?? d.createdAt ?? '',
     }));
   }, [response]);

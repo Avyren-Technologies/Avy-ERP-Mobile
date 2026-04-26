@@ -2,12 +2,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   TextInput,
   View,
@@ -24,12 +26,14 @@ import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess } from '@/components/ui/utils';
 
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCreateVehiclePass, useRecordVehicleExit } from '@/features/company-admin/api/use-visitor-mutations';
-import { useVehiclePasses } from '@/features/company-admin/api/use-visitor-queries';
+import { useGates, useVehiclePasses } from '@/features/company-admin/api/use-visitor-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -38,12 +42,13 @@ import { useIsDark } from '@/hooks/use-is-dark';
 interface VehiclePassItem {
   id: string;
   passNumber: string;
-  vehicleReg: string;
+  vehicleRegNumber: string;
   vehicleType: string;
   driverName: string;
   purpose: string;
   entryTime: string | null;
   exitTime: string | null;
+  qrCode: string | null;
 }
 
 // ============ CREATE MODAL ============
@@ -61,20 +66,39 @@ function CreateVehicleModal({
 }) {
   const isDark = useIsDark();
   const insets = useSafeAreaInsets();
-  const [vehicleReg, setVehicleReg] = React.useState('');
+  const [vehicleRegNumber, setVehicleRegNumber] = React.useState('');
   const [vehicleType, setVehicleType] = React.useState('CAR');
   const [driverName, setDriverName] = React.useState('');
   const [purpose, setPurpose] = React.useState('');
+  const [entryGateId, setEntryGateId] = React.useState('');
+  const [plantId, setPlantId] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  const { data: locationsResponse } = useCompanyLocations();
+  const locationOptions = React.useMemo(() => {
+    const raw = (locationsResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((l: any) => ({ id: l.id, name: l.name ?? l.code ?? l.id }));
+  }, [locationsResponse]);
+
+  const { data: gatesResponse } = useGates();
+  const gateOptions = React.useMemo(() => {
+    const raw = (gatesResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((g: any) => ({ id: g.id, name: `${g.name} (${g.code})` }));
+  }, [gatesResponse]);
+
   React.useEffect(() => {
-    if (visible) { setVehicleReg(''); setVehicleType('CAR'); setDriverName(''); setPurpose(''); setErrors({}); }
+    if (visible) { setVehicleRegNumber(''); setVehicleType('CAR'); setDriverName(''); setPurpose(''); setEntryGateId(''); setPlantId(''); setErrors({}); }
   }, [visible]);
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!vehicleReg.trim()) e.vehicleReg = 'Vehicle registration is required';
+    if (!vehicleRegNumber.trim()) e.vehicleRegNumber = 'Vehicle registration is required';
     if (!driverName.trim()) e.driverName = 'Driver name is required';
+    if (!purpose.trim()) e.purpose = 'Purpose is required';
+    if (!entryGateId) e.entryGateId = 'Entry gate is required';
+    if (!plantId) e.plantId = 'Plant is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -82,14 +106,16 @@ function CreateVehicleModal({
   const handleSave = () => {
     if (!validate()) return;
     onSave({
-      vehicleReg: vehicleReg.trim().toUpperCase(),
+      vehicleRegNumber: vehicleRegNumber.trim().toUpperCase(),
       vehicleType,
       driverName: driverName.trim(),
-      purpose: purpose.trim() || undefined,
+      purpose: purpose.trim(),
+      entryGateId,
+      plantId,
     });
   };
 
-  const VEHICLE_TYPES = ['CAR', 'TRUCK', 'VAN', 'MOTORCYCLE', 'OTHER'];
+  const VEHICLE_TYPES = ['CAR', 'TWO_WHEELER', 'AUTO', 'TRUCK', 'VAN', 'TEMPO', 'BUS'];
 
   return (
     <Modal visible={visible} transparent={false} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -113,10 +139,10 @@ function CreateVehicleModal({
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                 Vehicle Registration <Text className="text-danger-500">*</Text>
               </Text>
-              <View style={[formStyles.inputWrap, !!errors.vehicleReg && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder='e.g. "KA-01-AB-1234"' placeholderTextColor={colors.neutral[400]} value={vehicleReg} onChangeText={(v) => { setVehicleReg(v); if (errors.vehicleReg) setErrors(prev => ({ ...prev, vehicleReg: '' })); }} autoCapitalize="characters" />
+              <View style={[formStyles.inputWrap, !!errors.vehicleRegNumber && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder='e.g. "KA-01-AB-1234"' placeholderTextColor={colors.neutral[400]} value={vehicleRegNumber} onChangeText={(v) => { setVehicleRegNumber(v); if (errors.vehicleRegNumber) setErrors(prev => ({ ...prev, vehicleRegNumber: '' })); }} autoCapitalize="characters" />
               </View>
-              {!!errors.vehicleReg && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.vehicleReg}</Text>}
+              {!!errors.vehicleRegNumber && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.vehicleRegNumber}</Text>}
             </View>
 
             <View style={formStyles.fieldWrap}>
@@ -144,11 +170,34 @@ function CreateVehicleModal({
             </View>
 
             <View style={formStyles.fieldWrap}>
-              <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Purpose</Text>
-              <View style={[formStyles.inputWrap, { height: 80 }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }, { textAlignVertical: 'top' }]} placeholder="Purpose of visit" placeholderTextColor={colors.neutral[400]} value={purpose} onChangeText={setPurpose} multiline />
+              <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+                Purpose <Text className="text-danger-500">*</Text>
+              </Text>
+              <View style={[formStyles.inputWrap, { height: 80 }, !!errors.purpose && { borderColor: colors.danger[300] }]}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }, { textAlignVertical: 'top' }]} placeholder="Purpose of visit" placeholderTextColor={colors.neutral[400]} value={purpose} onChangeText={(v) => { setPurpose(v); if (errors.purpose) setErrors(prev => ({ ...prev, purpose: '' })); }} multiline />
               </View>
+              {!!errors.purpose && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.purpose}</Text>}
             </View>
+
+            <DropdownField
+              label="Entry Gate"
+              selected={entryGateId}
+              onSelect={(v) => { setEntryGateId(v); if (errors.entryGateId) setErrors(prev => ({ ...prev, entryGateId: '' })); }}
+              options={gateOptions}
+              placeholder="Select entry gate..."
+              required
+              error={errors.entryGateId}
+            />
+
+            <DropdownField
+              label="Location (Plant)"
+              selected={plantId}
+              onSelect={(v) => { setPlantId(v); if (errors.plantId) setErrors(prev => ({ ...prev, plantId: '' })); }}
+              options={locationOptions}
+              placeholder="Select location..."
+              required
+              error={errors.plantId}
+            />
 
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 24 }}>
               <Pressable onPress={onClose} style={formStyles.cancelBtn}>
@@ -171,11 +220,13 @@ function VehicleCard({
   item,
   index,
   onRecordExit,
+  onShowQr,
   fmt,
 }: {
   readonly item: VehiclePassItem;
   readonly index: number;
   readonly onRecordExit: () => void;
+  readonly onShowQr: () => void;
   readonly fmt: ReturnType<typeof useCompanyFormatter>;
 }) {
   const hasExited = !!item.exitTime;
@@ -186,7 +237,7 @@ function VehicleCard({
         <View style={cardStyles.cardHeader}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.vehicleReg}</Text>
+              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.vehicleRegNumber}</Text>
               {item.passNumber ? (
                 <View style={cardStyles.codeBadge}>
                   <Text className="font-inter text-[10px] font-bold text-primary-600">{item.passNumber}</Text>
@@ -197,10 +248,19 @@ function VehicleCard({
               <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.driverName}</Text>
             ) : null}
           </View>
-          <View style={[cardStyles.statusBadge, { backgroundColor: hasExited ? colors.neutral[100] : colors.success[50] }]}>
-            <Text className={`font-inter text-[10px] font-bold ${hasExited ? 'text-neutral-500' : 'text-success-700'}`}>
-              {hasExited ? 'Exited' : 'On Site'}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {item.qrCode ? (
+              <Pressable onPress={onShowQr} hitSlop={8} style={cardStyles.qrBtn}>
+                <Svg width={16} height={16} viewBox="0 0 24 24">
+                  <Path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM17 14h3v3h-3zM14 17h3v3h-3zM17 20h3v3h-3z" stroke={colors.accent[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Pressable>
+            ) : null}
+            <View style={[cardStyles.statusBadge, { backgroundColor: hasExited ? colors.neutral[100] : colors.success[50] }]}>
+              <Text className={`font-inter text-[10px] font-bold ${hasExited ? 'text-neutral-500' : 'text-success-700'}`}>
+                {hasExited ? 'Exited' : 'On Site'}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -249,6 +309,16 @@ export function VehiclePassesScreen() {
 
   const [search, setSearch] = React.useState('');
   const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [exitTarget, setExitTarget] = React.useState<VehiclePassItem | null>(null);
+  const [exitGateId, setExitGateId] = React.useState('');
+  const [qrModalItem, setQrModalItem] = React.useState<VehiclePassItem | null>(null);
+
+  const { data: gatesResponseMain } = useGates();
+  const exitGateOptions = React.useMemo(() => {
+    const raw = (gatesResponseMain as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((g: any) => ({ id: g.id, name: `${g.name} (${g.code})` }));
+  }, [gatesResponseMain]);
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
@@ -265,13 +335,14 @@ export function VehiclePassesScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((v: any) => ({
       id: v.id ?? '',
-      passNumber: v.passNumber ?? v.code ?? '',
-      vehicleReg: v.vehicleReg ?? v.vehicleNumber ?? v.registrationNumber ?? '',
-      vehicleType: v.vehicleType ?? v.type ?? 'CAR',
-      driverName: v.driverName ?? v.driver?.name ?? '',
+      passNumber: v.passNumber ?? '',
+      vehicleRegNumber: v.vehicleRegNumber ?? '',
+      vehicleType: v.vehicleType ?? 'CAR',
+      driverName: v.driverName ?? '',
       purpose: v.purpose ?? '',
-      entryTime: v.entryTime ?? v.checkInTime ?? null,
-      exitTime: v.exitTime ?? v.checkOutTime ?? null,
+      entryTime: v.entryTime ?? null,
+      exitTime: v.exitTime ?? null,
+      qrCode: v.qrCode ?? null,
     }));
   }, [response]);
 
@@ -282,19 +353,19 @@ export function VehiclePassesScreen() {
   };
 
   const handleRecordExit = (item: VehiclePassItem) => {
-    showConfirm({
-      title: 'Record Vehicle Exit',
-      message: `Record exit for vehicle ${item.vehicleReg}?`,
-      confirmText: 'Record Exit',
-      variant: 'primary',
-      onConfirm: () => exitMutation.mutate({ id: item.id }, {
-        onSuccess: () => showSuccess('Vehicle exit recorded'),
-      }),
+    setExitTarget(item);
+    setExitGateId('');
+  };
+
+  const confirmExit = () => {
+    if (!exitTarget || !exitGateId) return;
+    exitMutation.mutate({ id: exitTarget.id, data: { exitGateId } }, {
+      onSuccess: () => { showSuccess('Vehicle exit recorded'); setExitTarget(null); setExitGateId(''); },
     });
   };
 
   const renderItem = ({ item, index }: { readonly item: VehiclePassItem; readonly index: number }) => (
-    <VehicleCard item={item} index={index} onRecordExit={() => handleRecordExit(item)} fmt={fmt} />
+    <VehicleCard item={item} index={index} onRecordExit={() => handleRecordExit(item)} onShowQr={() => setQrModalItem(item)} fmt={fmt} />
   );
 
   const renderHeader = () => (
@@ -336,6 +407,77 @@ export function VehiclePassesScreen() {
       <CreateVehicleModal visible={showCreateModal} onClose={() => setShowCreateModal(false)} onSave={handleCreate} isSaving={createMutation.isPending} />
 
       <ConfirmModal {...confirmModalProps} />
+
+      {/* Exit Gate Modal */}
+      <Modal visible={!!exitTarget} transparent animationType="fade" onRequestClose={() => setExitTarget(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
+          <View style={{ backgroundColor: colors.white, borderRadius: 20, padding: 24, width: '100%', maxWidth: 360 }}>
+            <Text className="font-inter text-lg font-bold text-primary-950 mb-2">Record Vehicle Exit</Text>
+            <Text className="font-inter text-sm text-neutral-500 mb-4">Select the exit gate for {exitTarget?.vehicleRegNumber}.</Text>
+            <DropdownField
+              label="Exit Gate"
+              selected={exitGateId}
+              onSelect={setExitGateId}
+              options={exitGateOptions}
+              placeholder="Select exit gate..."
+            />
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+              <Pressable onPress={() => { setExitTarget(null); setExitGateId(''); }} style={[formStyles.cancelBtn, { height: 48 }]}>
+                <Text className="font-inter text-sm font-bold text-neutral-600">Cancel</Text>
+              </Pressable>
+              <Pressable onPress={confirmExit} disabled={exitMutation.isPending || !exitGateId} style={[formStyles.saveBtn, { height: 48 }, (!exitGateId || exitMutation.isPending) && { opacity: 0.5 }]}>
+                <Text className="font-inter text-sm font-bold text-white">{exitMutation.isPending ? 'Recording...' : 'Record Exit'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* QR Code Modal */}
+      <Modal visible={!!qrModalItem} transparent animationType="fade" onRequestClose={() => setQrModalItem(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
+          <View style={{ backgroundColor: colors.white, borderRadius: 24, width: '100%', maxWidth: 340, overflow: 'hidden' }}>
+            <View style={{ paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text className="font-inter text-lg font-bold text-primary-950">Pass QR Code</Text>
+              <Pressable onPress={() => setQrModalItem(null)} hitSlop={12}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M18 6L6 18M6 6l12 12" stroke={colors.neutral[400]} strokeWidth="2.5" strokeLinecap="round" />
+                </Svg>
+              </Pressable>
+            </View>
+            <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
+              {qrModalItem?.qrCode ? (
+                <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 16, borderWidth: 2, borderColor: colors.neutral[100] }}>
+                  <Image source={{ uri: qrModalItem.qrCode }} style={{ width: 180, height: 180 }} resizeMode="contain" />
+                </View>
+              ) : null}
+              <Text className="font-inter text-base font-bold text-primary-950 mt-4" style={{ fontFamily: 'Inter' }}>{qrModalItem?.passNumber}</Text>
+              <Text className="font-inter text-sm font-semibold text-neutral-700 mt-1">{qrModalItem?.vehicleRegNumber}</Text>
+              <Text className="font-inter text-xs text-neutral-500 mt-0.5">{qrModalItem?.driverName}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingBottom: 20 }}>
+              <Pressable
+                onPress={async () => {
+                  if (qrModalItem?.passNumber) {
+                    try {
+                      await Share.share({
+                        message: `Vehicle Gate Pass: ${qrModalItem.passNumber}\nVehicle: ${qrModalItem.vehicleRegNumber}\nDriver: ${qrModalItem.driverName}`,
+                        title: `Vehicle Pass - ${qrModalItem.passNumber}`,
+                      });
+                    } catch { /* user cancelled */ }
+                  }
+                }}
+                style={[formStyles.cancelBtn, { height: 48 }]}
+              >
+                <Text className="font-inter text-sm font-bold text-neutral-600">Share</Text>
+              </Pressable>
+              <Pressable onPress={() => setQrModalItem(null)} style={[formStyles.saveBtn, { height: 48 }]}>
+                <Text className="font-inter text-sm font-bold text-white">Done</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -355,6 +497,7 @@ const cardStyles = StyleSheet.create({
   metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   codeBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
+  qrBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.accent[50], justifyContent: 'center', alignItems: 'center' },
   actionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.warning[50], borderWidth: 1, borderColor: colors.warning[200], alignSelf: 'flex-start' },
 });
 

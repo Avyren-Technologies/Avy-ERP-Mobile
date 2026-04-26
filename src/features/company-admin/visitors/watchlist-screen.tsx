@@ -33,13 +33,16 @@ import { useIsDark } from '@/hooks/use-is-dark';
 
 interface WatchlistItem {
   id: string;
-  visitorName: string;
-  visitorPhone: string;
-  visitorEmail: string;
+  personName: string;
+  mobileNumber: string;
+  email: string;
+  idNumber: string;
   reason: string;
-  type: string; // BLOCKED | WATCHLIST
-  addedBy: string;
-  addedAt: string;
+  type: string; // BLOCKLIST | WATCHLIST
+  blockDuration: string; // PERMANENT | UNTIL_DATE
+  expiryDate: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 // ============ ADD ENTRY MODAL ============
@@ -60,11 +63,11 @@ function AddEntryModal({
   const [phone, setPhone] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [reason, setReason] = React.useState('');
-  const [entryType, setEntryType] = React.useState('BLOCKED');
+  const [entryType, setEntryType] = React.useState('BLOCKLIST');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
-    if (visible) { setName(''); setPhone(''); setEmail(''); setReason(''); setEntryType('BLOCKED'); setErrors({}); }
+    if (visible) { setName(''); setPhone(''); setEmail(''); setReason(''); setEntryType('BLOCKLIST'); setErrors({}); }
   }, [visible]);
 
   const validate = () => {
@@ -78,11 +81,14 @@ function AddEntryModal({
   const handleSubmit = () => {
     if (!validate()) return;
     onSubmit({
-      visitorName: name.trim(),
-      visitorPhone: phone.trim() || undefined,
-      visitorEmail: email.trim() || undefined,
+      personName: name.trim(),
+      mobileNumber: phone.trim() || undefined,
+      email: email.trim() || undefined,
       reason: reason.trim(),
       type: entryType,
+      blockDuration: 'PERMANENT',
+      appliesToAllPlants: true,
+      plantIds: [],
     });
   };
 
@@ -99,11 +105,11 @@ function AddEntryModal({
             <View style={formStyles.fieldWrap}>
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Type</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {['BLOCKED', 'WATCHLIST'].map(t => {
+                {['BLOCKLIST', 'WATCHLIST'].map(t => {
                   const selected = t === entryType;
                   return (
-                    <Pressable key={t} onPress={() => setEntryType(t)} style={[formStyles.chip, selected && (t === 'BLOCKED' ? formStyles.chipDanger : formStyles.chipWarning)]}>
-                      <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{t}</Text>
+                    <Pressable key={t} onPress={() => setEntryType(t)} style={[formStyles.chip, selected && (t === 'BLOCKLIST' ? formStyles.chipDanger : formStyles.chipWarning)]}>
+                      <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{t === 'BLOCKLIST' ? 'BLOCKLIST' : 'WATCHLIST'}</Text>
                     </Pressable>
                   );
                 })}
@@ -159,24 +165,24 @@ function WatchlistCard({
   readonly item: WatchlistItem;
   readonly index: number;
 }) {
-  const isBlocked = item.type === 'BLOCKED';
+  const isBlocked = item.type === 'BLOCKLIST';
   return (
     <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
       <View style={[cardStyles.card, { borderLeftColor: isBlocked ? colors.danger[500] : colors.warning[500], borderLeftWidth: 3 }]}>
         <View style={cardStyles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.visitorName}</Text>
-            {item.visitorPhone ? (
-              <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.visitorPhone}</Text>
+            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.personName}</Text>
+            {item.mobileNumber ? (
+              <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.mobileNumber}</Text>
             ) : null}
           </View>
           <View style={[cardStyles.typeBadge, { backgroundColor: isBlocked ? colors.danger[50] : colors.warning[50] }]}>
-            <Text className={`font-inter text-[10px] font-bold ${isBlocked ? 'text-danger-700' : 'text-warning-700'}`}>{item.type}</Text>
+            <Text className={`font-inter text-[10px] font-bold ${isBlocked ? 'text-danger-700' : 'text-warning-700'}`}>{isBlocked ? 'Blocked' : 'Watch'}</Text>
           </View>
         </View>
         <Text className="mt-2 font-inter text-xs text-neutral-600 dark:text-neutral-300">{item.reason}</Text>
-        {item.addedBy ? (
-          <Text className="mt-1 font-inter text-[10px] text-neutral-400">Added by {item.addedBy}</Text>
+        {item.blockDuration === 'UNTIL_DATE' && item.expiryDate ? (
+          <Text className="mt-1 font-inter text-[10px] text-neutral-400">Expires: {item.expiryDate.split('T')[0]}</Text>
         ) : null}
       </View>
     </Animated.View>
@@ -192,7 +198,7 @@ export function WatchlistScreen() {
   const { toggle } = useSidebar();
 
   const [search, setSearch] = React.useState('');
-  const [activeTab, setActiveTab] = React.useState<'' | 'BLOCKED' | 'WATCHLIST'>('');
+  const [activeTab, setActiveTab] = React.useState<'' | 'BLOCKLIST' | 'WATCHLIST'>('');
   const [showAddModal, setShowAddModal] = React.useState(false);
 
   const queryParams = React.useMemo(() => {
@@ -210,13 +216,16 @@ export function WatchlistScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((w: any) => ({
       id: w.id ?? '',
-      visitorName: w.visitorName ?? w.name ?? '',
-      visitorPhone: w.visitorPhone ?? w.phone ?? '',
-      visitorEmail: w.visitorEmail ?? w.email ?? '',
+      personName: w.personName ?? '',
+      mobileNumber: w.mobileNumber ?? '',
+      email: w.email ?? '',
+      idNumber: w.idNumber ?? '',
       reason: w.reason ?? '',
-      type: w.type ?? 'BLOCKED',
-      addedBy: w.addedBy?.name ?? w.addedByName ?? '',
-      addedAt: w.addedAt ?? w.createdAt ?? '',
+      type: w.type ?? 'BLOCKLIST',
+      blockDuration: w.blockDuration ?? 'PERMANENT',
+      expiryDate: w.expiryDate ?? '',
+      createdBy: w.createdBy ?? '',
+      createdAt: w.createdAt ?? '',
     }));
   }, [response]);
 
@@ -239,7 +248,7 @@ export function WatchlistScreen() {
       <View style={s.tabRow}>
         {[
           { key: '' as const, label: 'All' },
-          { key: 'BLOCKED' as const, label: 'Blocked' },
+          { key: 'BLOCKLIST' as const, label: 'Blocked' },
           { key: 'WATCHLIST' as const, label: 'Watch' },
         ].map(tab => (
           <Pressable key={tab.key} onPress={() => setActiveTab(tab.key)} style={[s.tab, activeTab === tab.key && s.tabActive]}>

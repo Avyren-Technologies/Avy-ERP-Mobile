@@ -111,7 +111,8 @@ export function EmergencyMusterScreen() {
   const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
   const fmt = useCompanyFormatter();
 
-  const [emergencyReason, setEmergencyReason] = React.useState('');
+  const [emergencyPlantId, setEmergencyPlantId] = React.useState('');
+  const [isDrill, setIsDrill] = React.useState(false);
   const [hasActiveEmergency, setHasActiveEmergency] = React.useState(false);
 
   const { data: response, isLoading, error, refetch, isFetching } = useMusterList();
@@ -123,17 +124,17 @@ export function EmergencyMusterScreen() {
     const raw = (response as any)?.data ?? response;
     if (!raw) return [];
 
-    const list = raw.persons ?? raw.list ?? raw.visitors ?? [];
+    const list = Array.isArray(raw) ? raw : [];
     if (!Array.isArray(list)) return [];
 
     return list.map((p: any) => ({
       id: p.id ?? '',
-      name: p.name ?? p.visitorName ?? '',
-      company: p.company ?? p.visitorCompany ?? '',
-      type: p.type ?? 'visitor',
+      name: p.visitorName ?? '',
+      company: p.visitorCompany ?? '',
+      type: 'visitor',
       checkInTime: p.checkInTime ?? '',
-      isSafe: !!p.isSafe,
-      gate: p.gate?.name ?? p.gateName ?? '',
+      isSafe: false,
+      gate: p.checkInGate ?? '',
     }));
   }, [response]);
 
@@ -149,6 +150,7 @@ export function EmergencyMusterScreen() {
   const unsafeCount = musterList.length - safeCount;
 
   const handleTriggerEmergency = () => {
+    if (!emergencyPlantId.trim()) return;
     showConfirm({
       title: 'Trigger Emergency',
       message: 'This will activate emergency mode and generate a muster list of all on-site visitors. Are you sure?',
@@ -156,12 +158,13 @@ export function EmergencyMusterScreen() {
       variant: 'danger',
       onConfirm: () => {
         triggerMutation.mutate(
-          { reason: emergencyReason.trim() || 'Emergency evacuation' },
+          { plantId: emergencyPlantId.trim(), isDrill },
           {
             onSuccess: () => {
               showSuccess('Emergency triggered - muster list generated');
               setHasActiveEmergency(true);
-              setEmergencyReason('');
+              setEmergencyPlantId('');
+              setIsDrill(false);
             },
           },
         );
@@ -169,9 +172,9 @@ export function EmergencyMusterScreen() {
     });
   };
 
-  const handleMarkSafe = (personId: string) => {
+  const handleMarkSafe = (visitId: string) => {
     markSafeMutation.mutate(
-      { personId },
+      { visitIds: [visitId] },
       { onSuccess: () => showSuccess('Marked as safe') },
     );
   };
@@ -183,7 +186,7 @@ export function EmergencyMusterScreen() {
       confirmText: 'Resolve',
       variant: 'warning',
       onConfirm: () => {
-        resolveMutation.mutate(undefined, {
+        resolveMutation.mutate({ plantId: emergencyPlantId.trim() || 'default' }, {
           onSuccess: () => {
             showSuccess('Emergency resolved');
             setHasActiveEmergency(false);
@@ -224,10 +227,10 @@ export function EmergencyMusterScreen() {
               <View style={[s.inputWrap, { marginTop: 20 }]}>
                 <TextInput
                   style={[s.textInput, isDark && { color: colors.white }]}
-                  placeholder="Reason (optional)"
+                  placeholder="Plant ID (required)"
                   placeholderTextColor={colors.neutral[400]}
-                  value={emergencyReason}
-                  onChangeText={setEmergencyReason}
+                  value={emergencyPlantId}
+                  onChangeText={setEmergencyPlantId}
                 />
               </View>
 

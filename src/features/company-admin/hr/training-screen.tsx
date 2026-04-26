@@ -222,6 +222,21 @@ const NOM_STATUS_COLORS: Record<NominationStatus, { bg: string; text: string; do
     Cancelled: { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] },
 };
 
+function toSafeText(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (!value || typeof value !== 'object') return '';
+
+    const candidate = value as Record<string, unknown>;
+    const commonLabel = [candidate.name, candidate.title, candidate.label, candidate.code]
+        .find(part => typeof part === 'string' && part.trim().length > 0);
+    if (typeof commonLabel === 'string') return commonLabel;
+
+    const firstName = typeof candidate.firstName === 'string' ? candidate.firstName.trim() : '';
+    const lastName = typeof candidate.lastName === 'string' ? candidate.lastName.trim() : '';
+    return `${firstName} ${lastName}`.trim();
+}
+
 // ============ SHARED ATOMS ============
 
 function TypeBadge({ label, colorMap }: { label: string; colorMap: Record<string, { bg: string; text: string }> }) {
@@ -871,7 +886,12 @@ function AttendanceModal({
     const attendees: AttendeeItem[] = React.useMemo(() => {
         const raw = (attendanceResp as any)?.data ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((a: any) => ({ id: a.id, employeeId: a.employeeId, employeeName: a.employeeName ?? a.employee?.firstName ?? '', status: a.status ?? 'REGISTERED' }));
+        return raw.map((a: any) => ({
+            id: a.id,
+            employeeId: a.employeeId,
+            employeeName: toSafeText(a.employeeName ?? a.employee),
+            status: a.status ?? 'REGISTERED',
+        }));
     }, [attendanceResp]);
 
     const [selectedEmpIds, setSelectedEmpIds] = React.useState<string[]>([]);
@@ -1417,10 +1437,10 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const raw = (catResponse as any)?.data ?? catResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', name: item.name ?? '', type: item.type ?? 'Other',
+            id: item.id ?? '', name: toSafeText(item.name), type: item.type ?? 'Other',
             mode: item.mode ?? 'Online', durationHours: item.durationHours ?? 0,
-            mandatory: item.mandatory ?? false, certificationName: item.certificationName ?? '',
-            cost: item.cost ?? 0, description: item.description ?? '',
+            mandatory: item.mandatory ?? false, certificationName: toSafeText(item.certificationName),
+            cost: item.cost ?? 0, description: toSafeText(item.description),
         }));
     }, [catResponse]);
 
@@ -1428,8 +1448,11 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const raw = (nomResponse as any)?.data ?? nomResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', employeeId: item.employeeId ?? '', employeeName: item.employeeName ?? '',
-            trainingId: item.trainingId ?? '', trainingName: item.trainingName ?? '',
+            id: item.id ?? '',
+            employeeId: item.employeeId ?? '',
+            employeeName: toSafeText(item.employeeName ?? item.employee),
+            trainingId: item.trainingId ?? '',
+            trainingName: toSafeText(item.trainingName ?? item.training),
             status: item.status ?? 'Nominated', completionDate: item.completionDate ?? '',
             score: item.score ?? 0, certificate: item.certificate ?? false, nominatedAt: item.nominatedAt ?? '',
         }));
@@ -1439,11 +1462,17 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const raw = (sessResponse as any)?.data ?? sessResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', batchName: item.batchName ?? '', trainingId: item.trainingId ?? '',
-            trainingName: item.trainingName ?? item.training?.name ?? '', startDateTime: item.startDateTime ?? '',
-            endDateTime: item.endDateTime ?? '', venue: item.venue ?? '', meetingLink: item.meetingLink ?? '',
+            id: item.id ?? '',
+            batchName: toSafeText(item.batchName),
+            trainingId: item.trainingId ?? '',
+            trainingName: toSafeText(item.trainingName ?? item.training),
+            startDateTime: toSafeText(item.startDateTime),
+            endDateTime: toSafeText(item.endDateTime),
+            venue: toSafeText(item.venue),
+            meetingLink: toSafeText(item.meetingLink),
             maxParticipants: item.maxParticipants ?? 0, trainerId: item.trainerId ?? '',
-            trainerName: item.trainerName ?? item.trainer?.name ?? '', status: item.status ?? 'SCHEDULED',
+            trainerName: toSafeText(item.trainerName ?? item.trainer),
+            status: item.status ?? 'SCHEDULED',
             attendeeCount: item.attendeeCount ?? item._count?.attendance ?? 0,
         }));
     }, [sessResponse]);
@@ -1452,11 +1481,14 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const raw = (trainersResponse as any)?.data ?? trainersResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', name: item.name ?? '', email: item.email ?? '', phone: item.phone ?? '',
+            id: item.id ?? '',
+            name: toSafeText(item.name),
+            email: toSafeText(item.email),
+            phone: toSafeText(item.phone),
             type: item.type ?? 'EXTERNAL', employeeId: item.employeeId ?? '',
-            employeeName: item.employeeName ?? item.employee?.firstName ? `${item.employee?.firstName ?? ''} ${item.employee?.lastName ?? ''}`.trim() : '',
-            specializations: Array.isArray(item.specializations) ? item.specializations : [],
-            qualifications: item.qualifications ?? '', experienceYears: item.experienceYears ?? 0,
+            employeeName: toSafeText(item.employeeName ?? item.employee),
+            specializations: Array.isArray(item.specializations) ? item.specializations.map((entry: unknown) => toSafeText(entry)).filter(Boolean) : [],
+            qualifications: toSafeText(item.qualifications), experienceYears: item.experienceYears ?? 0,
             rating: item.rating ?? 0, sessionCount: item.sessionCount ?? item._count?.sessions ?? 0,
         }));
     }, [trainersResponse]);
@@ -1465,19 +1497,23 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
         const raw = (programsResponse as any)?.data ?? programsResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', name: item.name ?? '', description: item.description ?? '',
+            id: item.id ?? '',
+            name: toSafeText(item.name),
+            description: toSafeText(item.description),
             category: item.category ?? 'SKILL_DEVELOPMENT', level: item.level ?? 'Beginner',
             totalDuration: item.totalDuration ?? 0, isCompulsory: item.isCompulsory ?? false,
             isActive: item.isActive ?? true,
             courseCount: item.courseCount ?? item._count?.courses ?? item.courses?.length ?? 0,
             enrollmentCount: item.enrollmentCount ?? item._count?.enrollments ?? item.enrollments?.length ?? 0,
             courses: (item.courses ?? []).map((c: any) => ({
-                id: c.id ?? '', trainingId: c.trainingId ?? '', trainingName: c.trainingName ?? c.training?.name ?? '',
+                id: c.id ?? '',
+                trainingId: c.trainingId ?? '',
+                trainingName: toSafeText(c.trainingName ?? c.training),
                 sequence: c.sequence ?? 0, isPrerequisite: c.isPrerequisite ?? false,
             })),
             enrollments: (item.enrollments ?? []).map((e: any) => ({
                 id: e.id ?? '', employeeId: e.employeeId ?? '',
-                employeeName: e.employeeName ?? (e.employee ? `${e.employee.firstName ?? ''} ${e.employee.lastName ?? ''}`.trim() : ''),
+                employeeName: toSafeText(e.employeeName ?? e.employee),
                 status: e.status ?? 'ENROLLED', progress: e.progress ?? 0,
             })),
         }));
@@ -1486,7 +1522,7 @@ export function TrainingScreen({ initialTab = 'catalogue' as Tab }: { initialTab
     const employeeOptions = React.useMemo(() => {
         const raw = (empResponse as any)?.data ?? empResponse ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.name || '' }));
+        return raw.map((item: any) => ({ id: item.id ?? '', label: toSafeText(item) || toSafeText(item.name) }));
     }, [empResponse]);
 
     const trainingOptions = React.useMemo(() => catalogue.map(c => ({ id: c.id, label: c.name })), [catalogue]);

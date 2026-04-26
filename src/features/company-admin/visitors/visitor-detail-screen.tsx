@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -108,15 +109,15 @@ function ExtendModal({
 }: {
   readonly visible: boolean;
   readonly onClose: () => void;
-  readonly onSubmit: (data: { extendedUntil: string; reason: string }) => void;
+  readonly onSubmit: (data: { additionalMinutes: number; reason: string }) => void;
   readonly isPending: boolean;
 }) {
   const isDark = useIsDark();
-  const [extendedUntil, setExtendedUntil] = React.useState('');
+  const [additionalMinutes, setAdditionalMinutes] = React.useState('60');
   const [reason, setReason] = React.useState('');
 
   React.useEffect(() => {
-    if (visible) { setExtendedUntil(''); setReason(''); }
+    if (visible) { setAdditionalMinutes('60'); setReason(''); }
   }, [visible]);
 
   return (
@@ -129,21 +130,24 @@ function ExtendModal({
 
           <View style={detailStyles.fieldWrap}>
             <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
-              Extend Until <Text className="text-danger-500">*</Text>
+              Additional Minutes <Text className="text-danger-500">*</Text>
             </Text>
             <View style={detailStyles.inputWrap}>
               <TextInput
                 style={[detailStyles.textInput, isDark && { color: colors.white }]}
-                placeholder="YYYY-MM-DDTHH:MM"
+                placeholder="e.g. 60"
                 placeholderTextColor={colors.neutral[400]}
-                value={extendedUntil}
-                onChangeText={setExtendedUntil}
+                value={additionalMinutes}
+                onChangeText={setAdditionalMinutes}
+                keyboardType="numeric"
               />
             </View>
           </View>
 
           <View style={detailStyles.fieldWrap}>
-            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Reason</Text>
+            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+              Reason <Text className="text-danger-500">*</Text>
+            </Text>
             <View style={[detailStyles.inputWrap, { height: 80 }]}>
               <TextInput
                 style={[detailStyles.textInput, isDark && { color: colors.white }, { textAlignVertical: 'top' }]}
@@ -157,9 +161,9 @@ function ExtendModal({
           </View>
 
           <Pressable
-            onPress={() => onSubmit({ extendedUntil, reason })}
-            disabled={isPending || !extendedUntil.trim()}
-            style={[detailStyles.saveBtn, (isPending || !extendedUntil.trim()) && { opacity: 0.5 }]}
+            onPress={() => onSubmit({ additionalMinutes: Number(additionalMinutes), reason })}
+            disabled={isPending || !additionalMinutes.trim() || !reason.trim()}
+            style={[detailStyles.saveBtn, (isPending || !additionalMinutes.trim() || !reason.trim()) && { opacity: 0.5 }]}
           >
             <Text className="font-inter text-sm font-bold text-white">{isPending ? 'Extending...' : 'EXTEND'}</Text>
           </Pressable>
@@ -197,21 +201,28 @@ export function VisitorDetailScreen() {
     if (!raw) return null;
     return {
       id: raw.id ?? '',
-      visitorName: raw.visitorName ?? raw.visitor?.name ?? '',
-      visitorCompany: raw.visitorCompany ?? raw.visitor?.company ?? '',
-      visitorPhone: raw.visitorPhone ?? raw.visitor?.phone ?? '',
-      visitorEmail: raw.visitorEmail ?? raw.visitor?.email ?? '',
-      visitorType: raw.visitorType?.name ?? raw.typeName ?? '',
-      hostName: raw.hostName ?? raw.host?.name ?? '',
+      visitorName: raw.visitorName ?? '',
+      visitorCompany: raw.visitorCompany ?? '',
+      visitorPhone: raw.visitorMobile ?? '',
+      visitorEmail: raw.visitorEmail ?? '',
+      visitorPhoto: raw.visitorPhoto ?? null,
+      visitorDesignation: raw.visitorDesignation ?? '',
+      visitorType: raw.visitorType?.name ?? '',
+      hostName: raw.hostEmployeeName ?? raw.hostEmployeeId ?? '',
       purpose: raw.purpose ?? '',
       status: raw.status ?? '',
-      visitCode: raw.visitCode ?? raw.code ?? '',
+      approvalStatus: raw.approvalStatus ?? '',
+      visitCode: raw.visitCode ?? '',
       checkInTime: raw.checkInTime ?? null,
       checkOutTime: raw.checkOutTime ?? null,
-      expectedArrival: raw.expectedArrival ?? null,
-      gate: raw.gate?.name ?? raw.gateName ?? '',
-      vehiclePlate: raw.vehiclePlate ?? '',
-      notes: raw.notes ?? '',
+      expectedArrival: raw.expectedDate ?? null,
+      gate: raw.assignedGate?.name ?? raw.checkInGate?.name ?? '',
+      vehiclePlate: raw.vehicleRegNumber ?? '',
+      notes: raw.specialInstructions ?? raw.purposeNotes ?? '',
+      gateId: raw.gateId ?? '',
+      badgeNumber: raw.badgeNumber ?? '',
+      badgeFormat: raw.badgeFormat ?? '',
+      safetyInductionStatus: raw.safetyInductionStatus ?? 'NOT_REQUIRED',
       timeline: Array.isArray(raw.timeline) ? raw.timeline.map((e: any) => ({
         id: e.id ?? `${e.action}-${e.timestamp}`,
         action: e.action ?? e.event ?? '',
@@ -224,7 +235,17 @@ export function VisitorDetailScreen() {
 
   const handleCheckIn = () => {
     if (!visit) return;
-    checkInMutation.mutate({ id: visit.id }, { onSuccess: () => showSuccess('Visitor checked in') });
+    const data: Record<string, unknown> = {};
+    if (visit.gateId) data.checkInGateId = visit.gateId;
+    checkInMutation.mutate(
+      { id: visit.id, data: Object.keys(data).length > 0 ? data : undefined },
+      {
+        onSuccess: (result: any) => {
+          const badgeNo = result?.data?.badgeNumber;
+          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in');
+        },
+      },
+    );
   };
 
   const handleCheckOut = () => {
@@ -235,7 +256,7 @@ export function VisitorDetailScreen() {
       confirmText: 'Check Out',
       variant: 'warning',
       onConfirm: () => {
-        checkOutMutation.mutate({ id: visit.id }, { onSuccess: () => showSuccess('Visitor checked out') });
+        checkOutMutation.mutate({ id: visit.id, data: { checkOutMethod: 'SECURITY_DESK' } }, { onSuccess: () => showSuccess('Visitor checked out') });
       },
     });
   };
@@ -271,19 +292,19 @@ export function VisitorDetailScreen() {
     });
   };
 
-  const handleExtendSubmit = (data: { extendedUntil: string; reason: string }) => {
+  const handleExtendSubmit = (data: { additionalMinutes: number; reason: string }) => {
     if (!visit) return;
     extendMutation.mutate(
-      { id: visit.id, data: { extendedUntil: data.extendedUntil, reason: data.reason } },
+      { id: visit.id, data: { additionalMinutes: data.additionalMinutes, reason: data.reason } },
       { onSuccess: () => { showSuccess('Visit extended'); setShowExtendModal(false); } },
     );
   };
 
-  const canCheckIn = visit?.status === 'PRE_REGISTERED' || visit?.status === 'APPROVED';
+  const canCheckIn = (visit?.status === 'EXPECTED' || visit?.status === 'ARRIVED') && visit?.approvalStatus !== 'PENDING' && visit?.approvalStatus !== 'REJECTED';
   const canCheckOut = visit?.status === 'CHECKED_IN';
-  const canApprove = visit?.status === 'PRE_REGISTERED';
+  const canApprove = visit?.approvalStatus === 'PENDING';
   const canExtend = visit?.status === 'CHECKED_IN';
-  const canCancel = visit?.status === 'PRE_REGISTERED' || visit?.status === 'APPROVED';
+  const canCancel = visit?.status === 'EXPECTED' || visit?.status === 'ARRIVED';
 
   return (
     <View style={s.container}>
@@ -340,6 +361,16 @@ export function VisitorDetailScreen() {
           <Animated.View entering={FadeInDown.duration(400).delay(100)} style={s.sectionWrap}>
             <View style={s.detailCard}>
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">Visitor Information</Text>
+              {visit.visitorPhoto ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
+                  <Image source={{ uri: visit.visitorPhoto }} style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.primary[200] }} />
+                  <View style={{ flex: 1 }}>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{visit.visitorName}</Text>
+                    {visit.visitorCompany ? <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{visit.visitorCompany}</Text> : null}
+                    {visit.visitorDesignation ? <Text className="font-inter text-[10px] text-neutral-400">{visit.visitorDesignation}</Text> : null}
+                  </View>
+                </View>
+              ) : null}
               <InfoRow label="Phone" value={visit.visitorPhone} />
               <InfoRow label="Email" value={visit.visitorEmail} />
               <InfoRow label="Type" value={visit.visitorType} />
@@ -357,6 +388,8 @@ export function VisitorDetailScreen() {
               <InfoRow label="Expected" value={visit.expectedArrival ? fmt.dateTime(visit.expectedArrival) : ''} />
               <InfoRow label="Check In" value={visit.checkInTime ? fmt.dateTime(visit.checkInTime) : ''} />
               <InfoRow label="Check Out" value={visit.checkOutTime ? fmt.dateTime(visit.checkOutTime) : ''} />
+              <InfoRow label="Badge No." value={visit.badgeNumber} />
+              <InfoRow label="Badge Type" value={visit.badgeFormat} />
               {visit.notes ? <InfoRow label="Notes" value={visit.notes} /> : null}
             </View>
           </Animated.View>

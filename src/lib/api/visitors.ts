@@ -51,6 +51,12 @@ export const visitorsApi = {
   updateVisitorType: (id: string, data: Record<string, unknown>) =>
     client.put(`/visitors/types/${id}`, data),
 
+  deactivateVisitorType: (id: string) =>
+    client.patch(`/visitors/types/${id}/deactivate`),
+
+  activateVisitorType: (id: string) =>
+    client.patch(`/visitors/types/${id}/activate`),
+
   deleteVisitorType: (id: string) =>
     client.delete(`/visitors/types/${id}`),
 
@@ -94,11 +100,11 @@ export const visitorsApi = {
   createRecurringPass: (data: Record<string, unknown>) =>
     client.post('/visitors/recurring-passes', data),
 
-  revokeRecurringPass: (id: string) =>
-    client.post(`/visitors/recurring-passes/${id}/revoke`),
+  revokeRecurringPass: (id: string, data: { reason: string }) =>
+    client.post(`/visitors/recurring-passes/${id}/revoke`, data),
 
-  checkInRecurringPass: (id: string) =>
-    client.post(`/visitors/recurring-passes/${id}/check-in`),
+  checkInRecurringPass: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/recurring-passes/${id}/check-in`, data),
 
   // ── Vehicle / Material Passes ───────────────────────────────────────
   listVehiclePasses: (params?: Record<string, unknown>) =>
@@ -126,11 +132,11 @@ export const visitorsApi = {
   createGroupVisit: (data: Record<string, unknown>) =>
     client.post('/visitors/group-visits', data),
 
-  batchCheckIn: (id: string) =>
-    client.post(`/visitors/group-visits/${id}/batch-check-in`),
+  batchCheckIn: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/group-visits/${id}/batch-check-in`, data),
 
-  batchCheckOut: (id: string) =>
-    client.post(`/visitors/group-visits/${id}/batch-check-out`),
+  batchCheckOut: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/group-visits/${id}/batch-check-out`, data),
 
   // ── Denied Entries ──────────────────────────────────────────────────
   listDeniedEntries: (params?: Record<string, unknown>) =>
@@ -176,8 +182,8 @@ export const visitorsApi = {
   markSafe: (data: Record<string, unknown>) =>
     client.post('/visitors/emergency/mark-safe', data),
 
-  resolveEmergency: () =>
-    client.post('/visitors/emergency/resolve'),
+  resolveEmergency: (data?: Record<string, unknown>) =>
+    client.post('/visitors/emergency/resolve', data),
 
   // ── Config ──────────────────────────────────────────────────────────
   getVMSConfig: () =>

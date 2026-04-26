@@ -140,14 +140,14 @@ export function QuickCheckOutScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((v: any) => ({
       id: v.id ?? '',
-      visitorName: v.visitorName ?? v.visitor?.name ?? '',
-      visitorCompany: v.visitorCompany ?? v.visitor?.company ?? '',
-      visitorType: v.visitorType?.name ?? v.typeName ?? '',
-      hostName: v.hostName ?? v.host?.name ?? '',
+      visitorName: v.visitorName ?? '',
+      visitorCompany: v.visitorCompany ?? '',
+      visitorType: v.visitorType?.name ?? '',
+      hostName: v.hostEmployeeId ?? '',
       checkInTime: v.checkInTime ?? '',
-      visitCode: v.visitCode ?? v.code ?? '',
-      badgeNumber: v.badgeNumber ?? v.badge?.number ?? '',
-      gate: v.gate?.name ?? v.gateName ?? '',
+      visitCode: v.visitCode ?? '',
+      badgeNumber: v.badgeNumber ?? '',
+      gate: v.checkInGate?.name ?? '',
     }));
   }, [response]);
 

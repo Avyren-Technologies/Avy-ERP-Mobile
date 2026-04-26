@@ -21,6 +21,7 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -30,10 +31,12 @@ import { showSuccess } from '@/components/ui/utils';
 
 import {
   useCreateVisitorType,
+  useDeactivateVisitorType,
+  useActivateVisitorType,
   useDeleteVisitorType,
   useUpdateVisitorType,
 } from '@/features/company-admin/api/use-visitor-mutations';
-import { useVisitorTypes } from '@/features/company-admin/api/use-visitor-queries';
+import { useVisitorTypes, useSafetyInductions } from '@/features/company-admin/api/use-visitor-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -42,12 +45,17 @@ interface VisitorTypeItem {
   id: string;
   name: string;
   code: string;
-  badgeColor: string;
-  requiresApproval: boolean;
-  requiresIdProof: boolean;
-  requiresPhoto: boolean;
-  maxDurationMinutes: number;
+  badgeColour: string;
+  requirePhoto: boolean;
+  requireIdVerification: boolean;
+  requireHostApproval: boolean;
+  requireSafetyInduction: boolean;
+  requireNda: boolean;
+  requireEscort: boolean;
+  defaultMaxDurationMinutes: number;
+  safetyInductionId: string | null;
   isActive: boolean;
+  isDefault: boolean;
 }
 
 // ============ FORM MODAL ============
@@ -69,13 +77,23 @@ function VisitorTypeFormModal({
   const insets = useSafeAreaInsets();
   const [name, setName] = React.useState('');
   const [code, setCode] = React.useState('');
-  const [badgeColor, setBadgeColor] = React.useState('#6366F1');
-  const [requiresApproval, setRequiresApproval] = React.useState(false);
-  const [requiresIdProof, setRequiresIdProof] = React.useState(false);
-  const [requiresPhoto, setRequiresPhoto] = React.useState(false);
+  const [badgeColour, setBadgeColour] = React.useState('#3B82F6');
+  const [requirePhoto, setRequirePhoto] = React.useState(true);
+  const [requireIdVerification, setRequireIdVerification] = React.useState(true);
+  const [requireHostApproval, setRequireHostApproval] = React.useState(true);
+  const [requireSafetyInduction, setRequireSafetyInduction] = React.useState(false);
+  const [requireNda, setRequireNda] = React.useState(false);
+  const [requireEscort, setRequireEscort] = React.useState(false);
+  const [safetyInductionId, setSafetyInductionId] = React.useState('');
   const [maxDuration, setMaxDuration] = React.useState('480');
-  const [isActive, setIsActive] = React.useState(true);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const { data: inductionsResponse } = useSafetyInductions();
+  const safetyInductions = React.useMemo(() => {
+    const raw = (inductionsResponse as any)?.data ?? inductionsResponse ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((si: any) => si.isActive !== false).map((si: any) => ({ id: si.id, name: si.name }));
+  }, [inductionsResponse]);
 
   React.useEffect(() => {
     if (visible) {
@@ -83,16 +101,21 @@ function VisitorTypeFormModal({
       if (initialData) {
         setName(initialData.name);
         setCode(initialData.code);
-        setBadgeColor(initialData.badgeColor || '#6366F1');
-        setRequiresApproval(initialData.requiresApproval);
-        setRequiresIdProof(initialData.requiresIdProof);
-        setRequiresPhoto(initialData.requiresPhoto);
-        setMaxDuration(String(initialData.maxDurationMinutes || 480));
-        setIsActive(initialData.isActive);
+        setBadgeColour(initialData.badgeColour || '#3B82F6');
+        setRequirePhoto(initialData.requirePhoto);
+        setRequireIdVerification(initialData.requireIdVerification);
+        setRequireHostApproval(initialData.requireHostApproval);
+        setRequireSafetyInduction(initialData.requireSafetyInduction);
+        setRequireNda(initialData.requireNda);
+        setRequireEscort(initialData.requireEscort);
+        setSafetyInductionId(initialData.safetyInductionId ?? '');
+        setMaxDuration(String(initialData.defaultMaxDurationMinutes || 480));
       } else {
-        setName(''); setCode(''); setBadgeColor('#6366F1');
-        setRequiresApproval(false); setRequiresIdProof(false); setRequiresPhoto(false);
-        setMaxDuration('480'); setIsActive(true);
+        setName(''); setCode(''); setBadgeColour('#3B82F6');
+        setRequirePhoto(true); setRequireIdVerification(true); setRequireHostApproval(true);
+        setRequireSafetyInduction(false); setRequireNda(false); setRequireEscort(false);
+        setSafetyInductionId('');
+        setMaxDuration('480');
       }
     }
   }, [visible, initialData]);
@@ -110,16 +133,19 @@ function VisitorTypeFormModal({
     onSave({
       name: name.trim(),
       code: code.trim().toUpperCase(),
-      badgeColor,
-      requiresApproval,
-      requiresIdProof,
-      requiresPhoto,
-      maxDurationMinutes: Number.parseInt(maxDuration, 10) || 480,
-      isActive,
+      badgeColour,
+      requirePhoto,
+      requireIdVerification,
+      requireHostApproval,
+      requireSafetyInduction,
+      requireNda,
+      requireEscort,
+      defaultMaxDurationMinutes: Number.parseInt(maxDuration, 10) || 480,
+      safetyInductionId: requireSafetyInduction && safetyInductionId ? safetyInductionId : null,
     });
   };
 
-  const BADGE_COLORS = ['#6366F1', '#10B981', '#F59E0B', '#F43F5E', '#0EA5E9', '#8B5CF6', '#EC4899'];
+  const BADGE_COLORS = ['#3B82F6', '#22C55E', '#F97316', '#EF4444', '#A855F7', '#F59E0B', '#6B7280'];
 
   return (
     <Modal visible={visible} transparent={false} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -168,8 +194,8 @@ function VisitorTypeFormModal({
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Badge Color</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 {BADGE_COLORS.map(c => (
-                  <Pressable key={c} onPress={() => setBadgeColor(c)} style={[formStyles.colorDot, { backgroundColor: c }, badgeColor === c && formStyles.colorDotSelected]}>
-                    {badgeColor === c && (
+                  <Pressable key={c} onPress={() => setBadgeColour(c)} style={[formStyles.colorDot, { backgroundColor: c }, badgeColour === c && formStyles.colorDotSelected]}>
+                    {badgeColour === c && (
                       <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     )}
                   </Pressable>
@@ -189,10 +215,12 @@ function VisitorTypeFormModal({
             <View style={formStyles.fieldWrap}>
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Requirements</Text>
               {[
-                { label: 'Requires Approval', value: requiresApproval, setter: setRequiresApproval },
-                { label: 'Requires ID Proof', value: requiresIdProof, setter: setRequiresIdProof },
-                { label: 'Requires Photo', value: requiresPhoto, setter: setRequiresPhoto },
-                { label: 'Active', value: isActive, setter: setIsActive },
+                { label: 'Require Photo', value: requirePhoto, setter: setRequirePhoto },
+                { label: 'Require ID Verification', value: requireIdVerification, setter: setRequireIdVerification },
+                { label: 'Require Host Approval', value: requireHostApproval, setter: setRequireHostApproval },
+                { label: 'Require Safety Induction', value: requireSafetyInduction, setter: (v: boolean) => { setRequireSafetyInduction(v); if (!v) setSafetyInductionId(''); } },
+                { label: 'Require NDA Signing', value: requireNda, setter: setRequireNda },
+                { label: 'Require Escort', value: requireEscort, setter: setRequireEscort },
               ].map(toggle => (
                 <Pressable key={toggle.label} onPress={() => toggle.setter(!toggle.value)} style={formStyles.toggleRow}>
                   <Text className="font-inter text-sm text-primary-950 dark:text-white">{toggle.label}</Text>
@@ -202,6 +230,19 @@ function VisitorTypeFormModal({
                 </Pressable>
               ))}
             </View>
+
+            {/* Safety Induction Selector */}
+            {requireSafetyInduction && safetyInductions.length > 0 && (
+              <View style={formStyles.fieldWrap}>
+                <DropdownField
+                  label="Safety Induction"
+                  options={[{ id: '', name: 'Auto (first active induction)' }, ...safetyInductions]}
+                  selected={safetyInductionId}
+                  onSelect={setSafetyInductionId}
+                  placeholder="Select a safety induction..."
+                />
+              </View>
+            )}
 
             {/* Actions */}
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
@@ -225,20 +266,24 @@ function VisitorTypeCard({
   item,
   index,
   onEdit,
+  onDeactivate,
+  onActivate,
   onDelete,
 }: {
   readonly item: VisitorTypeItem;
   readonly index: number;
   readonly onEdit: () => void;
+  readonly onDeactivate?: () => void;
+  readonly onActivate?: () => void;
   readonly onDelete: () => void;
 }) {
   return (
     <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
-      <Pressable onPress={onEdit} style={({ pressed }) => [cardStyles.card, pressed && cardStyles.cardPressed]}>
+      <Pressable onPress={onEdit} style={({ pressed }) => [cardStyles.card, pressed && cardStyles.cardPressed, !item.isActive && { opacity: 0.6 }]}>
         <View style={cardStyles.cardHeader}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[cardStyles.colorIndicator, { backgroundColor: item.badgeColor || colors.primary[500] }]} />
+              <View style={[cardStyles.colorIndicator, { backgroundColor: item.badgeColour || colors.primary[500] }]} />
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
               <View style={cardStyles.codeBadge}>
                 <Text className="font-inter text-[10px] font-bold text-primary-600">{item.code}</Text>
@@ -252,6 +297,20 @@ function VisitorTypeCard({
                 {item.isActive ? 'Active' : 'Inactive'}
               </Text>
             </View>
+            {onDeactivate && (
+              <Pressable onPress={onDeactivate} hitSlop={8}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M18.36 19.78L5.64 4.22M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z" stroke={colors.warning[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Pressable>
+            )}
+            {onActivate && (
+              <Pressable onPress={onActivate} hitSlop={8}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M12 2v10l4 4M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z" stroke={colors.success[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Pressable>
+            )}
             <Pressable onPress={onDelete} hitSlop={8}>
               <Svg width={18} height={18} viewBox="0 0 24 24">
                 <Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -261,23 +320,38 @@ function VisitorTypeCard({
         </View>
 
         <View style={cardStyles.cardMeta}>
-          {item.requiresApproval && (
-            <View style={cardStyles.metaChip}>
-              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Approval Required</Text>
-            </View>
-          )}
-          {item.requiresIdProof && (
-            <View style={cardStyles.metaChip}>
-              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">ID Proof</Text>
-            </View>
-          )}
-          {item.requiresPhoto && (
+          {item.requirePhoto && (
             <View style={cardStyles.metaChip}>
               <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Photo</Text>
             </View>
           )}
+          {item.requireIdVerification && (
+            <View style={cardStyles.metaChip}>
+              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">ID Check</Text>
+            </View>
+          )}
+          {item.requireHostApproval && (
+            <View style={cardStyles.metaChip}>
+              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Approval</Text>
+            </View>
+          )}
+          {item.requireSafetyInduction && (
+            <View style={cardStyles.metaChip}>
+              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Induction</Text>
+            </View>
+          )}
+          {item.requireNda && (
+            <View style={cardStyles.metaChip}>
+              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">NDA</Text>
+            </View>
+          )}
+          {item.requireEscort && (
+            <View style={cardStyles.metaChip}>
+              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Escort</Text>
+            </View>
+          )}
           <View style={cardStyles.metaChip}>
-            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Max: {item.maxDurationMinutes}min</Text>
+            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Max: {item.defaultMaxDurationMinutes}min</Text>
           </View>
         </View>
       </Pressable>
@@ -301,6 +375,8 @@ export function VisitorTypeScreen() {
   const { data: response, isLoading, error, refetch, isFetching } = useVisitorTypes();
   const createMutation = useCreateVisitorType();
   const updateMutation = useUpdateVisitorType();
+  const deactivateMutation = useDeactivateVisitorType();
+  const activateMutation = useActivateVisitorType();
   const deleteMutation = useDeleteVisitorType();
 
   const items: VisitorTypeItem[] = React.useMemo(() => {
@@ -310,12 +386,17 @@ export function VisitorTypeScreen() {
       id: t.id ?? '',
       name: t.name ?? '',
       code: t.code ?? '',
-      badgeColor: t.badgeColor ?? t.color ?? '#6366F1',
-      requiresApproval: !!t.requiresApproval,
-      requiresIdProof: !!t.requiresIdProof,
-      requiresPhoto: !!t.requiresPhoto,
-      maxDurationMinutes: t.maxDurationMinutes ?? 480,
+      badgeColour: t.badgeColour ?? '#3B82F6',
+      requirePhoto: !!t.requirePhoto,
+      requireIdVerification: !!t.requireIdVerification,
+      requireHostApproval: !!t.requireHostApproval,
+      requireSafetyInduction: !!t.requireSafetyInduction,
+      requireNda: !!t.requireNda,
+      requireEscort: !!t.requireEscort,
+      defaultMaxDurationMinutes: t.defaultMaxDurationMinutes ?? 480,
+      safetyInductionId: t.safetyInductionId ?? null,
       isActive: t.isActive !== false,
+      isDefault: !!t.isDefault,
     }));
   }, [response]);
 
@@ -328,13 +409,27 @@ export function VisitorTypeScreen() {
   const handleAdd = () => { setEditingItem(null); setFormVisible(true); };
   const handleEdit = (item: VisitorTypeItem) => { setEditingItem(item); setFormVisible(true); };
 
+  const handleDeactivate = (item: VisitorTypeItem) => {
+    showConfirm({
+      title: 'Deactivate Visitor Type',
+      message: `"${item.name}" will be deactivated and hidden from active lists. Existing visits will not be affected.`,
+      confirmText: 'Deactivate',
+      variant: 'danger',
+      onConfirm: () => deactivateMutation.mutate(item.id, { onSuccess: () => showSuccess('Visitor type deactivated') }),
+    });
+  };
+
+  const handleActivate = (item: VisitorTypeItem) => {
+    activateMutation.mutate(item.id, { onSuccess: () => showSuccess(`${item.name} activated`) });
+  };
+
   const handleDelete = (item: VisitorTypeItem) => {
     showConfirm({
       title: 'Delete Visitor Type',
-      message: `Delete "${item.name}"? This cannot be undone.`,
+      message: `Permanently delete "${item.name}"? This cannot be undone. Types with existing visits cannot be deleted.`,
       confirmText: 'Delete',
       variant: 'danger',
-      onConfirm: () => deleteMutation.mutate(item.id),
+      onConfirm: () => deleteMutation.mutate(item.id, { onSuccess: () => showSuccess('Visitor type deleted') }),
     });
   };
 
@@ -347,7 +442,14 @@ export function VisitorTypeScreen() {
   };
 
   const renderItem = ({ item, index }: { readonly item: VisitorTypeItem; readonly index: number }) => (
-    <VisitorTypeCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
+    <VisitorTypeCard
+      item={item}
+      index={index}
+      onEdit={() => handleEdit(item)}
+      onDeactivate={item.isActive ? () => handleDeactivate(item) : undefined}
+      onActivate={!item.isActive ? () => handleActivate(item) : undefined}
+      onDelete={() => handleDelete(item)}
+    />
   );
 
   const renderHeader = () => (

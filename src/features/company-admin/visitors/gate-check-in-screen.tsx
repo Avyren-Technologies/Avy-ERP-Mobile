@@ -25,10 +25,13 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess, showWarning } from '@/components/ui/utils';
 
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
   useCheckInVisit,
   useCreateVisit,
@@ -57,10 +60,28 @@ function WalkInForm({
   const [phone, setPhone] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [purpose, setPurpose] = React.useState('');
-  const [hostName, setHostName] = React.useState('');
+  const [hostEmployeeId, setHostEmployeeId] = React.useState('');
+  const [plantId, setPlantId] = React.useState('');
   const [selectedTypeId, setSelectedTypeId] = React.useState('');
   const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const { data: employeesResponse } = useEmployees({ limit: 500 });
+  const employeeOptions = React.useMemo(() => {
+    const raw = (employeesResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((e: any) => ({
+      id: e.id,
+      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
+    }));
+  }, [employeesResponse]);
+
+  const { data: locationsResponse } = useCompanyLocations();
+  const locationOptions = React.useMemo(() => {
+    const raw = (locationsResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((l: any) => ({ id: l.id, name: l.name ?? l.code ?? l.id }));
+  }, [locationsResponse]);
 
   const capturePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -91,16 +112,17 @@ function WalkInForm({
 
   const handleSubmit = () => {
     if (!validate()) return;
+    const today = new Date().toISOString().slice(0, 10);
     onSubmit({
       visitorName: name.trim(),
       visitorCompany: company.trim() || undefined,
-      visitorPhone: phone.trim(),
+      visitorMobile: phone.trim(),
       visitorEmail: email.trim() || undefined,
-      purpose: purpose.trim(),
-      hostName: hostName.trim() || undefined,
+      purpose: purpose.trim() || 'OTHER',
+      hostEmployeeId: hostEmployeeId || undefined,
+      plantId: plantId || undefined,
       visitorTypeId: selectedTypeId || undefined,
-      visitorPhoto: visitorPhoto ?? undefined,
-      isWalkIn: true,
+      expectedDate: today,
     });
   };
 
@@ -164,12 +186,22 @@ function WalkInForm({
       </View>
 
       {/* Host */}
-      <View style={formStyles.fieldWrap}>
-        <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Host Employee</Text>
-        <View style={formStyles.inputWrap}>
-          <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Who are they visiting?" placeholderTextColor={colors.neutral[400]} value={hostName} onChangeText={setHostName} />
-        </View>
-      </View>
+      <DropdownField
+        label="Host Employee"
+        selected={hostEmployeeId}
+        onSelect={setHostEmployeeId}
+        options={employeeOptions}
+        placeholder="Select host employee..."
+      />
+
+      {/* Plant */}
+      <DropdownField
+        label="Location (Plant)"
+        selected={plantId}
+        onSelect={setPlantId}
+        options={locationOptions}
+        placeholder="Select location..."
+      />
 
       {/* Visitor Type Chips */}
       {visitorTypes.length > 0 && (
@@ -260,7 +292,7 @@ function ExpectedVisitorRow({
             {item.visitorName ?? item.visitor?.name ?? ''}
           </Text>
           <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
-            {item.visitorCompany ?? item.visitor?.company ?? ''} {item.expectedArrival ? `- Expected ${fmt.time(item.expectedArrival)}` : ''}
+            {item.visitorCompany ?? item.visitor?.company ?? ''} {item.expectedTime ? `- Expected ${fmt.shiftTime(item.expectedTime)}` : item.expectedDate ? `- ${fmt.date(item.expectedDate)}` : ''}
           </Text>
           {item.visitCode ? (
             <Text className="font-inter text-[10px] font-bold text-primary-600 mt-1">{item.visitCode}</Text>
@@ -317,7 +349,7 @@ export function GateCheckInScreen() {
     }
   };
 
-  const { data: todayResponse, isLoading, refetch, isFetching } = useDashboardToday({ status: 'PRE_REGISTERED,APPROVED' });
+  const { data: todayResponse, isLoading, refetch, isFetching } = useDashboardToday({ status: 'EXPECTED,ARRIVED' });
   const { data: typesResponse } = useVisitorTypes();
 
   const checkInMutation = useCheckInVisit();
@@ -332,16 +364,19 @@ export function GateCheckInScreen() {
   const expectedVisitors = React.useMemo(() => {
     const raw = (todayResponse as any)?.data?.visits ?? (todayResponse as any)?.data ?? [];
     if (!Array.isArray(raw)) return [];
-    return raw.filter((v: any) => v.status === 'PRE_REGISTERED' || v.status === 'APPROVED');
+    return raw.filter((v: any) => v.status === 'EXPECTED' || v.status === 'ARRIVED');
   }, [todayResponse]);
 
   const handleCodeCheckIn = () => {
     if (!visitCode.trim()) return;
+    const data: Record<string, unknown> = {};
+    if (visitorPhoto) data.visitorPhoto = visitorPhoto;
     checkInMutation.mutate(
-      { id: visitCode.trim(), data: visitorPhoto ? { visitorPhoto } : undefined },
+      { id: visitCode.trim(), data: Object.keys(data).length > 0 ? data : undefined },
       {
-        onSuccess: () => {
-          showSuccess('Visitor checked in successfully');
+        onSuccess: (result: any) => {
+          const badgeNo = result?.data?.badgeNumber;
+          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
           setVisitCode('');
           setVisitorPhoto(null);
         },
@@ -350,11 +385,17 @@ export function GateCheckInScreen() {
   };
 
   const handleExpectedCheckIn = (visitId: string) => {
+    const visit = expectedVisitors.find((v: any) => v.id === visitId);
+    const data: Record<string, unknown> = {};
+    if (visitorPhoto) data.visitorPhoto = visitorPhoto;
+    if (visit?.gateId) data.checkInGateId = visit.gateId;
+    else if (visit?.checkInGateId) data.checkInGateId = visit.checkInGateId;
     checkInMutation.mutate(
-      { id: visitId, data: visitorPhoto ? { visitorPhoto } : undefined },
+      { id: visitId, data: Object.keys(data).length > 0 ? data : undefined },
       {
-        onSuccess: () => {
-          showSuccess('Visitor checked in successfully');
+        onSuccess: (result: any) => {
+          const badgeNo = result?.data?.badgeNumber;
+          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
           setVisitorPhoto(null);
         },
       },
@@ -378,17 +419,18 @@ export function GateCheckInScreen() {
     setShowScanner(true);
   };
 
-  const handleBarcodeScanned = (result: { data: string }) => {
+  const handleBarcodeScanned = (scanResult: { data: string }) => {
     if (scanProcessedRef.current) return;
     scanProcessedRef.current = true;
     setShowScanner(false);
-    setVisitCode(result.data);
+    setVisitCode(scanResult.data);
     // Auto-trigger check-in with the scanned code
     checkInMutation.mutate(
-      { id: result.data.trim() },
+      { id: scanResult.data.trim() },
       {
-        onSuccess: () => {
-          showSuccess('Visitor checked in successfully');
+        onSuccess: (result: any) => {
+          const badgeNo = result?.data?.badgeNumber;
+          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
           setVisitCode('');
         },
       },

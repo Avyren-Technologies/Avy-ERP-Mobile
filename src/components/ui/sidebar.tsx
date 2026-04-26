@@ -303,6 +303,9 @@ export function Sidebar({
 
     const [searchText, setSearchText] = React.useState('');
     const searchInputRef = React.useRef<TextInput>(null);
+    const scrollViewRef = React.useRef<ScrollView>(null);
+    const navAreaRef = React.useRef<View>(null);
+    const activeItemRef = React.useRef<View>(null);
 
     const sidebarWidth = useSharedValue(SIDEBAR_FULL_WIDTH);
 
@@ -352,6 +355,27 @@ export function Sidebar({
             const timer = setTimeout(() => searchInputRef.current?.focus(), OPEN_DURATION + 50);
             return () => clearTimeout(timer);
         }
+    }, [isOpen]);
+
+    // Scroll to active item when sidebar opens
+    React.useEffect(() => {
+        if (!isOpen) return;
+        const timer = setTimeout(() => {
+            if (!activeItemRef.current || !navAreaRef.current || !scrollViewRef.current) return;
+            activeItemRef.current.measure((_x, _y, _w, _h, _pageX, activePageY) => {
+                navAreaRef.current!.measure((_sx, _sy, _sw, sh, _spx, navPageY) => {
+                    const offsetInContent = activePageY - navPageY;
+                    // Only scroll if the active item is below the visible top portion
+                    if (offsetInContent > sh * 0.4) {
+                        scrollViewRef.current!.scrollTo({
+                            y: Math.max(0, offsetInContent - sh / 3),
+                            animated: true,
+                        });
+                    }
+                });
+            });
+        }, OPEN_DURATION + 200);
+        return () => clearTimeout(timer);
     }, [isOpen]);
 
     // Filter sections when searching
@@ -549,12 +573,13 @@ export function Sidebar({
                 </View>
 
                 {/* Navigation Items — Scrollable */}
+                <View ref={navAreaRef} style={styles.navContainer} collapsable={false}>
                 <ScrollView
-                    style={styles.navContainer}
+                    ref={scrollViewRef}
+                    style={{ flex: 1 }}
                     contentContainerStyle={styles.navContentContainer}
                     showsVerticalScrollIndicator={false}
                     bounces={true}
-                    removeClippedSubviews={true}
                 >
                     {isSearching ? (
                         /* Flat filtered results when searching */
@@ -699,8 +724,8 @@ export function Sidebar({
                                         <View style={styles.childContainer}>
                                             <View style={styles.childDottedLine} />
                                             {section.items.map((item) => (
+                                                <View key={item.id} ref={item.isActive ? activeItemRef : undefined} collapsable={item.isActive ? false : undefined}>
                                                 <Pressable
-                                                    key={item.id}
                                                     onPress={() => {
                                                         item.onPress();
                                                         close();
@@ -719,13 +744,14 @@ export function Sidebar({
                                                         {item.label}
                                                     </Text>
                                                 </Pressable>
+                                                </View>
                                             ))}
                                         </View>
                                     )}
 
                                     {/* Non-collapsible: full nav items */}
                                     {isNonCollapsible && section.items.map((item) => (
-                                        <View key={item.id}>
+                                        <View key={item.id} ref={item.isActive ? activeItemRef : undefined} collapsable={item.isActive ? false : undefined}>
                                             <SidebarNavItem item={item} onClose={close} />
                                             {item.children && item.children.length > 0 && openGroups[item.id] && (
                                                 <View style={styles.childContainer}>
@@ -779,6 +805,7 @@ export function Sidebar({
                         })
                     )}
                 </ScrollView>
+                </View>
 
                 {/* Sign Out */}
                 <Pressable

@@ -122,16 +122,23 @@ export function VisitHistoryScreen() {
   const items: HistoryItem[] = React.useMemo(() => {
     const raw = (response as any)?.data ?? response ?? [];
     if (!Array.isArray(raw)) return [];
-    return raw.map((v: any) => ({
-      id: v.id ?? '',
-      visitorName: v.visitorName ?? v.visitor?.name ?? '',
-      visitorCompany: v.visitorCompany ?? v.visitor?.company ?? '',
-      visitorType: v.visitorType?.name ?? v.typeName ?? '',
-      hostName: v.hostName ?? v.host?.name ?? '',
-      visitDate: v.visitDate ?? v.checkInTime ?? v.createdAt ?? '',
-      duration: v.duration ?? v.visitDuration ?? '',
-      status: v.status ?? 'CHECKED_OUT',
-    }));
+    return raw.map((v: any) => {
+      let duration = '';
+      const mins = v.visitDurationMinutes ?? (v.checkInTime && v.checkOutTime ? Math.round((new Date(v.checkOutTime).getTime() - new Date(v.checkInTime).getTime()) / 60000) : null);
+      if (mins != null) {
+        duration = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+      }
+      return {
+        id: v.id ?? '',
+        visitorName: v.visitorName ?? '',
+        visitorCompany: v.visitorCompany ?? '',
+        visitorType: v.visitorType?.name ?? '',
+        hostName: v.hostEmployeeName ?? v.hostEmployeeId ?? '',
+        visitDate: v.expectedDate ?? v.createdAt ?? '',
+        duration,
+        status: v.status ?? 'CHECKED_OUT',
+      };
+    });
   }, [response]);
 
   const renderItem = ({ item, index }: { readonly item: HistoryItem; readonly index: number }) => (

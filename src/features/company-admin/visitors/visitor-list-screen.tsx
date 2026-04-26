@@ -113,11 +113,14 @@ function VisitCard({
 
 const STATUS_FILTERS = [
   { key: '', label: 'All' },
-  { key: 'PRE_REGISTERED', label: 'Pre-Registered' },
-  { key: 'APPROVED', label: 'Approved' },
+  { key: 'EXPECTED', label: 'Expected' },
+  { key: 'ARRIVED', label: 'Arrived' },
   { key: 'CHECKED_IN', label: 'Checked In' },
   { key: 'CHECKED_OUT', label: 'Checked Out' },
   { key: 'CANCELLED', label: 'Cancelled' },
+  { key: 'REJECTED', label: 'Rejected' },
+  { key: 'NO_SHOW', label: 'No Show' },
+  { key: 'AUTO_CHECKED_OUT', label: 'Auto Out' },
 ];
 
 // ============ MAIN COMPONENT ============
@@ -147,15 +150,15 @@ export function VisitorListScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((v: any) => ({
       id: v.id ?? '',
-      visitorName: v.visitorName ?? v.visitor?.name ?? '',
-      visitorCompany: v.visitorCompany ?? v.visitor?.company ?? '',
-      visitorType: v.visitorType?.name ?? v.typeName ?? '',
-      hostName: v.hostName ?? v.host?.name ?? '',
-      status: v.status ?? 'PRE_REGISTERED',
+      visitorName: v.visitorName ?? '',
+      visitorCompany: v.visitorCompany ?? '',
+      visitorType: v.visitorType?.name ?? '',
+      hostName: v.hostEmployeeName ?? v.hostEmployeeId ?? '',
+      status: v.status ?? 'EXPECTED',
       checkInTime: v.checkInTime ?? null,
-      expectedArrival: v.expectedArrival ?? v.scheduledTime ?? null,
-      visitCode: v.visitCode ?? v.code ?? '',
-      visitDate: v.visitDate ?? v.expectedArrival ?? v.createdAt ?? '',
+      expectedArrival: v.expectedDate ?? null,
+      visitCode: v.visitCode ?? '',
+      visitDate: v.expectedDate ?? v.createdAt ?? '',
     }));
   }, [response]);
 

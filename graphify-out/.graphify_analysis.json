@@ -1,0 +1,4203 @@
+{
+  "communities": {
+    "0": [
+      "analytics_trendchart_buildsmoothpath",
+      "analytics_trendchart_formataxisvalue",
+      "company_admin_location_management_screen_gfloading",
+      "company_admin_location_management_screen_handleaddgeofence",
+      "company_admin_location_management_screen_handledelete",
+      "company_admin_location_management_screen_handledeletegeofence",
+      "company_admin_location_management_screen_handleedit",
+      "company_admin_location_management_screen_handleeditgeofence",
+      "company_admin_location_management_screen_handlesave",
+      "company_admin_location_management_screen_mapapilocation",
+      "company_admin_location_management_screen_tolocationbadge",
+      "company_admin_location_management_screen_update",
+      "company_admin_no_series_management_screen_getpreview",
+      "company_admin_no_series_management_screen_handleadd",
+      "company_admin_no_series_management_screen_handledelete",
+      "company_admin_no_series_management_screen_handleedit",
+      "company_admin_no_series_management_screen_handlesave",
+      "company_admin_no_series_management_screen_tooptionalint",
+      "employee_dashboard_screen_formatduration",
+      "employee_dashboard_screen_formatmaxonedecimal",
+      "hr_holiday_screen_formatholidaydate",
+      "hr_holiday_screen_handleadd",
+      "hr_holiday_screen_handleclone",
+      "hr_holiday_screen_handledelete",
+      "hr_holiday_screen_handleedit",
+      "hr_holiday_screen_handlesave",
+      "hr_holiday_screen_string",
+      "hr_holiday_screen_typebadge",
+      "hr_it_declaration_screen_formatcurrency",
+      "hr_it_declaration_screen_handlecreatesave",
+      "hr_it_declaration_screen_handlelock",
+      "hr_it_declaration_screen_handlesave",
+      "hr_it_declaration_screen_handlesubmitdecl",
+      "hr_it_declaration_screen_handleverify",
+      "hr_it_declaration_screen_normalizedeclarationstatus",
+      "hr_it_declaration_screen_normalizetaxregime",
+      "hr_it_declaration_screen_num",
+      "hr_it_declaration_screen_renderitem",
+      "hr_it_declaration_screen_toggle",
+      "hr_it_declaration_screen_update",
+      "hr_my_leave_screen_fmt",
+      "hr_my_leave_screen_handleapply",
+      "hr_my_leave_screen_handlecancelleave",
+      "hr_my_leave_screen_handlefromselect",
+      "hr_my_leave_screen_handleshow",
+      "hr_my_leave_screen_handletoselect",
+      "hr_my_leave_screen_nextmonth",
+      "hr_my_leave_screen_prevmonth",
+      "hr_my_leave_screen_todaystr",
+      "hr_requisitions_screen_handleacceptoffer",
+      "hr_requisitions_screen_handleadvancecandidate",
+      "hr_requisitions_screen_handlecancelinterview",
+      "hr_requisitions_screen_handlecompleteinterview",
+      "hr_requisitions_screen_handledeletecandidate",
+      "hr_requisitions_screen_handledeleteoffer",
+      "hr_requisitions_screen_handledeletereq",
+      "hr_requisitions_screen_handleeditoffer",
+      "hr_requisitions_screen_handlerejectcandidate",
+      "hr_requisitions_screen_handlerejectoffer",
+      "hr_requisitions_screen_handlereqstatuschange",
+      "hr_requisitions_screen_handlesavecandidate",
+      "hr_requisitions_screen_handlesavecompleteinterview",
+      "hr_requisitions_screen_handlesaveinterview",
+      "hr_requisitions_screen_handlesaveoffer",
+      "hr_requisitions_screen_handlesaverejectoffer",
+      "hr_requisitions_screen_handlesavereq",
+      "hr_requisitions_screen_handleselectreq",
+      "hr_requisitions_screen_handlesendoffer",
+      "hr_requisitions_screen_handlewithdrawoffer",
+      "hr_requisitions_screen_tosafetext",
+      "hr_training_screen_return",
+      "hr_training_screen_setattstatus",
+      "hr_training_screen_toggleemp",
+      "hr_training_screen_tosafetext",
+      "lib_probation_end_date_addcalendardaystoisodate",
+      "lib_probation_end_date_addcalendarmonthstoisodate",
+      "lib_probation_end_date_computeprobationendisofrommasters",
+      "lib_probation_end_date_getprobationdaysfromdesignation",
+      "src_components_analytics_trendchart_tsx",
+      "src_components_ui_form_utils_ts",
+      "src_features_company_admin_hr_holiday_screen_tsx",
+      "src_features_company_admin_hr_it_declaration_screen_tsx",
+      "src_features_company_admin_hr_my_leave_screen_tsx",
+      "src_features_company_admin_hr_requisitions_screen_tsx",
+      "src_features_company_admin_hr_training_screen_tsx",
+      "src_features_company_admin_location_management_screen_tsx",
+      "src_features_company_admin_no_series_management_screen_tsx",
+      "src_features_super_admin_billing_overview_screen_tsx",
+      "src_features_super_admin_dashboard_screen_tsx",
+      "src_features_super_admin_tenant_onboarding_steps_step12_shifts_tsx",
+      "src_features_super_admin_tenant_onboarding_steps_step13_no_series_tsx",
+      "src_lib_probation_end_date_ts",
+      "steps_step12_shifts_adddowntimeslot",
+      "steps_step12_shifts_addshift",
+      "steps_step12_shifts_formattime",
+      "steps_step12_shifts_handleconfirm",
+      "steps_step12_shifts_parsetime",
+      "steps_step12_shifts_removeshift",
+      "steps_step12_shifts_removeslot",
+      "steps_step12_shifts_updateshift",
+      "steps_step12_shifts_updateslot",
+      "steps_step13_no_series_addseries",
+      "steps_step13_no_series_getpreview",
+      "steps_step13_no_series_remove",
+      "steps_step13_no_series_todigitsonly",
+      "steps_step13_no_series_update",
+      "super_admin_billing_overview_screen_buildbillingkpis",
+      "super_admin_billing_overview_screen_formatdate",
+      "super_admin_billing_overview_screen_formatindiancurrency",
+      "super_admin_billing_overview_screen_getmonthlabel",
+      "super_admin_billing_overview_screen_mapinvoicestatus",
+      "super_admin_dashboard_screen_async",
+      "super_admin_dashboard_screen_buildkpidata",
+      "super_admin_dashboard_screen_formatcount",
+      "super_admin_dashboard_screen_formatindiancurrency",
+      "super_admin_dashboard_screen_getbgcolor",
+      "super_admin_dashboard_screen_getcolor",
+      "super_admin_dashboard_screen_kpiicon",
+      "super_admin_dashboard_screen_mapactivitytype",
+      "super_admin_dashboard_screen_quickactionicon",
+      "super_admin_dashboard_screen_timeago",
+      "ui_form_utils_getfielderror"
+    ],
+    "1": [
+      "auth_mfa_setup_screen_fetchsetup",
+      "auth_mfa_setup_screen_handlebacktologin",
+      "auth_mfa_setup_screen_handlechange",
+      "auth_mfa_setup_screen_handlecopysecret",
+      "auth_mfa_setup_screen_handlekeypress",
+      "auth_mfa_setup_screen_handlesubmit",
+      "auth_mfa_setup_voluntary_screen_handlechange",
+      "auth_mfa_setup_voluntary_screen_handlecopysecret",
+      "auth_mfa_setup_voluntary_screen_handlegoback",
+      "auth_mfa_setup_voluntary_screen_handlekeypress",
+      "auth_mfa_setup_voluntary_screen_handlesubmit",
+      "auth_mfa_verify_screen_handlebacktologin",
+      "auth_mfa_verify_screen_handlechange",
+      "auth_mfa_verify_screen_handlekeypress",
+      "auth_mfa_verify_screen_handlesubmit",
+      "company_admin_geofence_editor_screen_animatetocoords",
+      "company_admin_geofence_editor_screen_handlemarkerdragend",
+      "company_admin_geofence_editor_screen_handlemylocation",
+      "company_admin_geofence_editor_screen_handlesave",
+      "company_admin_shift_management_screen_formfield",
+      "company_admin_shift_management_screen_handledelete",
+      "company_admin_shift_management_screen_handledeletebreak",
+      "company_admin_shift_management_screen_handlesave",
+      "company_admin_shift_management_screen_handlesavebreak",
+      "company_admin_shift_management_screen_opencreate",
+      "company_admin_shift_management_screen_opencreatebreak",
+      "company_admin_shift_management_screen_openedit",
+      "company_admin_shift_management_screen_openeditbreak",
+      "company_admin_shift_management_screen_string",
+      "company_admin_shift_management_screen_timepickerfield",
+      "ess_my_documents_screen_handlepickfile",
+      "ess_my_documents_screen_handleview",
+      "ess_my_expense_claims_screen_addlineitem",
+      "ess_my_expense_claims_screen_formatdate",
+      "ess_my_expense_claims_screen_handlecancel",
+      "ess_my_expense_claims_screen_handlecreate",
+      "ess_my_expense_claims_screen_handlesave",
+      "ess_my_expense_claims_screen_handlesubmit",
+      "ess_my_expense_claims_screen_isimageuri",
+      "ess_my_expense_claims_screen_openlistreceiptviewer",
+      "ess_my_expense_claims_screen_openreceiptviewer",
+      "ess_my_expense_claims_screen_pickdocument",
+      "ess_my_expense_claims_screen_removelineitem",
+      "ess_my_expense_claims_screen_removereceipt",
+      "ess_my_expense_claims_screen_takephoto",
+      "ess_my_expense_claims_screen_updatelineitem",
+      "hr_bulk_employee_import_screen_formatfilesize",
+      "hr_bulk_employee_import_screen_handledownloadtemplate",
+      "hr_bulk_employee_import_screen_handleimport",
+      "hr_bulk_employee_import_screen_handlepickfile",
+      "hr_bulk_employee_import_screen_handlevalidate",
+      "hr_employee_detail_screen_collectformdata",
+      "hr_employee_detail_screen_getinitials",
+      "hr_employee_detail_screen_handleconfirmdeactivation",
+      "hr_employee_detail_screen_handledeactivate",
+      "hr_employee_detail_screen_handlepersonalchange",
+      "hr_employee_detail_screen_handlepickphoto",
+      "hr_employee_detail_screen_handlereset",
+      "hr_employee_detail_screen_handlesave",
+      "hr_employee_detail_screen_handlestatusaction",
+      "hr_employee_detail_screen_handleuploaddocument",
+      "hr_employee_detail_screen_maskaadhaar",
+      "hr_employee_detail_screen_statusbadge",
+      "hr_employee_detail_screen_timelineicon",
+      "hr_my_profile_screen_asdisplaytext",
+      "hr_my_profile_screen_briefcaseicon",
+      "hr_my_profile_screen_creditcardicon",
+      "hr_my_profile_screen_eyeicon",
+      "hr_my_profile_screen_eyeofficon",
+      "hr_my_profile_screen_formataddress",
+      "hr_my_profile_screen_formatbankaccountlastfour",
+      "hr_my_profile_screen_formatdate",
+      "hr_my_profile_screen_formatshift",
+      "hr_my_profile_screen_handlepickphoto",
+      "hr_my_profile_screen_handlesaveprofile",
+      "hr_my_profile_screen_handlesubmit",
+      "hr_my_profile_screen_humanizeenum",
+      "hr_my_profile_screen_inforow",
+      "hr_my_profile_screen_isprofileincomplete",
+      "hr_my_profile_screen_keyicon",
+      "hr_my_profile_screen_lockicon",
+      "hr_my_profile_screen_maskpan",
+      "hr_my_profile_screen_maskvalue",
+      "hr_my_profile_screen_phoneicon",
+      "hr_my_profile_screen_sectioncard",
+      "hr_my_profile_screen_shieldicon",
+      "hr_my_profile_screen_updatefield",
+      "hr_my_profile_screen_usericon",
+      "settings_notification_preferences_screen_commitquietend",
+      "settings_notification_preferences_screen_commitquietstart",
+      "settings_notification_preferences_screen_getcategorycell",
+      "settings_notification_preferences_screen_togglecategorycell",
+      "settings_notification_preferences_screen_update",
+      "src_features_auth_mfa_setup_screen_tsx",
+      "src_features_auth_mfa_setup_voluntary_screen_tsx",
+      "src_features_auth_mfa_verify_screen_tsx",
+      "src_features_company_admin_geofence_editor_screen_tsx",
+      "src_features_company_admin_hr_bulk_employee_import_screen_tsx",
+      "src_features_company_admin_hr_employee_detail_screen_tsx",
+      "src_features_company_admin_hr_my_profile_screen_tsx",
+      "src_features_company_admin_shift_management_screen_tsx",
+      "src_features_ess_my_documents_screen_tsx",
+      "src_features_ess_my_expense_claims_screen_tsx",
+      "src_features_settings_notification_preferences_screen_tsx",
+      "ui_utils_showerrormessage",
+      "ui_utils_showsuccess"
+    ],
+    "2": [
+      "api_use_recruitment_mutations_useaddprogramcourse",
+      "api_use_recruitment_mutations_useadvancecandidatestage",
+      "api_use_recruitment_mutations_useapproveexpenseclaim",
+      "api_use_recruitment_mutations_usebulkmarkattendance",
+      "api_use_recruitment_mutations_usecancelinterview",
+      "api_use_recruitment_mutations_usecompleteinterview",
+      "api_use_recruitment_mutations_useconvertcandidatetoemployee",
+      "api_use_recruitment_mutations_usecreateasset",
+      "api_use_recruitment_mutations_usecreateassetassignment",
+      "api_use_recruitment_mutations_usecreateassetcategory",
+      "api_use_recruitment_mutations_usecreatecandidate",
+      "api_use_recruitment_mutations_usecreatecandidatedocument",
+      "api_use_recruitment_mutations_usecreatecandidateeducation",
+      "api_use_recruitment_mutations_usecreatecandidateexperience",
+      "api_use_recruitment_mutations_usecreatedisciplinaryaction",
+      "api_use_recruitment_mutations_usecreateexpenseclaim",
+      "api_use_recruitment_mutations_usecreategrievancecase",
+      "api_use_recruitment_mutations_usecreategrievancecategory",
+      "api_use_recruitment_mutations_usecreateinterview",
+      "api_use_recruitment_mutations_usecreateletter",
+      "api_use_recruitment_mutations_usecreatelettertemplate",
+      "api_use_recruitment_mutations_usecreateoffer",
+      "api_use_recruitment_mutations_usecreaterequisition",
+      "api_use_recruitment_mutations_usecreatetrainer",
+      "api_use_recruitment_mutations_usecreatetrainingbudget",
+      "api_use_recruitment_mutations_usecreatetrainingcatalogue",
+      "api_use_recruitment_mutations_usecreatetrainingmaterial",
+      "api_use_recruitment_mutations_usecreatetrainingnomination",
+      "api_use_recruitment_mutations_usecreatetrainingprogram",
+      "api_use_recruitment_mutations_usecreatetrainingsession",
+      "api_use_recruitment_mutations_usedeleteassetcategory",
+      "api_use_recruitment_mutations_usedeletecandidate",
+      "api_use_recruitment_mutations_usedeletecandidatedocument",
+      "api_use_recruitment_mutations_usedeletecandidateeducation",
+      "api_use_recruitment_mutations_usedeletecandidateexperience",
+      "api_use_recruitment_mutations_usedeletegrievancecategory",
+      "api_use_recruitment_mutations_usedeletelettertemplate",
+      "api_use_recruitment_mutations_usedeleteoffer",
+      "api_use_recruitment_mutations_usedeleterequisition",
+      "api_use_recruitment_mutations_usedeletetrainer",
+      "api_use_recruitment_mutations_usedeletetrainingcatalogue",
+      "api_use_recruitment_mutations_usedeletetrainingmaterial",
+      "api_use_recruitment_mutations_usedeletetrainingprogram",
+      "api_use_recruitment_mutations_usedeletetrainingsession",
+      "api_use_recruitment_mutations_usedispatchesign",
+      "api_use_recruitment_mutations_useenrollinprogram",
+      "api_use_recruitment_mutations_usegenerateletterpdf",
+      "api_use_recruitment_mutations_usemarkattendance",
+      "api_use_recruitment_mutations_useregistersessionattendees",
+      "api_use_recruitment_mutations_userejectexpenseclaim",
+      "api_use_recruitment_mutations_useremoveprogramcourse",
+      "api_use_recruitment_mutations_usesubmitessfeedback",
+      "api_use_recruitment_mutations_usesubmitinterviewevaluations",
+      "api_use_recruitment_mutations_usesubmittrainingevaluation",
+      "api_use_recruitment_mutations_useupdateasset",
+      "api_use_recruitment_mutations_useupdateassetassignment",
+      "api_use_recruitment_mutations_useupdateassetcategory",
+      "api_use_recruitment_mutations_useupdatecandidate",
+      "api_use_recruitment_mutations_useupdatecandidateeducation",
+      "api_use_recruitment_mutations_useupdatecandidateexperience",
+      "api_use_recruitment_mutations_useupdatedisciplinaryaction",
+      "api_use_recruitment_mutations_useupdateexpenseclaim",
+      "api_use_recruitment_mutations_useupdategrievancecase",
+      "api_use_recruitment_mutations_useupdategrievancecategory",
+      "api_use_recruitment_mutations_useupdateinterview",
+      "api_use_recruitment_mutations_useupdatelettertemplate",
+      "api_use_recruitment_mutations_useupdateoffer",
+      "api_use_recruitment_mutations_useupdateofferstatus",
+      "api_use_recruitment_mutations_useupdaterequisition",
+      "api_use_recruitment_mutations_useupdatetrainer",
+      "api_use_recruitment_mutations_useupdatetrainingbudget",
+      "api_use_recruitment_mutations_useupdatetrainingcatalogue",
+      "api_use_recruitment_mutations_useupdatetrainingmaterial",
+      "api_use_recruitment_mutations_useupdatetrainingnomination",
+      "api_use_recruitment_mutations_useupdatetrainingprogram",
+      "api_use_recruitment_mutations_useupdatetrainingsession",
+      "api_use_recruitment_mutations_useupdatetrainingsessionstatus",
+      "src_features_company_admin_api_use_recruitment_mutations_ts"
+    ],
+    "3": [
+      "analytics_reports_hub_screen_formatdate",
+      "api_auth_checkpermission",
+      "api_auth_decodejwtpayload",
+      "api_use_company_admin_queries_usecompanyactivity",
+      "api_use_company_admin_queries_usecompanyauditlogs",
+      "api_use_company_admin_queries_usecompanycontacts",
+      "api_use_company_admin_queries_usecompanycontrols",
+      "api_use_company_admin_queries_usecompanyiotreasons",
+      "api_use_company_admin_queries_usecompanylocation",
+      "api_use_company_admin_queries_usecompanylocations",
+      "api_use_company_admin_queries_usecompanynoseries",
+      "api_use_company_admin_queries_usecompanyprofile",
+      "api_use_company_admin_queries_usecompanysettings",
+      "api_use_company_admin_queries_usecompanyshifts",
+      "api_use_company_admin_queries_usecompanyuser",
+      "api_use_company_admin_queries_usecompanyusers",
+      "api_use_company_admin_queries_uselinkedscreens",
+      "api_use_company_admin_queries_usemodulecatalogue",
+      "api_use_company_admin_queries_usemycostbreakdown",
+      "api_use_company_admin_queries_usemyinvoicedetail",
+      "api_use_company_admin_queries_usemyinvoices",
+      "api_use_company_admin_queries_usemypayments",
+      "api_use_company_admin_queries_usemysubscription",
+      "api_use_company_admin_queries_usenavigationmanifest",
+      "api_use_company_admin_queries_usepermissioncatalogue",
+      "api_use_company_admin_queries_userbacreferenceroles",
+      "api_use_company_admin_queries_userbacroles",
+      "api_use_company_admin_queries_useshiftbreaks",
+      "api_use_company_admin_queries_usesupportticket",
+      "api_use_company_admin_queries_usesupporttickets",
+      "app_layout_appsidebar",
+      "app_layout_biometricpromptmodal",
+      "app_layout_createbiometricstyles",
+      "app_layout_hasperm",
+      "app_layout_ispathactive",
+      "app_layout_mapmanifesticon",
+      "app_layout_tabicon",
+      "app_layout_tomobileroutepath",
+      "app_layout_usetabbarvisibility",
+      "auth_use_auth_store_usehaspermission",
+      "hooks_use_can_perform_usecanperform",
+      "hooks_use_can_perform_usepermissionchecker",
+      "hooks_use_company_formatter_usecompanyformatter",
+      "hooks_use_file_url_usefileurl",
+      "hooks_use_permission_refresh_usepermissionrefresh",
+      "hooks_use_scroll_tab_bar_usescrolltabbar",
+      "src_app_app_layout_tsx",
+      "src_features_company_admin_api_use_company_admin_queries_ts",
+      "src_features_company_admin_hr_analytics_reports_hub_screen_tsx",
+      "src_features_super_admin_invoice_list_screen_tsx",
+      "src_hooks_use_can_perform_ts",
+      "src_hooks_use_company_formatter_ts",
+      "src_hooks_use_file_url_ts",
+      "src_hooks_use_permission_refresh_ts",
+      "src_hooks_use_scroll_tab_bar_ts",
+      "src_lib_api_auth_ts",
+      "super_admin_invoice_list_screen_formatcurrency",
+      "super_admin_invoice_list_screen_handleloadmore",
+      "super_admin_invoice_list_screen_invoicecard",
+      "super_admin_invoice_list_screen_tostatusbadge"
+    ],
+    "4": [
+      "api_use_recruitment_queries_useasset",
+      "api_use_recruitment_queries_useassetassignments",
+      "api_use_recruitment_queries_useassetcategories",
+      "api_use_recruitment_queries_useassetcategory",
+      "api_use_recruitment_queries_useassets",
+      "api_use_recruitment_queries_usebudgetutilization",
+      "api_use_recruitment_queries_usecandidate",
+      "api_use_recruitment_queries_usecandidatedocuments",
+      "api_use_recruitment_queries_usecandidateeducation",
+      "api_use_recruitment_queries_usecandidateexperience",
+      "api_use_recruitment_queries_usecandidates",
+      "api_use_recruitment_queries_usedisciplinaryaction",
+      "api_use_recruitment_queries_usedisciplinaryactions",
+      "api_use_recruitment_queries_useesignstatus",
+      "api_use_recruitment_queries_useevaluationsummary",
+      "api_use_recruitment_queries_useexpenseclaim",
+      "api_use_recruitment_queries_useexpenseclaims",
+      "api_use_recruitment_queries_useexpiringcertificates",
+      "api_use_recruitment_queries_usegrievancecase",
+      "api_use_recruitment_queries_usegrievancecases",
+      "api_use_recruitment_queries_usegrievancecategories",
+      "api_use_recruitment_queries_usegrievancecategory",
+      "api_use_recruitment_queries_useinterview",
+      "api_use_recruitment_queries_useinterviewevaluations",
+      "api_use_recruitment_queries_useinterviews",
+      "api_use_recruitment_queries_useletter",
+      "api_use_recruitment_queries_useletters",
+      "api_use_recruitment_queries_uselettertemplate",
+      "api_use_recruitment_queries_uselettertemplates",
+      "api_use_recruitment_queries_useoffer",
+      "api_use_recruitment_queries_useoffers",
+      "api_use_recruitment_queries_usependingesign",
+      "api_use_recruitment_queries_useprogramenrollments",
+      "api_use_recruitment_queries_userecruitmentdashboard",
+      "api_use_recruitment_queries_userequisition",
+      "api_use_recruitment_queries_userequisitions",
+      "api_use_recruitment_queries_usesessionattendance",
+      "api_use_recruitment_queries_usesessionevaluations",
+      "api_use_recruitment_queries_usetrainer",
+      "api_use_recruitment_queries_usetrainers",
+      "api_use_recruitment_queries_usetrainingbudgets",
+      "api_use_recruitment_queries_usetrainingcatalogue",
+      "api_use_recruitment_queries_usetrainingcatalogueitem",
+      "api_use_recruitment_queries_usetrainingdashboard",
+      "api_use_recruitment_queries_usetrainingevaluation",
+      "api_use_recruitment_queries_usetrainingmaterials",
+      "api_use_recruitment_queries_usetrainingnominations",
+      "api_use_recruitment_queries_usetrainingprogram",
+      "api_use_recruitment_queries_usetrainingprograms",
+      "api_use_recruitment_queries_usetrainingsession",
+      "api_use_recruitment_queries_usetrainingsessions",
+      "src_features_company_admin_api_use_recruitment_queries_ts"
+    ],
+    "5": [
+      "employee_dashboard_screen_arrowicon",
+      "employee_dashboard_screen_bellicon",
+      "employee_dashboard_screen_calendaricon",
+      "employee_dashboard_screen_checkicon",
+      "employee_dashboard_screen_checksquareicon",
+      "employee_dashboard_screen_chevronlefticon",
+      "employee_dashboard_screen_chevronrighticon",
+      "employee_dashboard_screen_clipboardcheckicon",
+      "employee_dashboard_screen_clockicon",
+      "employee_dashboard_screen_coffeeicon",
+      "employee_dashboard_screen_daysuntil",
+      "employee_dashboard_screen_eyeicon",
+      "employee_dashboard_screen_filetexticon",
+      "employee_dashboard_screen_formattimeshort",
+      "employee_dashboard_screen_getbarcolor",
+      "employee_dashboard_screen_getdonutcolor",
+      "employee_dashboard_screen_getgreeting",
+      "employee_dashboard_screen_gotonextmonth",
+      "employee_dashboard_screen_gotoprevmonth",
+      "employee_dashboard_screen_graduationcapicon",
+      "employee_dashboard_screen_infoicon",
+      "employee_dashboard_screen_isthisweek",
+      "employee_dashboard_screen_landmarkicon",
+      "employee_dashboard_screen_mappinicon",
+      "employee_dashboard_screen_megaphoneicon",
+      "employee_dashboard_screen_normalizedashboarddata",
+      "employee_dashboard_screen_parseworkedhours",
+      "employee_dashboard_screen_sendicon",
+      "employee_dashboard_screen_targeticon",
+      "employee_dashboard_screen_tick",
+      "employee_dashboard_screen_timericon",
+      "employee_dashboard_screen_trenddownicon",
+      "employee_dashboard_screen_trendupicon",
+      "employee_dashboard_screen_typecolor",
+      "employee_dashboard_screen_usercheckicon",
+      "employee_dashboard_screen_usercogicon",
+      "employee_dashboard_screen_usericon",
+      "employee_dashboard_screen_userminusicon",
+      "employee_dashboard_screen_usersicon",
+      "employee_dashboard_screen_userxicon",
+      "src_features_employee_dashboard_screen_tsx"
+    ],
+    "6": [
+      "api_use_ess_queries_useapprovalrequest",
+      "api_use_ess_queries_useapprovalrequests",
+      "api_use_ess_queries_useapprovalworkflow",
+      "api_use_ess_queries_useapprovalworkflowconfig",
+      "api_use_ess_queries_useapprovalworkflows",
+      "api_use_ess_queries_usedashboard",
+      "api_use_ess_queries_useessconfig",
+      "api_use_ess_queries_useessloanpolicies",
+      "api_use_ess_queries_useexpensecategories",
+      "api_use_ess_queries_useexpenseclaimssummary",
+      "api_use_ess_queries_useitdeclaration",
+      "api_use_ess_queries_useitdeclarations",
+      "api_use_ess_queries_usemyappraisals",
+      "api_use_ess_queries_usemyassets",
+      "api_use_ess_queries_usemyattendance",
+      "api_use_ess_queries_usemydeclarations",
+      "api_use_ess_queries_usemydocuments",
+      "api_use_ess_queries_usemyexpenseclaims",
+      "api_use_ess_queries_usemyform16",
+      "api_use_ess_queries_usemygoals",
+      "api_use_ess_queries_usemygrievances",
+      "api_use_ess_queries_usemyholidays",
+      "api_use_ess_queries_usemyleavebalance",
+      "api_use_ess_queries_usemyloans",
+      "api_use_ess_queries_usemypayslipdetail",
+      "api_use_ess_queries_usemypayslips",
+      "api_use_ess_queries_usemyprofile",
+      "api_use_ess_queries_usemyshiftswaps",
+      "api_use_ess_queries_usemytraining",
+      "api_use_ess_queries_usemywfhrequests",
+      "api_use_ess_queries_usenotificationrules",
+      "api_use_ess_queries_usenotificationtemplates",
+      "api_use_ess_queries_usependingapprovals",
+      "api_use_ess_queries_usependingmssapprovals",
+      "api_use_ess_queries_usepolicydocuments",
+      "api_use_ess_queries_useteamattendance",
+      "api_use_ess_queries_useteamleavecalendar",
+      "api_use_ess_queries_useteammembers",
+      "src_features_company_admin_api_use_ess_queries_ts"
+    ],
+    "7": [
+      "app_layout_checkbiometric",
+      "auth_use_auth_store_getdisplayname",
+      "auth_use_auth_store_getrolelabel",
+      "auth_use_auth_store_getuserinitials",
+      "auth_use_auth_store_getuserroledisplaylabel",
+      "auth_use_auth_store_hydrateauth",
+      "auth_use_auth_store_mapbackendrole",
+      "auth_use_auth_store_persistauthuser",
+      "auth_use_auth_store_signin",
+      "auth_use_auth_store_signout",
+      "auth_use_auth_store_updatetokens",
+      "auth_utils_gettoken",
+      "auth_utils_removetoken",
+      "auth_utils_settoken",
+      "lib_socket_connectsocket",
+      "lib_socket_disconnectsocket",
+      "lib_socket_getsocket",
+      "lib_storage_getcheckinuimode",
+      "lib_storage_getitem",
+      "lib_storage_removeitem",
+      "lib_storage_setcheckinuimode",
+      "lib_storage_setitem",
+      "notifications_setup_addforegroundnotificationlistener",
+      "notifications_setup_addnotificationresponselistener",
+      "notifications_setup_getstoredpushtoken",
+      "notifications_setup_registerforpushnotifications",
+      "notifications_setup_unregisterpushnotifications",
+      "settings_settings_screen_checkbiometric",
+      "settings_settings_screen_handlechangepassword",
+      "settings_settings_screen_handlemfasetup",
+      "settings_settings_screen_handleprofilepress",
+      "settings_settings_screen_handletogglebiometric",
+      "src_features_auth_use_auth_store_ts",
+      "src_features_settings_settings_screen_tsx",
+      "src_lib_auth_utils_tsx",
+      "src_lib_notifications_setup_ts",
+      "src_lib_socket_ts",
+      "src_lib_storage_tsx"
+    ],
+    "8": [
+      "api_use_visitor_mutations_useactivatevisitortype",
+      "api_use_visitor_mutations_useapprovevisit",
+      "api_use_visitor_mutations_usebatchcheckin",
+      "api_use_visitor_mutations_usebatchcheckout",
+      "api_use_visitor_mutations_usecancelvisit",
+      "api_use_visitor_mutations_usecheckinrecurringpass",
+      "api_use_visitor_mutations_usecheckinvisit",
+      "api_use_visitor_mutations_usecheckoutvisit",
+      "api_use_visitor_mutations_usecheckwatchlist",
+      "api_use_visitor_mutations_usecreategate",
+      "api_use_visitor_mutations_usecreategroupvisit",
+      "api_use_visitor_mutations_usecreatematerialpass",
+      "api_use_visitor_mutations_usecreaterecurringpass",
+      "api_use_visitor_mutations_usecreatesafetyinduction",
+      "api_use_visitor_mutations_usecreatevehiclepass",
+      "api_use_visitor_mutations_usecreatevisit",
+      "api_use_visitor_mutations_usecreatevisitortype",
+      "api_use_visitor_mutations_usecreatewatchlistentry",
+      "api_use_visitor_mutations_usedeactivatevisitortype",
+      "api_use_visitor_mutations_usedeletegate",
+      "api_use_visitor_mutations_usedeletesafetyinduction",
+      "api_use_visitor_mutations_usedeletevisitortype",
+      "api_use_visitor_mutations_useextendvisit",
+      "api_use_visitor_mutations_usemarkmaterialreturned",
+      "api_use_visitor_mutations_usemarksafe",
+      "api_use_visitor_mutations_userecordvehicleexit",
+      "api_use_visitor_mutations_userejectvisit",
+      "api_use_visitor_mutations_useresolveemergency",
+      "api_use_visitor_mutations_userevokerecurringpass",
+      "api_use_visitor_mutations_usetriggeremergency",
+      "api_use_visitor_mutations_useupdategate",
+      "api_use_visitor_mutations_useupdatesafetyinduction",
+      "api_use_visitor_mutations_useupdatevisit",
+      "api_use_visitor_mutations_useupdatevisitortype",
+      "api_use_visitor_mutations_useupdatevmsconfig",
+      "src_features_company_admin_api_use_visitor_mutations_ts"
+    ],
+    "9": [
+      "api_use_ess_mutations_useapplyforloan",
+      "api_use_ess_mutations_useapplyleave",
+      "api_use_ess_mutations_useapproverequest",
+      "api_use_ess_mutations_usecancelleave",
+      "api_use_ess_mutations_usecancelmyexpenseclaim",
+      "api_use_ess_mutations_usecancelshiftswap",
+      "api_use_ess_mutations_usecancelwfhrequest",
+      "api_use_ess_mutations_usecreateapprovalworkflow",
+      "api_use_ess_mutations_usecreateitdeclaration",
+      "api_use_ess_mutations_usecreatemyexpenseclaim",
+      "api_use_ess_mutations_usecreatenotificationrule",
+      "api_use_ess_mutations_usecreatenotificationtemplate",
+      "api_use_ess_mutations_usecreateshiftswap",
+      "api_use_ess_mutations_usecreatewfhrequest",
+      "api_use_ess_mutations_usedeleteapprovalworkflow",
+      "api_use_ess_mutations_usedeletemydocument",
+      "api_use_ess_mutations_usedeletenotificationrule",
+      "api_use_ess_mutations_usedeletenotificationtemplate",
+      "api_use_ess_mutations_usedownloadpayslippdf",
+      "api_use_ess_mutations_useesssubmitselfreview",
+      "api_use_ess_mutations_usefilegrievance",
+      "api_use_ess_mutations_uselockitdeclaration",
+      "api_use_ess_mutations_useregularizeattendance",
+      "api_use_ess_mutations_userejectrequest",
+      "api_use_ess_mutations_usesubmititdeclaration",
+      "api_use_ess_mutations_usesubmitmyexpenseclaim",
+      "api_use_ess_mutations_useupdateapprovalworkflow",
+      "api_use_ess_mutations_useupdateessconfig",
+      "api_use_ess_mutations_useupdateitdeclaration",
+      "api_use_ess_mutations_useupdatemyprofile",
+      "api_use_ess_mutations_useupdatenotificationrule",
+      "api_use_ess_mutations_useupdatenotificationtemplate",
+      "api_use_ess_mutations_useuploadmydocument",
+      "api_use_ess_mutations_useverifyitdeclaration",
+      "src_features_company_admin_api_use_ess_mutations_ts"
+    ],
+    "10": [
+      "api_use_hr_mutations_usebulkimportemployees",
+      "api_use_hr_mutations_usebulkvalidateemployees",
+      "api_use_hr_mutations_usecreatecostcentre",
+      "api_use_hr_mutations_usecreatedepartment",
+      "api_use_hr_mutations_usecreatedesignation",
+      "api_use_hr_mutations_usecreateeducation",
+      "api_use_hr_mutations_usecreateemployee",
+      "api_use_hr_mutations_usecreateemployeetype",
+      "api_use_hr_mutations_usecreategrade",
+      "api_use_hr_mutations_usecreatenominee",
+      "api_use_hr_mutations_usecreateprevemployment",
+      "api_use_hr_mutations_usedeletecostcentre",
+      "api_use_hr_mutations_usedeletedepartment",
+      "api_use_hr_mutations_usedeletedesignation",
+      "api_use_hr_mutations_usedeletedocument",
+      "api_use_hr_mutations_usedeleteeducation",
+      "api_use_hr_mutations_usedeleteemployee",
+      "api_use_hr_mutations_usedeleteemployeetype",
+      "api_use_hr_mutations_usedeletegrade",
+      "api_use_hr_mutations_usedeletenominee",
+      "api_use_hr_mutations_usedeleteprevemployment",
+      "api_use_hr_mutations_usesubmitprobationreview",
+      "api_use_hr_mutations_useupdatecostcentre",
+      "api_use_hr_mutations_useupdatedepartment",
+      "api_use_hr_mutations_useupdatedesignation",
+      "api_use_hr_mutations_useupdateeducation",
+      "api_use_hr_mutations_useupdateemployee",
+      "api_use_hr_mutations_useupdateemployeestatus",
+      "api_use_hr_mutations_useupdateemployeetype",
+      "api_use_hr_mutations_useupdategrade",
+      "api_use_hr_mutations_useupdatenominee",
+      "api_use_hr_mutations_useupdateprevemployment",
+      "api_use_hr_mutations_useuploaddocument",
+      "src_features_company_admin_api_use_hr_mutations_ts"
+    ],
+    "11": [
+      "api_use_company_admin_mutations_useaddlocationmodules",
+      "api_use_company_admin_mutations_useclosesupportticket",
+      "api_use_company_admin_mutations_usecreatecontact",
+      "api_use_company_admin_mutations_usecreateiotreason",
+      "api_use_company_admin_mutations_usecreatenoseries",
+      "api_use_company_admin_mutations_usecreaterole",
+      "api_use_company_admin_mutations_usecreateshift",
+      "api_use_company_admin_mutations_usecreateshiftbreak",
+      "api_use_company_admin_mutations_usecreatesupportticket",
+      "api_use_company_admin_mutations_usecreateuser",
+      "api_use_company_admin_mutations_usedeletecontact",
+      "api_use_company_admin_mutations_usedeleteiotreason",
+      "api_use_company_admin_mutations_usedeletelocation",
+      "api_use_company_admin_mutations_usedeletenoseries",
+      "api_use_company_admin_mutations_usedeleterole",
+      "api_use_company_admin_mutations_usedeleteshift",
+      "api_use_company_admin_mutations_usedeleteshiftbreak",
+      "api_use_company_admin_mutations_useremovelocationmodule",
+      "api_use_company_admin_mutations_usesendsupportmessage",
+      "api_use_company_admin_mutations_useupdatecontact",
+      "api_use_company_admin_mutations_useupdatecontrols",
+      "api_use_company_admin_mutations_useupdateiotreason",
+      "api_use_company_admin_mutations_useupdatelocation",
+      "api_use_company_admin_mutations_useupdatenoseries",
+      "api_use_company_admin_mutations_useupdateprofilesection",
+      "api_use_company_admin_mutations_useupdaterole",
+      "api_use_company_admin_mutations_useupdatesettings",
+      "api_use_company_admin_mutations_useupdateshift",
+      "api_use_company_admin_mutations_useupdateshiftbreak",
+      "api_use_company_admin_mutations_useupdateuser",
+      "api_use_company_admin_mutations_useupdateuserstatus",
+      "src_features_company_admin_api_use_company_admin_mutations_ts"
+    ],
+    "12": [
+      "analytics_funnelchart_funnelchart",
+      "analytics_heatmapchart_heatmapchart",
+      "analytics_heatmapchart_interpolatecolor",
+      "analytics_scatterchart_scatterchart",
+      "hooks_use_is_dark_useisdark",
+      "src_components_analytics_funnelchart_tsx",
+      "src_components_analytics_heatmapchart_tsx",
+      "src_components_analytics_scatterchart_tsx",
+      "src_components_ui_dropdown_field_tsx",
+      "src_components_ui_sidebar_tsx",
+      "src_features_company_admin_visitors_safety_inductions_screen_tsx",
+      "src_features_super_admin_tenant_onboarding_atoms_tsx",
+      "src_hooks_use_is_dark_ts",
+      "tenant_onboarding_atoms_formlabel",
+      "ui_dropdown_field_dropdownfield",
+      "ui_sidebar_hamburgerbutton",
+      "ui_sidebar_sidebarnavicon",
+      "visitors_safety_inductions_screen_addoption",
+      "visitors_safety_inductions_screen_addquestion",
+      "visitors_safety_inductions_screen_getvimeoembedurl",
+      "visitors_safety_inductions_screen_getyoutubeembedurl",
+      "visitors_safety_inductions_screen_handleadd",
+      "visitors_safety_inductions_screen_handledelete",
+      "visitors_safety_inductions_screen_handleedit",
+      "visitors_safety_inductions_screen_handlesave",
+      "visitors_safety_inductions_screen_isvimeourl",
+      "visitors_safety_inductions_screen_isyoutubeurl",
+      "visitors_safety_inductions_screen_previewmodal",
+      "visitors_safety_inductions_screen_removequestion",
+      "visitors_safety_inductions_screen_updateoption",
+      "visitors_safety_inductions_screen_updatequestion",
+      "visitors_safety_inductions_screen_validate"
+    ],
+    "13": [
+      "company_admin_user_management_screen_clearerror",
+      "company_admin_user_management_screen_formatlastlogin",
+      "company_admin_user_management_screen_getinitials",
+      "company_admin_user_management_screen_handleadd",
+      "company_admin_user_management_screen_handleedit",
+      "company_admin_user_management_screen_handlesubmit",
+      "company_admin_user_management_screen_handletogglestatus",
+      "company_admin_user_management_screen_mapapiuser",
+      "company_admin_user_management_screen_validate",
+      "ess_wfh_request_screen_fmtdate",
+      "ess_wfh_request_screen_handlecancel",
+      "ess_wfh_request_screen_handlecreate",
+      "src_features_company_admin_user_management_screen_tsx",
+      "src_features_ess_wfh_request_screen_tsx",
+      "src_features_super_admin_support_support_dashboard_screen_tsx",
+      "src_features_support_help_support_screen_tsx",
+      "support_help_support_screen_categorychip",
+      "support_help_support_screen_chevronicon",
+      "support_help_support_screen_filterchip",
+      "support_help_support_screen_formatrelativetime",
+      "support_help_support_screen_helpicon",
+      "support_help_support_screen_sendicon",
+      "support_help_support_screen_statusbadge",
+      "support_help_support_screen_ticketicon",
+      "support_support_dashboard_screen_formatcategorylabel",
+      "support_support_dashboard_screen_formatstatuslabel",
+      "support_support_dashboard_screen_getprioritybadgestyle",
+      "support_support_dashboard_screen_getrelativetime",
+      "support_support_dashboard_screen_getstatusbadgestyle",
+      "support_support_dashboard_screen_staticon",
+      "support_support_dashboard_screen_ticketicon"
+    ],
+    "14": [
+      "api_use_payroll_mutations_useassignemployeesalary",
+      "api_use_payroll_mutations_usecreateloan",
+      "api_use_payroll_mutations_usecreateloanpolicy",
+      "api_use_payroll_mutations_usecreatelwfconfig",
+      "api_use_payroll_mutations_usecreateptconfig",
+      "api_use_payroll_mutations_usecreatesalarycomponent",
+      "api_use_payroll_mutations_usecreatesalarystructure",
+      "api_use_payroll_mutations_usecreatetraveladvance",
+      "api_use_payroll_mutations_usedeleteloanpolicy",
+      "api_use_payroll_mutations_usedeletelwfconfig",
+      "api_use_payroll_mutations_usedeleteptconfig",
+      "api_use_payroll_mutations_usedeletesalarycomponent",
+      "api_use_payroll_mutations_usedeletesalarystructure",
+      "api_use_payroll_mutations_usesettletraveladvance",
+      "api_use_payroll_mutations_useupdatebankconfig",
+      "api_use_payroll_mutations_useupdatebonusconfig",
+      "api_use_payroll_mutations_useupdateemployeesalary",
+      "api_use_payroll_mutations_useupdateesiconfig",
+      "api_use_payroll_mutations_useupdategratuityconfig",
+      "api_use_payroll_mutations_useupdateloan",
+      "api_use_payroll_mutations_useupdateloanpolicy",
+      "api_use_payroll_mutations_useupdateloanstatus",
+      "api_use_payroll_mutations_useupdatelwfconfig",
+      "api_use_payroll_mutations_useupdatepfconfig",
+      "api_use_payroll_mutations_useupdateptconfig",
+      "api_use_payroll_mutations_useupdatesalarycomponent",
+      "api_use_payroll_mutations_useupdatesalarystructure",
+      "api_use_payroll_mutations_useupdatetaxconfig",
+      "src_features_company_admin_api_use_payroll_mutations_ts"
+    ],
+    "15": [
+      "api_use_performance_mutations_useactivateappraisalcycle",
+      "api_use_performance_mutations_usecloseappraisalcycle",
+      "api_use_performance_mutations_usecreateappraisalcycle",
+      "api_use_performance_mutations_usecreatefeedback360",
+      "api_use_performance_mutations_usecreategoal",
+      "api_use_performance_mutations_usecreateskill",
+      "api_use_performance_mutations_usecreateskillmapping",
+      "api_use_performance_mutations_usecreatesuccessionplan",
+      "api_use_performance_mutations_usedeleteappraisalcycle",
+      "api_use_performance_mutations_usedeletegoal",
+      "api_use_performance_mutations_usedeleteskill",
+      "api_use_performance_mutations_usedeleteskillmapping",
+      "api_use_performance_mutations_usedeletesuccessionplan",
+      "api_use_performance_mutations_usepublishappraisalcycle",
+      "api_use_performance_mutations_usepublishappraisalentry",
+      "api_use_performance_mutations_usesubmitmanagerreview",
+      "api_use_performance_mutations_usesubmitselfreview",
+      "api_use_performance_mutations_useupdateappraisalcycle",
+      "api_use_performance_mutations_useupdateappraisalentry",
+      "api_use_performance_mutations_useupdatefeedback360",
+      "api_use_performance_mutations_useupdategoal",
+      "api_use_performance_mutations_useupdateskill",
+      "api_use_performance_mutations_useupdateskillmapping",
+      "api_use_performance_mutations_useupdatesuccessionplan",
+      "src_features_company_admin_api_use_performance_mutations_ts"
+    ],
+    "16": [
+      "src_features_super_admin_tenant_onboarding_index_tsx",
+      "src_features_super_admin_tenant_onboarding_schemas_ts",
+      "tenant_onboarding_index_handleback",
+      "tenant_onboarding_index_handlecreatecompany",
+      "tenant_onboarding_index_handlenext",
+      "tenant_onboarding_index_handlesavedraft",
+      "tenant_onboarding_index_merge1",
+      "tenant_onboarding_index_merge11",
+      "tenant_onboarding_index_merge2",
+      "tenant_onboarding_index_merge3",
+      "tenant_onboarding_index_merge4",
+      "tenant_onboarding_index_merge5",
+      "tenant_onboarding_index_merge6",
+      "tenant_onboarding_index_mergeplants",
+      "tenant_onboarding_index_mergeshifts",
+      "tenant_onboarding_index_mergestrategy",
+      "tenant_onboarding_index_renderstep",
+      "tenant_onboarding_index_updatelocationcommercial",
+      "tenant_onboarding_index_validatecurrentstep",
+      "tenant_onboarding_schemas_getstep2schema",
+      "tenant_onboarding_schemas_validatearraystep",
+      "tenant_onboarding_schemas_validatestep"
+    ],
+    "17": [
+      "hr_admin_attendance_screen_activityicon",
+      "hr_admin_attendance_screen_bookicon",
+      "hr_admin_attendance_screen_calendaricon",
+      "hr_admin_attendance_screen_checkcircleicon",
+      "hr_admin_attendance_screen_checksquareicon",
+      "hr_admin_attendance_screen_chevrondownicon",
+      "hr_admin_attendance_screen_clockicon",
+      "hr_admin_attendance_screen_derivebookstatus",
+      "hr_admin_attendance_screen_getinitials",
+      "hr_admin_attendance_screen_gettodaydatestring",
+      "hr_admin_attendance_screen_lockicon",
+      "hr_admin_attendance_screen_mappinicon",
+      "hr_admin_attendance_screen_saveicon",
+      "hr_admin_attendance_screen_searchicon",
+      "hr_admin_attendance_screen_shieldicon",
+      "hr_admin_attendance_screen_squareicon",
+      "hr_admin_attendance_screen_statusbadge",
+      "hr_admin_attendance_screen_usedebounce",
+      "hr_admin_attendance_screen_usericon",
+      "hr_admin_attendance_screen_usersicon",
+      "hr_admin_attendance_screen_xicon",
+      "src_features_company_admin_hr_admin_attendance_screen_tsx"
+    ],
+    "18": [
+      "api_use_visitor_queries_usedailylog",
+      "api_use_visitor_queries_usedashboardstats",
+      "api_use_visitor_queries_usedashboardtoday",
+      "api_use_visitor_queries_usedeniedentries",
+      "api_use_visitor_queries_usegates",
+      "api_use_visitor_queries_usegroupvisits",
+      "api_use_visitor_queries_usematerialpasses",
+      "api_use_visitor_queries_usemusterlist",
+      "api_use_visitor_queries_useonsitevisitors",
+      "api_use_visitor_queries_useoverstayreport",
+      "api_use_visitor_queries_userecurringpasses",
+      "api_use_visitor_queries_usereportsummary",
+      "api_use_visitor_queries_usesafetyinductions",
+      "api_use_visitor_queries_usevehiclepasses",
+      "api_use_visitor_queries_usevisit",
+      "api_use_visitor_queries_usevisithistory",
+      "api_use_visitor_queries_usevisitoranalytics",
+      "api_use_visitor_queries_usevisitortypes",
+      "api_use_visitor_queries_usevisits",
+      "api_use_visitor_queries_usevmsconfig",
+      "api_use_visitor_queries_usewatchlist",
+      "src_features_company_admin_api_use_visitor_queries_ts"
+    ],
+    "19": [
+      "api_use_hr_queries_downloadbulkemployeetemplate",
+      "api_use_hr_queries_usecostcentre",
+      "api_use_hr_queries_usecostcentres",
+      "api_use_hr_queries_usedepartment",
+      "api_use_hr_queries_usedepartments",
+      "api_use_hr_queries_usedesignation",
+      "api_use_hr_queries_usedesignations",
+      "api_use_hr_queries_useemployee",
+      "api_use_hr_queries_useemployeedocuments",
+      "api_use_hr_queries_useemployeeeducation",
+      "api_use_hr_queries_useemployeenominees",
+      "api_use_hr_queries_useemployeeprevemployment",
+      "api_use_hr_queries_useemployees",
+      "api_use_hr_queries_useemployeetimeline",
+      "api_use_hr_queries_useemployeetype",
+      "api_use_hr_queries_useemployeetypes",
+      "api_use_hr_queries_usegrade",
+      "api_use_hr_queries_usegrades",
+      "api_use_hr_queries_useorgchart",
+      "api_use_hr_queries_useprobationdue",
+      "src_features_company_admin_api_use_hr_queries_ts"
+    ],
+    "20": [
+      "api_use_performance_queries_useappraisalcycle",
+      "api_use_performance_queries_useappraisalcycles",
+      "api_use_performance_queries_useappraisalentries",
+      "api_use_performance_queries_useappraisalentry",
+      "api_use_performance_queries_usebenchstrength",
+      "api_use_performance_queries_usecalibrationdata",
+      "api_use_performance_queries_usedepartmentgoals",
+      "api_use_performance_queries_usefeedback360",
+      "api_use_performance_queries_usefeedback360list",
+      "api_use_performance_queries_usefeedback360report",
+      "api_use_performance_queries_usegoal",
+      "api_use_performance_queries_usegoals",
+      "api_use_performance_queries_usenineboxdata",
+      "api_use_performance_queries_useperformancedashboard",
+      "api_use_performance_queries_useskill",
+      "api_use_performance_queries_useskillgapanalysis",
+      "api_use_performance_queries_useskillmappings",
+      "api_use_performance_queries_useskills",
+      "api_use_performance_queries_usesuccessionplan",
+      "api_use_performance_queries_usesuccessionplans",
+      "src_features_company_admin_api_use_performance_queries_ts"
+    ],
+    "21": [
+      "api_use_payroll_run_mutations_useapplysalaryrevision",
+      "api_use_payroll_run_mutations_useapproverun",
+      "api_use_payroll_run_mutations_useapprovesalaryrevision",
+      "api_use_payroll_run_mutations_usebulkemailform16",
+      "api_use_payroll_run_mutations_usecomputesalaries",
+      "api_use_payroll_run_mutations_usecomputestatutory",
+      "api_use_payroll_run_mutations_usecreatepayrollrun",
+      "api_use_payroll_run_mutations_usecreatesalaryhold",
+      "api_use_payroll_run_mutations_usecreatesalaryrevision",
+      "api_use_payroll_run_mutations_usecreatestatutoryfiling",
+      "api_use_payroll_run_mutations_usedisburserun",
+      "api_use_payroll_run_mutations_useemailpayslip",
+      "api_use_payroll_run_mutations_usegenerateform16",
+      "api_use_payroll_run_mutations_usegenerateform24q",
+      "api_use_payroll_run_mutations_usegeneratepayslips",
+      "api_use_payroll_run_mutations_uselockattendance",
+      "api_use_payroll_run_mutations_useoverridepayrollentry",
+      "api_use_payroll_run_mutations_usereleasesalaryhold",
+      "api_use_payroll_run_mutations_usereviewexceptions",
+      "api_use_payroll_run_mutations_useupdatestatutoryfiling",
+      "src_features_company_admin_api_use_payroll_run_mutations_ts"
+    ],
+    "22": [
+      "api_use_payroll_run_queries_usearrearentries",
+      "api_use_payroll_run_queries_usebankfile",
+      "api_use_payroll_run_queries_useesichallan",
+      "api_use_payroll_run_queries_usepayrollentries",
+      "api_use_payroll_run_queries_usepayrollentry",
+      "api_use_payroll_run_queries_usepayrollrun",
+      "api_use_payroll_run_queries_usepayrollruns",
+      "api_use_payroll_run_queries_usepayslip",
+      "api_use_payroll_run_queries_usepayslips",
+      "api_use_payroll_run_queries_usepfecr",
+      "api_use_payroll_run_queries_useptchallan",
+      "api_use_payroll_run_queries_usesalaryholds",
+      "api_use_payroll_run_queries_usesalaryregister",
+      "api_use_payroll_run_queries_usesalaryrevision",
+      "api_use_payroll_run_queries_usesalaryrevisions",
+      "api_use_payroll_run_queries_usestatutorydashboard",
+      "api_use_payroll_run_queries_usestatutoryfilings",
+      "api_use_payroll_run_queries_usevariancereport",
+      "src_features_company_admin_api_use_payroll_run_queries_ts"
+    ],
+    "23": [
+      "api_use_payroll_queries_usebankconfig",
+      "api_use_payroll_queries_usebonusconfig",
+      "api_use_payroll_queries_useemployeesalaries",
+      "api_use_payroll_queries_useemployeesalary",
+      "api_use_payroll_queries_useesiconfig",
+      "api_use_payroll_queries_usegratuityconfig",
+      "api_use_payroll_queries_useloanpolicies",
+      "api_use_payroll_queries_useloanpolicy",
+      "api_use_payroll_queries_useloans",
+      "api_use_payroll_queries_uselwfconfigs",
+      "api_use_payroll_queries_usepfconfig",
+      "api_use_payroll_queries_useptconfigs",
+      "api_use_payroll_queries_usesalarycomponent",
+      "api_use_payroll_queries_usesalarycomponents",
+      "api_use_payroll_queries_usesalarystructure",
+      "api_use_payroll_queries_usesalarystructures",
+      "api_use_payroll_queries_usetaxconfig",
+      "api_use_payroll_queries_usetraveladvances",
+      "src_features_company_admin_api_use_payroll_queries_ts"
+    ],
+    "24": [
+      "api_use_attendance_mutations_useapproveovertimerequest",
+      "api_use_attendance_mutations_usecloneholidays",
+      "api_use_attendance_mutations_usecreateattendanceoverride",
+      "api_use_attendance_mutations_usecreateattendancerecord",
+      "api_use_attendance_mutations_usecreateholiday",
+      "api_use_attendance_mutations_usecreateroster",
+      "api_use_attendance_mutations_usedeleteholiday",
+      "api_use_attendance_mutations_usedeleteroster",
+      "api_use_attendance_mutations_useeditpunches",
+      "api_use_attendance_mutations_usemarkreviewed",
+      "api_use_attendance_mutations_userejectovertimerequest",
+      "api_use_attendance_mutations_useremapshift",
+      "api_use_attendance_mutations_useupdateattendanceoverride",
+      "api_use_attendance_mutations_useupdateattendancerecord",
+      "api_use_attendance_mutations_useupdateattendancerules",
+      "api_use_attendance_mutations_useupdateholiday",
+      "api_use_attendance_mutations_useupdateovertimerules",
+      "api_use_attendance_mutations_useupdateroster",
+      "src_features_company_admin_api_use_attendance_mutations_ts"
+    ],
+    "25": [
+      "src_components_ui_utils_tsx",
+      "src_features_company_admin_visitors_gate_check_in_screen_tsx",
+      "src_features_company_admin_visitors_pre_register_visitor_screen_tsx",
+      "ui_utils_extracterror",
+      "ui_utils_showerror",
+      "ui_utils_showinfo",
+      "ui_utils_showwarning",
+      "visitors_gate_check_in_screen_capturephoto",
+      "visitors_gate_check_in_screen_handlebarcodescanned",
+      "visitors_gate_check_in_screen_handlecodecheckin",
+      "visitors_gate_check_in_screen_handleexpectedcheckin",
+      "visitors_gate_check_in_screen_handlescanqr",
+      "visitors_gate_check_in_screen_handlesubmit",
+      "visitors_gate_check_in_screen_handlewalkinsubmit",
+      "visitors_gate_check_in_screen_validate",
+      "visitors_pre_register_visitor_screen_capturephoto",
+      "visitors_pre_register_visitor_screen_handlesubmit",
+      "visitors_pre_register_visitor_screen_validate"
+    ],
+    "26": [
+      "company_admin_company_profile_screen_booleanchip",
+      "company_admin_company_profile_screen_chiprow",
+      "company_admin_company_profile_screen_getautodeps",
+      "company_admin_company_profile_screen_getlocationbillingtype",
+      "company_admin_company_profile_screen_handleaddmodule",
+      "company_admin_company_profile_screen_handlechange",
+      "company_admin_company_profile_screen_handleremovemodule",
+      "company_admin_company_profile_screen_handlesave",
+      "company_admin_company_profile_screen_inforow",
+      "company_admin_company_profile_screen_lockicon",
+      "company_admin_company_profile_screen_mapapitoprofile",
+      "company_admin_company_profile_screen_openedit",
+      "company_admin_company_profile_screen_pencilbutton",
+      "company_admin_company_profile_screen_sectionheader",
+      "company_admin_company_profile_screen_sectionicon",
+      "company_admin_company_profile_screen_statcard",
+      "company_admin_company_profile_screen_validate",
+      "src_features_company_admin_company_profile_screen_tsx"
+    ],
+    "27": [
+      "hr_shift_rotation_screen_addshift",
+      "hr_shift_rotation_screen_handleadd",
+      "hr_shift_rotation_screen_handleassign",
+      "hr_shift_rotation_screen_handledelete",
+      "hr_shift_rotation_screen_handleedit",
+      "hr_shift_rotation_screen_handleexecute",
+      "hr_shift_rotation_screen_handleremoveemployee",
+      "hr_shift_rotation_screen_handlesave",
+      "hr_shift_rotation_screen_handleshiftselected",
+      "hr_shift_rotation_screen_openshiftpicker",
+      "hr_shift_rotation_screen_patternbadge",
+      "hr_shift_rotation_screen_removeshift",
+      "hr_shift_rotation_screen_renderitem",
+      "hr_shift_rotation_screen_toggleemployee",
+      "src_features_company_admin_hr_shift_rotation_screen_tsx"
+    ],
+    "28": [
+      "hr_candidate_detail_screen_getactivedata",
+      "hr_candidate_detail_screen_getactivefetching",
+      "hr_candidate_detail_screen_getactiveloading",
+      "hr_candidate_detail_screen_getactiverefetch",
+      "hr_candidate_detail_screen_handleconverttoemployee",
+      "hr_candidate_detail_screen_handledeletedocument",
+      "hr_candidate_detail_screen_handledeleteeducation",
+      "hr_candidate_detail_screen_handledeleteexperience",
+      "hr_candidate_detail_screen_handlefab",
+      "hr_candidate_detail_screen_handlesavedocument",
+      "hr_candidate_detail_screen_handlesaveeducation",
+      "hr_candidate_detail_screen_handlesaveexperience",
+      "hr_candidate_detail_screen_sourcebadge",
+      "hr_candidate_detail_screen_stagebadge",
+      "src_features_company_admin_hr_candidate_detail_screen_tsx"
+    ],
+    "29": [
+      "hr_shift_check_in_screen_activityicon",
+      "hr_shift_check_in_screen_arrowicon",
+      "hr_shift_check_in_screen_brieficon",
+      "hr_shift_check_in_screen_calendaricon",
+      "hr_shift_check_in_screen_checkicon",
+      "hr_shift_check_in_screen_clockicon",
+      "hr_shift_check_in_screen_fmtdur",
+      "hr_shift_check_in_screen_fmttime",
+      "hr_shift_check_in_screen_mappinicon",
+      "hr_shift_check_in_screen_parseworkedhours",
+      "hr_shift_check_in_screen_shieldicon",
+      "hr_shift_check_in_screen_statusbadge",
+      "hr_shift_check_in_screen_timericon",
+      "hr_shift_check_in_screen_warnicon",
+      "src_features_company_admin_hr_shift_check_in_screen_tsx"
+    ],
+    "30": [
+      "cli_clone_repo_clonelasttemplaterelease",
+      "cli_clone_repo_getlatestrelease",
+      "cli_clone_repo_js",
+      "cli_setup_project_initgit",
+      "cli_setup_project_installdeps",
+      "cli_setup_project_js",
+      "cli_setup_project_removefiles",
+      "cli_setup_project_setupproject",
+      "cli_setup_project_updatepackageinfos",
+      "cli_setup_project_updateprojectconfig",
+      "cli_utils_execshellcommand",
+      "cli_utils_js",
+      "cli_utils_runcommand",
+      "cli_utils_showmoredetails"
+    ],
+    "31": [
+      "company_admin_role_management_screen_applytemplate",
+      "company_admin_role_management_screen_getmodulepermcount",
+      "company_admin_role_management_screen_handleadd",
+      "company_admin_role_management_screen_handledelete",
+      "company_admin_role_management_screen_handleedit",
+      "company_admin_role_management_screen_handlesubmit",
+      "company_admin_role_management_screen_mapapirole",
+      "company_admin_role_management_screen_mapreferencerole",
+      "company_admin_role_management_screen_toggleallmoduleperms",
+      "company_admin_role_management_screen_togglemodule",
+      "company_admin_role_management_screen_togglepermission",
+      "company_admin_role_management_screen_validate",
+      "src_features_company_admin_role_management_screen_tsx"
+    ],
+    "32": [
+      "hr_statutory_config_screen_addslab",
+      "hr_statutory_config_screen_handledeletelwf",
+      "hr_statutory_config_screen_handledeletept",
+      "hr_statutory_config_screen_handlesave",
+      "hr_statutory_config_screen_handlesavebonus",
+      "hr_statutory_config_screen_handlesaveesi",
+      "hr_statutory_config_screen_handlesavegratuity",
+      "hr_statutory_config_screen_handlesavepf",
+      "hr_statutory_config_screen_removeslab",
+      "hr_statutory_config_screen_togglesection",
+      "hr_statutory_config_screen_triggertoast",
+      "hr_statutory_config_screen_updateslab",
+      "src_features_company_admin_hr_statutory_config_screen_tsx"
+    ],
+    "33": [
+      "api_use_leave_mutations_useadjustleavebalance",
+      "api_use_leave_mutations_useapproveleaverequest",
+      "api_use_leave_mutations_usecancelleaverequest",
+      "api_use_leave_mutations_usecreateleavepolicy",
+      "api_use_leave_mutations_usecreateleaverequest",
+      "api_use_leave_mutations_usecreateleavetype",
+      "api_use_leave_mutations_usedeleteleavepolicy",
+      "api_use_leave_mutations_usedeleteleavetype",
+      "api_use_leave_mutations_useinitializeleavebalances",
+      "api_use_leave_mutations_userejectleaverequest",
+      "api_use_leave_mutations_useupdateleavepolicy",
+      "api_use_leave_mutations_useupdateleavetype",
+      "src_features_company_admin_api_use_leave_mutations_ts"
+    ],
+    "34": [
+      "api_use_transfer_mutations_useapplypromotion",
+      "api_use_transfer_mutations_useapplytransfer",
+      "api_use_transfer_mutations_useapprovepromotion",
+      "api_use_transfer_mutations_useapprovetransfer",
+      "api_use_transfer_mutations_usecancelpromotion",
+      "api_use_transfer_mutations_usecanceltransfer",
+      "api_use_transfer_mutations_usecreatedelegate",
+      "api_use_transfer_mutations_usecreatepromotion",
+      "api_use_transfer_mutations_usecreatetransfer",
+      "api_use_transfer_mutations_userejectpromotion",
+      "api_use_transfer_mutations_userejecttransfer",
+      "api_use_transfer_mutations_userevokedelegate",
+      "src_features_company_admin_api_use_transfer_mutations_ts"
+    ],
+    "35": [
+      "ess_my_loan_screen_handleapply",
+      "hr_employee_detail_screen_formatcurrency",
+      "hr_expenses_screen_formatdate",
+      "hr_expenses_screen_handleapprove",
+      "hr_expenses_screen_handlereject",
+      "hr_expenses_screen_handlesave",
+      "hr_fnf_settlement_screen_handleapprove",
+      "hr_fnf_settlement_screen_handlecompute",
+      "hr_fnf_settlement_screen_handlepay",
+      "src_features_company_admin_hr_expenses_screen_tsx",
+      "src_features_company_admin_hr_fnf_settlement_screen_tsx",
+      "src_features_ess_my_loan_screen_tsx"
+    ],
+    "36": [
+      "hr_tax_config_screen_addnewslab",
+      "hr_tax_config_screen_addoldslab",
+      "hr_tax_config_screen_addsurcharge",
+      "hr_tax_config_screen_handlesave",
+      "hr_tax_config_screen_removenewslab",
+      "hr_tax_config_screen_removeoldslab",
+      "hr_tax_config_screen_removesurcharge",
+      "hr_tax_config_screen_updateform",
+      "hr_tax_config_screen_updatenewslab",
+      "hr_tax_config_screen_updateoldslab",
+      "hr_tax_config_screen_updatesurcharge",
+      "src_features_company_admin_hr_tax_config_screen_tsx"
+    ],
+    "37": [
+      "hr_production_incentive_screen_addslab",
+      "hr_production_incentive_screen_basisbadge",
+      "hr_production_incentive_screen_handleadd",
+      "hr_production_incentive_screen_handlecompute",
+      "hr_production_incentive_screen_handledelete",
+      "hr_production_incentive_screen_handleedit",
+      "hr_production_incentive_screen_handlemerge",
+      "hr_production_incentive_screen_handlesave",
+      "hr_production_incentive_screen_removeslab",
+      "hr_production_incentive_screen_statusbadge",
+      "hr_production_incentive_screen_updateslab",
+      "src_features_company_admin_hr_production_incentive_screen_tsx"
+    ],
+    "38": [
+      "hr_approval_workflow_screen_addstep",
+      "hr_approval_workflow_screen_gettriggercolor",
+      "hr_approval_workflow_screen_handlecreate",
+      "hr_approval_workflow_screen_handledelete",
+      "hr_approval_workflow_screen_handleedit",
+      "hr_approval_workflow_screen_handlesave",
+      "hr_approval_workflow_screen_handletoggle",
+      "hr_approval_workflow_screen_removestep",
+      "hr_approval_workflow_screen_renderheader",
+      "hr_approval_workflow_screen_renderitem",
+      "hr_approval_workflow_screen_updatestep",
+      "src_features_company_admin_hr_approval_workflow_screen_tsx"
+    ],
+    "39": [
+      "api_use_attendance_queries_useattendanceoverrides",
+      "api_use_attendance_queries_useattendancerecord",
+      "api_use_attendance_queries_useattendancerecords",
+      "api_use_attendance_queries_useattendancerules",
+      "api_use_attendance_queries_useattendancesummary",
+      "api_use_attendance_queries_useholidays",
+      "api_use_attendance_queries_useovertimerequests",
+      "api_use_attendance_queries_useovertimerules",
+      "api_use_attendance_queries_userosters",
+      "api_use_attendance_queries_useweeklyreview",
+      "api_use_attendance_queries_useweeklyreviewsummary",
+      "src_features_company_admin_api_use_attendance_queries_ts"
+    ],
+    "40": [
+      "hr_promotion_screen_formatcurrency",
+      "hr_promotion_screen_formatdate",
+      "hr_promotion_screen_handleapply",
+      "hr_promotion_screen_handleapprove",
+      "hr_promotion_screen_handlecancel",
+      "hr_promotion_screen_handlecreate",
+      "hr_promotion_screen_handlereject",
+      "hr_promotion_screen_handlerejectsubmit",
+      "hr_promotion_screen_handlesave",
+      "hr_promotion_screen_renderitem",
+      "src_features_company_admin_hr_promotion_screen_tsx"
+    ],
+    "41": [
+      "hr_data_retention_screen_handleaddpolicy",
+      "hr_data_retention_screen_handlecheckdue",
+      "hr_data_retention_screen_handledeletepolicy",
+      "hr_data_retention_screen_handleeditpolicy",
+      "hr_data_retention_screen_handleprocessrequest",
+      "hr_data_retention_screen_handlesavepolicy",
+      "hr_data_retention_screen_handletoggleconsent",
+      "hr_data_retention_screen_renderitem",
+      "hr_data_retention_screen_statusbadge",
+      "hr_data_retention_screen_typebadge",
+      "src_features_company_admin_hr_data_retention_screen_tsx"
+    ],
+    "42": [
+      "src_features_super_admin_subscription_detail_screen_tsx",
+      "super_admin_subscription_detail_screen_amcstatusbadge",
+      "super_admin_subscription_detail_screen_amcstatuscolor",
+      "super_admin_subscription_detail_screen_backbutton",
+      "super_admin_subscription_detail_screen_billingtypebadge",
+      "super_admin_subscription_detail_screen_formatcurrency",
+      "super_admin_subscription_detail_screen_formatdate",
+      "super_admin_subscription_detail_screen_isreactivatable",
+      "super_admin_subscription_detail_screen_tierbadge",
+      "super_admin_subscription_detail_screen_tostatusbadgetype"
+    ],
+    "43": [
+      "company_admin_dashboard_screen_async",
+      "company_admin_dashboard_screen_getbgcolor",
+      "company_admin_dashboard_screen_getcolor",
+      "company_admin_dashboard_screen_kpiicon",
+      "company_admin_dashboard_screen_mapactivitytype",
+      "company_admin_dashboard_screen_mapwizardstatustobadge",
+      "company_admin_dashboard_screen_quickactionicon",
+      "company_admin_dashboard_screen_timeago",
+      "company_admin_dashboard_screen_useresponsivewidths",
+      "src_features_company_admin_dashboard_screen_tsx"
+    ],
+    "44": [
+      "hr_bonus_batch_screen_getempname",
+      "hr_bonus_batch_screen_handleapprove",
+      "hr_bonus_batch_screen_handlecreate",
+      "hr_bonus_batch_screen_handleempselect",
+      "hr_bonus_batch_screen_handlemerge",
+      "hr_bonus_batch_screen_handleopenmerge",
+      "hr_bonus_batch_screen_handleviewdetail",
+      "hr_bonus_batch_screen_statusbadge",
+      "hr_bonus_batch_screen_typebadge",
+      "src_features_company_admin_hr_bonus_batch_screen_tsx"
+    ],
+    "45": [
+      "hr_cost_centre_screen_formatcurrency",
+      "hr_cost_centre_screen_generatecode",
+      "hr_cost_centre_screen_handleadd",
+      "hr_cost_centre_screen_handledelete",
+      "hr_cost_centre_screen_handleedit",
+      "hr_cost_centre_screen_handlesave",
+      "hr_cost_centre_screen_renderheader",
+      "hr_cost_centre_screen_triggertoast",
+      "hr_cost_centre_screen_validate",
+      "src_features_company_admin_hr_cost_centre_screen_tsx"
+    ],
+    "46": [
+      "hr_payroll_run_screen_formatcurrency",
+      "hr_payroll_run_screen_formatdate",
+      "hr_payroll_run_screen_handleapprove",
+      "hr_payroll_run_screen_handlecompute",
+      "hr_payroll_run_screen_handlecreaterun",
+      "hr_payroll_run_screen_handledisburse",
+      "hr_payroll_run_screen_handlelock",
+      "hr_payroll_run_screen_handlereview",
+      "hr_payroll_run_screen_handlestatutory",
+      "src_features_company_admin_hr_payroll_run_screen_tsx"
+    ],
+    "47": [
+      "hr_skills_screen_handleaddskill",
+      "hr_skills_screen_handledeletemapping",
+      "hr_skills_screen_handledeleteskill",
+      "hr_skills_screen_handleeditskill",
+      "hr_skills_screen_handlesavemapping",
+      "hr_skills_screen_handlesaveskill",
+      "hr_skills_screen_rendermappingitem",
+      "hr_skills_screen_renderskillitem",
+      "hr_skills_screen_update",
+      "src_features_company_admin_hr_skills_screen_tsx"
+    ],
+    "48": [
+      "hr_transfer_screen_formatdate",
+      "hr_transfer_screen_handleapply",
+      "hr_transfer_screen_handleapprove",
+      "hr_transfer_screen_handlecancel",
+      "hr_transfer_screen_handlecreate",
+      "hr_transfer_screen_handlereject",
+      "hr_transfer_screen_handlerejectsubmit",
+      "hr_transfer_screen_handlesave",
+      "hr_transfer_screen_renderitem",
+      "src_features_company_admin_hr_transfer_screen_tsx"
+    ],
+    "49": [
+      "hr_salary_structure_screen_addcomponent",
+      "hr_salary_structure_screen_handleadd",
+      "hr_salary_structure_screen_handledelete",
+      "hr_salary_structure_screen_handleedit",
+      "hr_salary_structure_screen_handlesave",
+      "hr_salary_structure_screen_removecomponent",
+      "hr_salary_structure_screen_togglearray",
+      "hr_salary_structure_screen_tooptions",
+      "hr_salary_structure_screen_updatecomponent",
+      "src_features_company_admin_hr_salary_structure_screen_tsx"
+    ],
+    "50": [
+      "hr_biometric_device_screen_formatsynctime",
+      "hr_biometric_device_screen_handleadd",
+      "hr_biometric_device_screen_handledelete",
+      "hr_biometric_device_screen_handleedit",
+      "hr_biometric_device_screen_handlesave",
+      "hr_biometric_device_screen_handlesync",
+      "hr_biometric_device_screen_handletest",
+      "hr_biometric_device_screen_renderitem",
+      "hr_biometric_device_screen_statusbadge",
+      "src_features_company_admin_hr_biometric_device_screen_tsx"
+    ],
+    "51": [
+      "api_use_retention_mutations_useanonymise",
+      "api_use_retention_mutations_usecreateconsent",
+      "api_use_retention_mutations_usecreatedatarequest",
+      "api_use_retention_mutations_usecreateretentionpolicy",
+      "api_use_retention_mutations_usedeleteretentionpolicy",
+      "api_use_retention_mutations_useexportdata",
+      "api_use_retention_mutations_useupdateconsent",
+      "api_use_retention_mutations_useupdatedatarequest",
+      "api_use_retention_mutations_useupdateretentionpolicy",
+      "src_features_company_admin_api_use_retention_mutations_ts"
+    ],
+    "52": [
+      "src_features_super_admin_invoice_detail_screen_tsx",
+      "super_admin_invoice_detail_screen_formatcurrency",
+      "super_admin_invoice_detail_screen_formatdate",
+      "super_admin_invoice_detail_screen_formatdatetime",
+      "super_admin_invoice_detail_screen_handleconfirm",
+      "super_admin_invoice_detail_screen_handlemarkaspaid",
+      "super_admin_invoice_detail_screen_handlesendemail",
+      "super_admin_invoice_detail_screen_handlevoid",
+      "super_admin_invoice_detail_screen_tostatusbadge"
+    ],
+    "53": [
+      "hr_leave_request_screen_handleapplyleave",
+      "hr_leave_request_screen_handleapprove",
+      "hr_leave_request_screen_handlecancel",
+      "hr_leave_request_screen_handlereject",
+      "hr_leave_request_screen_handlerejectsubmit",
+      "hr_leave_request_screen_handlesave",
+      "hr_leave_request_screen_mapoptions",
+      "hr_leave_request_screen_rendersectionitem",
+      "src_features_company_admin_hr_leave_request_screen_tsx"
+    ],
+    "54": [
+      "auth_use_auth_mutations_usechangepasswordmutation",
+      "auth_use_auth_mutations_useforgotpasswordmutation",
+      "auth_use_auth_mutations_useloginmutation",
+      "auth_use_auth_mutations_uselogoutmutation",
+      "auth_use_auth_mutations_usemfaverifymutation",
+      "auth_use_auth_mutations_useresetpasswordmutation",
+      "auth_use_auth_mutations_useverifyresetcodemutation",
+      "src_features_auth_use_auth_mutations_ts"
+    ],
+    "55": [
+      "src_features_super_admin_payment_history_screen_tsx",
+      "super_admin_payment_history_screen_formatcurrency",
+      "super_admin_payment_history_screen_formatdate",
+      "super_admin_payment_history_screen_formatmethodlabel",
+      "super_admin_payment_history_screen_handleclose",
+      "super_admin_payment_history_screen_handlerecordpayment",
+      "super_admin_payment_history_screen_handlesubmit",
+      "super_admin_payment_history_screen_resetform"
+    ],
+    "56": [
+      "api_use_subscription_queries_usecancelsubscription",
+      "api_use_subscription_queries_usechangebillingtype",
+      "api_use_subscription_queries_usechangetier",
+      "api_use_subscription_queries_usecostpreview",
+      "api_use_subscription_queries_useextendtrial",
+      "api_use_subscription_queries_usereactivatesubscription",
+      "api_use_subscription_queries_usesubscriptiondetail",
+      "src_features_super_admin_api_use_subscription_queries_ts"
+    ],
+    "57": [
+      "api_use_dashboard_queries_usebillingsummary",
+      "api_use_dashboard_queries_usecompanyadminstats",
+      "api_use_dashboard_queries_useinvoices",
+      "api_use_dashboard_queries_userecentactivity",
+      "api_use_dashboard_queries_userevenuechart",
+      "api_use_dashboard_queries_userevenuemetrics",
+      "api_use_dashboard_queries_usesuperadminstats",
+      "src_features_super_admin_api_use_dashboard_queries_ts"
+    ],
+    "58": [
+      "src_features_company_admin_visitors_visitor_type_screen_tsx",
+      "visitors_visitor_type_screen_handleactivate",
+      "visitors_visitor_type_screen_handleadd",
+      "visitors_visitor_type_screen_handledeactivate",
+      "visitors_visitor_type_screen_handledelete",
+      "visitors_visitor_type_screen_handleedit",
+      "visitors_visitor_type_screen_handlesave",
+      "visitors_visitor_type_screen_validate"
+    ],
+    "59": [
+      "src_features_company_admin_visitors_recurring_passes_screen_tsx",
+      "visitors_recurring_passes_screen_handlecheckin",
+      "visitors_recurring_passes_screen_handlecreate",
+      "visitors_recurring_passes_screen_handlerevoke",
+      "visitors_recurring_passes_screen_handlesave",
+      "visitors_recurring_passes_screen_handleshareqr",
+      "visitors_recurring_passes_screen_renderitem",
+      "visitors_recurring_passes_screen_validate"
+    ],
+    "60": [
+      "hr_onboarding_screen_defaultbadge",
+      "hr_onboarding_screen_handleadd",
+      "hr_onboarding_screen_handledelete",
+      "hr_onboarding_screen_handleedit",
+      "hr_onboarding_screen_handlesave",
+      "hr_onboarding_screen_handletaskaction",
+      "hr_onboarding_screen_statusbadge",
+      "src_features_company_admin_hr_onboarding_screen_tsx"
+    ],
+    "61": [
+      "hr_statutory_filing_screen_filingtypebadge",
+      "hr_statutory_filing_screen_formatcurrency",
+      "hr_statutory_filing_screen_formatdate",
+      "hr_statutory_filing_screen_handlemarkfiled",
+      "hr_statutory_filing_screen_handlemarkverified",
+      "hr_statutory_filing_screen_handlesave",
+      "hr_statutory_filing_screen_string",
+      "src_features_company_admin_hr_statutory_filing_screen_tsx"
+    ],
+    "62": [
+      "hr_approval_request_screen_buildsummary",
+      "hr_approval_request_screen_extractemployeename",
+      "hr_approval_request_screen_handleapprove",
+      "hr_approval_request_screen_handlereject",
+      "hr_approval_request_screen_parseitems",
+      "hr_approval_request_screen_renderitem",
+      "hr_approval_request_screen_titlecasestatus",
+      "src_features_company_admin_hr_approval_request_screen_tsx"
+    ],
+    "63": [
+      "hr_grade_screen_formatcurrency",
+      "hr_grade_screen_handleadd",
+      "hr_grade_screen_handledelete",
+      "hr_grade_screen_handleedit",
+      "hr_grade_screen_handlesave",
+      "hr_grade_screen_triggertoast",
+      "hr_grade_screen_validate",
+      "src_features_company_admin_hr_grade_screen_tsx"
+    ],
+    "64": [
+      "hr_designation_screen_generatecode",
+      "hr_designation_screen_handleadd",
+      "hr_designation_screen_handledelete",
+      "hr_designation_screen_handleedit",
+      "hr_designation_screen_handlesave",
+      "hr_designation_screen_triggertoast",
+      "hr_designation_screen_validate",
+      "src_features_company_admin_hr_designation_screen_tsx"
+    ],
+    "65": [
+      "hr_department_screen_generatecode",
+      "hr_department_screen_handleadd",
+      "hr_department_screen_handledelete",
+      "hr_department_screen_handleedit",
+      "hr_department_screen_handlesave",
+      "hr_department_screen_triggertoast",
+      "hr_department_screen_validate",
+      "src_features_company_admin_hr_department_screen_tsx"
+    ],
+    "66": [
+      "hr_loan_policy_screen_formatcurrency",
+      "hr_loan_policy_screen_handleadd",
+      "hr_loan_policy_screen_handledelete",
+      "hr_loan_policy_screen_handleedit",
+      "hr_loan_policy_screen_handlesave",
+      "hr_loan_policy_screen_toggleemptype",
+      "hr_loan_policy_screen_update",
+      "src_features_company_admin_hr_loan_policy_screen_tsx"
+    ],
+    "67": [
+      "hr_roster_screen_handleadd",
+      "hr_roster_screen_handledelete",
+      "hr_roster_screen_handleedit",
+      "hr_roster_screen_handlesave",
+      "hr_roster_screen_renderheader",
+      "hr_roster_screen_triggertoast",
+      "hr_roster_screen_validate",
+      "src_features_company_admin_hr_roster_screen_tsx"
+    ],
+    "68": [
+      "api_use_offboarding_mutations_useapprovefnf",
+      "api_use_offboarding_mutations_usecomputefnf",
+      "api_use_offboarding_mutations_usecreateexitinterview",
+      "api_use_offboarding_mutations_usecreateexitrequest",
+      "api_use_offboarding_mutations_usepayfnf",
+      "api_use_offboarding_mutations_useupdateclearance",
+      "api_use_offboarding_mutations_useupdateexitrequest",
+      "src_features_company_admin_api_use_offboarding_mutations_ts"
+    ],
+    "69": [
+      "api_use_leave_queries_useleavebalances",
+      "api_use_leave_queries_useleavepolicies",
+      "api_use_leave_queries_useleaverequest",
+      "api_use_leave_queries_useleaverequests",
+      "api_use_leave_queries_useleavesummary",
+      "api_use_leave_queries_useleavetype",
+      "api_use_leave_queries_useleavetypes",
+      "src_features_company_admin_api_use_leave_queries_ts"
+    ],
+    "70": [
+      "components_language_item_languageitem",
+      "i18n_utils_changelanguage",
+      "i18n_utils_getlanguage",
+      "i18n_utils_useselectedlanguage",
+      "src_components_ui_modal_tsx",
+      "src_features_settings_components_language_item_tsx",
+      "src_lib_i18n_utils_tsx",
+      "ui_modal_usemodal"
+    ],
+    "71": [
+      "src_features_super_admin_tenant_onboarding_steps_step01_identity_tsx",
+      "steps_step01_identity_generatecompanycode",
+      "steps_step01_identity_generateslug",
+      "steps_step01_identity_pickfromgallery",
+      "steps_step01_identity_removelogo",
+      "steps_step01_identity_takephoto",
+      "steps_step01_identity_validateslug"
+    ],
+    "72": [
+      "src_features_super_admin_tenant_onboarding_steps_step08_locations_tsx",
+      "steps_step08_locations_addlocation",
+      "steps_step08_locations_handlesavecustom",
+      "steps_step08_locations_handleselectchip",
+      "steps_step08_locations_removelocation",
+      "steps_step08_locations_sethq",
+      "steps_step08_locations_updatelocation"
+    ],
+    "73": [
+      "api_use_tenant_queries_usedeletecompany",
+      "api_use_tenant_queries_useonboardtenant",
+      "api_use_tenant_queries_usetenantdetail",
+      "api_use_tenant_queries_usetenantlist",
+      "api_use_tenant_queries_useupdatecompanysection",
+      "api_use_tenant_queries_useupdatecompanystatus",
+      "src_features_super_admin_api_use_tenant_queries_ts"
+    ],
+    "74": [
+      "api_use_invoice_queries_usegenerateinvoice",
+      "api_use_invoice_queries_useinvoicedetail",
+      "api_use_invoice_queries_useinvoicelist",
+      "api_use_invoice_queries_usemarkaspaid",
+      "api_use_invoice_queries_usesendinvoiceemail",
+      "api_use_invoice_queries_usevoidinvoice",
+      "src_features_super_admin_api_use_invoice_queries_ts"
+    ],
+    "75": [
+      "src_features_support_ticket_chat_screen_tsx",
+      "support_ticket_chat_screen_closeticketicon",
+      "support_ticket_chat_screen_formatdate",
+      "support_ticket_chat_screen_formattime",
+      "support_ticket_chat_screen_handlecloseticket",
+      "support_ticket_chat_screen_handlesend",
+      "support_ticket_chat_screen_sendicon"
+    ],
+    "76": [
+      "ess_my_appraisal_screen_formatratingpill",
+      "ess_my_appraisal_screen_handlecardpress",
+      "ess_my_appraisal_screen_handlegoalratingchange",
+      "ess_my_appraisal_screen_handlesubmitselfreview",
+      "ess_my_appraisal_screen_ratingpill",
+      "ess_my_appraisal_screen_statusbadge",
+      "src_features_ess_my_appraisal_screen_tsx"
+    ],
+    "77": [
+      "company_admin_announcements_screen_chevronlefticon",
+      "company_admin_announcements_screen_infoicon",
+      "company_admin_announcements_screen_megaphoneicon",
+      "company_admin_announcements_screen_priorityborder",
+      "company_admin_announcements_screen_priorityconfig",
+      "company_admin_announcements_screen_searchicon",
+      "src_features_company_admin_announcements_screen_tsx"
+    ],
+    "78": [
+      "src_features_company_admin_visitors_vehicle_passes_screen_tsx",
+      "visitors_vehicle_passes_screen_confirmexit",
+      "visitors_vehicle_passes_screen_handlecreate",
+      "visitors_vehicle_passes_screen_handlerecordexit",
+      "visitors_vehicle_passes_screen_handlesave",
+      "visitors_vehicle_passes_screen_renderitem",
+      "visitors_vehicle_passes_screen_validate"
+    ],
+    "79": [
+      "src_features_company_admin_visitors_group_visits_screen_tsx",
+      "visitors_group_visits_screen_handlebatchcheckin",
+      "visitors_group_visits_screen_handlebatchcheckout",
+      "visitors_group_visits_screen_handlecreate",
+      "visitors_group_visits_screen_handlesave",
+      "visitors_group_visits_screen_renderitem",
+      "visitors_group_visits_screen_validate"
+    ],
+    "80": [
+      "src_features_company_admin_visitors_visitor_detail_screen_tsx",
+      "visitors_visitor_detail_screen_handleapprove",
+      "visitors_visitor_detail_screen_handlecancel",
+      "visitors_visitor_detail_screen_handlecheckin",
+      "visitors_visitor_detail_screen_handlecheckout",
+      "visitors_visitor_detail_screen_handleextendsubmit",
+      "visitors_visitor_detail_screen_handlereject"
+    ],
+    "81": [
+      "hr_succession_screen_handleadd",
+      "hr_succession_screen_handledelete",
+      "hr_succession_screen_handleedit",
+      "hr_succession_screen_handlesave",
+      "hr_succession_screen_handleview",
+      "hr_succession_screen_update",
+      "src_features_company_admin_hr_succession_screen_tsx"
+    ],
+    "82": [
+      "hr_my_attendance_screen_formattime",
+      "hr_my_attendance_screen_getdaysinmonth",
+      "hr_my_attendance_screen_getfirstdayofweek",
+      "hr_my_attendance_screen_goback",
+      "hr_my_attendance_screen_goforward",
+      "hr_my_attendance_screen_handleregularize",
+      "src_features_company_admin_hr_my_attendance_screen_tsx"
+    ],
+    "83": [
+      "hr_notification_template_screen_handlecreate",
+      "hr_notification_template_screen_handledelete",
+      "hr_notification_template_screen_handleedit",
+      "hr_notification_template_screen_handlesave",
+      "hr_notification_template_screen_handletoggle",
+      "hr_notification_template_screen_renderitem",
+      "src_features_company_admin_hr_notification_template_screen_tsx"
+    ],
+    "84": [
+      "hr_employee_salary_screen_dropdown",
+      "hr_employee_salary_screen_formatcurrency",
+      "hr_employee_salary_screen_handleadd",
+      "hr_employee_salary_screen_handleedit",
+      "hr_employee_salary_screen_handlesave",
+      "hr_employee_salary_screen_tooptions",
+      "src_features_company_admin_hr_employee_salary_screen_tsx"
+    ],
+    "85": [
+      "hr_appraisal_cycles_screen_handleadd",
+      "hr_appraisal_cycles_screen_handledelete",
+      "hr_appraisal_cycles_screen_handleedit",
+      "hr_appraisal_cycles_screen_handlelifecycle",
+      "hr_appraisal_cycles_screen_handlesave",
+      "hr_appraisal_cycles_screen_renderitem",
+      "src_features_company_admin_hr_appraisal_cycles_screen_tsx"
+    ],
+    "86": [
+      "hr_leave_balance_screen_avatarcircle",
+      "hr_leave_balance_screen_getbalancebg",
+      "hr_leave_balance_screen_getbalancecolor",
+      "hr_leave_balance_screen_handleadjust",
+      "hr_leave_balance_screen_handleadjustsubmit",
+      "hr_leave_balance_screen_handlerowpress",
+      "src_features_company_admin_hr_leave_balance_screen_tsx"
+    ],
+    "87": [
+      "hr_notification_rule_screen_handlecreate",
+      "hr_notification_rule_screen_handledelete",
+      "hr_notification_rule_screen_handleedit",
+      "hr_notification_rule_screen_handlesave",
+      "hr_notification_rule_screen_handletoggle",
+      "hr_notification_rule_screen_renderitem",
+      "src_features_company_admin_hr_notification_rule_screen_tsx"
+    ],
+    "88": [
+      "hr_loan_screen_computeemi",
+      "hr_loan_screen_formatcurrency",
+      "hr_loan_screen_handleadd",
+      "hr_loan_screen_handlesave",
+      "hr_loan_screen_handlestatusaction",
+      "hr_loan_screen_tooptions",
+      "src_features_company_admin_hr_loan_screen_tsx"
+    ],
+    "89": [
+      "hr_attendance_dashboard_screen_formattime",
+      "hr_attendance_dashboard_screen_getinitials",
+      "hr_attendance_dashboard_screen_goback",
+      "hr_attendance_dashboard_screen_goforward",
+      "hr_attendance_dashboard_screen_latebadge",
+      "hr_attendance_dashboard_screen_statusbadge",
+      "src_features_company_admin_hr_attendance_dashboard_screen_tsx"
+    ],
+    "90": [
+      "hr_leave_policy_screen_handleadd",
+      "hr_leave_policy_screen_handledelete",
+      "hr_leave_policy_screen_handleedit",
+      "hr_leave_policy_screen_handlesave",
+      "hr_leave_policy_screen_mapoptions",
+      "hr_leave_policy_screen_triggertoast",
+      "src_features_company_admin_hr_leave_policy_screen_tsx"
+    ],
+    "91": [
+      "api_use_offboarding_queries_useexitclearances",
+      "api_use_offboarding_queries_useexitinterview",
+      "api_use_offboarding_queries_useexitrequest",
+      "api_use_offboarding_queries_useexitrequests",
+      "api_use_offboarding_queries_usefnfsettlement",
+      "api_use_offboarding_queries_usefnfsettlements",
+      "src_features_company_admin_api_use_offboarding_queries_ts"
+    ],
+    "92": [
+      "api_use_shift_rotation_mutations_useassignshiftschedule",
+      "api_use_shift_rotation_mutations_usecreateshiftschedule",
+      "api_use_shift_rotation_mutations_usedeleteshiftschedule",
+      "api_use_shift_rotation_mutations_useexecuteshiftrotation",
+      "api_use_shift_rotation_mutations_useremoveshiftschedule",
+      "api_use_shift_rotation_mutations_useupdateshiftschedule",
+      "src_features_company_admin_api_use_shift_rotation_mutations_ts"
+    ],
+    "93": [
+      "api_use_geofence_queries_usecreategeofence",
+      "api_use_geofence_queries_usedeletegeofence",
+      "api_use_geofence_queries_usegeofences",
+      "api_use_geofence_queries_usegeofencesfordropdown",
+      "api_use_geofence_queries_usesetdefaultgeofence",
+      "api_use_geofence_queries_useupdategeofence",
+      "src_features_company_admin_api_use_geofence_queries_ts"
+    ],
+    "94": [
+      "api_use_analytics_queries_useanalyticsalerts",
+      "api_use_analytics_queries_useanalyticsdashboard",
+      "api_use_analytics_queries_useanalyticsdrilldown",
+      "api_use_analytics_queries_useratelimit",
+      "api_use_analytics_queries_usereportcatalog",
+      "api_use_analytics_queries_usereporthistory",
+      "src_features_company_admin_api_use_analytics_queries_ts"
+    ],
+    "95": [
+      "api_use_retention_queries_useconsents",
+      "api_use_retention_queries_usedatarequest",
+      "api_use_retention_queries_usedatarequests",
+      "api_use_retention_queries_useretentioncheckdue",
+      "api_use_retention_queries_useretentionpolicies",
+      "api_use_retention_queries_useretentionpolicy",
+      "src_features_company_admin_api_use_retention_queries_ts"
+    ],
+    "96": [
+      "src_features_super_admin_tenant_onboarding_constants_ts",
+      "src_features_super_admin_tenant_onboarding_steps_step09_per_location_modules_tsx",
+      "steps_step09_per_location_modules_copytoall",
+      "steps_step09_per_location_modules_setcustomprice",
+      "steps_step09_per_location_modules_togglemodule",
+      "tenant_onboarding_constants_resolvemoduledependencies"
+    ],
+    "97": [
+      "src_features_super_admin_tenant_onboarding_steps_step11_contacts_tsx",
+      "steps_step11_contacts_addcontact",
+      "steps_step11_contacts_handlecustomtext",
+      "steps_step11_contacts_handleselect",
+      "steps_step11_contacts_remove",
+      "steps_step11_contacts_update"
+    ],
+    "98": [
+      "src_features_super_admin_support_support_ticket_detail_screen_tsx",
+      "support_support_ticket_detail_screen_backicon",
+      "support_support_ticket_detail_screen_formatstatuslabel",
+      "support_support_ticket_detail_screen_formattime",
+      "support_support_ticket_detail_screen_getstatuscolor",
+      "support_support_ticket_detail_screen_sendicon"
+    ],
+    "99": [
+      "company_admin_billing_dashboard_screen_formatcurrency",
+      "company_admin_billing_dashboard_screen_formatdate",
+      "company_admin_billing_dashboard_screen_handlerefresh",
+      "company_admin_billing_dashboard_screen_mapinvoicestatus",
+      "company_admin_billing_dashboard_screen_mapsubscriptionstatus",
+      "src_features_company_admin_billing_dashboard_screen_tsx"
+    ],
+    "100": [
+      "company_admin_my_invoices_screen_formatcurrency",
+      "company_admin_my_invoices_screen_formatdate",
+      "company_admin_my_invoices_screen_getstatuscolor",
+      "company_admin_my_invoices_screen_isloading",
+      "company_admin_my_invoices_screen_mapstatus",
+      "src_features_company_admin_my_invoices_screen_tsx"
+    ],
+    "101": [
+      "src_features_company_admin_visitors_gate_screen_tsx",
+      "visitors_gate_screen_handleadd",
+      "visitors_gate_screen_handledelete",
+      "visitors_gate_screen_handleedit",
+      "visitors_gate_screen_handlesave",
+      "visitors_gate_screen_validate"
+    ],
+    "102": [
+      "src_features_company_admin_visitors_material_passes_screen_tsx",
+      "visitors_material_passes_screen_handlecreate",
+      "visitors_material_passes_screen_handlemarkreturned",
+      "visitors_material_passes_screen_handlesave",
+      "visitors_material_passes_screen_renderitem",
+      "visitors_material_passes_screen_validate"
+    ],
+    "103": [
+      "hr_goals_screen_handleadd",
+      "hr_goals_screen_handledelete",
+      "hr_goals_screen_handleedit",
+      "hr_goals_screen_handlesave",
+      "hr_goals_screen_update",
+      "src_features_company_admin_hr_goals_screen_tsx"
+    ],
+    "104": [
+      "hr_employee_type_screen_generatecode",
+      "hr_employee_type_screen_handleadd",
+      "hr_employee_type_screen_handledelete",
+      "hr_employee_type_screen_handleedit",
+      "hr_employee_type_screen_handlesave",
+      "src_features_company_admin_hr_employee_type_screen_tsx"
+    ],
+    "105": [
+      "hr_org_chart_screen_findancestors",
+      "hr_org_chart_screen_flattennodes",
+      "hr_org_chart_screen_getinitials",
+      "hr_org_chart_screen_groupbydepartment",
+      "hr_org_chart_screen_transformnode",
+      "src_features_company_admin_hr_org_chart_screen_tsx"
+    ],
+    "106": [
+      "hr_attendance_override_screen_handleapprove",
+      "hr_attendance_override_screen_handlecreate",
+      "hr_attendance_override_screen_handlereject",
+      "hr_attendance_override_screen_issuetypebadge",
+      "hr_attendance_override_screen_overridestatusbadge",
+      "src_features_company_admin_hr_attendance_override_screen_tsx"
+    ],
+    "107": [
+      "hr_assets_screen_handledeletecategory",
+      "hr_assets_screen_handlereturnasset",
+      "hr_assets_screen_handlesaveasset",
+      "hr_assets_screen_handlesaveassignment",
+      "hr_assets_screen_handlesavecategory",
+      "src_features_company_admin_hr_assets_screen_tsx"
+    ],
+    "108": [
+      "hr_salary_revision_screen_formatcurrency",
+      "hr_salary_revision_screen_formatdate",
+      "hr_salary_revision_screen_handleapply",
+      "hr_salary_revision_screen_handleapprove",
+      "hr_salary_revision_screen_handlesave",
+      "src_features_company_admin_hr_salary_revision_screen_tsx"
+    ],
+    "109": [
+      "hr_travel_advance_screen_getoutcome",
+      "hr_travel_advance_screen_handlecreate",
+      "hr_travel_advance_screen_handlesave",
+      "hr_travel_advance_screen_handlesettle",
+      "hr_travel_advance_screen_statusbadge",
+      "src_features_company_admin_hr_travel_advance_screen_tsx"
+    ],
+    "110": [
+      "hr_form16_screen_handlebulkemail",
+      "hr_form16_screen_handlegenerateform16",
+      "hr_form16_screen_handlegenerateform24q",
+      "hr_form16_screen_statusbadge",
+      "hr_form16_screen_typebadge",
+      "src_features_company_admin_hr_form16_screen_tsx"
+    ],
+    "111": [
+      "api_use_biometric_mutations_usecreatebiometricdevice",
+      "api_use_biometric_mutations_usedeletebiometricdevice",
+      "api_use_biometric_mutations_usesyncbiometricdevice",
+      "api_use_biometric_mutations_usetestbiometricdevice",
+      "api_use_biometric_mutations_useupdatebiometricdevice",
+      "src_features_company_admin_api_use_biometric_mutations_ts"
+    ],
+    "112": [
+      "api_use_onboarding_mutations_usecreateonboardingtemplate",
+      "api_use_onboarding_mutations_usedeleteonboardingtemplate",
+      "api_use_onboarding_mutations_usegenerateonboardingtasks",
+      "api_use_onboarding_mutations_useupdateonboardingtask",
+      "api_use_onboarding_mutations_useupdateonboardingtemplate",
+      "src_features_company_admin_api_use_onboarding_mutations_ts"
+    ],
+    "113": [
+      "api_use_bonus_batch_mutations_useapprovebonusbatch",
+      "api_use_bonus_batch_mutations_usecreatebonusbatch",
+      "api_use_bonus_batch_mutations_usedeletebonusbatch",
+      "api_use_bonus_batch_mutations_usemergebonusbatch",
+      "api_use_bonus_batch_mutations_useupdatebonusbatch",
+      "src_features_company_admin_api_use_bonus_batch_mutations_ts"
+    ],
+    "114": [
+      "api_use_transfer_queries_usedelegates",
+      "api_use_transfer_queries_usepromotion",
+      "api_use_transfer_queries_usepromotions",
+      "api_use_transfer_queries_usetransfer",
+      "api_use_transfer_queries_usetransfers",
+      "src_features_company_admin_api_use_transfer_queries_ts"
+    ],
+    "115": [
+      "api_use_production_incentive_mutations_usecomputeincentives",
+      "api_use_production_incentive_mutations_usecreateincentiveconfig",
+      "api_use_production_incentive_mutations_usedeleteincentiveconfig",
+      "api_use_production_incentive_mutations_usemergeincentives",
+      "api_use_production_incentive_mutations_useupdateincentiveconfig",
+      "src_features_company_admin_api_use_production_incentive_mutations_ts"
+    ],
+    "116": [
+      "lib_offline_punch_queue_enqueuepunch",
+      "lib_offline_punch_queue_getqueue",
+      "lib_offline_punch_queue_getqueuelength",
+      "lib_offline_punch_queue_savequeue",
+      "lib_offline_punch_queue_syncqueue",
+      "src_lib_offline_punch_queue_ts"
+    ],
+    "117": [
+      "api_attendance_editpunches",
+      "api_attendance_getweeklyreview",
+      "api_attendance_getweeklyreviewsummary",
+      "api_attendance_markreviewed",
+      "api_attendance_remapshift",
+      "src_lib_api_attendance_ts"
+    ],
+    "118": [
+      "api_utils_getnextpageparam",
+      "api_utils_getpreviouspageparam",
+      "api_utils_getquerykey",
+      "api_utils_geturlparameters",
+      "api_utils_normalizepages",
+      "src_lib_api_utils_tsx"
+    ],
+    "119": [
+      "src_features_super_admin_company_list_screen_tsx",
+      "super_admin_company_list_screen_handleaddcompany",
+      "super_admin_company_list_screen_handlepress",
+      "super_admin_company_list_screen_mapapicompany",
+      "super_admin_company_list_screen_tobadgestatus"
+    ],
+    "120": [
+      "api_use_support_mutations_useapprovemodulechange",
+      "api_use_support_mutations_userejectmodulechange",
+      "api_use_support_mutations_usereplysupportticket",
+      "api_use_support_mutations_useupdateticketstatus",
+      "src_features_super_admin_api_use_support_mutations_ts"
+    ],
+    "121": [
+      "api_use_audit_queries_useauditfilteroptions",
+      "api_use_audit_queries_useauditlogdetail",
+      "api_use_audit_queries_useauditlogs",
+      "api_use_audit_queries_useentityauditlogs",
+      "src_features_super_admin_api_use_audit_queries_ts"
+    ],
+    "122": [
+      "overtime_use_overtime_queries_useclaimovertime",
+      "overtime_use_overtime_queries_usemyovertimedetail",
+      "overtime_use_overtime_queries_usemyovertimerequests",
+      "overtime_use_overtime_queries_usemyovertimesummary",
+      "src_features_ess_overtime_use_overtime_queries_ts"
+    ],
+    "123": [
+      "company_admin_contact_management_screen_handleadd",
+      "company_admin_contact_management_screen_handledelete",
+      "company_admin_contact_management_screen_handleedit",
+      "company_admin_contact_management_screen_handlesave",
+      "src_features_company_admin_contact_management_screen_tsx"
+    ],
+    "124": [
+      "company_admin_iot_reason_management_screen_handleadd",
+      "company_admin_iot_reason_management_screen_handledelete",
+      "company_admin_iot_reason_management_screen_handleedit",
+      "company_admin_iot_reason_management_screen_handlesave",
+      "src_features_company_admin_iot_reason_management_screen_tsx"
+    ],
+    "125": [
+      "hr_leave_type_screen_handleadd",
+      "hr_leave_type_screen_handledelete",
+      "hr_leave_type_screen_handleedit",
+      "hr_leave_type_screen_handlesave",
+      "src_features_company_admin_hr_leave_type_screen_tsx"
+    ],
+    "126": [
+      "hr_probation_review_screen_getdaysremaining",
+      "hr_probation_review_screen_handlesubmit",
+      "hr_probation_review_screen_openreview",
+      "hr_probation_review_screen_urgencybadge",
+      "src_features_company_admin_hr_probation_review_screen_tsx"
+    ],
+    "127": [
+      "hr_grievances_screen_handlecasetransition",
+      "hr_grievances_screen_handledeletecategory",
+      "hr_grievances_screen_handlesavecase",
+      "hr_grievances_screen_handlesavecategory",
+      "src_features_company_admin_hr_grievances_screen_tsx"
+    ],
+    "128": [
+      "hr_hr_letters_screen_handledeletetemplate",
+      "hr_hr_letters_screen_handlegeneratepdf",
+      "hr_hr_letters_screen_handlesaveletter",
+      "hr_hr_letters_screen_handlesavetemplate",
+      "src_features_company_admin_hr_hr_letters_screen_tsx"
+    ],
+    "129": [
+      "hr_salary_hold_screen_formatcurrency",
+      "hr_salary_hold_screen_handlerelease",
+      "hr_salary_hold_screen_handlesave",
+      "hr_salary_hold_screen_togglecomponent",
+      "src_features_company_admin_hr_salary_hold_screen_tsx"
+    ],
+    "130": [
+      "hr_chatbot_screen_handleescalate",
+      "hr_chatbot_screen_handlequickaction",
+      "hr_chatbot_screen_handlesend",
+      "hr_chatbot_screen_parserow",
+      "src_features_company_admin_hr_chatbot_screen_tsx"
+    ],
+    "131": [
+      "hr_salary_component_screen_handleadd",
+      "hr_salary_component_screen_handledelete",
+      "hr_salary_component_screen_handleedit",
+      "hr_salary_component_screen_handlesave",
+      "src_features_company_admin_hr_salary_component_screen_tsx"
+    ],
+    "132": [
+      "api_use_onboarding_queries_useonboardingprogress",
+      "api_use_onboarding_queries_useonboardingtasks",
+      "api_use_onboarding_queries_useonboardingtemplate",
+      "api_use_onboarding_queries_useonboardingtemplates",
+      "src_features_company_admin_api_use_onboarding_queries_ts"
+    ],
+    "133": [
+      "api_use_chatbot_mutations_usecloseconversation",
+      "api_use_chatbot_mutations_useescalateconversation",
+      "api_use_chatbot_mutations_usesendchatbotmessage",
+      "api_use_chatbot_mutations_usestartconversation",
+      "src_features_company_admin_api_use_chatbot_mutations_ts"
+    ],
+    "134": [
+      "onboarding_onboarding_screen_ctabutton",
+      "onboarding_onboarding_screen_paginationdot",
+      "onboarding_onboarding_screen_paginationdots",
+      "onboarding_onboarding_screen_usethemecolors",
+      "src_features_onboarding_onboarding_screen_tsx"
+    ],
+    "135": [
+      "src_features_super_admin_company_detail_screen_tsx",
+      "super_admin_company_detail_screen_backbutton",
+      "super_admin_company_detail_screen_mapapitodetailui",
+      "super_admin_company_detail_screen_tobadgestatus"
+    ],
+    "136": [
+      "src_features_super_admin_module_assignment_screen_tsx",
+      "super_admin_module_assignment_screen_handlesave",
+      "super_admin_module_assignment_screen_moduleicon",
+      "super_admin_module_assignment_screen_togglemodule"
+    ],
+    "137": [
+      "src_features_super_admin_company_detail_edit_modal_tsx",
+      "super_admin_company_detail_edit_modal_handlechange",
+      "super_admin_company_detail_edit_modal_handlesave",
+      "super_admin_company_detail_edit_modal_renderfields"
+    ],
+    "138": [
+      "src_features_super_admin_tenant_onboarding_steps_step14_iot_reasons_tsx",
+      "steps_step14_iot_reasons_addreason",
+      "steps_step14_iot_reasons_remove",
+      "steps_step14_iot_reasons_update"
+    ],
+    "139": [
+      "src_features_super_admin_tenant_onboarding_steps_step04_fiscal_tsx",
+      "steps_step04_fiscal_dayofmonthpicker",
+      "steps_step04_fiscal_togglecustom",
+      "steps_step04_fiscal_toggleworkingday"
+    ],
+    "140": [
+      "api_use_payment_queries_usepaymentdetail",
+      "api_use_payment_queries_usepaymentlist",
+      "api_use_payment_queries_userecordpayment",
+      "src_features_super_admin_api_use_payment_queries_ts"
+    ],
+    "141": [
+      "api_use_support_queries_useplatformsupportstats",
+      "api_use_support_queries_useplatformsupportticket",
+      "api_use_support_queries_useplatformsupporttickets",
+      "src_features_super_admin_api_use_support_queries_ts"
+    ],
+    "142": [
+      "ess_my_training_screen_handlesubmitfeedback",
+      "ess_my_training_screen_setrating",
+      "ess_my_training_screen_toggleexpand",
+      "src_features_ess_my_training_screen_tsx"
+    ],
+    "143": [
+      "overtime_my_overtime_screen_handleclaim",
+      "overtime_my_overtime_screen_handlecompoffpress",
+      "overtime_my_overtime_screen_handlerefresh",
+      "src_features_ess_overtime_my_overtime_screen_tsx"
+    ],
+    "144": [
+      "company_admin_company_settings_screen_handlereset",
+      "company_admin_company_settings_screen_handlesave",
+      "company_admin_company_settings_screen_updatefield",
+      "src_features_company_admin_company_settings_screen_tsx"
+    ],
+    "145": [
+      "company_admin_my_payments_screen_formatcurrency",
+      "company_admin_my_payments_screen_formatdate",
+      "company_admin_my_payments_screen_getmethodcolor",
+      "src_features_company_admin_my_payments_screen_tsx"
+    ],
+    "146": [
+      "company_admin_system_controls_screen_handlereset",
+      "company_admin_system_controls_screen_handlesave",
+      "company_admin_system_controls_screen_updatefield",
+      "src_features_company_admin_system_controls_screen_tsx"
+    ],
+    "147": [
+      "src_features_company_admin_visitors_emergency_muster_screen_tsx",
+      "visitors_emergency_muster_screen_handlemarksafe",
+      "visitors_emergency_muster_screen_handleresolve",
+      "visitors_emergency_muster_screen_handletriggeremergency"
+    ],
+    "148": [
+      "src_features_company_admin_visitors_watchlist_screen_tsx",
+      "visitors_watchlist_screen_handleadd",
+      "visitors_watchlist_screen_handlesubmit",
+      "visitors_watchlist_screen_validate"
+    ],
+    "149": [
+      "hr_feedback_360_screen_handlesave",
+      "hr_feedback_360_screen_handleviewreport",
+      "hr_feedback_360_screen_update",
+      "src_features_company_admin_hr_feedback_360_screen_tsx"
+    ],
+    "150": [
+      "hr_ess_config_screen_handlereset",
+      "hr_ess_config_screen_handlesave",
+      "hr_ess_config_screen_updatefield",
+      "src_features_company_admin_hr_ess_config_screen_tsx"
+    ],
+    "151": [
+      "hr_overtime_rules_screen_handlereset",
+      "hr_overtime_rules_screen_handlesave",
+      "hr_overtime_rules_screen_updaterule",
+      "src_features_company_admin_hr_overtime_rules_screen_tsx"
+    ],
+    "152": [
+      "hr_clearance_dashboard_screen_depticon",
+      "hr_clearance_dashboard_screen_getmockclearances",
+      "hr_clearance_dashboard_screen_handleclear",
+      "src_features_company_admin_hr_clearance_dashboard_screen_tsx"
+    ],
+    "153": [
+      "hr_employee_directory_screen_getinitials",
+      "hr_employee_directory_screen_mapapiemployee",
+      "hr_employee_directory_screen_statusbadgestyle",
+      "src_features_company_admin_hr_employee_directory_screen_tsx"
+    ],
+    "154": [
+      "hr_attendance_rules_screen_handlereset",
+      "hr_attendance_rules_screen_handlesave",
+      "hr_attendance_rules_screen_updaterule",
+      "src_features_company_admin_hr_attendance_rules_screen_tsx"
+    ],
+    "155": [
+      "hr_delegate_screen_formatdate",
+      "hr_delegate_screen_handlecreate",
+      "hr_delegate_screen_handlerevoke",
+      "src_features_company_admin_hr_delegate_screen_tsx"
+    ],
+    "156": [
+      "hr_my_payslips_screen_formatcurrency",
+      "hr_my_payslips_screen_handledownload",
+      "hr_my_payslips_screen_opendetail",
+      "src_features_company_admin_hr_my_payslips_screen_tsx"
+    ],
+    "157": [
+      "api_use_chatbot_queries_usechatbotconversation",
+      "api_use_chatbot_queries_usechatbotconversations",
+      "api_use_chatbot_queries_usechatbotmessages",
+      "src_features_company_admin_api_use_chatbot_queries_ts"
+    ],
+    "158": [
+      "api_use_production_incentive_queries_useincentiveconfig",
+      "api_use_production_incentive_queries_useincentiveconfigs",
+      "api_use_production_incentive_queries_useincentiverecords",
+      "src_features_company_admin_api_use_production_incentive_queries_ts"
+    ],
+    "159": [
+      "api_use_analytics_mutations_useacknowledgealert",
+      "api_use_analytics_mutations_userecompute",
+      "api_use_analytics_mutations_useresolvealert",
+      "src_features_company_admin_api_use_analytics_mutations_ts"
+    ],
+    "160": [
+      "src_components_ui_fab_tsx",
+      "ui_fab_handlepressin",
+      "ui_fab_handlepressout",
+      "ui_fab_rendericon"
+    ],
+    "161": [
+      "src_components_ui_skeleton_tsx",
+      "ui_skeleton_skeleton",
+      "ui_skeleton_skeletonavatar",
+      "ui_skeleton_skeletoncard"
+    ],
+    "162": [
+      "lib_test_utils_createappwrapper",
+      "lib_test_utils_customrender",
+      "lib_test_utils_setup",
+      "src_lib_test_utils_tsx"
+    ],
+    "163": [
+      "src_features_super_admin_more_menu_screen_tsx",
+      "super_admin_more_menu_screen_handlepress",
+      "super_admin_more_menu_screen_menuicon"
+    ],
+    "164": [
+      "src_features_super_admin_audit_log_screen_tsx",
+      "super_admin_audit_log_screen_getactioncolor",
+      "super_admin_audit_log_screen_if"
+    ],
+    "165": [
+      "src_features_super_admin_tenant_onboarding_form_date_picker_tsx",
+      "tenant_onboarding_form_date_picker_formatdateddmmyyyy",
+      "tenant_onboarding_form_date_picker_parsedatevalue"
+    ],
+    "166": [
+      "src_features_super_admin_tenant_onboarding_steps_step06_endpoint_tsx",
+      "steps_step06_endpoint_buildhealthurl",
+      "steps_step06_endpoint_step6endpoint"
+    ],
+    "167": [
+      "ess_shift_swap_screen_handlecancel",
+      "ess_shift_swap_screen_handlecreate",
+      "src_features_ess_shift_swap_screen_tsx"
+    ],
+    "168": [
+      "company_admin_module_catalogue_screen_formatprice",
+      "company_admin_module_catalogue_screen_moduleicon",
+      "src_features_company_admin_module_catalogue_screen_tsx"
+    ],
+    "169": [
+      "src_features_company_admin_visitors_vms_settings_screen_tsx",
+      "visitors_vms_settings_screen_handlerequirementchange",
+      "visitors_vms_settings_screen_handletoggle"
+    ],
+    "170": [
+      "hr_ratings_screen_handlepublish",
+      "hr_ratings_screen_handleupdaterating",
+      "src_features_company_admin_hr_ratings_screen_tsx"
+    ],
+    "171": [
+      "hr_bank_config_screen_handlesave",
+      "hr_bank_config_screen_updateform",
+      "src_features_company_admin_hr_bank_config_screen_tsx"
+    ],
+    "172": [
+      "hr_esign_screen_handleresend",
+      "hr_esign_screen_statusbadge",
+      "src_features_company_admin_hr_esign_screen_tsx"
+    ],
+    "173": [
+      "hr_payslip_screen_formatcurrency",
+      "hr_payslip_screen_handleemail",
+      "src_features_company_admin_hr_payslip_screen_tsx"
+    ],
+    "174": [
+      "hr_team_view_screen_handleapprove",
+      "hr_team_view_screen_handlereject",
+      "src_features_company_admin_hr_team_view_screen_tsx"
+    ],
+    "175": [
+      "hr_disciplinary_screen_handlesave",
+      "hr_disciplinary_screen_handletransition",
+      "src_features_company_admin_hr_disciplinary_screen_tsx"
+    ],
+    "176": [
+      "api_use_biometric_queries_usebiometricdevice",
+      "api_use_biometric_queries_usebiometricdevices",
+      "src_features_company_admin_api_use_biometric_queries_ts"
+    ],
+    "177": [
+      "api_use_bonus_batch_queries_usebonusbatch",
+      "api_use_bonus_batch_queries_usebonusbatches",
+      "src_features_company_admin_api_use_bonus_batch_queries_ts"
+    ],
+    "178": [
+      "api_use_shift_rotation_queries_useshiftschedule",
+      "api_use_shift_rotation_queries_useshiftschedules",
+      "src_features_company_admin_api_use_shift_rotation_queries_ts"
+    ],
+    "179": [
+      "src_components_ui_date_picker_tsx",
+      "ui_date_picker_formatdateddmmyyyy",
+      "ui_date_picker_parsedatevalue"
+    ],
+    "180": [
+      "src_components_ui_image_viewer_tsx",
+      "ui_image_viewer_gotonext",
+      "ui_image_viewer_gotoprevious"
+    ],
+    "181": [
+      "src_components_ui_image_tsx",
+      "ui_image_image",
+      "ui_image_preloadimages"
+    ],
+    "182": [
+      "src_components_ui_select_tsx",
+      "ui_select_keyextractor",
+      "ui_select_options"
+    ],
+    "183": [
+      "lib_utils_createselectors",
+      "lib_utils_openlinkinbrowser",
+      "src_lib_utils_ts"
+    ],
+    "184": [
+      "lib_logger_createlogger",
+      "lib_logger_log",
+      "src_lib_logger_ts"
+    ],
+    "185": [
+      "hooks_use_selected_theme_loadselectedtheme",
+      "hooks_use_selected_theme_useselectedtheme",
+      "src_lib_hooks_use_selected_theme_tsx"
+    ],
+    "186": [
+      "app_config_ts",
+      "mobile_app_app_config_resolvegoogleservicesfile"
+    ],
+    "187": [
+      "env_ts",
+      "mobile_app_env_getvalidatedenv"
+    ],
+    "188": [
+      "scripts_i18next_syntax_validation_js",
+      "scripts_i18next_syntax_validation_validate"
+    ],
+    "189": [
+      "app_messing_notfoundscreen",
+      "src_app_messing_tsx"
+    ],
+    "190": [
+      "app_html_root",
+      "src_app_html_tsx"
+    ],
+    "191": [
+      "app_index_dashboardroute",
+      "src_app_app_index_tsx"
+    ],
+    "192": [
+      "app_companies_companiesroute",
+      "src_app_app_companies_tsx"
+    ],
+    "193": [
+      "src_app_app_support_layout_tsx",
+      "support_layout_supportlayout"
+    ],
+    "194": [
+      "src_app_app_support_ticket_id_tsx",
+      "ticket_id_ticketdetailroute"
+    ],
+    "195": [
+      "billing_index_billingroute",
+      "src_app_app_billing_index_tsx"
+    ],
+    "196": [
+      "billing_layout_billinglayout",
+      "src_app_app_billing_layout_tsx"
+    ],
+    "197": [
+      "reports_layout_reportslayout",
+      "src_app_app_reports_layout_tsx"
+    ],
+    "198": [
+      "company_layout_companylayout",
+      "src_app_app_company_layout_tsx"
+    ],
+    "199": [
+      "src_app_app_company_visitors_layout_tsx",
+      "visitors_layout_visitorslayout"
+    ],
+    "200": [
+      "settings_layout_visitorsettingslayout",
+      "src_app_app_company_visitors_settings_layout_tsx"
+    ],
+    "201": [
+      "analytics_layout_analyticslayout",
+      "src_app_app_company_hr_analytics_layout_tsx"
+    ],
+    "202": [
+      "components_settings_item_settingsitem",
+      "src_features_settings_components_settings_item_tsx"
+    ],
+    "203": [
+      "components_settings_container_settingscontainer",
+      "src_features_settings_components_settings_container_tsx"
+    ],
+    "204": [
+      "src_features_super_admin_add_company_screen_tsx",
+      "super_admin_add_company_screen_switch"
+    ],
+    "205": [
+      "src_features_super_admin_tenant_onboarding_steps_step15_controls_tsx",
+      "steps_step15_controls_step15controls"
+    ],
+    "206": [
+      "src_features_super_admin_tenant_onboarding_steps_step16_users_tsx",
+      "steps_step16_users_step16users"
+    ],
+    "207": [
+      "src_features_super_admin_tenant_onboarding_steps_step10_per_location_tier_tsx",
+      "steps_step10_per_location_tier_update"
+    ],
+    "208": [
+      "ess_my_form16_screen_formatcurrency",
+      "src_features_ess_my_form16_screen_tsx"
+    ],
+    "209": [
+      "ess_my_holidays_screen_formatdate",
+      "src_features_ess_my_holidays_screen_tsx"
+    ],
+    "210": [
+      "ess_my_grievances_screen_handlefilegrievance",
+      "src_features_ess_my_grievances_screen_tsx"
+    ],
+    "211": [
+      "ess_policy_documents_screen_handleopendocument",
+      "src_features_ess_policy_documents_screen_tsx"
+    ],
+    "212": [
+      "src_features_company_admin_visitors_visitor_dashboard_screen_tsx",
+      "visitors_visitor_dashboard_screen_handlenewwalkin"
+    ],
+    "213": [
+      "src_features_company_admin_visitors_visitor_reports_screen_tsx",
+      "visitors_visitor_reports_screen_rendertab"
+    ],
+    "214": [
+      "src_features_company_admin_visitors_quick_check_out_screen_tsx",
+      "visitors_quick_check_out_screen_handlecheckout"
+    ],
+    "215": [
+      "src_features_company_admin_visitors_on_site_visitors_screen_tsx",
+      "visitors_on_site_visitors_screen_handlecheckout"
+    ],
+    "216": [
+      "components_visit_status_badge_visitstatusbadge",
+      "src_features_company_admin_visitors_components_visit_status_badge_tsx"
+    ],
+    "217": [
+      "hr_training_nominations_screen_trainingnominationsscreen",
+      "src_features_company_admin_hr_training_nominations_screen_tsx"
+    ],
+    "218": [
+      "hr_exit_request_screen_handlesave",
+      "src_features_company_admin_hr_exit_request_screen_tsx"
+    ],
+    "219": [
+      "hr_payroll_report_screen_formatcurrency",
+      "src_features_company_admin_hr_payroll_report_screen_tsx"
+    ],
+    "220": [
+      "hr_candidates_screen_candidatesscreen",
+      "src_features_company_admin_hr_candidates_screen_tsx"
+    ],
+    "221": [
+      "notifications_notifications_sheet_formattimeago",
+      "src_features_notifications_notifications_sheet_tsx"
+    ],
+    "222": [
+      "notifications_use_notification_socket_usenotificationsocket",
+      "src_features_notifications_use_notification_socket_ts"
+    ],
+    "223": [
+      "notifications_use_notification_count_useunreadnotificationcount",
+      "src_features_notifications_use_notification_count_ts"
+    ],
+    "224": [
+      "src_components_ui_use_theme_config_tsx",
+      "ui_use_theme_config_usethemeconfig"
+    ],
+    "225": [
+      "src_components_ui_empty_state_tsx",
+      "ui_empty_state_emptyicon"
+    ],
+    "226": [
+      "src_components_ui_skeleton_examples_tsx",
+      "ui_skeleton_examples_skeletonexamples"
+    ],
+    "227": [
+      "src_components_ui_focus_aware_status_bar_tsx",
+      "ui_focus_aware_status_bar_focusawarestatusbar"
+    ],
+    "228": [
+      "src_components_ui_info_tooltip_tsx",
+      "ui_info_tooltip_infotooltip"
+    ],
+    "229": [
+      "src_components_ui_no_permission_screen_tsx",
+      "ui_no_permission_screen_shieldicon"
+    ],
+    "230": [
+      "src_components_ui_ota_update_screen_tsx",
+      "ui_ota_update_screen_otaupdatescreen"
+    ],
+    "231": [
+      "src_components_ui_confirm_modal_tsx",
+      "ui_confirm_modal_getvariantcolors"
+    ],
+    "232": [
+      "src_components_ui_progress_bar_tsx",
+      "ui_progress_bar_progressbar"
+    ],
+    "233": [
+      "src_components_ui_button_tsx",
+      "ui_button_button"
+    ],
+    "234": [
+      "src_components_ui_text_tsx",
+      "ui_text_text"
+    ],
+    "235": [
+      "src_components_ui_checkbox_tsx",
+      "ui_checkbox_root"
+    ],
+    "236": [
+      "src_components_ui_input_tsx",
+      "ui_input_input"
+    ],
+    "237": [
+      "icons_settings_settings",
+      "src_components_ui_icons_settings_tsx"
+    ],
+    "238": [
+      "icons_website_website",
+      "src_components_ui_icons_website_tsx"
+    ],
+    "239": [
+      "icons_arrow_right_arrowright",
+      "src_components_ui_icons_arrow_right_tsx"
+    ],
+    "240": [
+      "icons_support_support",
+      "src_components_ui_icons_support_tsx"
+    ],
+    "241": [
+      "icons_home_home",
+      "src_components_ui_icons_home_tsx"
+    ],
+    "242": [
+      "icons_github_github",
+      "src_components_ui_icons_github_tsx"
+    ],
+    "243": [
+      "icons_rate_rate",
+      "src_components_ui_icons_rate_tsx"
+    ],
+    "244": [
+      "icons_language_language",
+      "src_components_ui_icons_language_tsx"
+    ],
+    "245": [
+      "icons_share_share",
+      "src_components_ui_icons_share_tsx"
+    ],
+    "246": [
+      "icons_style_style",
+      "src_components_ui_icons_style_tsx"
+    ],
+    "247": [
+      "analytics_dashboardshell_headerdecoration",
+      "src_components_analytics_dashboardshell_tsx"
+    ],
+    "248": [
+      "analytics_alertsbanner_alerticon",
+      "src_components_analytics_alertsbanner_tsx"
+    ],
+    "249": [
+      "analytics_zerodatastate_zerodatastate",
+      "src_components_analytics_zerodatastate_tsx"
+    ],
+    "250": [
+      "analytics_kpigrid_sparklinewave",
+      "src_components_analytics_kpigrid_tsx"
+    ],
+    "251": [
+      "analytics_drilldownlist_expandablerow",
+      "src_components_analytics_drilldownlist_tsx"
+    ],
+    "252": [
+      "hooks_use_biometric_login_usebiometriclogin",
+      "src_hooks_use_biometric_login_ts"
+    ],
+    "253": [
+      "hooks_use_file_upload_usefileupload",
+      "src_hooks_use_file_upload_ts"
+    ],
+    "254": [
+      "hooks_use_ticket_socket_useticketsocket",
+      "src_hooks_use_ticket_socket_ts"
+    ],
+    "255": [
+      "lib_employee_org_defaults_resolvecostcentreidfordepartment",
+      "src_lib_employee_org_defaults_ts"
+    ],
+    "256": [
+      "hooks_use_is_first_time_useisfirsttime",
+      "src_lib_hooks_use_is_first_time_tsx"
+    ],
+    "257": [
+      "format_company_formatter_createcompanyformatter",
+      "src_lib_format_company_formatter_ts"
+    ],
+    "258": [
+      "api_app_version_checkappversion",
+      "src_lib_api_app_version_ts"
+    ],
+    "259": [
+      "api_tenant_normalizeonboardpayload",
+      "src_lib_api_tenant_ts"
+    ],
+    "260": [
+      "api_client_processqueue",
+      "src_lib_api_client_tsx"
+    ],
+    "261": [
+      "api_provider_apiprovider",
+      "src_lib_api_provider_tsx"
+    ],
+    "262": [
+      "expo_env_d_ts"
+    ],
+    "263": [
+      "jest_config_js"
+    ],
+    "264": [
+      "lint_staged_config_js"
+    ],
+    "265": [
+      "nativewind_env_d_ts"
+    ],
+    "266": [
+      "metro_config_js"
+    ],
+    "267": [
+      "babel_config_js"
+    ],
+    "268": [
+      "commitlint_config_js"
+    ],
+    "269": [
+      "jest_setup_ts"
+    ],
+    "270": [
+      "uniwind_types_d_ts"
+    ],
+    "271": [
+      "eslint_config_mjs"
+    ],
+    "272": [
+      "cli_index_js"
+    ],
+    "273": [
+      "scripts_verify_setup_js"
+    ],
+    "274": [
+      "src_app_login_tsx"
+    ],
+    "275": [
+      "src_app_mfa_setup_voluntary_tsx"
+    ],
+    "276": [
+      "src_app_mfa_verify_tsx"
+    ],
+    "277": [
+      "src_app_onboarding_tsx"
+    ],
+    "278": [
+      "src_app_layout_tsx"
+    ],
+    "279": [
+      "src_app_mfa_setup_tsx"
+    ],
+    "280": [
+      "src_app_app_my_leave_tsx"
+    ],
+    "281": [
+      "src_app_app_admin_support_tsx"
+    ],
+    "282": [
+      "src_app_app_modules_tsx"
+    ],
+    "283": [
+      "src_app_app_my_attendance_tsx"
+    ],
+    "284": [
+      "src_app_app_help_tsx"
+    ],
+    "285": [
+      "src_app_app_announcements_tsx"
+    ],
+    "286": [
+      "src_app_app_more_tsx"
+    ],
+    "287": [
+      "src_app_app_tenant_module_assignment_tsx"
+    ],
+    "288": [
+      "src_app_app_tenant_add_company_tsx"
+    ],
+    "289": [
+      "src_app_app_tenant_id_tsx"
+    ],
+    "290": [
+      "src_app_app_settings_index_tsx"
+    ],
+    "291": [
+      "src_app_app_settings_notifications_tsx"
+    ],
+    "292": [
+      "src_app_app_support_index_tsx"
+    ],
+    "293": [
+      "src_app_app_billing_payments_tsx"
+    ],
+    "294": [
+      "src_app_app_billing_invoices_tsx"
+    ],
+    "295": [
+      "src_app_app_billing_subscriptions_companyid_tsx"
+    ],
+    "296": [
+      "src_app_app_billing_invoice_id_tsx"
+    ],
+    "297": [
+      "src_app_app_reports_audit_tsx"
+    ],
+    "298": [
+      "src_app_app_company_settings_tsx"
+    ],
+    "299": [
+      "src_app_app_company_roles_tsx"
+    ],
+    "300": [
+      "src_app_app_company_iot_reasons_tsx"
+    ],
+    "301": [
+      "src_app_app_company_inventory_tsx"
+    ],
+    "302": [
+      "src_app_app_company_maintenance_tsx"
+    ],
+    "303": [
+      "src_app_app_company_geofence_editor_tsx"
+    ],
+    "304": [
+      "src_app_app_company_shifts_tsx"
+    ],
+    "305": [
+      "src_app_app_company_locations_tsx"
+    ],
+    "306": [
+      "src_app_app_company_production_tsx"
+    ],
+    "307": [
+      "src_app_app_company_billing_invoices_tsx"
+    ],
+    "308": [
+      "src_app_app_company_module_catalogue_tsx"
+    ],
+    "309": [
+      "src_app_app_company_profile_tsx"
+    ],
+    "310": [
+      "src_app_app_company_users_tsx"
+    ],
+    "311": [
+      "src_app_app_company_no_series_tsx"
+    ],
+    "312": [
+      "src_app_app_company_billing_tsx"
+    ],
+    "313": [
+      "src_app_app_company_announcements_tsx"
+    ],
+    "314": [
+      "src_app_app_company_controls_tsx"
+    ],
+    "315": [
+      "src_app_app_company_billing_payments_tsx"
+    ],
+    "316": [
+      "src_app_app_company_contacts_tsx"
+    ],
+    "317": [
+      "src_app_app_company_visitors_reports_tsx"
+    ],
+    "318": [
+      "src_app_app_company_visitors_group_visits_tsx"
+    ],
+    "319": [
+      "src_app_app_company_visitors_dashboard_tsx"
+    ],
+    "320": [
+      "src_app_app_company_visitors_recurring_passes_tsx"
+    ],
+    "321": [
+      "src_app_app_company_visitors_emergency_tsx"
+    ],
+    "322": [
+      "src_app_app_company_visitors_on_site_tsx"
+    ],
+    "323": [
+      "src_app_app_company_visitors_denied_entries_tsx"
+    ],
+    "324": [
+      "src_app_app_company_visitors_list_tsx"
+    ],
+    "325": [
+      "src_app_app_company_visitors_watchlist_tsx"
+    ],
+    "326": [
+      "src_app_app_company_visitors_gates_tsx"
+    ],
+    "327": [
+      "src_app_app_company_visitors_pre_register_tsx"
+    ],
+    "328": [
+      "src_app_app_company_visitors_history_tsx"
+    ],
+    "329": [
+      "src_app_app_company_visitors_quick_check_out_tsx"
+    ],
+    "330": [
+      "src_app_app_company_visitors_visitor_types_tsx"
+    ],
+    "331": [
+      "src_app_app_company_visitors_gate_check_in_tsx"
+    ],
+    "332": [
+      "src_app_app_company_visitors_vehicle_passes_tsx"
+    ],
+    "333": [
+      "src_app_app_company_visitors_detail_tsx"
+    ],
+    "334": [
+      "src_app_app_company_visitors_material_passes_tsx"
+    ],
+    "335": [
+      "src_app_app_company_visitors_settings_index_tsx"
+    ],
+    "336": [
+      "src_app_app_company_visitors_settings_inductions_tsx"
+    ],
+    "337": [
+      "src_app_app_company_visitors_settings_gates_tsx"
+    ],
+    "338": [
+      "src_app_app_company_visitors_settings_types_tsx"
+    ],
+    "339": [
+      "src_app_app_company_hr_probation_reviews_tsx"
+    ],
+    "340": [
+      "src_app_app_company_hr_it_declarations_tsx"
+    ],
+    "341": [
+      "src_app_app_company_hr_loan_policies_tsx"
+    ],
+    "342": [
+      "src_app_app_company_hr_statutory_filings_tsx"
+    ],
+    "343": [
+      "src_app_app_company_hr_shift_rotations_tsx"
+    ],
+    "344": [
+      "src_app_app_company_hr_feedback_360_tsx"
+    ],
+    "345": [
+      "src_app_app_company_hr_payroll_reports_tsx"
+    ],
+    "346": [
+      "src_app_app_company_hr_biometric_devices_tsx"
+    ],
+    "347": [
+      "src_app_app_company_hr_my_assets_tsx"
+    ],
+    "348": [
+      "src_app_app_company_hr_grades_tsx"
+    ],
+    "349": [
+      "src_app_app_company_hr_goals_tsx"
+    ],
+    "350": [
+      "src_app_app_company_hr_hr_letters_tsx"
+    ],
+    "351": [
+      "src_app_app_company_hr_candidate_detail_tsx"
+    ],
+    "352": [
+      "src_app_app_company_hr_employee_detail_tsx"
+    ],
+    "353": [
+      "src_app_app_company_hr_approval_requests_tsx"
+    ],
+    "354": [
+      "src_app_app_company_hr_my_appraisal_tsx"
+    ],
+    "355": [
+      "src_app_app_company_hr_requisitions_tsx"
+    ],
+    "356": [
+      "src_app_app_company_hr_grievances_tsx"
+    ],
+    "357": [
+      "src_app_app_company_hr_my_expense_claims_tsx"
+    ],
+    "358": [
+      "src_app_app_company_hr_performance_dashboard_tsx"
+    ],
+    "359": [
+      "src_app_app_company_hr_employees_tsx"
+    ],
+    "360": [
+      "src_app_app_company_hr_data_retention_tsx"
+    ],
+    "361": [
+      "src_app_app_company_hr_my_leave_tsx"
+    ],
+    "362": [
+      "src_app_app_company_hr_notification_rules_tsx"
+    ],
+    "363": [
+      "src_app_app_company_hr_shift_check_in_tsx"
+    ],
+    "364": [
+      "src_app_app_company_hr_my_overtime_tsx"
+    ],
+    "365": [
+      "src_app_app_company_hr_attendance_tsx"
+    ],
+    "366": [
+      "src_app_app_company_hr_delegates_tsx"
+    ],
+    "367": [
+      "src_app_app_company_hr_my_loans_tsx"
+    ],
+    "368": [
+      "src_app_app_company_hr_travel_advances_tsx"
+    ],
+    "369": [
+      "src_app_app_company_hr_form_16_tsx"
+    ],
+    "370": [
+      "src_app_app_company_hr_admin_attendance_tsx"
+    ],
+    "371": [
+      "src_app_app_company_hr_my_training_tsx"
+    ],
+    "372": [
+      "src_app_app_company_hr_my_payslips_tsx"
+    ],
+    "373": [
+      "src_app_app_company_hr_my_profile_tsx"
+    ],
+    "374": [
+      "src_app_app_company_hr_rosters_tsx"
+    ],
+    "375": [
+      "src_app_app_company_hr_wfh_requests_tsx"
+    ],
+    "376": [
+      "src_app_app_company_hr_clearance_dashboard_tsx"
+    ],
+    "377": [
+      "src_app_app_company_hr_notification_templates_tsx"
+    ],
+    "378": [
+      "src_app_app_company_hr_holidays_tsx"
+    ],
+    "379": [
+      "src_app_app_company_hr_attendance_overrides_tsx"
+    ],
+    "380": [
+      "src_app_app_company_hr_my_form16_tsx"
+    ],
+    "381": [
+      "src_app_app_company_hr_candidates_tsx"
+    ],
+    "382": [
+      "src_app_app_company_hr_esign_tsx"
+    ],
+    "383": [
+      "src_app_app_company_hr_transfers_tsx"
+    ],
+    "384": [
+      "src_app_app_company_hr_ess_config_tsx"
+    ],
+    "385": [
+      "src_app_app_company_hr_ratings_tsx"
+    ],
+    "386": [
+      "src_app_app_company_hr_overtime_rules_tsx"
+    ],
+    "387": [
+      "src_app_app_company_hr_training_nominations_tsx"
+    ],
+    "388": [
+      "src_app_app_company_hr_tax_config_tsx"
+    ],
+    "389": [
+      "src_app_app_company_hr_designations_tsx"
+    ],
+    "390": [
+      "src_app_app_company_hr_promotions_tsx"
+    ],
+    "391": [
+      "src_app_app_company_hr_bonus_batches_tsx"
+    ],
+    "392": [
+      "src_app_app_company_hr_production_incentives_tsx"
+    ],
+    "393": [
+      "src_app_app_company_hr_exit_requests_tsx"
+    ],
+    "394": [
+      "src_app_app_company_hr_disciplinary_tsx"
+    ],
+    "395": [
+      "src_app_app_company_hr_departments_tsx"
+    ],
+    "396": [
+      "src_app_app_company_hr_employee_types_tsx"
+    ],
+    "397": [
+      "src_app_app_company_hr_org_chart_tsx"
+    ],
+    "398": [
+      "src_app_app_company_hr_cost_centres_tsx"
+    ],
+    "399": [
+      "src_app_app_company_hr_salary_structures_tsx"
+    ],
+    "400": [
+      "src_app_app_company_hr_team_view_tsx"
+    ],
+    "401": [
+      "src_app_app_company_hr_succession_tsx"
+    ],
+    "402": [
+      "src_app_app_company_hr_loans_tsx"
+    ],
+    "403": [
+      "src_app_app_company_hr_salary_revisions_tsx"
+    ],
+    "404": [
+      "src_app_app_company_hr_bulk_employee_import_tsx"
+    ],
+    "405": [
+      "src_app_app_company_hr_salary_components_tsx"
+    ],
+    "406": [
+      "src_app_app_company_hr_onboarding_tsx"
+    ],
+    "407": [
+      "src_app_app_company_hr_employee_salary_tsx"
+    ],
+    "408": [
+      "src_app_app_company_hr_payroll_runs_tsx"
+    ],
+    "409": [
+      "src_app_app_company_hr_my_attendance_tsx"
+    ],
+    "410": [
+      "src_app_app_company_hr_layout_tsx"
+    ],
+    "411": [
+      "src_app_app_company_hr_policy_documents_tsx"
+    ],
+    "412": [
+      "src_app_app_company_hr_my_grievances_tsx"
+    ],
+    "413": [
+      "src_app_app_company_hr_skills_tsx"
+    ],
+    "414": [
+      "src_app_app_company_hr_attendance_rules_tsx"
+    ],
+    "415": [
+      "src_app_app_company_hr_fnf_settlement_tsx"
+    ],
+    "416": [
+      "src_app_app_company_hr_assets_tsx"
+    ],
+    "417": [
+      "src_app_app_company_hr_my_holidays_tsx"
+    ],
+    "418": [
+      "src_app_app_company_hr_chatbot_tsx"
+    ],
+    "419": [
+      "src_app_app_company_hr_appraisal_cycles_tsx"
+    ],
+    "420": [
+      "src_app_app_company_hr_leave_types_tsx"
+    ],
+    "421": [
+      "src_app_app_company_hr_leave_requests_tsx"
+    ],
+    "422": [
+      "src_app_app_company_hr_salary_holds_tsx"
+    ],
+    "423": [
+      "src_app_app_company_hr_approval_workflows_tsx"
+    ],
+    "424": [
+      "src_app_app_company_hr_training_tsx"
+    ],
+    "425": [
+      "src_app_app_company_hr_payslips_tsx"
+    ],
+    "426": [
+      "src_app_app_company_hr_expenses_tsx"
+    ],
+    "427": [
+      "src_app_app_company_hr_statutory_config_tsx"
+    ],
+    "428": [
+      "src_app_app_company_hr_leave_policies_tsx"
+    ],
+    "429": [
+      "src_app_app_company_hr_leave_balances_tsx"
+    ],
+    "430": [
+      "src_app_app_company_hr_shift_swap_tsx"
+    ],
+    "431": [
+      "src_app_app_company_hr_my_goals_tsx"
+    ],
+    "432": [
+      "src_app_app_company_hr_my_documents_tsx"
+    ],
+    "433": [
+      "src_app_app_company_hr_bank_config_tsx"
+    ],
+    "434": [
+      "src_app_app_company_hr_analytics_attrition_tsx"
+    ],
+    "435": [
+      "src_app_app_company_hr_analytics_index_tsx"
+    ],
+    "436": [
+      "src_app_app_company_hr_analytics_reports_tsx"
+    ],
+    "437": [
+      "src_app_app_company_hr_analytics_compliance_tsx"
+    ],
+    "438": [
+      "src_app_app_company_hr_analytics_attendance_tsx"
+    ],
+    "439": [
+      "src_app_app_company_hr_analytics_payroll_tsx"
+    ],
+    "440": [
+      "src_app_app_company_hr_analytics_workforce_tsx"
+    ],
+    "441": [
+      "src_app_app_company_hr_analytics_recruitment_tsx"
+    ],
+    "442": [
+      "src_app_app_company_hr_analytics_executive_tsx"
+    ],
+    "443": [
+      "src_app_app_company_hr_analytics_leave_tsx"
+    ],
+    "444": [
+      "src_app_app_company_hr_analytics_training_tsx"
+    ],
+    "445": [
+      "src_app_app_company_hr_analytics_performance_tsx"
+    ],
+    "446": [
+      "src_features_settings_components_theme_item_tsx"
+    ],
+    "447": [
+      "src_features_auth_login_screen_tsx"
+    ],
+    "448": [
+      "src_features_super_admin_tenant_onboarding_step_indicator_tsx"
+    ],
+    "449": [
+      "src_features_super_admin_tenant_onboarding_shared_styles_ts"
+    ],
+    "450": [
+      "src_features_super_admin_tenant_onboarding_types_ts"
+    ],
+    "451": [
+      "src_features_super_admin_tenant_onboarding_steps_step03_address_tsx"
+    ],
+    "452": [
+      "src_features_super_admin_tenant_onboarding_steps_step05_preferences_tsx"
+    ],
+    "453": [
+      "src_features_super_admin_tenant_onboarding_steps_step02_statutory_tsx"
+    ],
+    "454": [
+      "src_features_super_admin_tenant_onboarding_steps_step17_activation_tsx"
+    ],
+    "455": [
+      "src_features_super_admin_tenant_onboarding_steps_step07_strategy_tsx"
+    ],
+    "456": [
+      "src_features_ess_my_assets_screen_tsx"
+    ],
+    "457": [
+      "src_features_ess_my_goals_screen_tsx"
+    ],
+    "458": [
+      "src_features_ess_overtime_overtime_request_detail_sheet_tsx"
+    ],
+    "459": [
+      "src_features_ess_overtime_claim_overtime_modal_tsx"
+    ],
+    "460": [
+      "src_features_company_admin_inventory_screen_tsx"
+    ],
+    "461": [
+      "src_features_company_admin_maintenance_screen_tsx"
+    ],
+    "462": [
+      "src_features_company_admin_production_screen_tsx"
+    ],
+    "463": [
+      "src_features_company_admin_visitors_denied_entries_screen_tsx"
+    ],
+    "464": [
+      "src_features_company_admin_visitors_visitor_list_screen_tsx"
+    ],
+    "465": [
+      "src_features_company_admin_visitors_visit_history_screen_tsx"
+    ],
+    "466": [
+      "src_features_company_admin_hr_performance_dashboard_screen_tsx"
+    ],
+    "467": [
+      "src_features_company_admin_hr_placeholder_screen_tsx"
+    ],
+    "468": [
+      "src_features_company_admin_hr_analytics_payroll_analytics_dashboard_screen_tsx"
+    ],
+    "469": [
+      "src_features_company_admin_hr_analytics_training_dashboard_screen_tsx"
+    ],
+    "470": [
+      "src_features_company_admin_hr_analytics_leave_analytics_dashboard_screen_tsx"
+    ],
+    "471": [
+      "src_features_company_admin_hr_analytics_attrition_dashboard_screen_tsx"
+    ],
+    "472": [
+      "src_features_company_admin_hr_analytics_executive_dashboard_screen_tsx"
+    ],
+    "473": [
+      "src_features_company_admin_hr_analytics_compliance_dashboard_screen_tsx"
+    ],
+    "474": [
+      "src_features_company_admin_hr_analytics_attendance_analytics_dashboard_screen_tsx"
+    ],
+    "475": [
+      "src_features_company_admin_hr_analytics_recruitment_dashboard_screen_tsx"
+    ],
+    "476": [
+      "src_features_company_admin_hr_analytics_workforce_dashboard_screen_tsx"
+    ],
+    "477": [
+      "src_features_company_admin_hr_analytics_performance_analytics_dashboard_screen_tsx"
+    ],
+    "478": [
+      "src_features_company_admin_api_index_ts"
+    ],
+    "479": [
+      "src_features_notifications_notification_bell_tsx"
+    ],
+    "480": [
+      "src_components_ui_app_update_gate_tsx"
+    ],
+    "481": [
+      "src_components_ui_index_tsx"
+    ],
+    "482": [
+      "src_components_ui_r2_image_tsx"
+    ],
+    "483": [
+      "src_components_ui_modal_keyboard_aware_scroll_view_tsx"
+    ],
+    "484": [
+      "src_components_ui_biometric_lock_gate_tsx"
+    ],
+    "485": [
+      "src_components_ui_list_tsx"
+    ],
+    "486": [
+      "src_components_ui_search_bar_tsx"
+    ],
+    "487": [
+      "src_components_ui_status_badge_tsx"
+    ],
+    "488": [
+      "src_components_ui_colors_js"
+    ],
+    "489": [
+      "src_components_ui_app_top_header_tsx"
+    ],
+    "490": [
+      "src_components_ui_icons_index_tsx"
+    ],
+    "491": [
+      "src_components_ui_icons_caret_down_tsx"
+    ],
+    "492": [
+      "src_components_analytics_insightspanel_tsx"
+    ],
+    "493": [
+      "src_components_analytics_filterbottomsheet_tsx"
+    ],
+    "494": [
+      "src_components_analytics_exportbutton_tsx"
+    ],
+    "495": [
+      "src_components_analytics_distributionchart_tsx"
+    ],
+    "496": [
+      "src_components_analytics_index_ts"
+    ],
+    "497": [
+      "src_lib_hooks_index_tsx"
+    ],
+    "498": [
+      "src_lib_api_invoice_ts"
+    ],
+    "499": [
+      "src_lib_api_leave_ts"
+    ],
+    "500": [
+      "src_lib_api_payment_ts"
+    ],
+    "501": [
+      "src_lib_api_ess_ts"
+    ],
+    "502": [
+      "src_lib_api_performance_ts"
+    ],
+    "503": [
+      "src_lib_api_chatbot_ts"
+    ],
+    "504": [
+      "src_lib_api_analytics_ts"
+    ],
+    "505": [
+      "src_lib_api_company_admin_ts"
+    ],
+    "506": [
+      "src_lib_api_notifications_ts"
+    ],
+    "507": [
+      "src_lib_api_production_incentive_ts"
+    ],
+    "508": [
+      "src_lib_api_retention_ts"
+    ],
+    "509": [
+      "src_lib_api_dashboard_ts"
+    ],
+    "510": [
+      "src_lib_api_transfer_ts"
+    ],
+    "511": [
+      "src_lib_api_payroll_ts"
+    ],
+    "512": [
+      "src_lib_api_hr_ts"
+    ],
+    "513": [
+      "src_lib_api_bonus_batch_ts"
+    ],
+    "514": [
+      "src_lib_api_shift_rotation_ts"
+    ],
+    "515": [
+      "src_lib_api_onboarding_ts"
+    ],
+    "516": [
+      "src_lib_api_biometric_ts"
+    ],
+    "517": [
+      "src_lib_api_visitors_ts"
+    ],
+    "518": [
+      "src_lib_api_index_ts"
+    ],
+    "519": [
+      "src_lib_api_subscription_ts"
+    ],
+    "520": [
+      "src_lib_api_offboarding_ts"
+    ],
+    "521": [
+      "src_lib_api_payroll_run_ts"
+    ],
+    "522": [
+      "src_lib_api_upload_ts"
+    ],
+    "523": [
+      "src_lib_api_audit_ts"
+    ],
+    "524": [
+      "src_lib_api_support_ts"
+    ],
+    "525": [
+      "src_lib_api_admin_attendance_ts"
+    ],
+    "526": [
+      "src_lib_api_recruitment_ts"
+    ],
+    "527": [
+      "src_lib_i18n_index_tsx"
+    ],
+    "528": [
+      "src_lib_i18n_resources_ts"
+    ],
+    "529": [
+      "src_lib_i18n_react_i18next_d_ts"
+    ],
+    "530": [
+      "src_lib_i18n_types_ts"
+    ],
+    "531": [
+      "src_lib_notifications_index_ts"
+    ]
+  },
+  "cohesion": {
+    "0": 0.02,
+    "1": 0.02,
+    "2": 0.03,
+    "3": 0.03,
+    "4": 0.04,
+    "5": 0.05,
+    "6": 0.05,
+    "7": 0.07,
+    "8": 0.06,
+    "9": 0.06,
+    "10": 0.06,
+    "11": 0.06,
+    "12": 0.06,
+    "13": 0.07,
+    "14": 0.07,
+    "15": 0.08,
+    "16": 0.1,
+    "17": 0.09,
+    "18": 0.09,
+    "19": 0.1,
+    "20": 0.1,
+    "21": 0.1,
+    "22": 0.11,
+    "23": 0.11,
+    "24": 0.11,
+    "25": 0.13,
+    "26": 0.14,
+    "27": 0.13,
+    "28": 0.13,
+    "29": 0.13,
+    "30": 0.22,
+    "31": 0.17,
+    "32": 0.15,
+    "33": 0.15,
+    "34": 0.15,
+    "35": 0.18,
+    "36": 0.17,
+    "37": 0.17,
+    "38": 0.18,
+    "39": 0.17,
+    "40": 0.18,
+    "41": 0.18,
+    "42": 0.22,
+    "43": 0.2,
+    "44": 0.2,
+    "45": 0.22,
+    "46": 0.22,
+    "47": 0.2,
+    "48": 0.2,
+    "49": 0.2,
+    "50": 0.2,
+    "51": 0.2,
+    "52": 0.22,
+    "53": 0.22,
+    "54": 0.25,
+    "55": 0.29,
+    "56": 0.25,
+    "57": 0.25,
+    "58": 0.29,
+    "59": 0.29,
+    "60": 0.25,
+    "61": 0.25,
+    "62": 0.25,
+    "63": 0.29,
+    "64": 0.29,
+    "65": 0.29,
+    "66": 0.25,
+    "67": 0.29,
+    "68": 0.25,
+    "69": 0.25,
+    "70": 0.25,
+    "71": 0.29,
+    "72": 0.29,
+    "73": 0.29,
+    "74": 0.29,
+    "75": 0.29,
+    "76": 0.29,
+    "77": 0.29,
+    "78": 0.33,
+    "79": 0.33,
+    "80": 0.29,
+    "81": 0.29,
+    "82": 0.29,
+    "83": 0.33,
+    "84": 0.29,
+    "85": 0.33,
+    "86": 0.29,
+    "87": 0.33,
+    "88": 0.33,
+    "89": 0.29,
+    "90": 0.29,
+    "91": 0.29,
+    "92": 0.29,
+    "93": 0.29,
+    "94": 0.29,
+    "95": 0.29,
+    "96": 0.33,
+    "97": 0.33,
+    "98": 0.33,
+    "99": 0.33,
+    "100": 0.33,
+    "101": 0.4,
+    "102": 0.4,
+    "103": 0.33,
+    "104": 0.33,
+    "105": 0.33,
+    "106": 0.33,
+    "107": 0.33,
+    "108": 0.33,
+    "109": 0.33,
+    "110": 0.33,
+    "111": 0.33,
+    "112": 0.33,
+    "113": 0.33,
+    "114": 0.33,
+    "115": 0.33,
+    "116": 0.67,
+    "117": 0.33,
+    "118": 0.47,
+    "119": 0.4,
+    "120": 0.4,
+    "121": 0.4,
+    "122": 0.4,
+    "123": 0.4,
+    "124": 0.4,
+    "125": 0.4,
+    "126": 0.4,
+    "127": 0.4,
+    "128": 0.4,
+    "129": 0.4,
+    "130": 0.4,
+    "131": 0.4,
+    "132": 0.4,
+    "133": 0.4,
+    "134": 0.4,
+    "135": 0.5,
+    "136": 0.5,
+    "137": 0.5,
+    "138": 0.5,
+    "139": 0.5,
+    "140": 0.5,
+    "141": 0.5,
+    "142": 0.5,
+    "143": 0.5,
+    "144": 0.5,
+    "145": 0.5,
+    "146": 0.5,
+    "147": 0.5,
+    "148": 0.67,
+    "149": 0.5,
+    "150": 0.5,
+    "151": 0.5,
+    "152": 0.5,
+    "153": 0.5,
+    "154": 0.5,
+    "155": 0.5,
+    "156": 0.5,
+    "157": 0.5,
+    "158": 0.5,
+    "159": 0.5,
+    "160": 0.5,
+    "161": 0.5,
+    "162": 0.83,
+    "163": 0.67,
+    "164": 0.67,
+    "165": 0.67,
+    "166": 0.67,
+    "167": 0.67,
+    "168": 0.67,
+    "169": 0.67,
+    "170": 0.67,
+    "171": 0.67,
+    "172": 0.67,
+    "173": 0.67,
+    "174": 0.67,
+    "175": 0.67,
+    "176": 0.67,
+    "177": 0.67,
+    "178": 0.67,
+    "179": 0.67,
+    "180": 0.67,
+    "181": 0.67,
+    "182": 0.67,
+    "183": 0.67,
+    "184": 0.67,
+    "185": 0.67,
+    "186": 1.0,
+    "187": 1.0,
+    "188": 1.0,
+    "189": 1.0,
+    "190": 1.0,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 1.0,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
+    "197": 1.0,
+    "198": 1.0,
+    "199": 1.0,
+    "200": 1.0,
+    "201": 1.0,
+    "202": 1.0,
+    "203": 1.0,
+    "204": 1.0,
+    "205": 1.0,
+    "206": 1.0,
+    "207": 1.0,
+    "208": 1.0,
+    "209": 1.0,
+    "210": 1.0,
+    "211": 1.0,
+    "212": 1.0,
+    "213": 1.0,
+    "214": 1.0,
+    "215": 1.0,
+    "216": 1.0,
+    "217": 1.0,
+    "218": 1.0,
+    "219": 1.0,
+    "220": 1.0,
+    "221": 1.0,
+    "222": 1.0,
+    "223": 1.0,
+    "224": 1.0,
+    "225": 1.0,
+    "226": 1.0,
+    "227": 1.0,
+    "228": 1.0,
+    "229": 1.0,
+    "230": 1.0,
+    "231": 1.0,
+    "232": 1.0,
+    "233": 1.0,
+    "234": 1.0,
+    "235": 1.0,
+    "236": 1.0,
+    "237": 1.0,
+    "238": 1.0,
+    "239": 1.0,
+    "240": 1.0,
+    "241": 1.0,
+    "242": 1.0,
+    "243": 1.0,
+    "244": 1.0,
+    "245": 1.0,
+    "246": 1.0,
+    "247": 1.0,
+    "248": 1.0,
+    "249": 1.0,
+    "250": 1.0,
+    "251": 1.0,
+    "252": 1.0,
+    "253": 1.0,
+    "254": 1.0,
+    "255": 1.0,
+    "256": 1.0,
+    "257": 1.0,
+    "258": 1.0,
+    "259": 1.0,
+    "260": 1.0,
+    "261": 1.0,
+    "262": 1.0,
+    "263": 1.0,
+    "264": 1.0,
+    "265": 1.0,
+    "266": 1.0,
+    "267": 1.0,
+    "268": 1.0,
+    "269": 1.0,
+    "270": 1.0,
+    "271": 1.0,
+    "272": 1.0,
+    "273": 1.0,
+    "274": 1.0,
+    "275": 1.0,
+    "276": 1.0,
+    "277": 1.0,
+    "278": 1.0,
+    "279": 1.0,
+    "280": 1.0,
+    "281": 1.0,
+    "282": 1.0,
+    "283": 1.0,
+    "284": 1.0,
+    "285": 1.0,
+    "286": 1.0,
+    "287": 1.0,
+    "288": 1.0,
+    "289": 1.0,
+    "290": 1.0,
+    "291": 1.0,
+    "292": 1.0,
+    "293": 1.0,
+    "294": 1.0,
+    "295": 1.0,
+    "296": 1.0,
+    "297": 1.0,
+    "298": 1.0,
+    "299": 1.0,
+    "300": 1.0,
+    "301": 1.0,
+    "302": 1.0,
+    "303": 1.0,
+    "304": 1.0,
+    "305": 1.0,
+    "306": 1.0,
+    "307": 1.0,
+    "308": 1.0,
+    "309": 1.0,
+    "310": 1.0,
+    "311": 1.0,
+    "312": 1.0,
+    "313": 1.0,
+    "314": 1.0,
+    "315": 1.0,
+    "316": 1.0,
+    "317": 1.0,
+    "318": 1.0,
+    "319": 1.0,
+    "320": 1.0,
+    "321": 1.0,
+    "322": 1.0,
+    "323": 1.0,
+    "324": 1.0,
+    "325": 1.0,
+    "326": 1.0,
+    "327": 1.0,
+    "328": 1.0,
+    "329": 1.0,
+    "330": 1.0,
+    "331": 1.0,
+    "332": 1.0,
+    "333": 1.0,
+    "334": 1.0,
+    "335": 1.0,
+    "336": 1.0,
+    "337": 1.0,
+    "338": 1.0,
+    "339": 1.0,
+    "340": 1.0,
+    "341": 1.0,
+    "342": 1.0,
+    "343": 1.0,
+    "344": 1.0,
+    "345": 1.0,
+    "346": 1.0,
+    "347": 1.0,
+    "348": 1.0,
+    "349": 1.0,
+    "350": 1.0,
+    "351": 1.0,
+    "352": 1.0,
+    "353": 1.0,
+    "354": 1.0,
+    "355": 1.0,
+    "356": 1.0,
+    "357": 1.0,
+    "358": 1.0,
+    "359": 1.0,
+    "360": 1.0,
+    "361": 1.0,
+    "362": 1.0,
+    "363": 1.0,
+    "364": 1.0,
+    "365": 1.0,
+    "366": 1.0,
+    "367": 1.0,
+    "368": 1.0,
+    "369": 1.0,
+    "370": 1.0,
+    "371": 1.0,
+    "372": 1.0,
+    "373": 1.0,
+    "374": 1.0,
+    "375": 1.0,
+    "376": 1.0,
+    "377": 1.0,
+    "378": 1.0,
+    "379": 1.0,
+    "380": 1.0,
+    "381": 1.0,
+    "382": 1.0,
+    "383": 1.0,
+    "384": 1.0,
+    "385": 1.0,
+    "386": 1.0,
+    "387": 1.0,
+    "388": 1.0,
+    "389": 1.0,
+    "390": 1.0,
+    "391": 1.0,
+    "392": 1.0,
+    "393": 1.0,
+    "394": 1.0,
+    "395": 1.0,
+    "396": 1.0,
+    "397": 1.0,
+    "398": 1.0,
+    "399": 1.0,
+    "400": 1.0,
+    "401": 1.0,
+    "402": 1.0,
+    "403": 1.0,
+    "404": 1.0,
+    "405": 1.0,
+    "406": 1.0,
+    "407": 1.0,
+    "408": 1.0,
+    "409": 1.0,
+    "410": 1.0,
+    "411": 1.0,
+    "412": 1.0,
+    "413": 1.0,
+    "414": 1.0,
+    "415": 1.0,
+    "416": 1.0,
+    "417": 1.0,
+    "418": 1.0,
+    "419": 1.0,
+    "420": 1.0,
+    "421": 1.0,
+    "422": 1.0,
+    "423": 1.0,
+    "424": 1.0,
+    "425": 1.0,
+    "426": 1.0,
+    "427": 1.0,
+    "428": 1.0,
+    "429": 1.0,
+    "430": 1.0,
+    "431": 1.0,
+    "432": 1.0,
+    "433": 1.0,
+    "434": 1.0,
+    "435": 1.0,
+    "436": 1.0,
+    "437": 1.0,
+    "438": 1.0,
+    "439": 1.0,
+    "440": 1.0,
+    "441": 1.0,
+    "442": 1.0,
+    "443": 1.0,
+    "444": 1.0,
+    "445": 1.0,
+    "446": 1.0,
+    "447": 1.0,
+    "448": 1.0,
+    "449": 1.0,
+    "450": 1.0,
+    "451": 1.0,
+    "452": 1.0,
+    "453": 1.0,
+    "454": 1.0,
+    "455": 1.0,
+    "456": 1.0,
+    "457": 1.0,
+    "458": 1.0,
+    "459": 1.0,
+    "460": 1.0,
+    "461": 1.0,
+    "462": 1.0,
+    "463": 1.0,
+    "464": 1.0,
+    "465": 1.0,
+    "466": 1.0,
+    "467": 1.0,
+    "468": 1.0,
+    "469": 1.0,
+    "470": 1.0,
+    "471": 1.0,
+    "472": 1.0,
+    "473": 1.0,
+    "474": 1.0,
+    "475": 1.0,
+    "476": 1.0,
+    "477": 1.0,
+    "478": 1.0,
+    "479": 1.0,
+    "480": 1.0,
+    "481": 1.0,
+    "482": 1.0,
+    "483": 1.0,
+    "484": 1.0,
+    "485": 1.0,
+    "486": 1.0,
+    "487": 1.0,
+    "488": 1.0,
+    "489": 1.0,
+    "490": 1.0,
+    "491": 1.0,
+    "492": 1.0,
+    "493": 1.0,
+    "494": 1.0,
+    "495": 1.0,
+    "496": 1.0,
+    "497": 1.0,
+    "498": 1.0,
+    "499": 1.0,
+    "500": 1.0,
+    "501": 1.0,
+    "502": 1.0,
+    "503": 1.0,
+    "504": 1.0,
+    "505": 1.0,
+    "506": 1.0,
+    "507": 1.0,
+    "508": 1.0,
+    "509": 1.0,
+    "510": 1.0,
+    "511": 1.0,
+    "512": 1.0,
+    "513": 1.0,
+    "514": 1.0,
+    "515": 1.0,
+    "516": 1.0,
+    "517": 1.0,
+    "518": 1.0,
+    "519": 1.0,
+    "520": 1.0,
+    "521": 1.0,
+    "522": 1.0,
+    "523": 1.0,
+    "524": 1.0,
+    "525": 1.0,
+    "526": 1.0,
+    "527": 1.0,
+    "528": 1.0,
+    "529": 1.0,
+    "530": 1.0,
+    "531": 1.0
+  },
+  "gods": [
+    {
+      "id": "hr_holiday_screen_string",
+      "label": "String()",
+      "degree": 28
+    },
+    {
+      "id": "ui_utils_showerrormessage",
+      "label": "showErrorMessage()",
+      "degree": 25
+    },
+    {
+      "id": "ui_utils_showsuccess",
+      "label": "showSuccess()",
+      "degree": 9
+    },
+    {
+      "id": "hooks_use_is_dark_useisdark",
+      "label": "useIsDark()",
+      "degree": 9
+    },
+    {
+      "id": "settings_settings_screen_handletogglebiometric",
+      "label": "handleToggleBiometric()",
+      "degree": 6
+    },
+    {
+      "id": "auth_mfa_setup_screen_handlesubmit",
+      "label": "handleSubmit()",
+      "degree": 6
+    },
+    {
+      "id": "tenant_onboarding_index_validatecurrentstep",
+      "label": "validateCurrentStep()",
+      "degree": 6
+    },
+    {
+      "id": "lib_storage_getitem",
+      "label": "getItem()",
+      "degree": 6
+    },
+    {
+      "id": "cli_setup_project_setupproject",
+      "label": "setupProject()",
+      "degree": 5
+    },
+    {
+      "id": "app_layout_appsidebar",
+      "label": "AppSidebar()",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "handleMfaSetup()",
+      "target": "showErrorMessage()",
+      "source_files": [
+        "src/features/settings/settings-screen.tsx",
+        "src/components/ui/utils.tsx"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `handleMfaSetup()` unexpectedly reaches hub `showErrorMessage()`"
+    },
+    {
+      "source": "handleSubmit()",
+      "target": "decodeJwtPayload()",
+      "source_files": [
+        "src/features/auth/mfa-setup-screen.tsx",
+        "src/lib/api/auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `decodeJwtPayload()` unexpectedly reaches hub `handleSubmit()`"
+    },
+    {
+      "source": "handleSubmit()",
+      "target": "signIn()",
+      "source_files": [
+        "src/features/auth/mfa-setup-screen.tsx",
+        "src/features/auth/use-auth-store.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `signIn()` unexpectedly reaches hub `handleSubmit()`"
+    },
+    {
+      "source": "asDisplayText()",
+      "target": "String()",
+      "source_files": [
+        "src/features/company-admin/hr/my-profile-screen.tsx",
+        "src/features/company-admin/hr/holiday-screen.tsx"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `asDisplayText()` unexpectedly reaches hub `String()`"
+    },
+    {
+      "source": "humanizeEnum()",
+      "target": "String()",
+      "source_files": [
+        "src/features/company-admin/hr/my-profile-screen.tsx",
+        "src/features/company-admin/hr/holiday-screen.tsx"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities; peripheral node `humanizeEnum()` unexpectedly reaches hub `String()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `String()` connect `Community 0` to `Community 1`, `Community 7`, `Community 16`, `Community 17`, `Community 26`, `Community 29`?",
+      "why": "High betweenness centrality (0.039) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `showErrorMessage()` connect `Community 1` to `Community 0`, `Community 25`, `Community 7`?",
+      "why": "High betweenness centrality (0.022) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `registerForPushNotifications()` connect `Community 7` to `Community 0`?",
+      "why": "High betweenness centrality (0.013) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 27 inferred relationships involving `String()` (e.g. with `buildBillingKPIs()` and `formatCount()`) actually correct?",
+      "why": "`String()` has 27 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 24 inferred relationships involving `showErrorMessage()` (e.g. with `commitQuietStart()` and `commitQuietEnd()`) actually correct?",
+      "why": "`showErrorMessage()` has 24 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 8 inferred relationships involving `showSuccess()` (e.g. with `handleToggleBiometric()` and `handleSubmit()`) actually correct?",
+      "why": "`showSuccess()` has 8 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 8 inferred relationships involving `useIsDark()` (e.g. with `BiometricPromptModal()` and `FormLabel()`) actually correct?",
+      "why": "`useIsDark()` has 8 INFERRED edges - model-reasoned connections that need verification."
+    }
+  ]
+}

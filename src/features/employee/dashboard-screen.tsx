@@ -38,6 +38,7 @@ import { NotificationBell } from '@/features/notifications/notification-bell';
 import { NotificationsSheet } from '@/features/notifications/notifications-sheet';
 import type { NotificationsSheetHandle } from '@/features/notifications/notifications-sheet';
 import { useDashboard, essKeys } from '@/features/company-admin/api/use-ess-queries';
+import { useNavigationManifest } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { checkPermission } from '@/lib/api/auth';
 import { client } from '@/lib/api/client';
@@ -2276,17 +2277,46 @@ export function EmployeeDashboard() {
   const S = _createStyles(isDark);
 
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const user = useAuthStore.use.user();
     const permissions = useAuthStore.use.permissions();
     const firstName = user?.firstName ?? 'there';
+    const fmt = useCompanyFormatter();
 
-    const { data: dashboardResponse, isLoading, refetch } = useDashboard();
+    // Only fetch ESS dashboard if user has HR/ESS permissions
+    const canAccessEssDashboard = checkPermission(permissions, 'hr:read')
+        || checkPermission(permissions, 'ess:view-profile');
+
+    const { data: dashboardResponse, isLoading, refetch } = useDashboard(canAccessEssDashboard);
+    const { data: manifestData } = useNavigationManifest();
     const [pullRefreshing, setPullRefreshing] = React.useState(false);
 
     // Notification bell
     const notifSheetRef = React.useRef<NotificationsSheetHandle>(null);
     const { data: unreadData } = useUnreadNotificationCount();
     const unreadCount: number = unreadData?.data?.count ?? 0;
+
+    // Build quick links from navigation manifest for welcome screen
+    const welcomeNavItems = React.useMemo(() => {
+        if (canAccessEssDashboard) return [];
+        const rawManifest = (manifestData as any)?.data ?? manifestData;
+        if (!Array.isArray(rawManifest)) return [];
+        const items: { id: string; label: string; route: string; icon: string; group: string }[] = [];
+        for (const section of rawManifest) {
+            const group = section.group ?? section.moduleSeparator ?? 'General';
+            for (const item of section.items ?? []) {
+                if (item.id === 'dashboard') continue;
+                items.push({
+                    id: item.id,
+                    label: item.label,
+                    route: item.path ?? '',
+                    icon: item.icon ?? 'dashboard',
+                    group,
+                });
+            }
+        }
+        return items;
+    }, [canAccessEssDashboard, manifestData]);
 
     const data: DashboardData | undefined = React.useMemo(() => {
         const raw = dashboardResponse as any;
@@ -2298,6 +2328,131 @@ export function EmployeeDashboard() {
         setPullRefreshing(true);
         try { await refetch(); } finally { setPullRefreshing(false); }
     }, [refetch]);
+
+    // If user has no ESS/HR permissions, show a welcome screen with quick links
+    if (!canAccessEssDashboard) {
+        return (
+            <View style={S.container}>
+                <WelcomeHeader firstName={firstName} onBellPress={() => notifSheetRef.current?.open()} unreadCount={unreadCount} />
+                <ScrollView
+                    contentContainerStyle={[S.scrollContent, { paddingBottom: insets.bottom + 120 }]}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* Quick Links */}
+                    {welcomeNavItems.length > 0 ? (
+                        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                            <Text className="font-inter" style={{
+                                fontSize: 14,
+                                fontWeight: '700',
+                                color: isDark ? colors.neutral[300] : colors.neutral[600],
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                marginBottom: 12,
+                            }}>
+                                Your Quick Links
+                            </Text>
+                            {welcomeNavItems.map((item) => (
+                                <Pressable
+                                    key={item.id}
+                                    onPress={() => router.push(item.route as any)}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        backgroundColor: isDark ? '#1A1625' : '#FFFFFF',
+                                        borderRadius: 16,
+                                        padding: 16,
+                                        marginBottom: 10,
+                                        borderWidth: 1,
+                                        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                    }}
+                                >
+                                    <View style={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: 12,
+                                        backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginRight: 12,
+                                    }}>
+                                        <View style={{
+                                            width: 20,
+                                            height: 20,
+                                            borderRadius: 10,
+                                            backgroundColor: colors.primary[500],
+                                        }} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="font-inter" style={{
+                                            fontSize: 15,
+                                            fontWeight: '600',
+                                            color: isDark ? '#FFFFFF' : colors.neutral[800],
+                                        }}>
+                                            {item.label}
+                                        </Text>
+                                        <Text className="font-inter" style={{
+                                            fontSize: 12,
+                                            color: isDark ? colors.neutral[400] : colors.neutral[500],
+                                            marginTop: 2,
+                                        }}>
+                                            {item.group}
+                                        </Text>
+                                    </View>
+                                    <View style={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: 14,
+                                        backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}>
+                                        <Text className="font-inter" style={{ fontSize: 14, color: colors.primary[500] }}>
+                                            {'\u203A'}
+                                        </Text>
+                                    </View>
+                                </Pressable>
+                            ))}
+                        </View>
+                    ) : (
+                        <View style={{ paddingHorizontal: 16, paddingTop: 24, alignItems: 'center' }}>
+                            <View style={{
+                                width: 64,
+                                height: 64,
+                                borderRadius: 32,
+                                backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: 16,
+                            }}>
+                                <View style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 16,
+                                    backgroundColor: colors.primary[500],
+                                }} />
+                            </View>
+                            <Text className="font-inter" style={{
+                                fontSize: 18,
+                                fontWeight: '700',
+                                color: isDark ? '#FFFFFF' : colors.neutral[800],
+                                marginBottom: 8,
+                            }}>
+                                Welcome to Avy ERP
+                            </Text>
+                            <Text className="font-inter" style={{
+                                fontSize: 14,
+                                color: isDark ? colors.neutral[400] : colors.neutral[500],
+                                textAlign: 'center',
+                            }}>
+                                Use the sidebar to navigate to your assigned screens.
+                            </Text>
+                        </View>
+                    )}
+                </ScrollView>
+                <NotificationsSheet ref={notifSheetRef} />
+            </View>
+        );
+    }
 
     if (isLoading || !data) {
         return (

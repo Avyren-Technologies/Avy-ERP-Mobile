@@ -124,11 +124,12 @@ export const essKeys = {
 // --- Dashboard Query ---
 
 /** Employee/Manager dynamic dashboard with 30s auto-refetch */
-export function useDashboard() {
+export function useDashboard(enabled = true) {
   return useQuery({
     queryKey: essKeys.dashboard(),
     queryFn: () => essApi.getDashboard(),
-    refetchInterval: 30_000,
+    refetchInterval: enabled ? 30_000 : false,
+    enabled,
   });
 }
 

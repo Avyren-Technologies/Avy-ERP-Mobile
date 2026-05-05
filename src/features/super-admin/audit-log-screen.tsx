@@ -24,6 +24,7 @@ import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useAuditLogs, useAuditFilterOptions } from '@/features/super-admin/api/use-audit-queries';
 import { useCompanyAuditLogs } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -148,18 +149,14 @@ export function AuditLogScreen() {
     const userRole = useAuthStore.use.userRole();
     const isCompanyAdmin = userRole === 'company-admin';
     const [search, setSearch] = React.useState('');
-    const [debouncedSearch, setDebouncedSearch] = React.useState('');
+    const debouncedSearch = useDebounce(search.trim(), 400);
     const [activeFilter, setActiveFilter] = React.useState('all');
     const [page, setPage] = React.useState(1);
 
-    // Debounce search
+    // Reset page when search changes
     React.useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearch(search.trim());
-            setPage(1);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [search]);
+        setPage(1);
+    }, [debouncedSearch]);
 
     // Reset page when filter changes
     React.useEffect(() => {

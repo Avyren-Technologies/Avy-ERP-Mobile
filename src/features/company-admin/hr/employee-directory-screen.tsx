@@ -29,6 +29,7 @@ import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 import { useDeleteEmployee } from '@/features/company-admin/api/use-hr-mutations';
 import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -293,6 +294,7 @@ export function EmployeeDirectoryScreen() {
     const { toggle } = useSidebar();
 
     const [search, setSearch] = React.useState('');
+    const debouncedSearch = useDebounce(search.trim(), 400);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [deptFilter, setDeptFilter] = React.useState('');
     const [page, setPage] = React.useState(1);
@@ -312,13 +314,13 @@ export function EmployeeDirectoryScreen() {
     // Fetch employees
     const queryParams = React.useMemo(
         () => ({
-            search: search.trim() || undefined,
+            search: debouncedSearch || undefined,
             status: statusFilter !== 'all' ? statusFilter : undefined,
             departmentId: deptFilter || undefined,
             page,
             limit: PAGE_SIZE,
         }),
-        [search, statusFilter, deptFilter, page],
+        [debouncedSearch, statusFilter, deptFilter, page],
     );
 
     const {

@@ -35,6 +35,7 @@ import { useCompanyLocations } from '@/features/company-admin/api/use-company-ad
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateRecurringPass, useRevokeRecurringPass, useCheckInRecurringPass } from '@/features/company-admin/api/use-visitor-mutations';
 import { useRecurringPasses, useGates } from '@/features/company-admin/api/use-visitor-queries';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -403,6 +404,7 @@ export function RecurringPassesScreen() {
   const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
   const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebounce(search.trim(), 400);
   const [typeFilter, setTypeFilter] = React.useState('');
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [qrTarget, setQrTarget] = React.useState<RecurringPassItem | null>(null);
@@ -411,10 +413,10 @@ export function RecurringPassesScreen() {
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (search.trim()) p.search = search.trim();
+    if (debouncedSearch) p.search = debouncedSearch;
     if (typeFilter) p.passType = typeFilter;
     return p;
-  }, [search, typeFilter]);
+  }, [debouncedSearch, typeFilter]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useRecurringPasses(queryParams);
   const createMutation = useCreateRecurringPass();

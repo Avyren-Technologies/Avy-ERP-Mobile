@@ -19,6 +19,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useDeniedEntries } from '@/features/company-admin/api/use-visitor-queries';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -114,12 +115,13 @@ export function DeniedEntriesScreen() {
   const fmt = useCompanyFormatter();
 
   const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebounce(search.trim(), 400);
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (search.trim()) p.search = search.trim();
+    if (debouncedSearch) p.search = debouncedSearch;
     return p;
-  }, [search]);
+  }, [debouncedSearch]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useDeniedEntries(queryParams);
 

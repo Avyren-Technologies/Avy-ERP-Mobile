@@ -58,16 +58,31 @@ interface ReferenceRole {
     permissions: string[];
 }
 
+interface SubModule {
+    key: string;
+    label: string;
+    group: string;
+    actions: string[];
+}
+
 interface PermissionModule {
     module: string;
     label: string;
     actions: string[];
+    subModules?: SubModule[];
 }
 
 interface PermissionCatalogueResponse {
     permissions: string[];
     modules: PermissionModule[];
 }
+
+// ============ CONSTANTS ============
+
+const IMPLEMENTED_MODULES = new Set([
+    'hr', 'visitors', 'ess', 'attendance', 'user', 'role', 'company',
+    'analytics', 'reports', 'audit', 'billing', 'docdiff',
+]);
 
 // ============ HELPERS ============
 
@@ -89,6 +104,36 @@ function mapReferenceRole(item: any): ReferenceRole {
         description: item.description ?? '',
         permissions: item.permissions ?? [],
     };
+}
+
+function isSubModuleActionEnabled(
+  perms: string[],
+  parentModule: string,
+  subKey: string,
+  action: string,
+): boolean {
+  if (perms.includes(`${subKey}:${action}`)) return true;
+  if (perms.includes(`${parentModule}:${action}`)) return true;
+  if (perms.includes(`${parentModule}:*`)) return true;
+  return false;
+}
+
+function isInheritedFromParent(
+  perms: string[],
+  parentModule: string,
+  action: string,
+): boolean {
+  return perms.includes(`${parentModule}:${action}`) || perms.includes(`${parentModule}:*`);
+}
+
+function groupSubModules(subModules: SubModule[]): Record<string, SubModule[]> {
+  const groups: Record<string, SubModule[]> = {};
+  for (const sub of subModules) {
+    const group = sub.group || 'General';
+    if (!groups[group]) groups[group] = [];
+    groups[group].push(sub);
+  }
+  return groups;
 }
 
 // ============ ROLE CARD ============
@@ -261,6 +306,7 @@ function RoleFormScreen({
     onSubmit,
     isSubmitting,
     error,
+    isDark,
 }: {
     visible: boolean;
     onClose: () => void;
@@ -268,9 +314,11 @@ function RoleFormScreen({
     onSubmit: (data: Record<string, unknown>) => void;
     isSubmitting: boolean;
     error?: string | null;
+    isDark: boolean;
 }) {
     const insets = useSafeAreaInsets();
     const isEdit = !!role;
+    const fStyles = React.useMemo(() => createFormStyles(isDark), [isDark]);
 
     const [name, setName] = React.useState('');
     const [description, setDescription] = React.useState('');
@@ -288,11 +336,22 @@ function RoleFormScreen({
     const { data: catalogueRaw, isLoading: catalogueLoading } = usePermissionCatalogue();
 
     const permissionModules: PermissionModule[] = React.useMemo(() => {
+        // API envelope: { success, data: { permissions, modules } }
+        // After mobile interceptor (response.data): catalogueRaw = the envelope
         const raw = (catalogueRaw as any)?.data ?? catalogueRaw;
-        const catalogue = raw as PermissionCatalogueResponse | undefined;
-        if (!catalogue?.modules || !Array.isArray(catalogue.modules)) return [];
-        // Filter out 'platform' module (admin-only)
-        return catalogue.modules.filter((m) => m.module !== 'platform');
+        const modules: any[] | undefined = raw?.modules;
+        if (!modules || !Array.isArray(modules)) return [];
+
+        return modules
+          .filter((m: any) => IMPLEMENTED_MODULES.has(m.module))
+          .map((m: any): PermissionModule => ({
+            module: m.module,
+            label: m.label,
+            actions: Array.isArray(m.actions) ? m.actions : [],
+            ...(Array.isArray(m.subModules) && m.subModules.length > 0
+              ? { subModules: m.subModules }
+              : {}),
+          }));
     }, [catalogueRaw]);
 
     const referenceRoles: RoleData[] = React.useMemo(() => {
@@ -331,6 +390,7 @@ function RoleFormScreen({
                 setPermissions([]);
             }
             setExpandedModules([]);
+            setExpandedSubGroups([]);
             setShowTemplates(false);
             setErrors({});
         }
@@ -374,24 +434,49 @@ function RoleFormScreen({
     };
 
     const toggleModule = (moduleKey: string) => {
-        setExpandedModules((prev) =>
-            prev.includes(moduleKey)
-                ? prev.filter((m) => m !== moduleKey)
-                : [...prev, moduleKey]
-        );
+        setExpandedModules((prev) => {
+            const isCollapsing = prev.includes(moduleKey);
+            if (isCollapsing) {
+                // Collapse module and its sub-groups
+                setExpandedSubGroups((sg) => sg.filter((g) => !g.startsWith(`${moduleKey}::`)));
+                return prev.filter((m) => m !== moduleKey);
+            }
+            // Expand module and auto-expand all its sub-groups
+            const mod = permissionModules.find((m) => m.module === moduleKey);
+            if (mod?.subModules) {
+                const groups = [...new Set(mod.subModules.map((s) => s.group || 'General'))];
+                const groupKeys = groups.map((g) => `${moduleKey}::${g}`);
+                setExpandedSubGroups((sg) => [...new Set([...sg, ...groupKeys])]);
+            }
+            return [...prev, moduleKey];
+        });
     };
 
     const toggleAllModulePerms = (moduleKey: string) => {
         const mod = permissionModules.find((m) => m.module === moduleKey);
         if (!mod) return;
-        const modulePerms = mod.actions.map((a) => `${moduleKey}:${a}`);
-        const allSelected = modulePerms.every((p) => permissions.includes(p));
-        if (allSelected) {
-            setPermissions((prev) => prev.filter((p) => !modulePerms.includes(p)));
+        const parentPerms = mod.actions.map((a) => `${moduleKey}:${a}`);
+        const allParentSelected = parentPerms.every((p) => permissions.includes(p));
+        if (allParentSelected) {
+            // Remove parent-level perms and any sub-module perms
+            const subKeys = (mod.subModules ?? []).map((s) => s.key);
+            setPermissions((prev) =>
+              prev.filter((p) => {
+                if (parentPerms.includes(p)) return false;
+                if (subKeys.some((sk) => p.startsWith(`${sk}:`))) return false;
+                return true;
+              })
+            );
         } else {
+            // Add parent shortcuts and clean up any orphaned sub-module permissions
+            const subKeys = (mod.subModules ?? []).map((s) => s.key);
             setPermissions((prev) => [
-                ...prev.filter((p) => !modulePerms.includes(p)),
-                ...modulePerms,
+                ...prev.filter((p) => {
+                    if (parentPerms.includes(p)) return false;
+                    if (subKeys.some((sk) => p.startsWith(`${sk}:`))) return false;
+                    return true;
+                }),
+                ...parentPerms,
             ]);
         }
     };
@@ -401,8 +486,59 @@ function RoleFormScreen({
         setShowTemplates(false);
     };
 
-    const getModulePermCount = (moduleKey: string): number => {
-        return permissions.filter((p) => p.startsWith(`${moduleKey}:`)).length;
+    const getModulePermCount = (mod: PermissionModule): number => {
+        let count = permissions.filter((p) => p.startsWith(`${mod.module}:`)).length;
+        if (mod.subModules) {
+            for (const sub of mod.subModules) {
+                count += permissions.filter((p) => p.startsWith(`${sub.key}:`)).length;
+            }
+        }
+        return count;
+    };
+
+    const toggleSubModuleAction = (parentModule: string, subKey: string, action: string, allSubModules: SubModule[]) => {
+        const perm = `${subKey}:${action}`;
+        const parentPerm = `${parentModule}:${action}`;
+
+        // If inherited from parent shortcut, expand parent into individual sub-modules minus this one
+        if (isInheritedFromParent(permissions, parentModule, action)) {
+            const otherSubPerms = allSubModules
+                .filter((s) => s.key !== subKey && s.actions.includes(action))
+                .map((s) => `${s.key}:${action}`);
+            setPermissions((prev) => [
+                ...prev.filter((p) => p !== parentPerm),
+                ...otherSubPerms,
+            ]);
+            return;
+        }
+
+        // Toggle direct sub-module perm
+        const isRemoving = permissions.includes(perm);
+        setPermissions((prev) => {
+            const next = isRemoving ? prev.filter((p) => p !== perm) : [...prev, perm];
+
+            // Auto-collapse: if all sub-modules for this action are now checked, replace with parent shortcut
+            if (!isRemoving) {
+                const subsWithAction = allSubModules.filter((s) => s.actions.includes(action));
+                const allChecked = subsWithAction.every((s) => s.key === subKey || next.includes(`${s.key}:${action}`));
+                if (allChecked && subsWithAction.length > 0) {
+                    return [
+                        ...next.filter((p) => !subsWithAction.some((s) => p === `${s.key}:${action}`)),
+                        parentPerm,
+                    ];
+                }
+            }
+
+            return next;
+        });
+    };
+
+    const [expandedSubGroups, setExpandedSubGroups] = React.useState<string[]>([]);
+
+    const toggleSubGroup = (groupKey: string) => {
+        setExpandedSubGroups((prev) =>
+          prev.includes(groupKey) ? prev.filter((g) => g !== groupKey) : [...prev, groupKey]
+        );
     };
 
     const validate = (): boolean => {
@@ -414,20 +550,30 @@ function RoleFormScreen({
 
     const handleSubmit = () => {
         if (!validate()) return;
+        // Deduplicate: remove sub-module perms that are already covered by parent shortcuts
+        const deduped = permissions.filter((p) => {
+            const [moduleOrSub, action] = p.split(':');
+            if (!moduleOrSub?.includes('.') || !action) return true; // keep parent-level perms
+            const parentModule = moduleOrSub.split('.')[0]!;
+            // If parent shortcut or wildcard covers this, skip it
+            if (permissions.includes(`${parentModule}:${action}`)) return false;
+            if (permissions.includes(`${parentModule}:*`)) return false;
+            return true;
+        });
         onSubmit({
             name: name.trim(),
             description: description.trim(),
-            permissions,
+            permissions: deduped,
         });
     };
 
     if (!visible) return null;
 
     return (
-        <View style={formStyles.container}>
+        <View style={fStyles.container}>
             <View style={StyleSheet.absoluteFill}>
                 <LinearGradient
-                    colors={[colors.gradient.surface, colors.white]}
+                    colors={isDark ? ['#0F0D1A', '#1A1730'] : [colors.gradient.surface, colors.white]}
                     style={StyleSheet.absoluteFill}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -435,8 +581,8 @@ function RoleFormScreen({
             </View>
 
             {/* Header */}
-            <Animated.View entering={FadeInDown.duration(300)} style={[formStyles.header, { paddingTop: insets.top + 8 }]}>
-                <Pressable onPress={onClose} style={formStyles.backBtn}>
+            <Animated.View entering={FadeInDown.duration(300)} style={[fStyles.header, { paddingTop: insets.top + 8 }]}>
+                <Pressable onPress={onClose} style={fStyles.backBtn}>
                     <Svg width={20} height={20} viewBox="0 0 24 24">
                         <Path
                             d="M19 12H5M12 19l-7-7 7-7"
@@ -455,7 +601,7 @@ function RoleFormScreen({
             <ScrollView
                 style={{ flex: 1 }}
                 contentContainerStyle={[
-                    formStyles.scrollContent,
+                    fStyles.scrollContent,
                     { paddingBottom: insets.bottom + 100 },
                 ]}
                 showsVerticalScrollIndicator={false}
@@ -463,13 +609,13 @@ function RoleFormScreen({
                 keyboardDismissMode="on-drag"
             >
                 {/* Role Name */}
-                <View style={formStyles.field}>
+                <View style={fStyles.field}>
                     <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Role Name <Text className="text-danger-500">*</Text>
                     </Text>
                     <TextInput
                         style={[
-                            formStyles.input,
+                            fStyles.input,
                             errors.name && { borderColor: colors.danger[400], borderWidth: 1.5 },
                         ]}
                         placeholder="e.g. HR Manager"
@@ -486,12 +632,12 @@ function RoleFormScreen({
                 </View>
 
                 {/* Description */}
-                <View style={formStyles.field}>
+                <View style={fStyles.field}>
                     <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                         Description
                     </Text>
                     <TextInput
-                        style={[formStyles.input, { height: 80, textAlignVertical: 'top' }]}
+                        style={[fStyles.input, { height: 80, textAlignVertical: 'top' }]}
                         placeholder="Describe the role's purpose..."
                         placeholderTextColor={colors.neutral[400]}
                         value={description}
@@ -503,7 +649,7 @@ function RoleFormScreen({
                 {/* Template Button */}
                 <Pressable
                     onPress={() => setShowTemplates((v) => !v)}
-                    style={formStyles.templateBtn}
+                    style={fStyles.templateBtn}
                 >
                     <Svg width={16} height={16} viewBox="0 0 24 24">
                         <Path
@@ -530,7 +676,7 @@ function RoleFormScreen({
 
                 {/* Templates List */}
                 {showTemplates && (
-                    <Animated.View entering={FadeIn.duration(200)} style={formStyles.templateList}>
+                    <Animated.View entering={FadeIn.duration(200)} style={fStyles.templateList}>
                         {refRolesLoading ? (
                             <View style={{ padding: 20, alignItems: 'center' }}>
                                 <ActivityIndicator color={colors.primary[500]} />
@@ -547,7 +693,7 @@ function RoleFormScreen({
                                     key={tpl.id}
                                     onPress={() => applyTemplate(tpl)}
                                     style={[
-                                        formStyles.templateItem,
+                                        fStyles.templateItem,
                                         idx > 0 && {
                                             borderTopWidth: 1,
                                             borderTopColor: colors.neutral[100],
@@ -574,7 +720,7 @@ function RoleFormScreen({
                 )}
 
                 {/* Permission Matrix */}
-                <View style={formStyles.permSection}>
+                <View style={fStyles.permSection}>
                     <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">
                         Permissions
                     </Text>
@@ -587,157 +733,258 @@ function RoleFormScreen({
                             </Text>
                         </View>
                     ) : permissionModules.map((mod) => {
+                        const hasSubModules = mod.subModules && mod.subModules.length > 0;
                         const isExpanded = expandedModules.includes(mod.module);
-                        const permCount = getModulePermCount(mod.module);
-                        const modulePerms = mod.actions.map((a) => `${mod.module}:${a}`);
-                        const allSelected = modulePerms.every((p) => permissions.includes(p));
-                        const someSelected = !allSelected && modulePerms.some((p) => permissions.includes(p));
+                        const permCount = getModulePermCount(mod);
+                        const parentPerms = mod.actions.map((a) => `${mod.module}:${a}`);
+                        const allParentSelected = parentPerms.every((p) => permissions.includes(p));
+                        const someSelected = !allParentSelected && (
+                          parentPerms.some((p) => permissions.includes(p)) ||
+                          (mod.subModules ?? []).some((sub) =>
+                            sub.actions.some((a) => permissions.includes(`${sub.key}:${a}`))
+                          )
+                        );
 
+                        // Calculate total action slots for badge
+                        const totalActionSlots = hasSubModules
+                          ? (mod.subModules ?? []).reduce((sum, s) => sum + s.actions.length, 0)
+                          : mod.actions.length;
+
+                        // Modules WITHOUT subModules: compact card with inline action chips
+                        if (!hasSubModules) {
+                          return (
+                            <View key={mod.module} style={fStyles.moduleCard}>
+                              <View style={fStyles.moduleHeader}>
+                                {/* Select-all checkbox */}
+                                <Pressable
+                                  onPress={() => toggleAllModulePerms(mod.module)}
+                                  hitSlop={6}
+                                  style={{ marginRight: 10 }}
+                                >
+                                  <View
+                                    style={[
+                                      fStyles.checkbox,
+                                      allParentSelected && fStyles.checkboxActive,
+                                      someSelected && fStyles.checkboxIndeterminate,
+                                    ]}
+                                  >
+                                    {allParentSelected && (
+                                      <Svg width={10} height={10} viewBox="0 0 24 24">
+                                        <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                      </Svg>
+                                    )}
+                                    {someSelected && (
+                                      <Svg width={10} height={10} viewBox="0 0 24 24">
+                                        <Path d="M5 12h14" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
+                                      </Svg>
+                                    )}
+                                  </View>
+                                </Pressable>
+
+                                <View style={{ flex: 1 }}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                                      {mod.label}
+                                    </Text>
+                                    {permCount > 0 && (
+                                      <View style={fStyles.permCountBadge}>
+                                        <Text className="font-inter text-[9px] font-bold text-primary-700 dark:text-primary-300">
+                                          {permCount} perms
+                                        </Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                  <View style={fStyles.permGrid}>
+                                    {mod.actions.map((action) => {
+                                      const perm = `${mod.module}:${action}`;
+                                      const isSelected = permissions.some(p => p.toLowerCase() === perm.toLowerCase());
+                                      return (
+                                        <Pressable
+                                          key={action}
+                                          onPress={() => togglePermission(perm)}
+                                          style={[
+                                            fStyles.permChip,
+                                            isSelected && fStyles.permChipActive,
+                                          ]}
+                                        >
+                                          <Text
+                                            className={`font-inter text-xs ${isSelected ? 'font-semibold text-white' : 'text-neutral-500 dark:text-neutral-400'}`}
+                                          >
+                                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                                          </Text>
+                                        </Pressable>
+                                      );
+                                    })}
+                                  </View>
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        }
+
+                        // Modules WITH subModules: expandable card
                         return (
-                            <View key={mod.module} style={formStyles.moduleCard}>
-                                <View style={formStyles.moduleHeader}>
-                                    {/* Select-all checkbox on the header row */}
+                            <View key={mod.module} style={fStyles.moduleCard}>
+                                <Pressable
+                                    onPress={() => toggleModule(mod.module)}
+                                    style={fStyles.moduleHeader}
+                                >
+                                    {/* Select-all checkbox */}
                                     <Pressable
-                                        onPress={() => toggleAllModulePerms(mod.module)}
+                                        onPress={(e) => {
+                                          e.stopPropagation();
+                                          toggleAllModulePerms(mod.module);
+                                        }}
                                         hitSlop={6}
                                         style={{ marginRight: 10 }}
                                     >
                                         <View
                                             style={[
-                                                formStyles.checkbox,
-                                                allSelected && formStyles.checkboxActive,
-                                                someSelected && formStyles.checkboxIndeterminate,
+                                                fStyles.checkbox,
+                                                allParentSelected && fStyles.checkboxActive,
+                                                someSelected && fStyles.checkboxIndeterminate,
                                             ]}
                                         >
-                                            {allSelected && (
+                                            {allParentSelected && (
                                                 <Svg width={10} height={10} viewBox="0 0 24 24">
-                                                    <Path
-                                                        d="M5 12l5 5L20 7"
-                                                        stroke="#fff"
-                                                        strokeWidth="3"
-                                                        fill="none"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    />
+                                                    <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                                 </Svg>
                                             )}
                                             {someSelected && (
                                                 <Svg width={10} height={10} viewBox="0 0 24 24">
-                                                    <Path
-                                                        d="M5 12h14"
-                                                        stroke="#fff"
-                                                        strokeWidth="3"
-                                                        fill="none"
-                                                        strokeLinecap="round"
-                                                    />
+                                                    <Path d="M5 12h14" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" />
                                                 </Svg>
                                             )}
                                         </View>
                                     </Pressable>
 
-                                    <Pressable
-                                        onPress={() => toggleModule(mod.module)}
-                                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
-                                    >
-                                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                                                {mod.label}
-                                            </Text>
-                                            {permCount > 0 && (
-                                                <View style={formStyles.permCountBadge}>
-                                                    <Text className="font-inter text-[9px] font-bold text-primary-700">
-                                                        {permCount}/{mod.actions.length}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <Svg width={14} height={14} viewBox="0 0 24 24">
-                                            <Path
-                                                d={isExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
-                                                stroke={colors.neutral[400]}
-                                                strokeWidth="2"
-                                                fill="none"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                        </Svg>
-                                    </Pressable>
-                                </View>
+                                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                                            {mod.label}
+                                        </Text>
+                                        {permCount > 0 && (
+                                            <View style={fStyles.permCountBadge}>
+                                                <Text className="font-inter text-[9px] font-bold text-primary-700 dark:text-primary-300">
+                                                    {permCount} perms
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                                        <Path
+                                            d={isExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                                            stroke={colors.neutral[400]}
+                                            strokeWidth="2"
+                                            fill="none"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </Svg>
+                                </Pressable>
 
                                 {isExpanded && (
-                                    <Animated.View entering={FadeIn.duration(150)} style={formStyles.moduleBody}>
-                                        {/* Select all for this module */}
+                                    <Animated.View entering={FadeIn.duration(150)} style={fStyles.moduleBody}>
+                                        {/* Select All (parent shortcut) */}
                                         <Pressable
                                             onPress={() => toggleAllModulePerms(mod.module)}
-                                            style={formStyles.selectAllRow}
+                                            style={fStyles.selectAllRow}
                                         >
                                             <View
                                                 style={[
-                                                    formStyles.checkbox,
-                                                    allSelected && formStyles.checkboxActive,
+                                                    fStyles.checkbox,
+                                                    allParentSelected && fStyles.checkboxActive,
                                                 ]}
                                             >
-                                                {allSelected && (
+                                                {allParentSelected && (
                                                     <Svg width={10} height={10} viewBox="0 0 24 24">
-                                                        <Path
-                                                            d="M5 12l5 5L20 7"
-                                                            stroke="#fff"
-                                                            strokeWidth="3"
-                                                            fill="none"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        />
+                                                        <Path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                                     </Svg>
                                                 )}
                                             </View>
                                             <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                                                 Select All
                                             </Text>
+                                            {allParentSelected && (
+                                                <View style={fStyles.inheritedBadge}>
+                                                    <Text className="font-inter text-[8px] font-bold text-primary-500">
+                                                        ALL INHERITED
+                                                    </Text>
+                                                </View>
+                                            )}
                                         </Pressable>
 
-                                        <View style={formStyles.permGrid}>
-                                            {mod.actions.map((action) => {
-                                                const perm = `${mod.module}:${action}`;
-                                                // Case-insensitive check to be safe
-                                                const isSelected = permissions.some(p => p.toLowerCase() === perm.toLowerCase());
-                                                return (
+                                        {/* Grouped sub-modules */}
+                                        {Object.entries(groupSubModules(mod.subModules!)).map(([groupName, subs]) => {
+                                            const groupKey = `${mod.module}::${groupName}`;
+                                            const isGroupExpanded = expandedSubGroups.includes(groupKey);
+                                            return (
+                                                <View key={groupKey} style={fStyles.subGroupContainer}>
                                                     <Pressable
-                                                        key={action}
-                                                        onPress={() => togglePermission(perm)}
-                                                        style={[
-                                                            formStyles.permChip,
-                                                            isSelected && formStyles.permChipActive,
-                                                        ]}
+                                                        onPress={() => toggleSubGroup(groupKey)}
+                                                        style={fStyles.subGroupHeader}
                                                     >
-                                                        <View
-                                                            style={[
-                                                                formStyles.checkbox,
-                                                                formStyles.checkboxSmall,
-                                                                isSelected && formStyles.checkboxActive,
-                                                            ]}
-                                                        >
-                                                            {isSelected && (
-                                                                <Svg width={8} height={8} viewBox="0 0 24 24">
-                                                                    <Path
-                                                                        d="M5 12l5 5L20 7"
-                                                                        stroke="#fff"
-                                                                        strokeWidth="3"
-                                                                        fill="none"
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                    />
-                                                                </Svg>
-                                                            )}
-                                                        </View>
-                                                        <Text
-                                                            className={`font-inter text-xs ${isSelected ? 'font-semibold text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
-                                                        >
-                                                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                                                        <Text className="font-inter text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+                                                            {groupName}
                                                         </Text>
+                                                        <Svg width={10} height={10} viewBox="0 0 24 24">
+                                                            <Path
+                                                                d={isGroupExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                                                                stroke={colors.neutral[400]}
+                                                                strokeWidth="2"
+                                                                fill="none"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                            />
+                                                        </Svg>
                                                     </Pressable>
-                                                );
-                                            })}
-                                        </View>
+
+                                                    {isGroupExpanded && subs.map((sub) => (
+                                                        <Animated.View
+                                                            key={sub.key}
+                                                            entering={FadeInDown.duration(150)}
+                                                            style={fStyles.subModuleRow}
+                                                        >
+                                                            <Text className="font-inter text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                                                                {sub.label}
+                                                            </Text>
+                                                            <View style={fStyles.permGrid}>
+                                                                {sub.actions.map((action) => {
+                                                                    const isEnabled = isSubModuleActionEnabled(
+                                                                      permissions, mod.module, sub.key, action
+                                                                    );
+                                                                    const inherited = isInheritedFromParent(
+                                                                      permissions, mod.module, action
+                                                                    );
+                                                                    return (
+                                                                        <Pressable
+                                                                            key={action}
+                                                                            onPress={() => toggleSubModuleAction(mod.module, sub.key, action, mod.subModules ?? [])}
+                                                                            style={[
+                                                                                fStyles.permChip,
+                                                                                isEnabled && !inherited && fStyles.permChipActive,
+                                                                                isEnabled && inherited && fStyles.permChipInherited,
+                                                                            ]}
+                                                                        >
+                                                                            <Text
+                                                                                className={`font-inter text-xs ${
+                                                                                  isEnabled && inherited
+                                                                                    ? 'font-medium text-primary-600'
+                                                                                    : isEnabled
+                                                                                      ? 'font-semibold text-white'
+                                                                                      : 'text-neutral-500 dark:text-neutral-400'
+                                                                                }`}
+                                                                            >
+                                                                                {action.charAt(0).toUpperCase() + action.slice(1)}
+                                                                            </Text>
+                                                                        </Pressable>
+                                                                    );
+                                                                })}
+                                                            </View>
+                                                        </Animated.View>
+                                                    ))}
+                                                </View>
+                                            );
+                                        })}
                                     </Animated.View>
                                 )}
                             </View>
@@ -746,7 +993,7 @@ function RoleFormScreen({
                 </View>
 
                 {/* Permission Summary */}
-                <View style={formStyles.summaryCard}>
+                <View style={fStyles.summaryCard}>
                     <Text className="font-inter text-xs font-bold text-neutral-400">
                         SUMMARY
                     </Text>
@@ -757,7 +1004,7 @@ function RoleFormScreen({
 
                 {/* Error Banner */}
                 {error ? (
-                    <Animated.View entering={FadeIn.duration(200)} style={formStyles.errorBanner}>
+                    <Animated.View entering={FadeIn.duration(200)} style={fStyles.errorBanner}>
                         <Text className="font-inter text-xs font-semibold text-danger-600 text-center">
                             {error}
                         </Text>
@@ -767,7 +1014,7 @@ function RoleFormScreen({
                 {/* Save Button */}
                 <Pressable
                     style={({ pressed }) => [
-                        formStyles.submitBtn,
+                        fStyles.submitBtn,
                         pressed && { opacity: 0.85 },
                         isSubmitting && { opacity: 0.6 },
                     ]}
@@ -925,6 +1172,7 @@ export function RoleManagementScreen() {
                 role={editingRole}
                 onSubmit={handleSubmit}
                 isSubmitting={createRole.isPending || updateRole.isPending}
+                isDark={isDark}
                 error={
                     ((createRole.error as any)?.response?.data?.message || createRole.error?.message) ||
                     ((updateRole.error as any)?.response?.data?.message || updateRole.error?.message)
@@ -1055,10 +1303,10 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
 });
 const styles = createStyles(false);
 
-const formStyles = StyleSheet.create({
+const createFormStyles = (isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gradient.surface,
+        backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface,
     },
     header: {
         flexDirection: 'row',
@@ -1071,7 +1319,7 @@ const formStyles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1083,32 +1331,32 @@ const formStyles = StyleSheet.create({
         marginBottom: 20,
     },
     input: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.primary[900] : colors.neutral[200],
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 14,
-        color: colors.primary[950],
+        color: isDark ? colors.white : colors.primary[950],
     },
     templateBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: colors.primary[50],
+        backgroundColor: isDark ? colors.primary[950] : colors.primary[50],
         borderRadius: 12,
         padding: 14,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: colors.primary[100],
+        borderColor: isDark ? colors.primary[800] : colors.primary[100],
         borderStyle: 'dashed',
     },
     templateList: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.primary[900] : colors.neutral[200],
         marginBottom: 20,
         overflow: 'hidden',
     },
@@ -1122,23 +1370,24 @@ const formStyles = StyleSheet.create({
         marginBottom: 20,
     },
     moduleCard: {
-        backgroundColor: colors.white,
-        borderRadius: 12,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
-        marginBottom: 8,
+        borderColor: isDark ? colors.primary[900] : colors.primary[50],
+        marginBottom: 10,
         overflow: 'hidden',
     },
     moduleHeader: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         padding: 14,
     },
     moduleBody: {
         paddingHorizontal: 14,
         paddingBottom: 14,
         borderTopWidth: 1,
-        borderTopColor: colors.neutral[100],
+        borderTopColor: isDark ? colors.primary[900] : colors.neutral[100],
     },
     selectAllRow: {
         flexDirection: 'row',
@@ -1150,33 +1399,46 @@ const formStyles = StyleSheet.create({
     permGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: 6,
     },
     permChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
         paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 8,
-        backgroundColor: colors.neutral[50],
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: isDark ? '#252240' : colors.neutral[100],
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.primary[800] : colors.neutral[200],
     },
-    permChipActive: { backgroundColor: colors.primary[50], borderColor: colors.primary[200] },
-    errorBanner: { backgroundColor: colors.danger[50], paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.danger[100] },
+    permChipActive: {
+        backgroundColor: colors.primary[600],
+        borderColor: colors.primary[600],
+    },
+    permChipInherited: {
+        backgroundColor: isDark ? colors.primary[950] : colors.primary[50],
+        borderColor: isDark ? colors.primary[700] : colors.primary[200],
+        opacity: 0.85,
+    },
+    errorBanner: {
+        backgroundColor: isDark ? '#2D1F1F' : colors.danger[50],
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.danger[100],
+    },
     permCountBadge: {
-        backgroundColor: colors.primary[50],
-        paddingHorizontal: 6,
-        paddingVertical: 1,
-        borderRadius: 6,
+        backgroundColor: isDark ? colors.primary[950] : colors.primary[50],
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
     },
     checkbox: {
         width: 18,
         height: 18,
         borderRadius: 4,
         borderWidth: 2,
-        borderColor: colors.neutral[300],
+        borderColor: isDark ? colors.neutral[600] : colors.neutral[300],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1192,12 +1454,44 @@ const formStyles = StyleSheet.create({
         backgroundColor: colors.primary[400],
         borderColor: colors.primary[400],
     },
+    checkboxInherited: {
+        backgroundColor: colors.primary[300],
+        borderColor: colors.primary[300],
+    },
+    inheritedBadge: {
+        backgroundColor: isDark ? colors.primary[950] : colors.primary[50],
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginLeft: 'auto',
+    },
+    subGroupContainer: {
+        marginTop: 8,
+    },
+    subGroupHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        backgroundColor: isDark ? '#16132A' : colors.neutral[50],
+        borderRadius: 8,
+        marginBottom: 4,
+        paddingLeft: 10,
+        paddingRight: 10,
+    },
+    subModuleRow: {
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: isDark ? colors.primary[900] : colors.neutral[100],
+    },
     summaryCard: {
-        backgroundColor: colors.white,
+        backgroundColor: isDark ? '#1A1730' : colors.white,
         borderRadius: 12,
         padding: 16,
         borderWidth: 1,
-        borderColor: colors.neutral[200],
+        borderColor: isDark ? colors.primary[900] : colors.neutral[200],
         marginBottom: 20,
     },
     submitContainer: {
@@ -1208,8 +1502,8 @@ const formStyles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: colors.neutral[100],
-        backgroundColor: colors.white,
+        borderTopColor: isDark ? colors.primary[900] : colors.neutral[100],
+        backgroundColor: isDark ? '#0F0D1A' : colors.white,
     },
     submitBtn: {
         backgroundColor: colors.primary[600],

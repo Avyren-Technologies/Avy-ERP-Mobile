@@ -43,8 +43,20 @@ export function decodeJwtPayload(token: string): Record<string, unknown> | null 
 export function checkPermission(userPermissions: string[], required: string): boolean {
   if (userPermissions.includes('*')) return true;
   if (userPermissions.includes(required)) return true;
-  const [module] = required.split(':');
-  if (module && userPermissions.includes(`${module}:*`)) return true;
+
+  const [moduleOrSub, action] = required.split(':');
+  if (!moduleOrSub || !action) return false;
+
+  // Sub-module wildcard: "visitors.dashboard:*"
+  if (userPermissions.includes(`${moduleOrSub}:*`)) return true;
+
+  // Parent module fallback for sub-module permissions
+  if (moduleOrSub.includes('.')) {
+    const parentModule = moduleOrSub.split('.')[0]!;
+    if (userPermissions.includes(`${parentModule}:${action}`)) return true;
+    if (userPermissions.includes(`${parentModule}:*`)) return true;
+  }
+
   return false;
 }
 

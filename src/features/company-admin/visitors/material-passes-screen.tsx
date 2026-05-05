@@ -35,6 +35,7 @@ import { useCompanyLocations } from '@/features/company-admin/api/use-company-ad
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateMaterialPass, useMarkMaterialReturned } from '@/features/company-admin/api/use-visitor-mutations';
 import { useGates, useMaterialPasses } from '@/features/company-admin/api/use-visitor-queries';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -276,20 +277,18 @@ function MaterialCard({
     <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
       <View style={cardStyles.card}>
         <View style={cardStyles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.description}</Text>
-              {item.passNumber ? (
-                <View style={cardStyles.codeBadge}>
-                  <Text className="font-inter text-[10px] font-bold text-primary-600">{item.passNumber}</Text>
-                </View>
-              ) : null}
-            </View>
+          <View style={cardStyles.cardHeaderMain}>
+            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={2}>{item.description}</Text>
+            {item.passNumber ? (
+              <View style={[cardStyles.codeBadge, { marginTop: 6, alignSelf: 'flex-start' }]}>
+                <Text className="font-inter text-[10px] font-bold text-primary-600">{item.passNumber}</Text>
+              </View>
+            ) : null}
             {item.quantityIssued ? (
               <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">Qty: {item.quantityIssued}</Text>
             ) : null}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={cardStyles.cardHeaderActions}>
             {item.qrCode ? (
               <Pressable onPress={onShowQr} hitSlop={8} style={cardStyles.qrBtn}>
                 <Svg width={16} height={16} viewBox="0 0 24 24">
@@ -344,16 +343,17 @@ export function MaterialPassesScreen() {
   const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
   const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebounce(search.trim(), 400);
   const [typeFilter, setTypeFilter] = React.useState('');
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [qrModalItem, setQrModalItem] = React.useState<MaterialPassItem | null>(null);
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (search.trim()) p.search = search.trim();
+    if (debouncedSearch) p.search = debouncedSearch;
     if (typeFilter) p.type = typeFilter;
     return p;
-  }, [search, typeFilter]);
+  }, [debouncedSearch, typeFilter]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useMaterialPasses(queryParams);
   const createMutation = useCreateMaterialPass();
@@ -508,6 +508,8 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
 const cardStyles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: 20, padding: 16, marginBottom: 12, shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2, borderWidth: 1, borderColor: colors.primary[50] },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  cardHeaderMain: { flex: 1, minWidth: 0, paddingRight: 8 },
+  cardHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8, flexShrink: 0 },
   cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
   metaChip: { backgroundColor: colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   codeBadge: { backgroundColor: colors.primary[50], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },

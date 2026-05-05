@@ -30,16 +30,9 @@ import { client } from '@/lib/api/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsDark } from '@/hooks/use-is-dark';
 
-/* ── Helpers ── */
+import { useDebounce } from '@/hooks/use-debounce';
 
-const useDebounce = (value: string, delay: number) => {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-};
+/* ── Helpers ── */
 
 const getInitials = (name: string) => {
   const parts = name.trim().split(/\s+/);

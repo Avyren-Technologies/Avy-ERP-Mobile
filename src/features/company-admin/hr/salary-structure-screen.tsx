@@ -32,7 +32,7 @@ import {
     useDeleteSalaryStructure,
     useUpdateSalaryStructure,
 } from '@/features/company-admin/api/use-payroll-mutations';
-import { useSalaryComponents, useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
+import { useSalaryComponents, useSalaryStructures, usePFConfig, useESIConfig, useGratuityConfig } from '@/features/company-admin/api/use-payroll-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -156,6 +156,7 @@ function SalaryStructureForm({
     const insets = useSafeAreaInsets();
     const [name, setName] = React.useState('');
     const [code, setCode] = React.useState('');
+    const [codeManual, setCodeManual] = React.useState(false);
     const [ctcBasis, setCtcBasis] = React.useState<CTCBasis>('CTC');
     const [grades, setGrades] = React.useState<string[]>([]);
     const [designations, setDesignations] = React.useState<string[]>([]);
@@ -163,18 +164,31 @@ function SalaryStructureForm({
     const [components, setComponents] = React.useState<StructureComponent[]>([]);
     const [sampleCTC, setSampleCTC] = React.useState('1000000');
 
+    const generateCode = (n: string) => n.trim().split(/\s+/).map(w => w.substring(0, 3).toUpperCase()).join('-') || '';
+
+    const handleNameChange = (v: string) => {
+        setName(v);
+        if (!codeManual) setCode(generateCode(v));
+    };
+
+    const handleCodeChange = (v: string) => {
+        setCodeManual(true);
+        setCode(v);
+    };
+
     React.useEffect(() => {
         if (visible) {
             if (initialData) {
                 setName(initialData.name);
                 setCode(initialData.code);
+                setCodeManual(true);
                 setCtcBasis(initialData.ctcBasis);
                 setGrades(initialData.applicableGrades);
                 setDesignations(initialData.applicableDesignations);
                 setEmpTypes(initialData.applicableEmployeeTypes);
                 setComponents(initialData.components);
             } else {
-                setName(''); setCode(''); setCtcBasis('CTC');
+                setName(''); setCode(''); setCodeManual(false); setCtcBasis('CTC');
                 setGrades([]); setDesignations([]); setEmpTypes([]);
                 setComponents([]);
             }
@@ -229,6 +243,46 @@ function SalaryStructureForm({
         });
     }, [components, monthlyGross, componentOptions]);
 
+    // Statutory estimates
+    const { data: compResponse } = useSalaryComponents();
+    const allComps: any[] = (compResponse as any)?.data ?? [];
+    const { data: pfCfgData } = usePFConfig();
+    const pfCfg = (pfCfgData as any)?.data;
+    const { data: esiCfgData } = useESIConfig();
+    const esiCfg = (esiCfgData as any)?.data;
+    const { data: gratCfgData } = useGratuityConfig();
+    const gratCfg = (gratCfgData as any)?.data;
+
+    const statutoryRows = React.useMemo(() => {
+        const rows: { label: string; monthly: number }[] = [];
+        let pfBase = 0; let esiBase = 0; let gratBase = 0;
+        for (const c of components) {
+            const master = allComps.find((mc: any) => mc.id === c.componentId);
+            if (!master) continue;
+            const row = previewRows.find(p => p.name === (c.componentName || master.name));
+            const val = row?.monthly ?? 0;
+            if (master.pfInclusion) pfBase += val;
+            if (master.esiInclusion) esiBase += val;
+            if (master.gratuityInclusion) gratBase += val;
+        }
+        if (pfCfg && pfBase > 0) {
+            const capped = Math.min(pfBase, Number(pfCfg.wageCeiling ?? 15000));
+            rows.push({ label: 'PF (Employee)', monthly: Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100) });
+        }
+        if (esiCfg) {
+            const base = esiBase > 0 ? esiBase : monthlyGross;
+            if (base <= Number(esiCfg.wageCeiling ?? 21000)) {
+                rows.push({ label: 'ESI (Employee)', monthly: Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100) });
+            }
+        }
+        if (gratCfg?.provisionMethod === 'MONTHLY' && gratBase > 0) {
+            const annual = (gratBase * 15 * 1) / 26;
+            const capped = Math.min(annual, Number(gratCfg.maxAmount ?? 2000000));
+            rows.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12) });
+        }
+        return rows;
+    }, [components, previewRows, allComps, pfCfg, esiCfg, gratCfg, monthlyGross]);
+
     if (!visible) return null;
 
     return (
@@ -250,11 +304,11 @@ function SalaryStructureForm({
                     <View style={styles.sectionCard}>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Name <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Standard CTC"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={setName} autoCapitalize="words" /></View>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "Standard CTC"' placeholderTextColor={colors.neutral[400]} value={name} onChangeText={handleNameChange} autoCapitalize="words" /></View>
                         </View>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Code <Text className="text-danger-500">*</Text></Text>
-                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "STD-CTC"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={setCode} autoCapitalize="characters" /></View>
+                            <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "STD-CTC"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={handleCodeChange} autoCapitalize="characters" /></View>
                         </View>
                         <ChipSelector label="CTC Basis" options={CTC_OPTIONS} value={ctcBasis} onSelect={v => setCtcBasis(v as CTCBasis)} />
                     </View>
@@ -329,6 +383,20 @@ function SalaryStructureForm({
                                     <Text className="font-inter text-xs font-bold text-primary-800">&#8377;{monthlyGross.toLocaleString('en-IN')}</Text>
                                 </View>
                             </View>
+
+                            {/* Statutory Estimates */}
+                            {statutoryRows.length > 0 && (
+                                <View style={[styles.sectionCard, { backgroundColor: colors.warning[50], borderColor: colors.warning[200], borderWidth: 1, marginTop: 12 }]}>
+                                    <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-warning-600">Statutory Deductions (Estimated)</Text>
+                                    {statutoryRows.map((row, idx) => (
+                                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.warning[200] }}>
+                                            <Text className="font-inter text-xs text-warning-800">{row.label}</Text>
+                                            <Text className="font-inter text-xs font-semibold text-warning-700">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                                        </View>
+                                    ))}
+                                    <Text className="mt-2 font-inter text-[9px] text-warning-500">Based on current statutory config. Actual amounts vary with attendance and CTC.</Text>
+                                </View>
+                            )}
                         </>
                     )}
                 </ScrollView>

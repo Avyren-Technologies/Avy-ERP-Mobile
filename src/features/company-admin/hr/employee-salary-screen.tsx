@@ -27,7 +27,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useAssignEmployeeSalary, useUpdateEmployeeSalary } from '@/features/company-admin/api/use-payroll-mutations';
-import { useEmployeeSalaries, useSalaryStructures } from '@/features/company-admin/api/use-payroll-queries';
+import { useEmployeeSalaries, useSalaryStructures, useSalaryComponents, usePFConfig, useESIConfig, useGratuityConfig } from '@/features/company-admin/api/use-payroll-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -148,6 +148,49 @@ function AssignSalaryModal({
         });
     }, [structureId, ctcNum, structureData, monthlyGross]);
 
+    // Statutory estimates
+    const { data: compResponse } = useSalaryComponents();
+    const allComps: any[] = (compResponse as any)?.data ?? [];
+    const { data: pfCfgData } = usePFConfig();
+    const pfCfg = (pfCfgData as any)?.data;
+    const { data: esiCfgData } = useESIConfig();
+    const esiCfg = (esiCfgData as any)?.data;
+    const { data: gratCfgData } = useGratuityConfig();
+    const gratCfg = (gratCfgData as any)?.data;
+
+    const statutoryRows = React.useMemo(() => {
+        if (breakup.length === 0 || !structureId) return [];
+        const struct = structureData.find((s: any) => (s.id ?? '') === structureId);
+        if (!struct?.components) return [];
+        const rows: { label: string; monthly: number }[] = [];
+        let pfBase = 0; let esiBase = 0; let gratBase = 0;
+        for (const c of struct.components as any[]) {
+            const master = allComps.find((mc: any) => mc.id === c.componentId || mc.code === c.componentCode);
+            if (!master) continue;
+            const row = breakup.find(b => b.name === (c.componentName || master.name));
+            const val = row?.monthly ?? 0;
+            if (master.pfInclusion) pfBase += val;
+            if (master.esiInclusion) esiBase += val;
+            if (master.gratuityInclusion) gratBase += val;
+        }
+        if (pfCfg && pfBase > 0) {
+            const capped = Math.min(pfBase, Number(pfCfg.wageCeiling ?? 15000));
+            rows.push({ label: 'PF (Employee)', monthly: Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100) });
+        }
+        if (esiCfg) {
+            const base = esiBase > 0 ? esiBase : monthlyGross;
+            if (base <= Number(esiCfg.wageCeiling ?? 21000)) {
+                rows.push({ label: 'ESI (Employee)', monthly: Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100) });
+            }
+        }
+        if (gratCfg?.provisionMethod === 'MONTHLY' && gratBase > 0) {
+            const annual = (gratBase * 15 * 1) / 26;
+            const capped = Math.min(annual, Number(gratCfg.maxAmount ?? 2000000));
+            rows.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12) });
+        }
+        return rows;
+    }, [breakup, structureId, structureData, allComps, pfCfg, esiCfg, gratCfg, monthlyGross]);
+
     const handleSave = () => {
         if (!employeeId || !structureId || ctcNum <= 0) return;
         onSave({ employeeId, structureId, annualCTC: ctcNum, effectiveFrom, components: breakup });
@@ -194,6 +237,20 @@ function AssignSalaryModal({
                                         <Text className="font-inter text-xs font-bold text-primary-800">{formatCurrency(monthlyGross)}</Text>
                                     </View>
                                 </View>
+
+                                {/* Statutory Estimates */}
+                                {statutoryRows.length > 0 && (
+                                    <View style={[styles.previewCard, { backgroundColor: colors.warning[50], borderColor: colors.warning[200], borderWidth: 1, marginTop: 10 }]}>
+                                        <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-warning-600">Statutory Deductions (Estimated)</Text>
+                                        {statutoryRows.map((row, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.warning[200] }}>
+                                                <Text className="font-inter text-xs text-warning-800">{row.label}</Text>
+                                                <Text className="font-inter text-xs font-semibold text-warning-700">{formatCurrency(row.monthly)}</Text>
+                                            </View>
+                                        ))}
+                                        <Text className="mt-2 font-inter text-[9px] text-warning-500">Based on current config. Actual amounts vary.</Text>
+                                    </View>
+                                )}
                             </>
                         )}
                     </ScrollView>

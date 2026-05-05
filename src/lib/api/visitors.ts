@@ -155,10 +155,6 @@ export const visitorsApi = {
   getVisitorAnalytics: (params?: Record<string, unknown>) =>
     client.get('/visitors/reports/analytics', { params }),
 
-  // ── Visit History ──────────────────────────────────────────────────
-  listVisitHistory: (params?: Record<string, unknown>) =>
-    client.get('/visitors/history', { params }),
-
   // ── Safety Inductions ──────────────────────────────────────────────
   listSafetyInductions: (params?: Record<string, unknown>) =>
     client.get('/visitors/safety-inductions', { params }),

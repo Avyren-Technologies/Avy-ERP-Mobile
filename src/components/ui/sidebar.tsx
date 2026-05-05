@@ -279,14 +279,19 @@ export function Sidebar({
     const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
     const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
-        const defaultExpanded = ['My Workspace', 'Team Management'];
+        // Accordion: collapse all sections except the one with the active item
+        let activeSection: string | null = null;
         sections.forEach((section) => {
             const key = section.title ?? '';
-            if (!key || defaultExpanded.includes(key)) return;
-            // Skip sections whose items all have children (they're already self-collapsible)
-            if (section.items.every(item => item.children && item.children.length > 0)) return;
+            if (!key) return;
             const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
-            if (!hasActive) initial[key] = true;
+            if (hasActive && !activeSection) activeSection = key;
+        });
+        sections.forEach((section) => {
+            const key = section.title ?? '';
+            if (!key) return;
+            if (section.items.every(item => item.children && item.children.length > 0)) return;
+            if (key !== activeSection) initial[key] = true;
         });
         return initial;
     });
@@ -331,29 +336,34 @@ export function Sidebar({
         setOpenGroups((prev) => ({ ...prev, ...next }));
     }, [sections]);
 
-    // Auto-expand section containing active item
+    // Auto-expand section containing active item (accordion: collapse others)
     React.useEffect(() => {
+        let activeKey: string | null = null;
         sections.forEach((section) => {
             const key = section.title ?? '';
             if (!key) return;
             const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
-            if (hasActive) {
-                setCollapsedSections(prev => {
-                    if (prev[key]) return { ...prev, [key]: false };
-                    return prev;
-                });
-            }
+            if (hasActive && !activeKey) activeKey = key;
         });
+        if (activeKey) {
+            setCollapsedSections(prev => {
+                const next: Record<string, boolean> = {};
+                sections.forEach((section) => {
+                    const key = section.title ?? '';
+                    if (!key) return;
+                    if (section.items.every(item => item.children && item.children.length > 0)) return;
+                    next[key] = key !== activeKey;
+                });
+                const changed = Object.keys(next).some(k => prev[k] !== next[k]);
+                return changed ? next : prev;
+            });
+        }
     }, [sections]);
 
-    // Reset search when sidebar closes; auto-focus when it opens
+    // Reset search when sidebar closes
     React.useEffect(() => {
         if (!isOpen) {
             setSearchText('');
-        } else {
-            // Delay focus slightly so the sidebar animation has started
-            const timer = setTimeout(() => searchInputRef.current?.focus(), OPEN_DURATION + 50);
-            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
@@ -679,7 +689,18 @@ export function Sidebar({
                                         <Pressable
                                             onPress={() => {
                                                 LayoutAnimation.configureNext(LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
-                                                setCollapsedSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
+                                                setCollapsedSections(prev => {
+                                                    const isCurrentlyCollapsed = !!prev[sectionKey];
+                                                    if (!isCurrentlyCollapsed) {
+                                                        return { ...prev, [sectionKey]: true };
+                                                    }
+                                                    // Accordion: expand this, collapse all others
+                                                    const next: Record<string, boolean> = {};
+                                                    for (const key of Object.keys(prev)) {
+                                                        next[key] = key !== sectionKey;
+                                                    }
+                                                    return next;
+                                                });
                                             }}
                                             style={[
                                                 styles.navItem,

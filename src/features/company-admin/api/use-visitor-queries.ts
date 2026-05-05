@@ -63,10 +63,6 @@ export const visitorKeys = {
   visitorAnalytics: (params?: Record<string, unknown>) =>
     [...visitorKeys.all, 'visitor-analytics', params] as const,
 
-  // Visit History
-  visitHistory: (params?: Record<string, unknown>) =>
-    [...visitorKeys.all, 'visit-history', params] as const,
-
   // Safety Inductions
   safetyInductions: (params?: Record<string, unknown>) =>
     [...visitorKeys.all, 'safety-inductions', params] as const,
@@ -239,15 +235,7 @@ export function useVisitorAnalytics(params?: Record<string, unknown>) {
   });
 }
 
-// --- Visit History Queries ---
 
-/** List historical visits */
-export function useVisitHistory(params?: Record<string, unknown>) {
-  return useQuery({
-    queryKey: visitorKeys.visitHistory(params),
-    queryFn: () => visitorsApi.listVisitHistory(params),
-  });
-}
 
 // --- Safety Induction Queries ---
 

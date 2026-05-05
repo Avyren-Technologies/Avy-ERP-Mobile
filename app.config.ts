@@ -190,6 +190,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ['app-icon-badge', appIconBadgeConfig],
     ['react-native-edge-to-edge'],
     [
+      'expo-camera',
+      {
+        cameraPermission: 'Allow Avy ERP to scan QR codes for visitor check-in.',
+      },
+    ],
+    [
       'expo-image-picker',
       {
         photosPermission: 'Allow Avy ERP to access your photos to upload company logos.',

@@ -375,7 +375,7 @@ export function GateCheckInScreen() {
       { id: visitCode.trim(), data: Object.keys(data).length > 0 ? data : undefined },
       {
         onSuccess: (result: any) => {
-          const badgeNo = result?.data?.badgeNumber;
+          const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
           showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
           setVisitCode('');
           setVisitorPhoto(null);
@@ -394,7 +394,7 @@ export function GateCheckInScreen() {
       { id: visitId, data: Object.keys(data).length > 0 ? data : undefined },
       {
         onSuccess: (result: any) => {
-          const badgeNo = result?.data?.badgeNumber;
+          const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
           showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
           setVisitorPhoto(null);
         },
@@ -429,7 +429,7 @@ export function GateCheckInScreen() {
       { id: scanResult.data.trim() },
       {
         onSuccess: (result: any) => {
-          const badgeNo = result?.data?.badgeNumber;
+          const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
           showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
           setVisitCode('');
         },

@@ -6,7 +6,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -17,11 +16,13 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess } from '@/components/ui/utils';
 
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import {
   useMarkSafe,
   useResolveEmergency,
@@ -114,6 +115,13 @@ export function EmergencyMusterScreen() {
   const [emergencyPlantId, setEmergencyPlantId] = React.useState('');
   const [isDrill, setIsDrill] = React.useState(false);
   const [hasActiveEmergency, setHasActiveEmergency] = React.useState(false);
+
+  const { data: locationsResponse } = useCompanyLocations();
+  const locationOptions = React.useMemo(() => {
+    const raw = (locationsResponse as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((l: any) => ({ id: l.id, name: l.name ?? l.code ?? l.id }));
+  }, [locationsResponse]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useMusterList();
   const triggerMutation = useTriggerEmergency();
@@ -224,13 +232,13 @@ export function EmergencyMusterScreen() {
                 Trigger an emergency to generate a muster list of all on-site visitors and employees.
               </Text>
 
-              <View style={[s.inputWrap, { marginTop: 20 }]}>
-                <TextInput
-                  style={[s.textInput, isDark && { color: colors.white }]}
-                  placeholder="Plant ID (required)"
-                  placeholderTextColor={colors.neutral[400]}
-                  value={emergencyPlantId}
-                  onChangeText={setEmergencyPlantId}
+              <View style={{ marginTop: 20, width: '100%' }}>
+                <DropdownField
+                  label="Plant / Location"
+                  selected={emergencyPlantId}
+                  onSelect={setEmergencyPlantId}
+                  options={locationOptions}
+                  placeholder="Select plant to evacuate..."
                 />
               </View>
 

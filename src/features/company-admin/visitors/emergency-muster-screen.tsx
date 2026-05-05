@@ -141,7 +141,7 @@ export function EmergencyMusterScreen() {
       company: p.visitorCompany ?? '',
       type: 'visitor',
       checkInTime: p.checkInTime ?? '',
-      isSafe: false,
+      isSafe: p.markedSafe ?? false,
       gate: p.checkInGate ?? '',
     }));
   }, [response]);

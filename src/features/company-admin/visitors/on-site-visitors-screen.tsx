@@ -167,7 +167,7 @@ export function OnSiteVisitorsScreen() {
       variant: 'warning',
       onConfirm: () => {
         checkOutMutation.mutate(
-          { id: item.id },
+          { id: item.id, data: { checkOutMethod: 'SECURITY_DESK' } },
           { onSuccess: () => showSuccess(`${item.visitorName} checked out`) },
         );
       },

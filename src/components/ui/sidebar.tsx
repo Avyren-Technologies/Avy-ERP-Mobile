@@ -336,8 +336,9 @@ export function Sidebar({
         setOpenGroups((prev) => ({ ...prev, ...next }));
     }, [sections]);
 
-    // Auto-expand section containing active item (accordion: collapse others)
+    // Accordion: keep only the active section expanded, collapse all others
     React.useEffect(() => {
+        if (sections.length === 0) return;
         let activeKey: string | null = null;
         sections.forEach((section) => {
             const key = section.title ?? '';
@@ -345,19 +346,18 @@ export function Sidebar({
             const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
             if (hasActive && !activeKey) activeKey = key;
         });
-        if (activeKey) {
-            setCollapsedSections(prev => {
-                const next: Record<string, boolean> = {};
-                sections.forEach((section) => {
-                    const key = section.title ?? '';
-                    if (!key) return;
-                    if (section.items.every(item => item.children && item.children.length > 0)) return;
-                    next[key] = key !== activeKey;
-                });
-                const changed = Object.keys(next).some(k => prev[k] !== next[k]);
-                return changed ? next : prev;
+        setCollapsedSections(prev => {
+            const next: Record<string, boolean> = {};
+            sections.forEach((section) => {
+                const key = section.title ?? '';
+                if (!key) return;
+                if (section.items.every(item => item.children && item.children.length > 0)) return;
+                // Collapse all sections; only the active one stays open
+                next[key] = key !== activeKey;
             });
-        }
+            const changed = Object.keys(next).some(k => prev[k] !== next[k]);
+            return changed ? next : prev;
+        });
     }, [sections]);
 
     // Reset search when sidebar closes

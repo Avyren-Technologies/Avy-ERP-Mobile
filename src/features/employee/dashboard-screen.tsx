@@ -2283,9 +2283,11 @@ export function EmployeeDashboard() {
     const firstName = user?.firstName ?? 'there';
     const fmt = useCompanyFormatter();
 
-    // Only fetch ESS dashboard if user has HR/ESS permissions
-    const canAccessEssDashboard = checkPermission(permissions, 'hr:read')
-        || checkPermission(permissions, 'ess:view-profile');
+    // Show ESS dashboard if user has ANY hr/ess/attendance permission
+    // (these are stripped by suppressByModules when HR module isn't subscribed)
+    const canAccessEssDashboard = permissions.some(p =>
+      p.startsWith('hr:') || p.startsWith('hr.') || p.startsWith('ess:') || p.startsWith('attendance:')
+    );
 
     const { data: dashboardResponse, isLoading, refetch } = useDashboard(canAccessEssDashboard);
     const { data: manifestData } = useNavigationManifest();

@@ -27,6 +27,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
+import { FAB } from '@/components/ui/fab';
 import { useAdjustLeaveBalance } from '@/features/company-admin/api/use-leave-mutations';
 import { useLeaveBalances, useLeaveTypes } from '@/features/company-admin/api/use-leave-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -176,6 +177,7 @@ function EmployeeDetailSheet({
             action: adjustAction.toLowerCase(),
             days: Number(adjustDays),
             reason: adjustReason.trim(),
+            year: new Date().getFullYear(),
         });
     };
 
@@ -309,6 +311,160 @@ function BalanceRowCard({
     );
 }
 
+// ============ ADJUST BALANCE MODAL ============
+
+function AdjustBalanceModal({
+    visible, onClose, employees, leaveTypeOptions, onAdjust,
+}: {
+    visible: boolean; onClose: () => void;
+    employees: EmployeeBalance[];
+    leaveTypeOptions: { id: string; label: string }[];
+    onAdjust: (data: Record<string, unknown>) => void;
+}) {
+    const insets = useSafeAreaInsets();
+    const isDark = useIsDark();
+    const [employeeSearch, setEmployeeSearch] = React.useState('');
+    const [selectedEmpId, setSelectedEmpId] = React.useState('');
+    const [leaveTypeId, setLeaveTypeId] = React.useState('');
+    const [action, setAction] = React.useState<'Credit' | 'Debit'>('Credit');
+    const [days, setDays] = React.useState('');
+    const [reason, setReason] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) {
+            setEmployeeSearch(''); setSelectedEmpId(''); setLeaveTypeId('');
+            setAction('Credit'); setDays(''); setReason('');
+        }
+    }, [visible]);
+
+    const filteredEmployees = React.useMemo(() => {
+        if (!employeeSearch.trim()) return employees;
+        const q = employeeSearch.toLowerCase();
+        return employees.filter(e => e.employeeName.toLowerCase().includes(q));
+    }, [employees, employeeSearch]);
+
+    const selectedEmp = employees.find(e => e.employeeId === selectedEmpId);
+    const isValid = selectedEmpId && leaveTypeId && Number(days) > 0 && reason.trim();
+
+    const handleSubmit = () => {
+        if (!isValid) return;
+        onAdjust({
+            employeeId: selectedEmpId,
+            leaveTypeId,
+            action: action.toLowerCase(),
+            days: Number(days),
+            reason: reason.trim(),
+            year: new Date().getFullYear(),
+        });
+        onClose();
+    };
+
+    const formBg = isDark ? '#1A1730' : colors.white;
+    const inputBg = isDark ? colors.neutral[800] : colors.neutral[50];
+    const inputBorder = isDark ? colors.neutral[700] : colors.neutral[200];
+    const textColor = isDark ? colors.neutral[100] : colors.primary[950];
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+                <View style={[adjustModalStyles.sheet, { backgroundColor: formBg, paddingBottom: insets.bottom + 20 }]}>
+                    <View style={adjustModalStyles.handle} />
+                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Adjust Leave Balance</Text>
+
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 500 }}>
+                        {/* Employee selection */}
+                        {!selectedEmp ? (
+                            <View style={{ marginBottom: 12 }}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                    Select Employee <Text className="text-danger-500">*</Text>
+                                </Text>
+                                <View style={[adjustModalStyles.inputWrap, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+                                    <TextInput
+                                        style={[adjustModalStyles.textInput, { color: textColor }]}
+                                        placeholder="Search employee..."
+                                        placeholderTextColor={colors.neutral[400]}
+                                        value={employeeSearch}
+                                        onChangeText={setEmployeeSearch}
+                                        autoFocus
+                                    />
+                                </View>
+                                <View style={{ maxHeight: 200, marginTop: 8 }}>
+                                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                                        {filteredEmployees.map(emp => (
+                                            <Pressable
+                                                key={emp.id}
+                                                onPress={() => { setSelectedEmpId(emp.employeeId); setEmployeeSearch(''); }}
+                                                style={[adjustModalStyles.empItem, { borderBottomColor: inputBorder }]}
+                                            >
+                                                <AvatarCircle name={emp.employeeName} />
+                                                <Text className="ml-3 font-inter text-sm font-semibold text-primary-950 dark:text-white">{emp.employeeName}</Text>
+                                            </Pressable>
+                                        ))}
+                                        {filteredEmployees.length === 0 && (
+                                            <Text className="py-4 text-center font-inter text-xs text-neutral-400">No employees found</Text>
+                                        )}
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        ) : (
+                            <Pressable
+                                onPress={() => { setSelectedEmpId(''); setEmployeeSearch(''); }}
+                                style={[adjustModalStyles.selectedEmp, { backgroundColor: isDark ? '#1E1B4B' : colors.primary[50], borderColor: isDark ? colors.primary[800] : colors.primary[100] }]}
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <AvatarCircle name={selectedEmp.employeeName} />
+                                    <Text className="ml-3 font-inter text-sm font-bold text-primary-950 dark:text-white">{selectedEmp.employeeName}</Text>
+                                </View>
+                                <Text className="font-inter text-xs font-semibold text-primary-600">Change</Text>
+                            </Pressable>
+                        )}
+
+                        {selectedEmp && (
+                            <>
+                                <Dropdown label="Leave Type" value={leaveTypeId} options={leaveTypeOptions} onSelect={setLeaveTypeId} placeholder="Select..." required />
+                                <ChipSelector label="Action" options={['Credit', 'Debit']} value={action} onSelect={v => setAction(v as 'Credit' | 'Debit')} />
+                                <View style={{ marginBottom: 12 }}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Days <Text className="text-danger-500">*</Text></Text>
+                                    <View style={[adjustModalStyles.inputWrap, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+                                        <TextInput style={[adjustModalStyles.textInput, { color: textColor }]} placeholder="0.5" placeholderTextColor={colors.neutral[400]} value={days} onChangeText={setDays} keyboardType="decimal-pad" />
+                                    </View>
+                                </View>
+                                <View style={{ marginBottom: 12 }}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Reason <Text className="text-danger-500">*</Text></Text>
+                                    <View style={[adjustModalStyles.inputWrap, { backgroundColor: inputBg, borderColor: inputBorder, height: 70 }]}>
+                                        <TextInput style={[adjustModalStyles.textInput, { textAlignVertical: 'top', paddingTop: 10, color: textColor }]} placeholder="Reason for adjustment..." placeholderTextColor={colors.neutral[400]} value={reason} onChangeText={setReason} multiline numberOfLines={2} />
+                                    </View>
+                                </View>
+                            </>
+                        )}
+                    </ScrollView>
+
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                        <Pressable onPress={onClose} style={adjustModalStyles.cancelBtn}>
+                            <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text>
+                        </Pressable>
+                        <Pressable onPress={handleSubmit} disabled={!isValid} style={[adjustModalStyles.saveBtn, !isValid && { opacity: 0.5 }]}>
+                            <Text className="font-inter text-sm font-bold text-white">Submit Adjustment</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+const adjustModalStyles = StyleSheet.create({
+    sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
+    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB', alignSelf: 'center', marginBottom: 16 },
+    inputWrap: { height: 46, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, justifyContent: 'center' },
+    textInput: { fontSize: 14, fontFamily: 'Inter', flex: 1 },
+    empItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+    selectedEmp: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+    cancelBtn: { flex: 1, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
+    saveBtn: { flex: 1, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary[600] },
+});
+
 // ============ MAIN COMPONENT ============
 
 export function LeaveBalanceScreen() {
@@ -317,13 +473,14 @@ export function LeaveBalanceScreen() {
 
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
-    const { data: response, isLoading, error, refetch, isFetching } = useLeaveBalances();
+    const { data: response, isLoading, error, refetch, isFetching } = useLeaveBalances({ limit: 100 });
     const { data: ltResponse } = useLeaveTypes();
     const adjustMutation = useAdjustLeaveBalance();
 
     const [search, setSearch] = React.useState('');
     const [selectedEmployee, setSelectedEmployee] = React.useState<EmployeeBalance | null>(null);
     const [detailVisible, setDetailVisible] = React.useState(false);
+    const [adjustVisible, setAdjustVisible] = React.useState(false);
 
     const leaveTypeOptions = React.useMemo(() => {
         const raw = (ltResponse as any)?.data ?? ltResponse ?? [];
@@ -440,6 +597,14 @@ export function LeaveBalanceScreen() {
             <FlashList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+            />
+            <FAB icon="edit" onPress={() => setAdjustVisible(true)} />
+            <AdjustBalanceModal
+                visible={adjustVisible}
+                onClose={() => setAdjustVisible(false)}
+                employees={employees}
+                leaveTypeOptions={leaveTypeOptions}
+                onAdjust={handleAdjust}
             />
             <EmployeeDetailSheet visible={detailVisible} onClose={() => setDetailVisible(false)} employee={selectedEmployee} leaveTypeOptions={leaveTypeOptions} onAdjust={handleAdjust} />
         </View>

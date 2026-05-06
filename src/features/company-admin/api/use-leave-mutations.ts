@@ -36,9 +36,11 @@ export function useUpdateLeaveType() {
 export function useDeleteLeaveType() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => leaveApi.deleteLeaveType(id),
+    mutationFn: ({ id, force = false }: { id: string; force?: boolean }) =>
+      leaveApi.deleteLeaveType(id, force),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leaveKeys.leaveTypes() });
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
     },
   });
 }

@@ -51,8 +51,8 @@ export const leaveApi = {
   updateLeaveType: (id: string, data: Record<string, unknown>) =>
     client.patch(`/hr/leave-types/${id}`, data),
 
-  deleteLeaveType: (id: string) =>
-    client.delete(`/hr/leave-types/${id}`),
+  deleteLeaveType: (id: string, force = false) =>
+    client.delete(`/hr/leave-types/${id}`, { params: force ? { force: 'true' } : undefined }),
 
   // ── Leave Policies ─────────────────────────────────────────────────
   listPolicies: (params?: LeavePolicyListParams) =>

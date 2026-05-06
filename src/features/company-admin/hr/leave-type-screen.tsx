@@ -455,10 +455,26 @@ export function LeaveTypeScreen() {
     const handleDelete = (item: LeaveTypeItem) => {
         showConfirm({
             title: 'Delete Leave Type',
-            message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete "${item.name}"? All associated balances, policies, and requests will be permanently removed.`,
             confirmText: 'Delete',
             variant: 'danger',
-            onConfirm: () => { deleteMutation.mutate(item.id); },
+            onConfirm: () => {
+                deleteMutation.mutate({ id: item.id, force: false }, {
+                    onError: (err: any) => {
+                        const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? '';
+                        if (msg.includes('force=true')) {
+                            // Show second confirmation for force delete
+                            showConfirm({
+                                title: 'Confirm Force Delete',
+                                message: `"${item.name}" has employee balances and/or pending requests. Deleting will permanently remove ALL associated data. Continue?`,
+                                confirmText: 'Delete Everything',
+                                variant: 'danger',
+                                onConfirm: () => { deleteMutation.mutate({ id: item.id, force: true }); },
+                            });
+                        }
+                    },
+                });
+            },
         });
     };
 

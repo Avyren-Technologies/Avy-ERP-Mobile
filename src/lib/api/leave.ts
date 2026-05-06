@@ -95,6 +95,40 @@ export const leaveApi = {
   cancelRequest: (id: string, data?: Record<string, unknown>) =>
     client.patch(`/hr/leave-requests/${id}/cancel`, data ?? {}),
 
+  // ── Leave Balances — Direct Edit ────────────────────────────────────
+  updateBalance: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/hr/leave-balances/${id}`, data),
+
+  // ── Leave Balances — Transactions ─────────────────────────────────
+  listTransactions: (balanceId: string, params?: { page?: number; limit?: number }) =>
+    client.get(`/hr/leave-balances/${balanceId}/transactions`, { params }),
+
+  // ── Leave Balances — Encashment ───────────────────────────────────
+  encashBalance: (data: Record<string, unknown>) =>
+    client.post('/hr/leave-balances/encash', data),
+
+  // ── Leave Balances — Accrual & Carry Forward ──────────────────────
+  accrueBalances: (data: { month: number; year: number; dayOfMonth?: number }) =>
+    client.post('/hr/leave-balances/accrue', data),
+
+  carryForwardBalances: (data: { fromYear: number; toYear: number }) =>
+    client.post('/hr/leave-balances/carry-forward', data),
+
+  // ── Leave Balances — Bulk Import ──────────────────────────────────
+  downloadBalanceTemplate: () =>
+    client.get('/hr/leave-balances/bulk/template', { responseType: 'blob' }),
+
+  validateBalanceUpload: (file: any) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return client.post('/hr/leave-balances/bulk/validate', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  confirmBalanceImport: (rows: any[]) =>
+    client.post('/hr/leave-balances/bulk/import', { rows }),
+
   // ── Leave Dashboard / Summary ──────────────────────────────────────
   getSummary: () => client.get('/hr/leave/summary'),
 };

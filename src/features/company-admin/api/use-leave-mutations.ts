@@ -174,3 +174,77 @@ export function useCancelLeaveRequest() {
     },
   });
 }
+
+// ── Leave Balance — Direct Edit ─────────────────────────────────────
+
+/** Update a leave balance directly */
+export function useUpdateBalance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      leaveApi.updateBalance(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
+    },
+  });
+}
+
+// ── Leave Balance — Encashment ──────────────────────────────────────
+
+/** Encash leave balance */
+export function useEncashBalance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      leaveApi.encashBalance(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
+    },
+  });
+}
+
+// ── Leave Balance — Accrual & Carry Forward ─────────────────────────
+
+/** Run monthly accrual */
+export function useRunAccrual() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { month: number; year: number; dayOfMonth?: number }) =>
+      leaveApi.accrueBalances(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
+    },
+  });
+}
+
+/** Run year-end carry forward */
+export function useRunCarryForward() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { fromYear: number; toYear: number }) =>
+      leaveApi.carryForwardBalances(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
+    },
+  });
+}
+
+// ── Leave Balance — Bulk Import ─────────────────────────────────────
+
+/** Validate a bulk balance upload file */
+export function useValidateBalanceUpload() {
+  return useMutation({
+    mutationFn: (file: any) => leaveApi.validateBalanceUpload(file),
+  });
+}
+
+/** Confirm and import validated balance rows */
+export function useConfirmBalanceImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: any[]) => leaveApi.confirmBalanceImport(rows),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leaveKeys.balances() });
+    },
+  });
+}

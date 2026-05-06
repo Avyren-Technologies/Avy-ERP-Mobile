@@ -93,6 +93,19 @@ export function useLeaveRequest(id: string) {
   });
 }
 
+// --- Balance Transactions ---
+
+/** Transaction history for a specific leave balance */
+export function useBalanceTransactions(balanceId: string, params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: params
+      ? [...leaveKeys.all, 'transactions', balanceId, params] as const
+      : [...leaveKeys.all, 'transactions', balanceId] as const,
+    queryFn: () => leaveApi.listTransactions(balanceId, params),
+    enabled: !!balanceId,
+  });
+}
+
 // --- Leave Summary ---
 
 /** Dashboard stats (by type, pending approvals count) */

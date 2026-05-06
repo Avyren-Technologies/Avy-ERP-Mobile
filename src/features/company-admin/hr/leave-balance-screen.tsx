@@ -50,6 +50,7 @@ import {
     useLeaveBalances,
     useLeaveTypes,
 } from '@/features/company-admin/api/use-leave-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -66,6 +67,7 @@ interface LeaveBalanceEntry {
     entitlement: number;
     balanceRecordId?: string;
     encashmentAllowed?: boolean;
+    year?: number;
 }
 
 interface EmployeeBalance {
@@ -219,6 +221,7 @@ function TransactionHistorySheet({
     visible: boolean; onClose: () => void; balanceId: string; leaveTypeName: string;
 }) {
     const insets = useSafeAreaInsets();
+    const fmt = useCompanyFormatter();
     const { data: txResponse, isLoading } = useBalanceTransactions(balanceId, { limit: 50 });
 
     const transactions: TransactionRecord[] = React.useMemo(() => {
@@ -236,7 +239,7 @@ function TransactionHistorySheet({
 
     const renderTxItem = ({ item }: { item: TransactionRecord }) => {
         const badge = getTransactionTypeBadge(item.type);
-        const dateStr = item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+        const dateStr = item.date ? fmt.date(item.date) : '';
         const isPositive = item.delta >= 0;
         return (
             <View style={txStyles.row}>
@@ -438,11 +441,11 @@ function EncashBalanceModal({
                         </Pressable>
                         <Pressable
                             onPress={() => onEncash({
-                                employeeId: employee?.employeeId,
+                                employeeId: employee?.id,
                                 leaveTypeId: balance?.leaveTypeId,
                                 days: Number(days),
                                 reason: reason.trim(),
-                                year: new Date().getFullYear(),
+                                year: balance?.year ?? new Date().getFullYear(),
                             })}
                             disabled={!isValid || isSubmitting}
                             style={[styles.saveBtn, (!isValid || isSubmitting) && { opacity: 0.5 }]}
@@ -496,13 +499,14 @@ function EmployeeDetailSheet({
 
     const handleAdjustSubmit = () => {
         if (!adjustLeaveTypeId || !adjustDays || !adjustReason.trim()) return;
+        const balanceYear = employee.balances[0]?.year;
         onAdjust({
-            employeeId: employee.employeeId,
+            employeeId: employee.id,
             leaveTypeId: adjustLeaveTypeId,
             action: adjustAction.toLowerCase(),
             days: Number(adjustDays),
             reason: adjustReason.trim(),
-            year: new Date().getFullYear(),
+            year: balanceYear ?? new Date().getFullYear(),
         });
     };
 
@@ -768,18 +772,19 @@ function AdjustBalanceModal({
         return employees.filter(e => e.employeeName.toLowerCase().includes(q));
     }, [employees, employeeSearch]);
 
-    const selectedEmp = employees.find(e => e.employeeId === selectedEmpId);
+    const selectedEmp = employees.find(e => e.id === selectedEmpId);
     const isValid = selectedEmpId && leaveTypeId && Number(days) > 0 && reason.trim();
 
     const handleSubmit = () => {
         if (!isValid) return;
+        const balanceYear = selectedEmp?.balances[0]?.year;
         onAdjust({
             employeeId: selectedEmpId,
             leaveTypeId,
             action: action.toLowerCase(),
             days: Number(days),
             reason: reason.trim(),
-            year: new Date().getFullYear(),
+            year: balanceYear ?? new Date().getFullYear(),
         });
         onClose();
     };
@@ -819,7 +824,7 @@ function AdjustBalanceModal({
                                         {filteredEmployees.map(emp => (
                                             <Pressable
                                                 key={emp.id}
-                                                onPress={() => { setSelectedEmpId(emp.employeeId); setEmployeeSearch(''); }}
+                                                onPress={() => { setSelectedEmpId(emp.id); setEmployeeSearch(''); }}
                                                 style={[adjustModalStyles.empItem, { borderBottomColor: inputBorder }]}
                                             >
                                                 <AvatarCircle name={emp.employeeName} />
@@ -915,7 +920,7 @@ function InitializeBalancesModal({
         return employees.filter(e => e.employeeName.toLowerCase().includes(q));
     }, [employees, employeeSearch]);
 
-    const selectedEmp = employees.find(e => e.employeeId === selectedEmpId);
+    const selectedEmp = employees.find(e => e.id === selectedEmpId);
     const isValid = selectedEmpId && Number(year) >= 2020;
 
     return (
@@ -942,7 +947,7 @@ function InitializeBalancesModal({
                                 <View style={{ maxHeight: 200, marginTop: 8 }}>
                                     <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
                                         {filteredEmployees.map(emp => (
-                                            <Pressable key={emp.id} onPress={() => { setSelectedEmpId(emp.employeeId); setEmployeeSearch(''); }}
+                                            <Pressable key={emp.id} onPress={() => { setSelectedEmpId(emp.id); setEmployeeSearch(''); }}
                                                 style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.neutral[100] }}>
                                                 <AvatarCircle name={emp.employeeName} />
                                                 <Text className="ml-3 font-inter text-sm font-semibold text-primary-950 dark:text-white">{emp.employeeName}</Text>
@@ -1463,6 +1468,7 @@ export function LeaveBalanceScreen() {
                 entitlement,
                 balanceRecordId: item.id,
                 encashmentAllowed: leaveTypeEncashmentMap[leaveTypeId] ?? false,
+                year: item.year ? Number(item.year) : undefined,
             });
         }
 

@@ -3,8 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
 import {
-    Alert,
+    ActivityIndicator,
     KeyboardAvoidingView,
+    Linking,
     Modal,
     Platform,
     Pressable,
@@ -33,6 +34,7 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showError, showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
@@ -42,6 +44,7 @@ import {
     useRejectLeaveRequest,
 } from '@/features/company-admin/api/use-leave-mutations';
 import { useLeaveRequests, useLeaveTypes } from '@/features/company-admin/api/use-leave-queries';
+import { useFileUrl } from '@/hooks/use-file-url';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -66,6 +69,8 @@ interface LeaveRequestItem {
     approverName: string;
     rejectionNote: string;
     createdAt: string;
+    documentUrl?: string | null;
+    documentName?: string | null;
 }
 
 // ============ CONSTANTS ============
@@ -218,7 +223,7 @@ function ApplyLeaveModal({
         if (calcDays <= 0 && fromDate && toDate) missing.push('Valid duration');
 
         if (missing.length > 0) {
-            Alert.alert('Missing Information', `Please fill in: ${missing.join(', ')}`);
+            showErrorMessage(`Please fill in: ${missing.join(', ')}`);
             return;
         }
         
@@ -350,6 +355,35 @@ function RejectionNoteModal({
     );
 }
 
+// ============ VIEW DOCUMENT BUTTON ============
+
+function ViewDocumentButton({ fileKey, label }: Readonly<{ fileKey: string; label?: string | null }>) {
+    const { url, isLoading } = useFileUrl({ key: fileKey });
+
+    const handleView = () => {
+        if (url) {
+            Linking.openURL(url).catch(() => showErrorMessage('Could not open document'));
+        }
+    };
+
+    return (
+        <Pressable onPress={handleView} disabled={isLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: colors.primary[50], alignSelf: 'flex-start' }}>
+            {isLoading ? (
+                <ActivityIndicator size="small" color={colors.primary[600]} />
+            ) : (
+                <>
+                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                        <Path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                    <Text className="font-inter text-xs font-semibold text-primary-700" numberOfLines={1}>
+                        {label ?? 'View Document'}
+                    </Text>
+                </>
+            )}
+        </Pressable>
+    );
+}
+
 // ============ REQUEST CARD ============
 
 function RequestCard({
@@ -390,6 +424,10 @@ function RequestCard({
 
                 {item.reason ? (
                     <Text className="mt-2 font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={2}>{item.reason}</Text>
+                ) : null}
+
+                {item.documentUrl ? (
+                    <ViewDocumentButton fileKey={item.documentUrl} label={item.documentName} />
                 ) : null}
 
                 {item.approverName ? (
@@ -497,6 +535,8 @@ export function LeaveRequestScreen() {
                 approverName: item.approverName ?? '',
                 rejectionNote: item.rejectionNote ?? item.rejectionReason ?? '',
                 createdAt: item.createdAt ?? '',
+                documentUrl: item.documentUrl ?? null,
+                documentName: item.documentName ?? null,
             };
         });
     }, [response, leaveTypeOptions]);
@@ -543,7 +583,19 @@ export function LeaveRequestScreen() {
     };
 
     const handleApplyLeave = (data: Record<string, unknown>) => {
-        createMutation.mutate(data, { onSuccess: () => setFormVisible(false) });
+        createMutation.mutate(data, {
+            onSuccess: () => {
+                setFormVisible(false);
+                showSuccess('Leave request submitted');
+            },
+            onError: (err: any) => {
+                if (err?.response?.data) {
+                    showError(err);
+                    return;
+                }
+                showErrorMessage(err?.message ?? 'Failed to submit leave request');
+            },
+        });
     };
 
     // Combined list: pending approvals section + all requests section

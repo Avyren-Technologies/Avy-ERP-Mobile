@@ -1,10 +1,12 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
+    Linking,
     Modal,
     Platform,
     Pressable,
@@ -32,6 +34,8 @@ import { showErrorMessage } from '@/components/ui/utils';
 import { useApplyLeave, useCancelLeave } from '@/features/company-admin/api/use-ess-mutations';
 import { useMyLeaveBalance } from '@/features/company-admin/api/use-ess-queries';
 import { useLeaveRequests, useLeaveTypes } from '@/features/company-admin/api/use-leave-queries';
+import { useFileUpload } from '@/hooks/use-file-upload';
+import { useFileUrl } from '@/hooks/use-file-url';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -61,6 +65,8 @@ interface MyLeaveRequest {
     days: number;
     status: LeaveStatus;
     reason: string;
+    documentUrl?: string | null;
+    documentName?: string | null;
 }
 
 // ============ CONSTANTS ============
@@ -277,6 +283,13 @@ function ApplyLeaveModal({
     const [reason,    setReason]    = React.useState('');
     const [openCalendar, setOpenCalendar] = React.useState<'from' | 'to' | null>(null);
     const [leaveTypeDropdownOpen, setLeaveTypeDropdownOpen] = React.useState(false);
+    const [documentKey, setDocumentKey] = React.useState<string | null>(null);
+    const [documentName, setDocumentName] = React.useState<string | null>(null);
+
+    const { upload: uploadDoc, isUploading: isUploadingDoc } = useFileUpload({
+        category: 'leave-document',
+        entityId: 'draft',
+    });
 
     const { data: leaveTypesResponse } = useLeaveTypes();
     const allLeaveTypes = React.useMemo(() => {
@@ -303,6 +316,8 @@ function ApplyLeaveModal({
         setReason('');
         setOpenCalendar(null);
         setLeaveTypeDropdownOpen(false);
+        setDocumentKey(null);
+        setDocumentName(null);
     };
 
     // When fromDate changes, clear toDate if it's before fromDate
@@ -324,11 +339,47 @@ function ApplyLeaveModal({
         return isHalfDay ? 0.5 : diff;
     }, [fromDate, toDate, isHalfDay]);
 
-    const isValid = leaveTypeId && fromDate && toDate && reason.trim() && calcDays > 0;
+    // Document upload logic
+    const selectedLeaveType = allLeaveTypes.find((lt: any) => lt.id === leaveTypeId);
+    const requiresDocument = selectedLeaveType?.documentRequired === true;
+    const requiresDocAfterDays = selectedLeaveType?.documentAfterDays
+        ? calcDays > Number(selectedLeaveType.documentAfterDays)
+        : false;
+    const showDocUpload = requiresDocument || requiresDocAfterDays;
+    const documentMandatory = requiresDocument || requiresDocAfterDays;
+
+    const handlePickDocument = async () => {
+        const result = await DocumentPicker.getDocumentAsync({
+            type: ['application/pdf', 'image/*', 'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            copyToCacheDirectory: true,
+        });
+
+        if (!result.canceled && result.assets?.[0]) {
+            const asset = result.assets[0];
+            const key = await uploadDoc({
+                uri: asset.uri,
+                name: asset.name,
+                type: asset.mimeType ?? 'application/octet-stream',
+                size: asset.size ?? 0,
+            });
+            if (key) {
+                setDocumentKey(key);
+                setDocumentName(asset.name);
+            }
+        }
+    };
+
+    const isValid = leaveTypeId && fromDate && toDate && reason.trim() && calcDays > 0
+        && (!documentMandatory || !!documentKey);
 
     const handleApply = () => {
         if (!isValid) { showErrorMessage('Please fill all required fields.'); return; }
-        onSave({ leaveTypeId, fromDate, toDate, isHalfDay, days: calcDays, reason: reason.trim() });
+        onSave({
+            leaveTypeId, fromDate, toDate, isHalfDay, days: calcDays, reason: reason.trim(),
+            documentUrl: documentKey ?? undefined,
+            documentName: documentName ?? undefined,
+        });
     };
 
     // Main form
@@ -502,10 +553,82 @@ function ApplyLeaveModal({
                         />
                     </View>
 
+                    {/* ── Supporting Document ── */}
+                    {showDocUpload && (
+                        <View style={{ marginBottom: 18 }}>
+                            <Text style={st.groupLabel}>
+                                Supporting Document {documentMandatory ? <Text style={{ color: colors.danger[500] }}>*</Text> : null}
+                            </Text>
+                            {documentKey ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.success[50], padding: 12, borderRadius: 12, gap: 8 }}>
+                                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                                        <Path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.success[600]} strokeWidth="2" fill="none" strokeLinecap="round" />
+                                    </Svg>
+                                    <Text className="font-inter text-sm text-success-700 flex-1" numberOfLines={1}>{documentName}</Text>
+                                    <Pressable onPress={() => { setDocumentKey(null); setDocumentName(null); }}>
+                                        <Text className="font-inter text-xs text-danger-500">Remove</Text>
+                                    </Pressable>
+                                </View>
+                            ) : (
+                                <Pressable
+                                    onPress={handlePickDocument}
+                                    disabled={isUploadingDoc}
+                                    style={{
+                                        borderWidth: 2, borderStyle: 'dashed',
+                                        borderColor: colors.neutral[200], borderRadius: 12,
+                                        padding: 16, alignItems: 'center',
+                                    }}
+                                >
+                                    {isUploadingDoc ? (
+                                        <ActivityIndicator size="small" color={colors.primary[500]} />
+                                    ) : (
+                                        <>
+                                            <Svg width={24} height={24} viewBox="0 0 24 24">
+                                                <Path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                            </Svg>
+                                            <Text className="font-inter text-xs text-neutral-500 mt-2">
+                                                Tap to upload PDF, Word, or image (max 10MB)
+                                            </Text>
+                                        </>
+                                    )}
+                                </Pressable>
+                            )}
+                        </View>
+                    )}
+
                     <View style={{ height: Math.max(insets.bottom, 24) + 16 }} />
                 </ScrollView>
             </KeyboardAvoidingView>
         </Modal>
+    );
+}
+
+// ============ VIEW DOCUMENT BUTTON ============
+
+function ViewDocumentButton({ fileKey, label }: Readonly<{ fileKey: string; label?: string | null }>) {
+    const { url, isLoading } = useFileUrl({ key: fileKey });
+
+    const handleView = () => {
+        if (url) {
+            Linking.openURL(url).catch(() => showErrorMessage('Could not open document'));
+        }
+    };
+
+    return (
+        <Pressable onPress={handleView} disabled={isLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: colors.primary[50], alignSelf: 'flex-start' }}>
+            {isLoading ? (
+                <ActivityIndicator size="small" color={colors.primary[600]} />
+            ) : (
+                <>
+                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                        <Path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                    <Text className="font-inter text-xs font-semibold text-primary-700" numberOfLines={1}>
+                        {label ?? 'View Document'}
+                    </Text>
+                </>
+            )}
+        </Pressable>
     );
 }
 
@@ -533,6 +656,9 @@ function LeaveRequestCard({
                 </View>
                 {req.reason ? (
                     <Text style={st.requestReason} numberOfLines={2}>{req.reason}</Text>
+                ) : null}
+                {req.documentUrl ? (
+                    <ViewDocumentButton fileKey={req.documentUrl} label={req.documentName} />
                 ) : null}
                 {canCancel && (
                     <Pressable onPress={() => onCancel(req.id)} style={st.cancelLeaveBtn}>
@@ -613,6 +739,8 @@ export function MyLeaveScreen() {
             days:     Number(r.days ?? r.numberOfDays ?? 0),
             status:   r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).toLowerCase() as LeaveStatus : 'Pending',
             reason:   r.reason ?? '',
+            documentUrl: r.documentUrl ?? null,
+            documentName: r.documentName ?? null,
         }));
 
         return { balances, requests };

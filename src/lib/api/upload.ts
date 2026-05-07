@@ -19,7 +19,8 @@ export type FileCategory =
   | 'transfer-letter'
   | 'policy-document'
   | 'billing-invoice'
-  | 'induction-content';
+  | 'induction-content'
+  | 'leave-document';
 
 interface RequestUploadPayload {
   category: FileCategory;

@@ -1,45 +1,49 @@
 import { client } from '@/lib/api/client';
 
-// --- Types ---
-
-export interface BiometricDeviceListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  locationId?: string;
-  status?: string;
-}
-
 // --- API Service ---
 
 /**
- * Biometric Device API service — devices CRUD, test connectivity, and sync.
+ * Biometric ADMS API service — devices, mappings, and punch logs.
  *
  * NOTE: The response interceptor on `client` unwraps `response.data`,
  * so all client calls resolve with the API payload directly at runtime.
  */
 export const biometricApi = {
   // ── Devices ────────────────────────────────────────────────────
-  listDevices: (params?: BiometricDeviceListParams) =>
-    client.get('/hr/biometric-devices', { params }),
+  listDevices: () => client.get('/hr/biometric/devices'),
 
-  getDevice: (id: string) =>
-    client.get(`/hr/biometric-devices/${id}`),
+  getDevice: (id: string) => client.get(`/hr/biometric/devices/${id}`),
 
-  createDevice: (data: Record<string, unknown>) =>
-    client.post('/hr/biometric-devices', data),
+  getDeviceStats: () => client.get('/hr/biometric/devices/stats'),
+
+  claimDevice: (data: {
+    serialNumber: string;
+    deviceName: string;
+    locationId?: string;
+    timezone?: string;
+  }) => client.post('/hr/biometric/devices/claim', data),
 
   updateDevice: (id: string, data: Record<string, unknown>) =>
-    client.patch(`/hr/biometric-devices/${id}`, data),
+    client.patch(`/hr/biometric/devices/${id}`, data),
 
-  deleteDevice: (id: string) =>
-    client.delete(`/hr/biometric-devices/${id}`),
+  deactivateDevice: (id: string) =>
+    client.delete(`/hr/biometric/devices/${id}`),
 
-  // ── Test Connectivity ──────────────────────────────────────────
-  testDevice: (id: string) =>
-    client.post(`/hr/biometric-devices/${id}/test`),
+  // ── Mappings ───────────────────────────────────────────────────
+  listMappings: () => client.get('/hr/biometric/mappings'),
 
-  // ── Sync ───────────────────────────────────────────────────────
-  syncDevice: (id: string) =>
-    client.post(`/hr/biometric-devices/${id}/sync`),
+  createMapping: (data: {
+    employeeId: string;
+    deviceSerialNumber: string;
+    deviceUserId: string;
+  }) => client.post('/hr/biometric/mappings', data),
+
+  deleteMapping: (id: string) =>
+    client.delete(`/hr/biometric/mappings/${id}`),
+
+  getUnmappedPunches: () => client.get('/hr/biometric/mappings/unmapped'),
+
+  // ── Punch Logs ─────────────────────────────────────────────────
+  listPunchLogs: (params?: Record<string, unknown>) =>
+    client.get('/hr/biometric/punch-logs', { params }),
 };

@@ -7,6 +7,7 @@ export interface DashboardAnnouncement {
   title: string;
   body: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  imageUrl?: string | null;
   createdAt: string;
 }
 

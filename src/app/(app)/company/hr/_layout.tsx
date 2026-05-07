@@ -82,6 +82,8 @@ export default function HRLayout() {
       {/* New screens */}
       <Stack.Screen name="org-chart" />
       <Stack.Screen name="biometric-devices" />
+      <Stack.Screen name="biometric-mapping" />
+      <Stack.Screen name="biometric-live-feed" />
       <Stack.Screen name="shift-rotations" />
       <Stack.Screen name="bonus-batches" />
       <Stack.Screen name="form-16" />

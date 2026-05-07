@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
+    Image,
     Pressable,
     RefreshControl,
     StyleSheet,
@@ -103,6 +104,13 @@ function AnnouncementCard({ item, index }: { item: DashboardAnnouncement; index:
                 <Text className="font-inter text-sm" style={{ color: colors.neutral[500], marginTop: 6, lineHeight: 20 }}>
                     {item.body}
                 </Text>
+                {typeof item.imageUrl === 'string' && item.imageUrl.startsWith('http') && (
+                    <Image
+                        source={{ uri: item.imageUrl }}
+                        style={{ width: '100%', height: 140, borderRadius: 10, marginTop: 10 }}
+                        resizeMode="cover"
+                    />
+                )}
             </View>
         </Animated.View>
     );

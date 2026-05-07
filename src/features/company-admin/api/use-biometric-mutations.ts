@@ -6,14 +6,19 @@ import { biometricKeys } from '@/features/company-admin/api/use-biometric-querie
 
 // ── Devices ──────────────────────────────────────────────────────────
 
-/** Create a biometric device */
-export function useCreateBiometricDevice() {
+/** Claim (register) an ADMS biometric device */
+export function useClaimBiometricDevice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      biometricApi.createDevice(data),
+    mutationFn: (data: {
+      serialNumber: string;
+      deviceName: string;
+      locationId?: string;
+      timezone?: string;
+    }) => biometricApi.claimDevice(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: biometricKeys.devices() });
+      queryClient.invalidateQueries({ queryKey: biometricKeys.deviceStats() });
     },
     onError: showError,
   });
@@ -30,40 +35,51 @@ export function useUpdateBiometricDevice() {
       queryClient.invalidateQueries({
         queryKey: biometricKeys.device(variables.id),
       });
+      queryClient.invalidateQueries({ queryKey: biometricKeys.deviceStats() });
     },
     onError: showError,
   });
 }
 
-/** Delete a biometric device */
-export function useDeleteBiometricDevice() {
+/** Deactivate a biometric device */
+export function useDeactivateBiometricDevice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => biometricApi.deleteDevice(id),
+    mutationFn: (id: string) => biometricApi.deactivateDevice(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: biometricKeys.devices() });
+      queryClient.invalidateQueries({ queryKey: biometricKeys.deviceStats() });
     },
     onError: showError,
   });
 }
 
-// ── Test & Sync ──────────────────────────────────────────────────────
+// ── Mappings ─────────────────────────────────────────────────────────
 
-/** Test connectivity to a biometric device */
-export function useTestBiometricDevice() {
+/** Create an employee-device mapping */
+export function useCreateBiometricMapping() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => biometricApi.testDevice(id),
+    mutationFn: (data: {
+      employeeId: string;
+      deviceSerialNumber: string;
+      deviceUserId: string;
+    }) => biometricApi.createMapping(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: biometricKeys.mappings() });
+      queryClient.invalidateQueries({ queryKey: biometricKeys.unmappedPunches() });
+    },
     onError: showError,
   });
 }
 
-/** Sync data from a biometric device */
-export function useSyncBiometricDevice() {
+/** Delete an employee-device mapping */
+export function useDeleteBiometricMapping() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => biometricApi.syncDevice(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: biometricKeys.device(id) });
+    mutationFn: (id: string) => biometricApi.deleteMapping(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: biometricKeys.mappings() });
     },
     onError: showError,
   });

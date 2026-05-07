@@ -3,7 +3,7 @@ import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gor
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { DateTime } from 'luxon';
 
@@ -56,6 +56,7 @@ interface NotificationItemData {
   title: string;
   body: string;
   type: string;
+  data: Record<string, unknown> | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -69,6 +70,9 @@ function NotificationItem({
 }) {
   const typeStyle = TYPE_STYLES[item.type] ?? TYPE_STYLES.info;
   const isUnread = !item.readAt;
+  const imageUrl = typeof item.data?.image_url === 'string' && (item.data.image_url as string).startsWith('http')
+    ? item.data.image_url as string
+    : null;
 
   return (
     <Pressable
@@ -99,6 +103,13 @@ function NotificationItem({
         >
           {item.body}
         </Text>
+        {imageUrl && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={{ width: '100%', height: 100, borderRadius: 8, marginTop: 6 }}
+            resizeMode="cover"
+          />
+        )}
         <Text className="font-inter text-[10px] font-medium" style={{ color: colors.neutral[300], marginTop: 4 }}>
           {formatTimeAgo(item.createdAt)}
         </Text>

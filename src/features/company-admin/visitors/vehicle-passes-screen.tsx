@@ -34,7 +34,6 @@ import { showSuccess } from '@/components/ui/utils';
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCreateVehiclePass, useRecordVehicleExit } from '@/features/company-admin/api/use-visitor-mutations';
 import { useGates, useVehiclePasses } from '@/features/company-admin/api/use-visitor-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -309,7 +308,6 @@ export function VehiclePassesScreen() {
   const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
   const [search, setSearch] = React.useState('');
-  const debouncedSearch = useDebounce(search.trim(), 400);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [exitTarget, setExitTarget] = React.useState<VehiclePassItem | null>(null);
   const [exitGateId, setExitGateId] = React.useState('');
@@ -324,9 +322,9 @@ export function VehiclePassesScreen() {
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (debouncedSearch) p.search = debouncedSearch;
+    if (search.trim()) p.search = search.trim();
     return p;
-  }, [debouncedSearch]);
+  }, [search]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useVehiclePasses(queryParams);
   const createMutation = useCreateVehiclePass();

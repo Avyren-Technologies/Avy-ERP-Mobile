@@ -16,6 +16,7 @@ export const client = axios.create({
 
 // --- Token refresh queue pattern ---
 let isRefreshing = false;
+let isSigningOutAfterRefreshFailure = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
@@ -125,11 +126,22 @@ client.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
 
-        logger.error('Token refresh failed — signing out', { error: refreshError });
+        const isExpectedRefresh401 =
+          axios.isAxiosError(refreshError) && refreshError.response?.status === 401;
 
-        // Sign out on refresh failure
-        const { signOut } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');
-        signOut();
+        if (isExpectedRefresh401) {
+          logger.warn('Refresh token expired/invalid — signing out');
+        } else {
+          logger.error('Token refresh failed unexpectedly — signing out', { error: refreshError });
+        }
+
+        // Sign out once even if multiple requests fail around the same time.
+        if (!isSigningOutAfterRefreshFailure) {
+          isSigningOutAfterRefreshFailure = true;
+          const { signOut } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');
+          signOut();
+          isSigningOutAfterRefreshFailure = false;
+        }
 
         return Promise.reject(refreshError);
       } finally {

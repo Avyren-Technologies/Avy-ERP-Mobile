@@ -33,7 +33,6 @@ import { useCompanyLocations } from '@/features/company-admin/api/use-company-ad
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useBatchCheckIn, useBatchCheckOut, useCreateGroupVisit } from '@/features/company-admin/api/use-visitor-mutations';
 import { useGroupVisits } from '@/features/company-admin/api/use-visitor-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -330,16 +329,15 @@ export function GroupVisitsScreen() {
   const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
   const [search, setSearch] = React.useState('');
-  const debouncedSearch = useDebounce(search.trim(), 400);
   const [statusFilter, setStatusFilter] = React.useState('');
   const [showCreateModal, setShowCreateModal] = React.useState(false);
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (debouncedSearch) p.search = debouncedSearch;
+    if (search.trim()) p.search = search.trim();
     if (statusFilter) p.status = statusFilter;
     return p;
-  }, [debouncedSearch, statusFilter]);
+  }, [search, statusFilter]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useGroupVisits(queryParams);
   const createMutation = useCreateGroupVisit();

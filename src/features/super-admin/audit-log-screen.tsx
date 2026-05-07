@@ -24,7 +24,6 @@ import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useAuditLogs, useAuditFilterOptions } from '@/features/super-admin/api/use-audit-queries';
 import { useCompanyAuditLogs } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -149,14 +148,13 @@ export function AuditLogScreen() {
     const userRole = useAuthStore.use.userRole();
     const isCompanyAdmin = userRole === 'company-admin';
     const [search, setSearch] = React.useState('');
-    const debouncedSearch = useDebounce(search.trim(), 400);
     const [activeFilter, setActiveFilter] = React.useState('all');
     const [page, setPage] = React.useState(1);
 
     // Reset page when search changes
     React.useEffect(() => {
         setPage(1);
-    }, [debouncedSearch]);
+    }, [search]);
 
     // Reset page when filter changes
     React.useEffect(() => {
@@ -168,7 +166,7 @@ export function AuditLogScreen() {
         page,
         limit: 30,
         action: actionParam,
-        search: debouncedSearch || undefined,
+        search: search.trim() || undefined,
     });
 
     const { data: filtersResponse } = useAuditFilterOptions({ enabled: !isCompanyAdmin });

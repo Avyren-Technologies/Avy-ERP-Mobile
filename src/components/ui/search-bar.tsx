@@ -13,6 +13,13 @@ import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { useIsDark } from '@/hooks/use-is-dark';
 
+const DEBOUNCE_MS = 400;
+
+// Module-level flag: when a SearchBar is actively focused and the user is
+// typing, FlashList header re-mounts can cause the TextInput to lose focus.
+// This flag lets the newly mounted instance know it should auto-refocus.
+let _shouldRestoreFocus = false;
+
 interface FilterChip {
     key: string;
     label: string;
@@ -36,16 +43,86 @@ export function SearchBar({
     activeFilter,
     onFilterChange,
 }: SearchBarProps) {
-  const isDark = useIsDark();
-  const styles = createStyles(isDark);
+    const isDark = useIsDark();
+    const s = createStyles(isDark);
 
+    const inputRef = React.useRef<TextInput>(null);
+    const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const onChangeTextRef = React.useRef(onChangeText);
+    onChangeTextRef.current = onChangeText;
+
+    // Internal display value — updates instantly on every keystroke so the
+    // TextInput feels responsive.  The parent only receives updates after the
+    // debounce delay.
+    const [displayValue, setDisplayValue] = React.useState(value);
     const [focused, setFocused] = React.useState(false);
 
+    // Track whether the latest displayValue change came from internal typing
+    // so we can skip the value-prop sync useEffect in that case.
+    const isInternalChange = React.useRef(false);
+
+    // Sync displayValue when the parent resets value externally (e.g. clear
+    // from outside, or navigating away and back). Skip when the change
+    // originated from the user typing inside this component.
+    React.useEffect(() => {
+        if (isInternalChange.current) {
+            isInternalChange.current = false;
+            return;
+        }
+        setDisplayValue(value);
+    }, [value]);
+
+    const handleChangeText = React.useCallback((text: string) => {
+        isInternalChange.current = true;
+        setDisplayValue(text);
+
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            onChangeTextRef.current(text);
+        }, DEBOUNCE_MS);
+    }, []);
+
+    const handleClear = React.useCallback(() => {
+        isInternalChange.current = true;
+        setDisplayValue('');
+        if (timerRef.current) clearTimeout(timerRef.current);
+        onChangeTextRef.current('');
+    }, []);
+
+    const handleFocus = React.useCallback(() => {
+        setFocused(true);
+        _shouldRestoreFocus = true;
+    }, []);
+
+    const handleBlur = React.useCallback(() => {
+        setFocused(false);
+        _shouldRestoreFocus = false;
+    }, []);
+
+    // Cleanup debounce timer on unmount
+    React.useEffect(() => {
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        };
+    }, []);
+
+    // Auto-restore focus when remounted (e.g. FlashList header re-mount).
+    // If the user was actively typing when the previous instance unmounted,
+    // the module-level flag tells us to refocus immediately.
+    React.useEffect(() => {
+        if (_shouldRestoreFocus) {
+            const raf = requestAnimationFrame(() => {
+                inputRef.current?.focus();
+            });
+            return () => cancelAnimationFrame(raf);
+        }
+    }, []);
+
     return (
-        <View style={styles.container}>
+        <View style={s.container}>
             {/* Search Input */}
-            <View style={[styles.inputWrapper, focused && styles.inputWrapperFocused]}>
-                <Svg width={20} height={20} viewBox="0 0 24 24" style={styles.searchIcon}>
+            <View style={[s.inputWrapper, focused && s.inputWrapperFocused]}>
+                <Svg width={20} height={20} viewBox="0 0 24 24" style={s.searchIcon}>
                     <Circle
                         cx="11"
                         cy="11"
@@ -62,18 +139,19 @@ export function SearchBar({
                     />
                 </Svg>
                 <TextInput
-                    style={styles.input}
+                    ref={inputRef}
+                    style={s.input}
                     placeholder={placeholder}
                     placeholderTextColor={colors.neutral[400]}
-                    value={value}
-                    onChangeText={onChangeText}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
+                    value={displayValue}
+                    onChangeText={handleChangeText}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     autoCorrect={false}
                     returnKeyType="search"
                 />
-                {value.length > 0 && (
-                    <Pressable onPress={() => onChangeText('')} style={styles.clearButton}>
+                {displayValue.length > 0 && (
+                    <Pressable onPress={handleClear} style={s.clearButton}>
                         <Svg width={18} height={18} viewBox="0 0 24 24">
                             <Circle cx="12" cy="12" r="10" fill={colors.neutral[300]} />
                             <Path
@@ -92,8 +170,8 @@ export function SearchBar({
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    style={styles.filtersContainer}
-                    contentContainerStyle={styles.filtersContent}
+                    style={s.filtersContainer}
+                    contentContainerStyle={s.filtersContent}
                 >
                     {filters.map((filter) => {
                         const isActive = activeFilter === filter.key;
@@ -102,8 +180,8 @@ export function SearchBar({
                                 key={filter.key}
                                 onPress={() => onFilterChange?.(filter.key)}
                                 style={[
-                                    styles.chip,
-                                    isActive && styles.chipActive,
+                                    s.chip,
+                                    isActive && s.chipActive,
                                 ]}
                             >
                                 <Text
@@ -113,7 +191,7 @@ export function SearchBar({
                                     {filter.label}
                                 </Text>
                                 {filter.count !== undefined && (
-                                    <View style={[styles.chipBadge, isActive && styles.chipBadgeActive]}>
+                                    <View style={[s.chipBadge, isActive && s.chipBadgeActive]}>
                                         <Text
                                             className={`font-inter text-[10px] font-bold ${isActive ? 'text-primary-600' : 'text-neutral-500 dark:text-neutral-400'
                                                 }`}

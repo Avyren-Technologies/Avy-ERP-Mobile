@@ -85,6 +85,17 @@ const TYPE_COLORS: Record<TransferType, { bg: string; text: string }> = {
 // ============ HELPERS ============
 
 // formatDate removed — use fmt.date() from useCompanyFormatter inside components
+function toDisplayText(value: unknown, fallback = ''): string {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (value && typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        const preferred = record.name ?? record.title ?? record.code ?? record.label;
+        if (typeof preferred === 'string') return preferred;
+        if (typeof preferred === 'number' || typeof preferred === 'boolean') return String(preferred);
+    }
+    return fallback;
+}
 
 // ============ ATOMS ============
 
@@ -398,38 +409,45 @@ export function TransferScreen() {
     const employeeOptions = React.useMemo(() => {
         const raw = (empResponse as any)?.data ?? empResponse ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.name || '' }));
+        return raw.map((item: any) => ({
+            id: item.id ?? '',
+            label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || toDisplayText(item.name),
+        }));
     }, [empResponse]);
 
     const departmentOptions = React.useMemo(() => {
         const raw = (deptResponse as any)?.data ?? deptResponse ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
+        return raw.map((item: any) => ({ id: item.id ?? '', label: toDisplayText(item.name) }));
     }, [deptResponse]);
 
     const designationOptions = React.useMemo(() => {
         const raw = (desigResponse as any)?.data ?? desigResponse ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
+        return raw.map((item: any) => ({ id: item.id ?? '', label: toDisplayText(item.name) }));
     }, [desigResponse]);
 
     const locationOptions = React.useMemo(() => {
         const raw = (locResponse as any)?.data ?? locResponse ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
+        return raw.map((item: any) => ({ id: item.id ?? '', label: toDisplayText(item.name) }));
     }, [locResponse]);
 
     const items: TransferItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', employeeId: item.employeeId ?? '', employeeName: item.employeeName ?? '',
-            fromDepartment: item.fromDepartment ?? '', toDepartment: item.toDepartment ?? '',
-            fromDesignation: item.fromDesignation ?? '', toDesignation: item.toDesignation ?? '',
-            fromLocation: item.fromLocation ?? '', toLocation: item.toLocation ?? '',
+            id: item.id ?? '', employeeId: item.employeeId ?? '', employeeName: toDisplayText(item.employeeName),
+            fromDepartment: toDisplayText(item.fromDepartment),
+            toDepartment: toDisplayText(item.toDepartment),
+            fromDesignation: toDisplayText(item.fromDesignation),
+            toDesignation: toDisplayText(item.toDesignation),
+            fromLocation: toDisplayText(item.fromLocation),
+            toLocation: toDisplayText(item.toLocation),
             toManagerId: item.toManagerId ?? '', toManagerName: item.toManagerName ?? '',
-            effectiveDate: item.effectiveDate ?? '', reason: item.reason ?? '',
-            transferType: item.transferType ?? 'Lateral', status: item.status ?? 'Requested',
+            effectiveDate: item.effectiveDate ?? '', reason: toDisplayText(item.reason),
+            transferType: (toDisplayText(item.transferType, 'Lateral') as TransferType),
+            status: (toDisplayText(item.status, 'Requested') as TransferStatus),
             createdAt: item.createdAt ?? '',
         }));
     }, [response]);

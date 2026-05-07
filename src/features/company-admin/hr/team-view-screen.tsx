@@ -63,6 +63,18 @@ interface TeamLeaveItem {
     days: number;
 }
 
+function toDisplayText(value: unknown, fallback = ''): string {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (value && typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        const preferred = record.name ?? record.title ?? record.code ?? record.label;
+        if (typeof preferred === 'string') return preferred;
+        if (typeof preferred === 'number' || typeof preferred === 'boolean') return String(preferred);
+    }
+    return fallback;
+}
+
 // ============ CONSTANTS ============
 
 const MEMBER_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -149,8 +161,8 @@ export function TeamViewScreen() {
         return raw.map((a: any) => ({
             id: a.id ?? '', 
             employeeName: a.employeeName ?? a.requesterName ?? a.employee?.name ?? 'Unknown',
-            type: a.type ?? a.entityType ?? 'Request', 
-            summary: a.summary ?? a.description ?? a.reason ?? '',
+            type: toDisplayText(a.type ?? a.entityType, 'Request'),
+            summary: toDisplayText(a.summary ?? a.description ?? a.reason),
             submittedDate: a.submittedDate ?? a.createdAt ?? '',
         }));
     }, [pendingApprovalsResponse, historyResponse, approvalTab]);

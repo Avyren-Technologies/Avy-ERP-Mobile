@@ -34,7 +34,6 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useAuthStore } from '@/features/auth/use-auth-store';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
     useApproveLeaveRequest,
@@ -175,16 +174,15 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 // ============ APPLY LEAVE MODAL ============
 
 function ApplyLeaveModal({
-    visible, onClose, onSave, isSaving, leaveTypeOptions, defaultEmployeeId,
+    visible, onClose, onSave, isSaving, leaveTypeOptions, employeeOptions,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     isSaving: boolean;
     leaveTypeOptions: { id: string; label: string }[];
-    defaultEmployeeId: string;
+    employeeOptions: { id: string; label: string }[];
 }) {
     const insets = useSafeAreaInsets();
-    const user = useAuthStore.use.user();
     const [employeeId, setEmployeeId] = React.useState('');
     const [leaveTypeId, setLeaveTypeId] = React.useState('');
     const [fromDate, setFromDate] = React.useState('');
@@ -195,18 +193,11 @@ function ApplyLeaveModal({
 
     React.useEffect(() => {
         if (visible) {
-            setEmployeeId(defaultEmployeeId || ''); 
+            setEmployeeId('');
             setLeaveTypeId(''); setFromDate(''); setToDate('');
             setHalfDay(false); setHalfDayType('First Half'); setReason('');
         }
-    }, [visible, defaultEmployeeId]);
-
-    // Ensure employeeId updates if the loading finished after modal opened
-    React.useEffect(() => {
-        if (defaultEmployeeId && !employeeId) {
-            setEmployeeId(defaultEmployeeId);
-        }
-    }, [defaultEmployeeId, employeeId]);
+    }, [visible]);
 
     const calcDays = React.useMemo(() => {
         if (!fromDate || !toDate) return 0;
@@ -257,14 +248,14 @@ function ApplyLeaveModal({
                 </View>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 60 }}>
-                        <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase">EMPLOYEE NAME</Text>
-                            <View style={[styles.inputWrap, { backgroundColor: colors.neutral[100] }]}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                                    {user?.firstName} {user?.lastName}
-                                </Text>
-                            </View>
-                        </View>
+                        <Dropdown
+                            label="EMPLOYEE NAME"
+                            value={employeeId}
+                            options={employeeOptions}
+                            onSelect={setEmployeeId}
+                            placeholder="SELECT EMPLOYEE"
+                            required
+                        />
                         
                         <Dropdown label="LEAVE TYPE" value={leaveTypeId} options={leaveTypeOptions} onSelect={setLeaveTypeId} placeholder="SELECT LEAVE TYPE" required />
                         
@@ -459,29 +450,12 @@ export function LeaveRequestScreen() {
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<'All' | RequestStatus>('All');
 
-    const user = useAuthStore.use.user();
-    
+
     const mapOptions = (resp: any) => {
         const raw = (resp as any)?.data ?? resp ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
     };
-
-    const currentEmployeeId = React.useMemo(() => {
-        const raw = (empResponse as any)?.data ?? empResponse ?? [];
-        if (!Array.isArray(raw)) return '';
-        // 1. Try match by email
-        let match = raw.find((e: any) => e.email?.toLowerCase() === user?.email?.toLowerCase());
-        // 2. Try match by name
-        if (!match) {
-            const userName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim().toLowerCase();
-            match = raw.find((e: any) => `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim().toLowerCase() === userName);
-        }
-        // 3. Last fallback: if only 1 person, use them
-        if (!match && raw.length === 1) match = raw[0];
-        
-        return match?.id || '';
-    }, [empResponse, user]);
 
     const leaveTypeOptions = React.useMemo(() => mapOptions(ltResponse), [ltResponse]);
     const employeeOptions = React.useMemo(() => {
@@ -650,7 +624,7 @@ export function LeaveRequestScreen() {
                 onSave={handleApplyLeave} 
                 isSaving={createMutation.isPending} 
                 leaveTypeOptions={leaveTypeOptions} 
-                defaultEmployeeId={currentEmployeeId}
+                employeeOptions={employeeOptions}
             />
             <RejectionNoteModal visible={rejectionModalVisible} onClose={() => setRejectionModalVisible(false)} onSubmit={handleRejectSubmit} isSubmitting={rejectMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />

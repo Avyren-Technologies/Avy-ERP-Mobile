@@ -37,7 +37,6 @@ import {
     useUpdateUserStatus,
 } from '@/features/company-admin/api/use-company-admin-mutations';
 import { useCompanyUsers, useRbacRoles } from '@/features/company-admin/api/use-company-admin-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -692,7 +691,6 @@ export function UserManagementScreen() {
             : activeFilter === 'inactive'
               ? 'inactive'
               : undefined;
-    const debouncedSearch = useDebounce(search.trim(), 400);
     const {
         data: response,
         isLoading,
@@ -700,7 +698,7 @@ export function UserManagementScreen() {
         refetch,
         isFetching,
     } = useCompanyUsers({
-        search: debouncedSearch || undefined,
+        search: search.trim() || undefined,
         status: statusParam,
     });
 

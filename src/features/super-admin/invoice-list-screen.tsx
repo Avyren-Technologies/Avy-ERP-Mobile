@@ -25,7 +25,6 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { useInvoiceList } from '@/features/super-admin/api/use-invoice-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import type { Invoice, InvoiceStatus, InvoiceType } from '@/lib/api/invoice';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -208,7 +207,6 @@ export function InvoiceListScreen() {
 
     const insets = useSafeAreaInsets();
     const [search, setSearch] = React.useState('');
-    const debouncedSearch = useDebounce(search.trim(), 400);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [typeFilter, setTypeFilter] = React.useState('all');
     const [page, setPage] = React.useState(1);
@@ -217,7 +215,7 @@ export function InvoiceListScreen() {
     const typeParam = typeFilter !== 'all' ? typeFilter : undefined;
 
     const { data: response, isLoading, error, refetch, isFetching } = useInvoiceList({
-        search: debouncedSearch || undefined,
+        search: search.trim() || undefined,
         status: statusParam,
         invoiceType: typeParam,
         page,

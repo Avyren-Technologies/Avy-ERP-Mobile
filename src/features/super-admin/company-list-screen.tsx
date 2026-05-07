@@ -31,7 +31,6 @@ import { MODULE_CATALOGUE, USER_TIERS } from './tenant-onboarding/constants';
 import type { UserTierKey } from './tenant-onboarding/types';
 
 import { useTenantList } from '@/features/super-admin/api/use-tenant-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -326,15 +325,15 @@ export function CompanyListScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [search, setSearch] = React.useState('');
-    const debouncedSearch = useDebounce(search.trim(), 400);
     const [activeFilter, setActiveFilter] = React.useState('all');
     const [page, setPage] = React.useState(1);
     const [allCompanies, setAllCompanies] = React.useState<CompanyItem[]>([]);
 
     const statusParam = activeFilter !== 'all' ? activeFilter : undefined;
+    const searchParam = search.trim() || undefined;
 
     const { data: response, isLoading, error, refetch, isFetching } = useTenantList({
-        search: debouncedSearch || undefined,
+        search: searchParam,
         status: statusParam,
         page,
         limit: 25,
@@ -348,7 +347,7 @@ export function CompanyListScreen() {
     }, [rawData]);
 
     // Accumulate companies across pages; reset when filters change
-    const filterKey = `${debouncedSearch ?? ''}|${statusParam ?? ''}`;
+    const filterKey = `${searchParam ?? ''}|${statusParam ?? ''}`;
     const prevFilterKey = React.useRef(filterKey);
 
     React.useEffect(() => {

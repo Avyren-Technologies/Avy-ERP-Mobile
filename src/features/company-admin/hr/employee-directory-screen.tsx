@@ -29,7 +29,6 @@ import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 import { useDeleteEmployee } from '@/features/company-admin/api/use-hr-mutations';
 import { useDepartments, useEmployees } from '@/features/company-admin/api/use-hr-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -294,7 +293,6 @@ export function EmployeeDirectoryScreen() {
     const { toggle } = useSidebar();
 
     const [search, setSearch] = React.useState('');
-    const debouncedSearch = useDebounce(search.trim(), 400);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [deptFilter, setDeptFilter] = React.useState('');
     const [page, setPage] = React.useState(1);
@@ -311,16 +309,16 @@ export function EmployeeDirectoryScreen() {
         return raw.map((d: any) => ({ id: d.id ?? '', name: d.name ?? '' }));
     }, [deptResponse]);
 
-    // Fetch employees
+    // Fetch employees (SearchBar debounces onChangeText internally)
     const queryParams = React.useMemo(
         () => ({
-            search: debouncedSearch || undefined,
+            search: search.trim() || undefined,
             status: statusFilter !== 'all' ? statusFilter : undefined,
             departmentId: deptFilter || undefined,
             page,
             limit: PAGE_SIZE,
         }),
-        [debouncedSearch, statusFilter, deptFilter, page],
+        [search, statusFilter, deptFilter, page],
     );
 
     const {

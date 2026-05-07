@@ -552,8 +552,8 @@ function EmployeeDetailSheet({
 
                         <ScrollView showsVerticalScrollIndicator={false}>
                             {/* Per leave type breakdown */}
-                            {employee.balances.map(b => (
-                                <View key={b.leaveTypeId}>
+                            {employee.balances.map((b, index) => (
+                                <View key={`${b.balanceRecordId ?? b.leaveTypeId ?? 'leave-balance'}-${index}`}>
                                     <View style={styles.detailCard}>
                                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                             <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" style={{ flex: 1 }}>{b.leaveTypeName}</Text>
@@ -680,14 +680,16 @@ function EmployeeDetailSheet({
             ) : null}
 
             {/* Encash sub-sheet */}
-            <EncashBalanceModal
-                visible={!!encashBalance}
-                onClose={() => setEncashBalance(null)}
-                employee={employee}
-                balance={encashBalance}
-                onEncash={handleEncash}
-                isSubmitting={encashMutation.isPending}
-            />
+            {encashBalance ? (
+                <EncashBalanceModal
+                    visible={!!encashBalance}
+                    onClose={() => setEncashBalance(null)}
+                    employee={employee}
+                    balance={encashBalance}
+                    onEncash={handleEncash}
+                    isSubmitting={encashMutation.isPending}
+                />
+            ) : null}
         </>
     );
 }
@@ -1604,50 +1606,59 @@ export function LeaveBalanceScreen() {
             <FAB icon="plus" onPress={() => setActionMenuVisible(true)} />
 
             {/* Action Menu */}
-            <ActionMenuSheet visible={actionMenuVisible} onClose={() => setActionMenuVisible(false)} onSelect={handleActionSelect} />
+            {actionMenuVisible && (
+                <ActionMenuSheet visible={actionMenuVisible} onClose={() => setActionMenuVisible(false)} onSelect={handleActionSelect} />
+            )}
 
-            {/* Adjust Balance Modal */}
-            <AdjustBalanceModal
-                visible={adjustVisible}
-                onClose={() => setAdjustVisible(false)}
-                employees={employees}
-                leaveTypeOptions={leaveTypeOptions}
-                onAdjust={handleAdjust}
-            />
+            {adjustVisible && (
+                <AdjustBalanceModal
+                    visible={adjustVisible}
+                    onClose={() => setAdjustVisible(false)}
+                    employees={employees}
+                    leaveTypeOptions={leaveTypeOptions}
+                    onAdjust={handleAdjust}
+                />
+            )}
 
-            {/* Initialize Balances Modal */}
-            <InitializeBalancesModal
-                visible={initializeVisible}
-                onClose={() => setInitializeVisible(false)}
-                employees={employees}
-                onInitialize={handleInitialize}
-                isSubmitting={initMutation.isPending}
-            />
+            {initializeVisible && (
+                <InitializeBalancesModal
+                    visible={initializeVisible}
+                    onClose={() => setInitializeVisible(false)}
+                    employees={employees}
+                    onInitialize={handleInitialize}
+                    isSubmitting={initMutation.isPending}
+                />
+            )}
 
-            {/* Run Accrual Modal */}
-            <RunAccrualModal
-                visible={accrualVisible}
-                onClose={() => setAccrualVisible(false)}
-                onRun={handleRunAccrual}
-                isSubmitting={accrualMutation.isPending}
-            />
+            {accrualVisible && (
+                <RunAccrualModal
+                    visible={accrualVisible}
+                    onClose={() => setAccrualVisible(false)}
+                    onRun={handleRunAccrual}
+                    isSubmitting={accrualMutation.isPending}
+                />
+            )}
 
-            {/* Carry Forward Modal */}
-            <CarryForwardModal
-                visible={carryForwardVisible}
-                onClose={() => setCarryForwardVisible(false)}
-                onRun={handleCarryForward}
-                isSubmitting={carryForwardMutation.isPending}
-            />
+            {carryForwardVisible && (
+                <CarryForwardModal
+                    visible={carryForwardVisible}
+                    onClose={() => setCarryForwardVisible(false)}
+                    onRun={handleCarryForward}
+                    isSubmitting={carryForwardMutation.isPending}
+                />
+            )}
 
-            {/* Import Balances Modal */}
-            <ImportBalancesModal
-                visible={importVisible}
-                onClose={() => setImportVisible(false)}
-            />
+            {importVisible && (
+                <ImportBalancesModal
+                    visible={importVisible}
+                    onClose={() => setImportVisible(false)}
+                />
+            )}
 
             {/* Employee Detail Sheet */}
-            <EmployeeDetailSheet visible={detailVisible} onClose={() => setDetailVisible(false)} employee={selectedEmployee} leaveTypeOptions={leaveTypeOptions} onAdjust={handleAdjust} />
+            {detailVisible && (
+                <EmployeeDetailSheet visible={detailVisible} onClose={() => setDetailVisible(false)} employee={selectedEmployee} leaveTypeOptions={leaveTypeOptions} onAdjust={handleAdjust} />
+            )}
 
             {/* Confirm Modal for accrual/carry-forward */}
             <ConfirmModal {...confirmModal.modalProps} />

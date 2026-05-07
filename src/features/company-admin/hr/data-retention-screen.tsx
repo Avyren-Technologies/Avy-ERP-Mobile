@@ -43,7 +43,6 @@ import {
     useRetentionCheckDue,
     useRetentionPolicies,
 } from '@/features/company-admin/api/use-retention-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -370,8 +369,7 @@ export function DataRetentionScreen() {
     const { data: policiesRes, isLoading: policiesLoading, refetch: refetchPolicies, isFetching: policiesFetching } = useRetentionPolicies();
     const { data: requestsRes, isLoading: requestsLoading, refetch: refetchRequests, isFetching: requestsFetching } = useDataRequests();
     const { data: dueRes, isLoading: dueLoading, refetch: refetchDue } = useRetentionCheckDue();
-    const debouncedConsentSearch = useDebounce(consentSearch.trim(), 400);
-    const { data: consentsRes, isLoading: consentsLoading, refetch: refetchConsents, isFetching: consentsFetching } = useConsents(debouncedConsentSearch ? { search: debouncedConsentSearch } as any : undefined);
+    const { data: consentsRes, isLoading: consentsLoading, refetch: refetchConsents, isFetching: consentsFetching } = useConsents(consentSearch.trim() ? { search: consentSearch.trim() } as any : undefined);
 
     const createPolicy = useCreateRetentionPolicy();
     const updatePolicy = useUpdateRetentionPolicy();

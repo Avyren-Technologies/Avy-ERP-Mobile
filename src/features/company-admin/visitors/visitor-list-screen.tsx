@@ -21,7 +21,6 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useVisits } from '@/features/company-admin/api/use-visitor-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { VisitStatusBadge } from '@/features/company-admin/visitors/components/visit-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -135,15 +134,14 @@ export function VisitorListScreen() {
   const fmt = useCompanyFormatter();
 
   const [search, setSearch] = React.useState('');
-  const debouncedSearch = useDebounce(search.trim(), 400);
   const [statusFilter, setStatusFilter] = React.useState('');
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (debouncedSearch) p.search = debouncedSearch;
+    if (search.trim()) p.search = search.trim();
     if (statusFilter) p.status = statusFilter;
     return p;
-  }, [debouncedSearch, statusFilter]);
+  }, [search, statusFilter]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useVisits(queryParams);
 

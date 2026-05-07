@@ -27,7 +27,6 @@ import { showSuccess } from '@/components/ui/utils';
 
 import { useCreateWatchlistEntry } from '@/features/company-admin/api/use-visitor-mutations';
 import { useWatchlist } from '@/features/company-admin/api/use-visitor-queries';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -199,16 +198,15 @@ export function WatchlistScreen() {
   const { toggle } = useSidebar();
 
   const [search, setSearch] = React.useState('');
-  const debouncedSearch = useDebounce(search.trim(), 400);
   const [activeTab, setActiveTab] = React.useState<'' | 'BLOCKLIST' | 'WATCHLIST'>('');
   const [showAddModal, setShowAddModal] = React.useState(false);
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
-    if (debouncedSearch) p.search = debouncedSearch;
+    if (search.trim()) p.search = search.trim();
     if (activeTab) p.type = activeTab;
     return p;
-  }, [debouncedSearch, activeTab]);
+  }, [search, activeTab]);
 
   const { data: response, isLoading, error, refetch, isFetching } = useWatchlist(queryParams);
   const createMutation = useCreateWatchlistEntry();

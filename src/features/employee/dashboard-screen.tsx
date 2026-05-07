@@ -2611,6 +2611,7 @@ const _createStyles = (isDark: boolean) => StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 10,
+        marginTop: 10,
         gap: 8,
     },
     tickerIconWrap: {

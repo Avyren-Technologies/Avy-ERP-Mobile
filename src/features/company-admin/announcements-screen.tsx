@@ -107,7 +107,7 @@ function AnnouncementCard({ item, index }: { item: DashboardAnnouncement; index:
                 {typeof item.imageUrl === 'string' && item.imageUrl.startsWith('http') && (
                     <Image
                         source={{ uri: item.imageUrl }}
-                        style={{ width: '100%', height: 140, borderRadius: 10, marginTop: 10 }}
+                        style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 10, marginTop: 10 }}
                         resizeMode="cover"
                     />
                 )}

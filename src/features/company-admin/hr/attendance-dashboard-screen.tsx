@@ -39,22 +39,37 @@ interface SummaryItem {
     icon: string;
 }
 
+interface AttendanceHalf {
+    id: string;
+    half: 'FIRST_HALF' | 'SECOND_HALF';
+    status: string;
+    leaveType?: { id: string; name: string; code?: string } | null;
+}
+
 interface AttendanceRecord {
     id: string;
     employeeName: string;
     employeeCode: string;
     department: string;
     departmentId: string;
+    designation: string;
     punchIn: string;
     punchOut: string;
     workedHours: number;
     status: string;
     isLate: boolean;
     lateMinutes: number | null;
+    isEarlyExit: boolean;
+    earlyMinutes: number | null;
+    overtimeHours: number | null;
     shiftName: string;
     shiftTime: string;
     finalStatusReason: string;
     source: string;
+    halves: AttendanceHalf[];
+    location?: string;
+    isRegularized?: boolean;
+    appliedBreakDeductionMinutes?: number;
 }
 
 interface DepartmentBreakdown {
@@ -203,60 +218,288 @@ function DepartmentFilter({
     );
 }
 
+// ============ SOURCE LABELS ============
+
+const SOURCE_LABELS: Record<string, string> = {
+    MOBILE_GPS: 'Mobile',
+    WEB: 'Web',
+    BIOMETRIC: 'Biometric',
+    MANUAL: 'Manual',
+    SYSTEM: 'System',
+    HR_BOOK: 'HR Book',
+    WEB_PORTAL: 'Web Portal',
+    FACE_RECOGNITION: 'Face ID',
+    IOT: 'IoT',
+    SMART_CARD: 'Smart Card',
+};
+
 // ============ ATTENDANCE RECORD CARD ============
 
-function RecordCard({ item, index }: { item: AttendanceRecord; index: number }) {
+function RecordCard({ item, index, onPress }: { item: AttendanceRecord; index: number; onPress: (r: AttendanceRecord) => void }) {
     const fmt = useCompanyFormatter();
     const formatTime = (time: string) => !time ? '--:--' : fmt.time(time);
     const initials = getInitials(item.employeeName);
     const hrs = typeof item.workedHours === 'number' && Number.isFinite(item.workedHours) ? item.workedHours
         : typeof item.workedHours === 'string' ? parseFloat(item.workedHours) || 0 : 0;
+    const otHrs = item.overtimeHours != null && item.overtimeHours > 0 ? item.overtimeHours : null;
+
+    const firstHalf = item.halves?.find(h => h.half === 'FIRST_HALF');
+    const secondHalf = item.halves?.find(h => h.half === 'SECOND_HALF');
+
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 40)}>
-            <View style={styles.card}>
-                <View style={styles.cardRow}>
-                    <View style={styles.avatar}>
-                        <Text className="font-inter text-xs font-bold text-primary-600">{initials}</Text>
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
-                            {item.isLate && <LateBadge />}
+            <Pressable onPress={() => onPress(item)}>
+                <View style={styles.card}>
+                    <View style={styles.cardRow}>
+                        <View style={styles.avatar}>
+                            <Text className="font-inter text-xs font-bold text-primary-600">{initials}</Text>
                         </View>
-                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
-                            {item.employeeCode}{item.department ? ` \u2022 ${item.department}` : ''}
-                        </Text>
-                        {item.shiftName ? (
-                            <Text className="font-inter text-[10px] text-neutral-400" numberOfLines={1}>
-                                {item.shiftName} ({item.shiftTime})
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.employeeName}</Text>
+                                {item.isLate && <LateBadge />}
+                            </View>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                                {item.employeeCode}{item.department ? ` \u2022 ${item.department}` : ''}
                             </Text>
-                        ) : null}
-                    </View>
-                    <StatusBadge status={item.status} />
-                </View>
-                <View style={styles.cardMeta}>
-                    <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">In: {formatTime(item.punchIn)}</Text>
-                    </View>
-                    <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Out: {formatTime(item.punchOut)}</Text>
-                    </View>
-                    <View style={styles.metaChip}>
-                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{hrs > 0 ? `${hrs.toFixed(1)} hrs` : '--'}</Text>
-                    </View>
-                    {item.isLate && item.lateMinutes ? (
-                        <View style={[styles.metaChip, { backgroundColor: colors.warning[50] }]}>
-                            <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.warning[700] }}>Late {item.lateMinutes}m</Text>
+                            {item.shiftName ? (
+                                <Text className="font-inter text-[10px] text-neutral-400" numberOfLines={1}>
+                                    {item.shiftName} ({item.shiftTime})
+                                </Text>
+                            ) : null}
                         </View>
+                        <StatusBadge status={item.status} />
+                    </View>
+
+                    {/* Half-day statuses */}
+                    {(firstHalf || secondHalf) && (
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.neutral[100] }}>
+                            {firstHalf && (
+                                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Text className="font-inter text-[9px] font-bold text-neutral-400">1st:</Text>
+                                    <StatusBadge status={firstHalf.status} />
+                                    {firstHalf.leaveType?.name ? (
+                                        <Text className="font-inter text-[8px] text-primary-500" numberOfLines={1}>{firstHalf.leaveType.name}</Text>
+                                    ) : null}
+                                </View>
+                            )}
+                            {secondHalf && (
+                                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Text className="font-inter text-[9px] font-bold text-neutral-400">2nd:</Text>
+                                    <StatusBadge status={secondHalf.status} />
+                                    {secondHalf.leaveType?.name ? (
+                                        <Text className="font-inter text-[8px] text-primary-500" numberOfLines={1}>{secondHalf.leaveType.name}</Text>
+                                    ) : null}
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                    <View style={styles.cardMeta}>
+                        <View style={styles.metaChip}>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">In: {formatTime(item.punchIn)}</Text>
+                        </View>
+                        <View style={styles.metaChip}>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Out: {formatTime(item.punchOut)}</Text>
+                        </View>
+                        <View style={styles.metaChip}>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{hrs > 0 ? `${hrs.toFixed(1)} hrs` : '--'}</Text>
+                        </View>
+                        {item.isLate && item.lateMinutes ? (
+                            <View style={[styles.metaChip, { backgroundColor: colors.warning[50] }]}>
+                                <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.warning[700] }}>Late {item.lateMinutes}m</Text>
+                            </View>
+                        ) : null}
+                        {item.isEarlyExit && item.earlyMinutes ? (
+                            <View style={[styles.metaChip, { backgroundColor: colors.danger[50] }]}>
+                                <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.danger[700] }}>Early -{item.earlyMinutes}m</Text>
+                            </View>
+                        ) : null}
+                        {otHrs != null && (
+                            <View style={[styles.metaChip, { backgroundColor: colors.success[50] }]}>
+                                <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.success[700] }}>OT {otHrs.toFixed(1)}h</Text>
+                            </View>
+                        )}
+                    </View>
+                    {item.finalStatusReason ? (
+                        <Text className="font-inter text-[9px] text-neutral-400" numberOfLines={1} style={{ marginTop: 4, paddingHorizontal: 2 }}>
+                            {item.finalStatusReason}
+                        </Text>
                     ) : null}
                 </View>
-                {item.finalStatusReason ? (
-                    <Text className="font-inter text-[9px] text-neutral-400" numberOfLines={1} style={{ marginTop: 4, paddingHorizontal: 2 }}>
-                        {item.finalStatusReason}
-                    </Text>
-                ) : null}
-            </View>
+            </Pressable>
         </Animated.View>
+    );
+}
+
+// ============ RECORD DETAIL MODAL ============
+
+function RecordDetailModal({
+    record,
+    onClose,
+}: {
+    record: AttendanceRecord;
+    onClose: () => void;
+}) {
+    const fmt = useCompanyFormatter();
+    const isDark = useIsDark();
+    const formatTime = (time: string) => (!time ? '—' : fmt.timeWithSeconds(time));
+    const hrs = typeof record.workedHours === 'number' && Number.isFinite(record.workedHours) ? record.workedHours : 0;
+    const firstHalf = record.halves?.find(h => h.half === 'FIRST_HALF');
+    const secondHalf = record.halves?.find(h => h.half === 'SECOND_HALF');
+    const otHrs = record.overtimeHours != null && record.overtimeHours > 0 ? record.overtimeHours : null;
+
+    return (
+        <Pressable
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}
+            onPress={onClose}
+        >
+            <Pressable
+                onPress={(e) => e.stopPropagation()}
+                style={{
+                    width: '90%', maxHeight: '80%', backgroundColor: isDark ? '#1A1730' : colors.white,
+                    borderRadius: 24, overflow: 'hidden',
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 24, elevation: 10,
+                }}
+            >
+                <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+                    {/* Header */}
+                    <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }}>
+                        <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white">{record.employeeName}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                            {record.employeeCode}{record.department ? ` · ${record.department}` : ''}{record.designation ? ` · ${record.designation}` : ''}
+                        </Text>
+                    </View>
+
+                    <View style={{ padding: 20, gap: 16 }}>
+                        {/* Status + Regularized */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <StatusBadge status={record.status} />
+                            {record.isRegularized && (
+                                <View style={[styles.statusBadge, { backgroundColor: colors.success[50] }]}>
+                                    <Text className="font-inter text-[9px] font-bold text-success-700">REGULARIZED</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Half-Day Details */}
+                        {(firstHalf || secondHalf) && (
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                {firstHalf && (
+                                    <View style={{ flex: 1, backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                        <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">1st Half</Text>
+                                        <StatusBadge status={firstHalf.status} />
+                                        {firstHalf.leaveType?.name ? (
+                                            <Text className="font-inter text-[10px] text-primary-500 mt-1 font-semibold">{firstHalf.leaveType.name}</Text>
+                                        ) : null}
+                                    </View>
+                                )}
+                                {secondHalf && (
+                                    <View style={{ flex: 1, backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                        <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">2nd Half</Text>
+                                        <StatusBadge status={secondHalf.status} />
+                                        {secondHalf.leaveType?.name ? (
+                                            <Text className="font-inter text-[10px] text-primary-500 mt-1 font-semibold">{secondHalf.leaveType.name}</Text>
+                                        ) : null}
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Punch Times Grid */}
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                            <View style={{ flex: 1, minWidth: '45%', backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Punch In</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{formatTime(record.punchIn)}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: '45%', backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Punch Out</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{formatTime(record.punchOut)}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: '45%', backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Worked Hours</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{hrs > 0 ? `${hrs.toFixed(1)} hrs` : '—'}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: '45%', backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Source</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{SOURCE_LABELS[record.source] ?? record.source ?? '—'}</Text>
+                            </View>
+                        </View>
+
+                        {/* Shift */}
+                        {record.shiftName ? (
+                            <View style={{ backgroundColor: isDark ? colors.primary[900] + '20' : colors.primary[50], borderRadius: 14, padding: 12, borderWidth: 1, borderColor: isDark ? colors.primary[800] + '30' : colors.primary[100] }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-primary-500 mb-1">Shift</Text>
+                                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{record.shiftName} <Text className="font-inter text-xs text-neutral-400">{record.shiftTime}</Text></Text>
+                            </View>
+                        ) : null}
+
+                        {/* Late / Early Exit / OT */}
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <View style={{ flex: 1, backgroundColor: record.isLate ? colors.warning[50] : (isDark ? '#13112B' : colors.neutral[50]), borderRadius: 14, padding: 12, borderWidth: record.isLate ? 1 : 0, borderColor: colors.warning[200] }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Late</Text>
+                                <Text className={`font-inter text-sm font-bold ${record.isLate ? 'text-warning-700' : 'text-success-600'}`}>
+                                    {record.isLate ? `${record.lateMinutes} min` : 'On Time'}
+                                </Text>
+                            </View>
+                            <View style={{ flex: 1, backgroundColor: record.isEarlyExit ? colors.danger[50] : (isDark ? '#13112B' : colors.neutral[50]), borderRadius: 14, padding: 12, borderWidth: record.isEarlyExit ? 1 : 0, borderColor: colors.danger[200] }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Early Exit</Text>
+                                <Text className={`font-inter text-sm font-bold ${record.isEarlyExit ? 'text-danger-700' : 'text-neutral-400'}`}>
+                                    {record.isEarlyExit ? `${record.earlyMinutes} min` : '—'}
+                                </Text>
+                            </View>
+                            <View style={{ flex: 1, backgroundColor: otHrs != null ? colors.success[50] : (isDark ? '#13112B' : colors.neutral[50]), borderRadius: 14, padding: 12, borderWidth: otHrs != null ? 1 : 0, borderColor: colors.success[200] }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">OT</Text>
+                                <Text className={`font-inter text-sm font-bold ${otHrs != null ? 'text-success-700' : 'text-neutral-400'}`}>
+                                    {otHrs != null ? `${otHrs.toFixed(1)} hrs` : '—'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Location */}
+                        {record.location ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Svg width={13} height={13} viewBox="0 0 24 24">
+                                    <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" />
+                                    <Path d="M12 13a3 3 0 100-6 3 3 0 000 6z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" />
+                                </Svg>
+                                <Text className="font-inter text-xs font-semibold text-neutral-500 dark:text-neutral-400">{record.location}</Text>
+                            </View>
+                        ) : null}
+
+                        {/* Break Deduction */}
+                        {record.appliedBreakDeductionMinutes != null && record.appliedBreakDeductionMinutes > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Break Deduction</Text>
+                                <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">{record.appliedBreakDeductionMinutes} min</Text>
+                            </View>
+                        )}
+
+                        {/* Status Reason */}
+                        {record.finalStatusReason ? (
+                            <View style={{ backgroundColor: isDark ? '#13112B' : colors.neutral[50], borderRadius: 14, padding: 12 }}>
+                                <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Status Reason</Text>
+                                <Text className="font-inter text-sm text-neutral-700 dark:text-neutral-300">{record.finalStatusReason}</Text>
+                            </View>
+                        ) : null}
+                    </View>
+
+                    {/* Close Button */}
+                    <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100] }}>
+                        <Pressable
+                            onPress={onClose}
+                            style={{
+                                paddingVertical: 12, borderRadius: 14, borderWidth: 1,
+                                borderColor: isDark ? colors.neutral[600] : colors.neutral[200],
+                                alignItems: 'center',
+                            }}
+                        >
+                            <Text className="font-inter text-sm font-bold text-neutral-700 dark:text-neutral-300">Close</Text>
+                        </Pressable>
+                    </View>
+                </ScrollView>
+            </Pressable>
+        </Pressable>
     );
 }
 
@@ -407,6 +650,7 @@ export function AttendanceDashboardScreen() {
     const { toggle } = useSidebar();
     const fmt = useCompanyFormatter();
     const [activeTab, setActiveTab] = React.useState<'daily' | 'weekly'>('daily');
+    const [detailRecord, setDetailRecord] = React.useState<AttendanceRecord | null>(null);
 
     // ── Daily tab state ──
     const [selectedDate, setSelectedDate] = React.useState(new Date());
@@ -466,16 +710,29 @@ export function AttendanceDashboardScreen() {
                 employeeCode: r.employeeCode ?? emp.employeeId ?? '',
                 department: r.department ?? emp.department?.name ?? '',
                 departmentId: r.departmentId ?? emp.department?.id ?? '',
+                designation: r.designation ?? emp.designation?.name ?? '',
                 punchIn: r.punchIn ?? '',
                 punchOut: r.punchOut ?? '',
                 workedHours: r.workedHours ?? 0,
                 status: r.status ?? 'PRESENT',
                 isLate: r.isLate ?? false,
                 lateMinutes: r.lateMinutes ?? null,
+                isEarlyExit: r.isEarlyExit ?? false,
+                earlyMinutes: r.earlyMinutes ?? null,
+                overtimeHours: r.overtimeHours != null ? Number(r.overtimeHours) : null,
                 shiftName: r.shift?.name ?? '',
                 shiftTime: r.shift ? `${r.shift.startTime} – ${r.shift.endTime}` : '',
                 finalStatusReason: r.finalStatusReason ?? '',
                 source: r.source ?? '',
+                halves: Array.isArray(r.halves) ? r.halves.map((h: any) => ({
+                    id: h.id ?? '',
+                    half: h.half,
+                    status: h.status,
+                    leaveType: h.leaveType ?? null,
+                })) : [],
+                location: r.location?.name ?? '',
+                isRegularized: r.isRegularized ?? false,
+                appliedBreakDeductionMinutes: r.appliedBreakDeductionMinutes ?? 0,
             };
         });
     }, [recordsResponse]);
@@ -579,7 +836,7 @@ export function AttendanceDashboardScreen() {
     }, [weekStart]);
 
     const renderItem = ({ item, index }: { item: AttendanceRecord; index: number }) => (
-        <RecordCard item={item} index={index} />
+        <RecordCard item={item} index={index} onPress={setDetailRecord} />
     );
 
     const renderHeader = () => (
@@ -772,6 +1029,11 @@ export function AttendanceDashboardScreen() {
                         </View>
                     )}
                 </>
+            )}
+
+            {/* Detail Modal */}
+            {detailRecord && (
+                <RecordDetailModal record={detailRecord} onClose={() => setDetailRecord(null)} />
             )}
         </View>
     );

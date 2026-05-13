@@ -1,7 +1,7 @@
 import type {BottomSheetBackdropProps} from '@gorhom/bottom-sheet';
 import BottomSheet, {
   BottomSheetBackdrop,
-  
+
   BottomSheetScrollView
 } from '@gorhom/bottom-sheet';
 import { X } from 'lucide-react-native';
@@ -19,11 +19,17 @@ interface FilterOption {
 }
 
 interface AnalyticsFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  month?: string;
+  year?: string;
   departmentId?: string;
   locationId?: string;
   gradeId?: string;
   employeeTypeId?: string;
-  dateRange?: string;
+  shiftId?: string;
+  designationId?: string;
+  dateRange?: string; // Keep for UI convenience, but convert to dateFrom/dateTo
   [key: string]: string | undefined;
 }
 
@@ -36,6 +42,8 @@ interface FilterBottomSheetProps {
   locations?: FilterOption[];
   grades?: FilterOption[];
   employeeTypes?: FilterOption[];
+  shifts?: FilterOption[];
+  designations?: FilterOption[];
 }
 
 function FilterSection({
@@ -110,6 +118,86 @@ const DATE_RANGE_OPTIONS: FilterOption[] = [
   { label: 'This year', value: 'this_year' },
 ];
 
+const MONTH_OPTIONS: FilterOption[] = [
+  { label: 'January', value: '1' },
+  { label: 'February', value: '2' },
+  { label: 'March', value: '3' },
+  { label: 'April', value: '4' },
+  { label: 'May', value: '5' },
+  { label: 'June', value: '6' },
+  { label: 'July', value: '7' },
+  { label: 'August', value: '8' },
+  { label: 'September', value: '9' },
+  { label: 'October', value: '10' },
+  { label: 'November', value: '11' },
+  { label: 'December', value: '12' },
+];
+
+const currentYear = new Date().getFullYear();
+const YEAR_OPTIONS: FilterOption[] = Array.from({ length: 3 }, (_, i) => {
+  const y = String(currentYear - 2 + i);
+  return { value: y, label: y };
+});
+
+/**
+ * Converts a dateRange preset OR month+year selection into dateFrom/dateTo
+ * ISO date strings suitable for backend API parameters.
+ *
+ * Priority: month+year takes precedence over dateRange preset.
+ */
+export function resolveDateRange(
+  dateRange?: string,
+  month?: string,
+  year?: string,
+): { dateFrom?: string; dateTo?: string } {
+  if (month && year) {
+    const m = parseInt(month, 10);
+    const y = parseInt(year, 10);
+    const first = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const last = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    return { dateFrom: first, dateTo: last };
+  }
+  if (!dateRange) return {};
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  switch (dateRange) {
+    case '7d': {
+      const d = new Date(now); d.setDate(d.getDate() - 7);
+      return { dateFrom: d.toISOString().slice(0, 10), dateTo: today };
+    }
+    case '30d': {
+      const d = new Date(now); d.setDate(d.getDate() - 30);
+      return { dateFrom: d.toISOString().slice(0, 10), dateTo: today };
+    }
+    case '90d': {
+      const d = new Date(now); d.setDate(d.getDate() - 90);
+      return { dateFrom: d.toISOString().slice(0, 10), dateTo: today };
+    }
+    case 'this_month': {
+      const first = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      return { dateFrom: first, dateTo: today };
+    }
+    case 'last_month': {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+      return {
+        dateFrom: lastMonth.toISOString().slice(0, 10),
+        dateTo: lastDay.toISOString().slice(0, 10),
+      };
+    }
+    case 'this_quarter': {
+      const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      return { dateFrom: qStart.toISOString().slice(0, 10), dateTo: today };
+    }
+    case 'this_year': {
+      return { dateFrom: `${now.getFullYear()}-01-01`, dateTo: today };
+    }
+    default:
+      return {};
+  }
+}
+
 export function FilterBottomSheet({
   visible,
   onClose,
@@ -119,6 +207,8 @@ export function FilterBottomSheet({
   locations = [],
   grades = [],
   employeeTypes = [],
+  shifts = [],
+  designations = [],
 }: FilterBottomSheetProps) {
   const isDark = useIsDark();
   const styles = createStyles(isDark);
@@ -195,6 +285,38 @@ export function FilterBottomSheet({
           selectedValue={filters.dateRange}
           onSelect={(v) => handleFilterChange('dateRange', v)}
         />
+
+        <FilterSection
+          title="Month"
+          options={MONTH_OPTIONS}
+          selectedValue={filters.month}
+          onSelect={(v) => handleFilterChange('month', v)}
+        />
+
+        <FilterSection
+          title="Year"
+          options={YEAR_OPTIONS}
+          selectedValue={filters.year}
+          onSelect={(v) => handleFilterChange('year', v)}
+        />
+
+        {shifts.length > 0 && (
+          <FilterSection
+            title="Shift"
+            options={shifts}
+            selectedValue={filters.shiftId}
+            onSelect={(v) => handleFilterChange('shiftId', v)}
+          />
+        )}
+
+        {designations.length > 0 && (
+          <FilterSection
+            title="Designation"
+            options={designations}
+            selectedValue={filters.designationId}
+            onSelect={(v) => handleFilterChange('designationId', v)}
+          />
+        )}
 
         {departments.length > 0 && (
           <FilterSection

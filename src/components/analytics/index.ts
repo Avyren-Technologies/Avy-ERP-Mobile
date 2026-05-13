@@ -3,7 +3,7 @@ export { DashboardShell } from './DashboardShell';
 export { type Distribution, DistributionChart, type DistributionItem } from './DistributionChart';
 export { type DrilldownColumn, DrilldownList } from './DrilldownList';
 export { ExportButton, type ExportFormat } from './ExportButton';
-export { FilterBottomSheet } from './FilterBottomSheet';
+export { FilterBottomSheet, resolveDateRange } from './FilterBottomSheet';
 export { type FunnelChartProps, FunnelChart, type FunnelStage } from './FunnelChart';
 export { type HeatmapCell, HeatmapChart, type HeatmapChartProps } from './HeatmapChart';
 export { type Insight, InsightsPanel } from './InsightsPanel';

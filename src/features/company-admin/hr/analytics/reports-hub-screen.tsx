@@ -31,7 +31,7 @@ import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FilterBottomSheet } from '@/components/analytics';
+import { FilterBottomSheet, resolveDateRange } from '@/components/analytics';
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
 import { showError, showErrorMessage, showSuccess } from '@/components/ui/utils';
@@ -40,6 +40,16 @@ import {
   useReportCatalog,
   useReportHistory,
 } from '@/features/company-admin/api/use-analytics-queries';
+import {
+  useCompanyLocations,
+  useCompanyShifts,
+} from '@/features/company-admin/api/use-company-admin-queries';
+import {
+  useDepartments,
+  useDesignations,
+  useEmployeeTypes,
+  useGrades,
+} from '@/features/company-admin/api/use-hr-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { analyticsApi } from '@/lib/api/analytics';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -378,6 +388,50 @@ export function ReportsHubScreen() {
   } = useReportHistory({ page: historyPage, limit: 20 });
   const { data: rateLimitRes, refetch: refetchRateLimit } = useRateLimit();
 
+  // --- Filter option queries ---
+  const { data: departmentsRes } = useDepartments({ limit: 200 });
+  const { data: locationsRes } = useCompanyLocations();
+  const { data: gradesRes } = useGrades({ limit: 200 });
+  const { data: employeeTypesRes } = useEmployeeTypes({ limit: 200 });
+  const { data: shiftsRes } = useCompanyShifts();
+  const { data: designationsRes } = useDesignations({ limit: 200 });
+
+  const departmentOptions = useMemo(() => {
+    const raw = (departmentsRes as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((d: any) => ({ label: d.name ?? '', value: d.id ?? '' }));
+  }, [departmentsRes]);
+
+  const locationOptions = useMemo(() => {
+    const raw = (locationsRes as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((l: any) => ({ label: l.name ?? '', value: l.id ?? '' }));
+  }, [locationsRes]);
+
+  const gradeOptions = useMemo(() => {
+    const raw = (gradesRes as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((g: any) => ({ label: g.name ?? '', value: g.id ?? '' }));
+  }, [gradesRes]);
+
+  const employeeTypeOptions = useMemo(() => {
+    const raw = (employeeTypesRes as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((e: any) => ({ label: e.name ?? '', value: e.id ?? '' }));
+  }, [employeeTypesRes]);
+
+  const shiftOptions = useMemo(() => {
+    const raw = (shiftsRes as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((s: any) => ({ label: s.name ?? '', value: s.id ?? '' }));
+  }, [shiftsRes]);
+
+  const designationOptions = useMemo(() => {
+    const raw = (designationsRes as any)?.data ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((d: any) => ({ label: d.name ?? '', value: d.id ?? '' }));
+  }, [designationsRes]);
+
   const catalogCategories = useMemo(() => {
     const rawData = catalogRes?.data;
     if (!rawData || typeof rawData !== 'object') return [];
@@ -411,8 +465,17 @@ export function ReportsHubScreen() {
       try {
         const cleanFilters: Record<string, string> = {};
         for (const [k, v] of Object.entries(filters)) {
-          if (v) cleanFilters[k] = v;
+          // Exclude dateRange (UI-only preset) and raw month/year — we resolve them below
+          if (v && k !== 'dateRange' && k !== 'month' && k !== 'year') cleanFilters[k] = v;
         }
+        // Convert dateRange preset OR month+year selection into dateFrom/dateTo
+        const resolvedDates = resolveDateRange(filters.dateRange, filters.month, filters.year);
+        if (resolvedDates.dateFrom) cleanFilters.dateFrom = resolvedDates.dateFrom;
+        if (resolvedDates.dateTo) cleanFilters.dateTo = resolvedDates.dateTo;
+        // Pass month/year separately as well if explicitly selected (some reports use them directly)
+        if (filters.month) cleanFilters.month = filters.month;
+        if (filters.year) cleanFilters.year = filters.year;
+
         const response = await analyticsApi.exportReport(reportType, {
           ...cleanFilters,
           format: 'excel',
@@ -603,6 +666,12 @@ export function ReportsHubScreen() {
         onClose={() => setFilterVisible(false)}
         filters={filters}
         onChange={setFilters}
+        departments={departmentOptions}
+        locations={locationOptions}
+        grades={gradeOptions}
+        employeeTypes={employeeTypeOptions}
+        shifts={shiftOptions}
+        designations={designationOptions}
       />
     </View>
   );

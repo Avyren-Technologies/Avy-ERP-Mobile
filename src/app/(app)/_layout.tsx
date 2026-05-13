@@ -784,6 +784,8 @@ function TabLayoutInner() {
                     />
                     <Tabs.Screen name="tenant/module-assignment" options={{ href: null }} />
                     <Tabs.Screen name="company" options={{ href: null }} />
+                    <Tabs.Screen name="masters" options={{ href: null }} />
+                    <Tabs.Screen name="production" options={{ href: null }} />
                 </Tabs>
 
                 {/* Sidebar renders above everything */}

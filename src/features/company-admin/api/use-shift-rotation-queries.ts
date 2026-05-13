@@ -9,15 +9,13 @@ import {
 
 export const shiftRotationKeys = {
   all: ['shift-rotation'] as const,
-
-  // Schedules
   schedules: (params?: ShiftScheduleListParams) =>
     [...shiftRotationKeys.all, 'schedules', params] as const,
   schedule: (id: string) =>
     [...shiftRotationKeys.all, 'schedule', id] as const,
+  employeeOverview: (search?: string) =>
+    [...shiftRotationKeys.all, 'employee-overview', search] as const,
 };
-
-// --- Schedule Queries ---
 
 /** List shift rotation schedules */
 export function useShiftSchedules(params?: ShiftScheduleListParams) {
@@ -33,5 +31,13 @@ export function useShiftSchedule(id: string) {
     queryKey: shiftRotationKeys.schedule(id),
     queryFn: () => shiftRotationApi.getSchedule(id),
     enabled: !!id,
+  });
+}
+
+/** Employee rotation overview — all employees with assignment status */
+export function useRotationEmployeeOverview(search?: string) {
+  return useQuery({
+    queryKey: shiftRotationKeys.employeeOverview(search),
+    queryFn: () => shiftRotationApi.getEmployeeOverview(search ? { search } : undefined),
   });
 }

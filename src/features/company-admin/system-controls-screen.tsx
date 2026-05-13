@@ -42,6 +42,7 @@ const DEFAULTS: SystemControls = {
     trainingEnabled: false,
     mobileAppEnabled: true,
     aiChatbotEnabled: false,
+    productionIncentivePlanEnabled: false,
     ncEditMode: false,
     loadUnload: false,
     cycleTime: false,
@@ -210,6 +211,7 @@ export function SystemControlsScreen() {
 
                     {/* Section 2: Production (3 toggles) */}
                     <SectionCard title="Production" sectionDescription="Control production-related features like non-conformance editing, machine tracking, and cycle time recording.">
+                        <ToggleRow label="Production Incentive Plan" subtitle="Enable PIP module — slab-based incentive calculation, daily entry, reports, and payroll merge" value={controls.productionIncentivePlanEnabled} onToggle={(v) => updateField('productionIncentivePlanEnabled', v)} />
                         <ToggleRow label="NC Edit Mode" subtitle="Allow editing non-conformance records" value={controls.ncEditMode} onToggle={(v) => updateField('ncEditMode', v)} />
                         <ToggleRow label="Load / Unload Tracking" subtitle="Track machine loading and unloading events" value={controls.loadUnload} onToggle={(v) => updateField('loadUnload', v)} />
                         <ToggleRow label="Cycle Time Capture" subtitle="Record cycle times for production runs" value={controls.cycleTime} onToggle={(v) => updateField('cycleTime', v)} />

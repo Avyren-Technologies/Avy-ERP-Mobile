@@ -4,8 +4,6 @@ import { showError } from '@/components/ui/utils';
 import { shiftRotationApi } from '@/lib/api/shift-rotation';
 import { shiftRotationKeys } from '@/features/company-admin/api/use-shift-rotation-queries';
 
-// ── Schedules ────────────────────────────────────────────────────────
-
 /** Create a shift rotation schedule */
 export function useCreateShiftSchedule() {
   const queryClient = useQueryClient();
@@ -13,7 +11,7 @@ export function useCreateShiftSchedule() {
     mutationFn: (data: Record<string, unknown>) =>
       shiftRotationApi.createSchedule(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.schedules() });
+      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.all });
     },
     onError: showError,
   });
@@ -25,11 +23,8 @@ export function useUpdateShiftSchedule() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       shiftRotationApi.updateSchedule(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.schedules() });
-      queryClient.invalidateQueries({
-        queryKey: shiftRotationKeys.schedule(variables.id),
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.all });
     },
     onError: showError,
   });
@@ -41,13 +36,11 @@ export function useDeleteShiftSchedule() {
   return useMutation({
     mutationFn: (id: string) => shiftRotationApi.deleteSchedule(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.schedules() });
+      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.all });
     },
     onError: showError,
   });
 }
-
-// ── Assign / Remove ──────────────────────────────────────────────────
 
 /** Assign employees to a shift schedule */
 export function useAssignShiftSchedule() {
@@ -55,40 +48,33 @@ export function useAssignShiftSchedule() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       shiftRotationApi.assignEmployees(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: shiftRotationKeys.schedule(variables.id),
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.all });
     },
     onError: showError,
   });
 }
 
-/** Remove employees from a shift schedule */
-export function useRemoveShiftSchedule() {
+/** Remove a single employee from a shift schedule */
+export function useRemoveShiftScheduleEmployee() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-      shiftRotationApi.removeEmployees(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: shiftRotationKeys.schedule(variables.id),
-      });
+    mutationFn: ({ id, employeeId }: { id: string; employeeId: string }) =>
+      shiftRotationApi.removeEmployee(id, employeeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.all });
     },
     onError: showError,
   });
 }
 
-// ── Execute ──────────────────────────────────────────────────────────
-
-/** Execute a shift rotation */
+/** Execute shift rotation (all active schedules) */
 export function useExecuteShiftRotation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => shiftRotationApi.executeRotation(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.schedules() });
-      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.schedule(id) });
+    mutationFn: () => shiftRotationApi.executeRotation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shiftRotationKeys.all });
     },
     onError: showError,
   });

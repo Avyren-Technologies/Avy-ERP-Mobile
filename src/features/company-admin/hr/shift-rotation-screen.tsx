@@ -37,10 +37,10 @@ import {
     useCreateShiftSchedule,
     useDeleteShiftSchedule,
     useExecuteShiftRotation,
-    useRemoveShiftSchedule,
+    useRemoveShiftScheduleEmployee,
     useUpdateShiftSchedule,
 } from '@/features/company-admin/api/use-shift-rotation-mutations';
-import { useShiftSchedules } from '@/features/company-admin/api/use-shift-rotation-queries';
+import { useShiftSchedules, useRotationEmployeeOverview } from '@/features/company-admin/api/use-shift-rotation-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -475,6 +475,101 @@ function ScheduleCard({ item, index, onEdit, onDelete, onExecute, onDetail, isEx
     );
 }
 
+// ============ TAB BAR ============
+
+function TabBar({ activeTab, onSelect, isDark }: { activeTab: string; onSelect: (tab: 'schedules' | 'overview') => void; isDark: boolean }) {
+    return (
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
+            {(['schedules', 'overview'] as const).map((tab) => {
+                const active = activeTab === tab;
+                return (
+                    <Pressable
+                        key={tab}
+                        onPress={() => onSelect(tab)}
+                        style={{
+                            flex: 1, paddingVertical: 10, borderRadius: 14, alignItems: 'center',
+                            backgroundColor: active ? colors.primary[600] : isDark ? '#1E1B4B' : colors.neutral[100],
+                        }}
+                    >
+                        <Text className={`font-inter text-xs font-bold ${active ? 'text-white' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                            {tab === 'schedules' ? 'Schedules' : 'Employee Overview'}
+                        </Text>
+                    </Pressable>
+                );
+            })}
+        </View>
+    );
+}
+
+// ============ OVERVIEW SUMMARY CARDS ============
+
+function OverviewSummaryCards({ summary, isDark }: { summary: { total: number; assigned: number; unassigned: number }; isDark: boolean }) {
+    const cards = [
+        { label: 'Total', value: summary.total, color: colors.primary[600], bg: isDark ? '#1E1B4B' : colors.primary[50] },
+        { label: 'Assigned', value: summary.assigned, color: colors.success[600], bg: isDark ? '#052e16' : colors.success[50] },
+        { label: 'Unassigned', value: summary.unassigned, color: colors.warning[600], bg: isDark ? '#431407' : colors.warning[50] },
+    ];
+    return (
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+            {cards.map((c) => (
+                <View key={c.label} style={{ flex: 1, backgroundColor: c.bg, borderRadius: 16, padding: 14, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: c.color, fontFamily: 'Inter' }}>{c.value}</Text>
+                    <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400 mt-1">{c.label}</Text>
+                </View>
+            ))}
+        </View>
+    );
+}
+
+// ============ EMPLOYEE OVERVIEW CARD ============
+
+function EmployeeOverviewCard({ item, index, isDark }: { item: any; index: number; isDark: boolean }) {
+    return (
+        <Animated.View entering={FadeInUp.duration(350).delay(60 + index * 40)}>
+            <View style={{
+                backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 14, marginBottom: 10,
+                borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
+            }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{item.firstName} {item.lastName}</Text>
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{item.employeeCode}</Text>
+                    </View>
+                    {item.rotationSchedule ? (
+                        <PatternBadge pattern={item.rotationSchedule.pattern} />
+                    ) : (
+                        <View style={{ backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                            <Text className="font-inter text-[10px] font-bold text-neutral-500 dark:text-neutral-400">Not Assigned</Text>
+                        </View>
+                    )}
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: isDark ? colors.neutral[800] : colors.neutral[100] }}>
+                    {item.department && (
+                        <View style={{ backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Dept: {item.department}</Text>
+                        </View>
+                    )}
+                    {item.currentShift && (
+                        <View style={{ backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Shift: {item.currentShift.name}</Text>
+                            {item.currentShift.noShuffle && (
+                                <View style={{ backgroundColor: colors.warning[50], borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
+                                    <Text className="font-inter text-[8px] font-bold text-warning-700">No Shuffle</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                    {item.rotationSchedule && (
+                        <View style={{ backgroundColor: isDark ? '#1E1B4B' : colors.accent[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+                            <Text className="font-inter text-[10px] text-accent-600 dark:text-accent-400">Schedule: {item.rotationSchedule.name}</Text>
+                        </View>
+                    )}
+                </View>
+            </View>
+        </Animated.View>
+    );
+}
+
 // ============ MAIN COMPONENT ============
 
 export function ShiftRotationScreen() {
@@ -492,13 +587,16 @@ export function ShiftRotationScreen() {
     const [detailItem, setDetailItem] = React.useState<ShiftSchedule | null>(null);
     const [executingId, setExecutingId] = React.useState<string | null>(null);
     const [executeResult, setExecuteResult] = React.useState<{ name: string; count: number } | null>(null);
+    const [activeTab, setActiveTab] = React.useState<'schedules' | 'overview'>('schedules');
+    const [overviewSearch, setOverviewSearch] = React.useState('');
+    const [overviewFilter, setOverviewFilter] = React.useState<'all' | 'assigned' | 'unassigned'>('all');
 
     const { data: response, isLoading, error, refetch, isFetching } = useShiftSchedules();
     const createMutation = useCreateShiftSchedule();
     const updateMutation = useUpdateShiftSchedule();
     const deleteMutation = useDeleteShiftSchedule();
     const assignMutation = useAssignShiftSchedule();
-    const removeMutation = useRemoveShiftSchedule();
+    const removeMutation = useRemoveShiftScheduleEmployee();
     const executeMutation = useExecuteShiftRotation();
 
     // Fetch available shifts and employees for pickers
@@ -518,6 +616,17 @@ export function ShiftRotationScreen() {
 
     // Build lookup map for employee display in detail panel
     const employeeMap = React.useMemo(() => new Map(allEmployees.map(e => [e.id, `${e.firstName} ${e.lastName} (${e.employeeId})`])), [allEmployees]);
+
+    const { data: overviewResponse, isLoading: overviewLoading, refetch: refetchOverview, isFetching: isFetchingOverview } = useRotationEmployeeOverview(overviewSearch || undefined);
+
+    const overviewEmployees = React.useMemo(() => {
+        const emps = (overviewResponse as any)?.data?.employees ?? [];
+        if (overviewFilter === 'assigned') return emps.filter((e: any) => e.rotationSchedule !== null);
+        if (overviewFilter === 'unassigned') return emps.filter((e: any) => e.rotationSchedule === null);
+        return emps;
+    }, [overviewResponse, overviewFilter]);
+
+    const overviewSummary = (overviewResponse as any)?.data?.summary ?? { total: 0, assigned: 0, unassigned: 0 };
 
     const schedules: ShiftSchedule[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -563,7 +672,7 @@ export function ShiftRotationScreen() {
 
     const handleExecute = (item: ShiftSchedule) => {
         setExecutingId(item.id);
-        executeMutation.mutate(item.id, {
+        executeMutation.mutate(undefined as void, {
             onSuccess: (result: any) => {
                 const count = result?.data?.rotatedCount ?? result?.rotatedCount ?? 0;
                 setExecuteResult({ name: item.name, count });
@@ -580,7 +689,7 @@ export function ShiftRotationScreen() {
 
     const handleRemoveEmployee = (employeeId: string) => {
         if (!detailItem) return;
-        removeMutation.mutate({ id: detailItem.id, data: { employeeIds: [employeeId] } });
+        removeMutation.mutate({ id: detailItem.id, employeeId });
     };
 
     const renderItem = ({ item, index }: { item: ShiftSchedule; index: number }) => (
@@ -596,11 +705,42 @@ export function ShiftRotationScreen() {
         <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
             <View>
                 <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Shift Rotations</Text>
-                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{schedules.length} schedule{schedules.length !== 1 ? 's' : ''}</Text>
+                <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">
+                    {activeTab === 'schedules' ? `${schedules.length} schedule${schedules.length !== 1 ? 's' : ''}` : `${overviewSummary.total} employee${overviewSummary.total !== 1 ? 's' : ''}`}
+                </Text>
             </View>
             <View style={{ marginTop: 16 }}>
-                <SearchBar value={search} onChangeText={setSearch} placeholder="Search schedules..." />
+                <TabBar activeTab={activeTab} onSelect={setActiveTab} isDark={isDark} />
             </View>
+            {activeTab === 'schedules' ? (
+                <SearchBar value={search} onChangeText={setSearch} placeholder="Search schedules..." />
+            ) : (
+                <>
+                    <OverviewSummaryCards summary={overviewSummary} isDark={isDark} />
+                    {/* Filter chips */}
+                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
+                        {(['all', 'assigned', 'unassigned'] as const).map((f) => {
+                            const active = overviewFilter === f;
+                            return (
+                                <Pressable
+                                    key={f}
+                                    onPress={() => setOverviewFilter(f)}
+                                    style={{
+                                        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                                        backgroundColor: active ? colors.primary[600] : isDark ? '#1A1730' : colors.white,
+                                        borderWidth: 1, borderColor: active ? colors.primary[600] : isDark ? colors.neutral[700] : colors.neutral[200],
+                                    }}
+                                >
+                                    <Text className={`font-inter text-xs font-semibold ${active ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`} style={{ textTransform: 'capitalize' }}>
+                                        {f}
+                                    </Text>
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+                    <SearchBar value={overviewSearch} onChangeText={setOverviewSearch} placeholder="Search employees..." />
+                </>
+            )}
         </Animated.View>
     );
 
@@ -615,14 +755,32 @@ export function ShiftRotationScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Shift Rotations" onMenuPress={toggle} />
-            <FlashList
-                data={filtered} renderItem={renderItem} keyExtractor={item => item.id}
-                ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
-                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
-                showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-                refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
-            />
-            <FAB onPress={handleAdd} />
+            {activeTab === 'schedules' ? (
+                <FlashList
+                    data={filtered} renderItem={renderItem} keyExtractor={item => item.id}
+                    ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+                    showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+                    refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                />
+            ) : (
+                <FlashList
+                    data={overviewEmployees}
+                    renderItem={({ item, index }: { item: any; index: number }) => (
+                        <EmployeeOverviewCard item={item} index={index} isDark={isDark} />
+                    )}
+                    keyExtractor={(item: any) => item.id}
+                    ListHeaderComponent={renderHeader}
+                    ListEmptyComponent={() => {
+                        if (overviewLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
+                        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No employees found" message={overviewSearch ? `No employees match "${overviewSearch}".` : 'No employees available.'} /></View>;
+                    }}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+                    showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+                    refreshControl={<RefreshControl refreshing={isFetchingOverview && !overviewLoading} onRefresh={() => refetchOverview()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+                />
+            )}
+            {activeTab === 'schedules' && <FAB onPress={handleAdd} />}
             <ScheduleFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending} availableShifts={availableShifts} />
             <AssignModal visible={assignVisible} onClose={() => setAssignVisible(false)} onAssign={handleAssign} isAssigning={assignMutation.isPending} allEmployees={allEmployees} />
 

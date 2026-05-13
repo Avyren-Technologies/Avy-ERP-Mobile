@@ -129,9 +129,9 @@ function LateBadge() {
 
 function KpiCard({ item, index }: { item: SummaryItem; index: number }) {
     return (
-        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 80)} style={[styles.kpiCard, { borderLeftColor: item.color, borderLeftWidth: 3 }]}>
-            <Text className="font-inter text-2xl font-bold" style={{ color: item.color }}>{item.value}</Text>
-            <Text className="mt-1 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{item.label}</Text>
+        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)} style={[styles.kpiCard, { borderLeftColor: item.color, borderLeftWidth: 3 }]}>
+            <Text className="font-inter text-xl font-bold" style={{ color: item.color }}>{item.value}</Text>
+            <Text className="mt-0.5 font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{item.label}</Text>
         </Animated.View>
     );
 }
@@ -671,6 +671,7 @@ export function AttendanceDashboardScreen() {
         const raw = (summaryResponse as any)?.data ?? summaryResponse ?? {};
         const s = raw.summary ?? raw;
         return {
+            total: s.total ?? 0,
             present: s.present ?? 0,
             absent: s.absent ?? 0,
             late: s.late ?? 0,
@@ -679,6 +680,7 @@ export function AttendanceDashboardScreen() {
     }, [summaryResponse]);
 
     const kpiItems: SummaryItem[] = [
+        { label: 'Total', value: summaryData.total, color: colors.accent[500], bgColor: colors.accent[50], icon: 'users' },
         { label: 'Present', value: summaryData.present, color: colors.success[500], bgColor: colors.success[50], icon: 'check' },
         { label: 'Absent', value: summaryData.absent, color: colors.danger[500], bgColor: colors.danger[50], icon: 'x' },
         { label: 'Late', value: summaryData.late, color: colors.warning[500], bgColor: colors.warning[50], icon: 'clock' },
@@ -1053,9 +1055,9 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
     },
     dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
-    kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+    kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
     kpiCard: {
-        flex: 1, minWidth: '45%', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16, padding: 14,
+        flex: 1, minWidth: '30%', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, padding: 10,
         shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
         borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
     },

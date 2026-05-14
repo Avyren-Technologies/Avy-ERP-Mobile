@@ -307,7 +307,7 @@ function RecordCard({ item, index, onPress }: { item: AttendanceRecord; index: n
                         </View>
                         {item.isLate && item.lateMinutes ? (
                             <View style={[styles.metaChip, { backgroundColor: colors.warning[50] }]}>
-                                <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.warning[700] }}>Late {item.lateMinutes}m</Text>
+                                <Text className="font-inter text-[10px] font-semibold" style={{ color: colors.warning[700] }}>Late {formatMinutes(item.lateMinutes)}</Text>
                             </View>
                         ) : null}
                         {item.isEarlyExit && item.earlyMinutes ? (
@@ -439,7 +439,7 @@ function RecordDetailModal({
                             <View style={{ flex: 1, backgroundColor: record.isLate ? colors.warning[50] : (isDark ? '#13112B' : colors.neutral[50]), borderRadius: 14, padding: 12, borderWidth: record.isLate ? 1 : 0, borderColor: colors.warning[200] }}>
                                 <Text className="font-inter text-[9px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Late</Text>
                                 <Text className={`font-inter text-sm font-bold ${record.isLate ? 'text-warning-700' : 'text-success-600'}`}>
-                                    {record.isLate ? `${record.lateMinutes} min` : 'On Time'}
+                                    {record.isLate ? formatMinutes(record.lateMinutes!) : 'On Time'}
                                 </Text>
                             </View>
                             <View style={{ flex: 1, backgroundColor: record.isEarlyExit ? colors.danger[50] : (isDark ? '#13112B' : colors.neutral[50]), borderRadius: 14, padding: 12, borderWidth: record.isEarlyExit ? 1 : 0, borderColor: colors.danger[200] }}>
@@ -641,6 +641,18 @@ function WeeklyRecordCard({
 }
 
 // ============ MAIN COMPONENT ============
+
+function formatMinutes(mins: number): string {
+    if (mins < 60) return `${mins} Min`;
+    const days = Math.floor(mins / 1440);
+    const hours = Math.floor((mins % 1440) / 60);
+    const remaining = mins % 60;
+    const parts: string[] = [];
+    if (days > 0) parts.push(`${days} Day${days > 1 ? 's' : ''}`);
+    if (hours > 0) parts.push(`${hours} Hr`);
+    if (remaining > 0) parts.push(`${remaining} Min`);
+    return parts.join(' ');
+}
 
 export function AttendanceDashboardScreen() {
   const isDark = useIsDark();

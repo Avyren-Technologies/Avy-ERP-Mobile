@@ -245,7 +245,8 @@ export function PipDailyReportScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((op: any) => ({
       operatorId: op.operatorId ?? '',
-      operatorName: op.operatorName ?? `${op.firstName ?? ''} ${op.lastName ?? ''}`.trim() || 'Unknown',
+      operatorName:
+        op.operatorName ?? (`${op.firstName ?? ''} ${op.lastName ?? ''}`.trim() || 'Unknown'),
       partsWorked: op.partsWorked ?? op.partCount ?? 0,
       totalProduced: op.totalProduced ?? op.totalQty ?? 0,
       totalTarget: op.totalTarget ?? op.totalTargetQty ?? 0,

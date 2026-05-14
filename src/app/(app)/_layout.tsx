@@ -106,18 +106,29 @@ function mapManifestIcon(icon: string): SidebarIconType {
     return MAP[icon] ?? 'settings';
 }
 
-function isPathActive(currentPath: string, itemPath: string): boolean {
-    // Convert web paths to mobile paths for comparison
-    const mobilePath = itemPath.replace(/^\/app/, '');
-    if (mobilePath === '/dashboard') return currentPath === '/';
-    return currentPath === mobilePath || currentPath.startsWith(`${mobilePath}/`);
-}
-
 function toMobileRoutePath(itemPath: string): string {
-    const mobilePath = itemPath.replace(/^\/app/, '');
+    let mobilePath = itemPath.replace(/^\/app/, '');
     // Dashboard is the root tab ("index"), not a "/dashboard" route file.
     if (mobilePath === '/dashboard') return '/';
+    // Masters and Production routes live at /(app)/masters/ and /(app)/production/,
+    // not inside /(app)/company/. Strip the /company prefix for these routes.
+    mobilePath = mobilePath.replace(/^\/company\/masters\//, '/masters/');
+    mobilePath = mobilePath.replace(/^\/company\/production\//, '/production/');
     return mobilePath;
+}
+
+function isPathActive(currentPath: string, itemPath: string): boolean {
+    // Convert web manifest paths to mobile paths for comparison
+    const mobilePath = toMobileRoutePath(itemPath);
+    if (mobilePath === '/') return currentPath === '/';
+    // Exact match always works
+    if (currentPath === mobilePath) return true;
+    // For startsWith matching, require at least 2 path segments in the item path
+    // (e.g. /production/pip/... matches /production/pip but NOT /production alone).
+    // This prevents top-level module pages from stealing active state from sub-modules.
+    const segments = mobilePath.split('/').filter(Boolean);
+    if (segments.length < 2) return false;
+    return currentPath.startsWith(`${mobilePath}/`);
 }
 
 // ============ SIDEBAR ROOT (inside SidebarProvider) ============

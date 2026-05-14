@@ -141,7 +141,15 @@ export function PipDashboardScreen() {
   const { data: dashRaw, isLoading, error, refetch, isFetching } = usePipDashboard();
   const metrics: PipDashboardMetrics | null = React.useMemo(() => {
     const d = (dashRaw as any)?.data ?? dashRaw;
-    return d as PipDashboardMetrics | null;
+    if (d == null || typeof d !== 'object') return null;
+    const raw = d as Record<string, unknown>;
+    return {
+      partCount: Number(raw.partCount ?? 0),
+      machineCount: Number(raw.machineCount ?? 0),
+      slabConfigCount: Number(raw.slabConfigCount ?? 0),
+      todayIncentive: Number(raw.todayIncentive ?? raw.todayTotalIncentive ?? 0),
+      todayOperatorCount: Number(raw.todayOperatorCount ?? 0),
+    };
   }, [dashRaw]);
 
   const { data: todaySummaryRaw } = usePipDailyEntrySummary({ date: todayStr });
@@ -335,7 +343,8 @@ export function PipDashboardScreen() {
                       >
                         <View style={{ flex: 1 }}>
                           <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" numberOfLines={1}>
-                            {op.operatorName ?? `${op.firstName ?? ''} ${op.lastName ?? ''}`.trim() || 'Unknown'}
+                            {op.operatorName ??
+                              (`${op.firstName ?? ''} ${op.lastName ?? ''}`.trim() || 'Unknown')}
                           </Text>
                           <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
                             {op.partsWorked ?? op.partCount ?? 0} part(s) | Rs {(op.incentiveAmount ?? op.totalIncentive ?? 0).toFixed(2)}

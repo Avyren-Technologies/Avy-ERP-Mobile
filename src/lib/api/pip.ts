@@ -93,6 +93,7 @@ export interface PipDashboardMetrics {
   partCount: number;
   machineCount: number;
   slabConfigCount: number;
+  /** UI field; API may send `todayTotalIncentive` instead */
   todayIncentive: number;
   todayOperatorCount: number;
 }

@@ -202,7 +202,7 @@ export function PipDashboardScreen() {
                 styles.newEntryHeaderBtn,
                 pressed && { opacity: 0.85 },
               ]}
-              onPress={() => navigate('/(app)/pip-daily-entry')}
+              onPress={() => navigate('/(app)/production/pip/daily-entry')}
             >
               <Svg width={14} height={14} viewBox="0 0 24 24">
                 <Path d="M12 5v14M5 12h14" stroke={colors.white} strokeWidth="2.5" strokeLinecap="round" />
@@ -304,7 +304,7 @@ export function PipDashboardScreen() {
                   <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                     Today&apos;s Production
                   </Text>
-                  <Pressable onPress={() => navigate('/(app)/pip-daily-report')}>
+                  <Pressable onPress={() => navigate('/(app)/production/pip/daily-report')}>
                     <Text className="font-inter text-xs font-semibold text-primary-600">
                       View Report
                     </Text>
@@ -373,7 +373,7 @@ export function PipDashboardScreen() {
                       </Svg>
                     }
                     color={colors.primary[600]}
-                    onPress={() => navigate('/(app)/part-master')}
+                    onPress={() => navigate('/(app)/masters/parts')}
                     isDark={isDark}
                   />
                   <QuickTile
@@ -385,7 +385,7 @@ export function PipDashboardScreen() {
                       </Svg>
                     }
                     color={colors.success[600]}
-                    onPress={() => navigate('/(app)/pip-slab-config')}
+                    onPress={() => navigate('/(app)/production/pip/slab-config')}
                     isDark={isDark}
                   />
                   <QuickTile
@@ -396,7 +396,7 @@ export function PipDashboardScreen() {
                       </Svg>
                     }
                     color={colors.accent[600]}
-                    onPress={() => navigate('/(app)/pip-daily-entry')}
+                    onPress={() => navigate('/(app)/production/pip/daily-entry')}
                     isDark={isDark}
                   />
                   <QuickTile
@@ -407,7 +407,7 @@ export function PipDashboardScreen() {
                       </Svg>
                     }
                     color={colors.info[600]}
-                    onPress={() => navigate('/(app)/pip-daily-report')}
+                    onPress={() => navigate('/(app)/production/pip/daily-report')}
                     isDark={isDark}
                   />
                 </View>

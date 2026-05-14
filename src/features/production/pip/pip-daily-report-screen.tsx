@@ -145,7 +145,7 @@ function OperatorCard({
   isDark: boolean;
 }) {
   const badge = getStatusBadge(item.achievementPct);
-  const pct = Math.min(item.achievementPct, 100);
+  const pct = Math.min(Number(item.achievementPct ?? 0), 100);
 
   return (
     <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 40)}>
@@ -182,9 +182,9 @@ function OperatorCard({
                 opStyles.progressFill,
                 {
                   width: `${pct}%`,
-                  backgroundColor: item.achievementPct >= 100
+                  backgroundColor: Number(item.achievementPct ?? 0) >= 100
                     ? colors.success[500]
-                    : item.achievementPct >= 80
+                    : Number(item.achievementPct ?? 0) >= 80
                       ? colors.warning[500]
                       : colors.danger[500],
                 },
@@ -192,7 +192,7 @@ function OperatorCard({
             />
           </View>
           <Text className="mt-1 font-inter text-[11px] font-bold text-primary-950 dark:text-white">
-            {item.achievementPct.toFixed(0)}%
+            {Number(item.achievementPct ?? 0).toFixed(0)}%
           </Text>
         </View>
 
@@ -213,7 +213,7 @@ function OperatorCard({
           <View style={opStyles.statItem}>
             <Text className="font-inter text-[10px] text-neutral-500">Incentive</Text>
             <Text className="font-inter text-xs font-bold text-success-700">
-              Rs {item.incentiveAmount.toFixed(2)}
+              Rs {Number(item.incentiveAmount ?? 0).toFixed(2)}
             </Text>
           </View>
         </View>
@@ -281,7 +281,7 @@ export function PipDailyReportScreen() {
   const handleExport = async () => {
     const lines = ['Daily Production Report', `Date: ${dateStr}`, '', 'Operator, Produced, Target, Achievement%, Incentive'];
     operators.forEach((op) => {
-      lines.push(`${op.operatorName}, ${op.totalProduced}, ${op.totalTarget}, ${op.achievementPct.toFixed(1)}%, Rs ${op.incentiveAmount.toFixed(2)}`);
+      lines.push(`${op.operatorName}, ${op.totalProduced}, ${op.totalTarget}, ${Number(op.achievementPct ?? 0).toFixed(1)}%, Rs ${Number(op.incentiveAmount ?? 0).toFixed(2)}`);
     });
     try {
       await Share.share({ message: lines.join('\n'), title: `Production Report ${dateStr}` });

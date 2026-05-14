@@ -330,16 +330,16 @@ export function PipIncentiveSummaryScreen() {
                       </Text>
                     </View>
                     <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
-                      Rs {report.totalIncentive.toFixed(2)} total
+                      Rs {Number(report.totalIncentive ?? 0).toFixed(2)} total
                     </Text>
                   </View>
                 )}
 
                 <View style={styles.metricsGrid}>
-                  <MetricCard label="Total Incentive" value={`Rs ${report.totalIncentive.toFixed(0)}`} color={colors.success[600]} isDark={isDark} />
+                  <MetricCard label="Total Incentive" value={`Rs ${Number(report.totalIncentive ?? 0).toFixed(0)}`} color={colors.success[600]} isDark={isDark} />
                   <MetricCard label="Operators" value={String(report.operatorCount)} color={colors.primary[600]} isDark={isDark} />
                   <MetricCard label="Working Days" value={String(report.workingDays)} color={colors.accent[600]} isDark={isDark} />
-                  <MetricCard label="Avg/Day" value={`Rs ${report.avgPerDay.toFixed(0)}`} color={colors.info[600]} isDark={isDark} />
+                  <MetricCard label="Avg/Day" value={`Rs ${Number(report.avgPerDay ?? 0).toFixed(0)}`} color={colors.info[600]} isDark={isDark} />
                 </View>
               </Animated.View>
 
@@ -369,7 +369,7 @@ export function PipIncentiveSummaryScreen() {
                         </Text>
                       </View>
                       <Text className="font-inter text-sm font-bold text-success-700">
-                        Rs {(op.totalIncentive ?? op.incentive ?? 0).toFixed(2)}
+                        Rs {Number(op.totalIncentive ?? op.incentive ?? 0).toFixed(2)}
                       </Text>
                     </View>
                   ))}
@@ -409,7 +409,7 @@ export function PipIncentiveSummaryScreen() {
                         </Text>
                       </View>
                       <Text className="font-inter text-sm font-bold text-success-700">
-                        Rs {(p.incentive ?? p.totalIncentive ?? 0).toFixed(2)}
+                        Rs {Number(p.incentive ?? p.totalIncentive ?? 0).toFixed(2)}
                       </Text>
                     </View>
                   ))}

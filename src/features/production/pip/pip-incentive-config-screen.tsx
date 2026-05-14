@@ -42,6 +42,7 @@ function getActiveMethodLabel(config: PipIncentiveConfig | null): string {
 
 function MethodCard({
   methodNumber,
+  subtitle,
   name,
   enabled,
   accentColor,
@@ -53,6 +54,7 @@ function MethodCard({
   workedExample,
 }: {
   methodNumber: 1 | 2;
+  subtitle: string;
   name: string;
   enabled: boolean;
   accentColor: { bg: string; border: string; text: string; dot: string };
@@ -80,12 +82,17 @@ function MethodCard({
       >
         {/* Header */}
         <View style={cardStyles.cardHeader}>
-          <View style={[cardStyles.methodBadge, { backgroundColor: accentColor.bg }]}>
-            <Text
-              className="font-inter text-[10px] font-bold"
-              style={{ color: accentColor.text }}
-            >
-              METHOD {methodNumber}
+          <View>
+            <View style={[cardStyles.methodBadge, { backgroundColor: accentColor.bg }]}>
+              <Text
+                className="font-inter text-[10px] font-bold"
+                style={{ color: accentColor.text }}
+              >
+                METHOD {methodNumber}
+              </Text>
+            </View>
+            <Text className="mt-1 font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
+              {subtitle}
             </Text>
           </View>
           <View style={cardStyles.toggleRow}>
@@ -379,6 +386,7 @@ export function PipIncentiveConfigScreen() {
           {/* Method 1 Card - Indigo accent */}
           <MethodCard
             methodNumber={1}
+            subtitle="Excess Ratio Based"
             name={method1Name}
             enabled={config?.method1Enabled ?? false}
             accentColor={{
@@ -398,6 +406,7 @@ export function PipIncentiveConfigScreen() {
           {/* Method 2 Card - Amber accent */}
           <MethodCard
             methodNumber={2}
+            subtitle="Percentage-Based Milestone"
             name={method2Name}
             enabled={config?.method2Enabled ?? false}
             accentColor={{

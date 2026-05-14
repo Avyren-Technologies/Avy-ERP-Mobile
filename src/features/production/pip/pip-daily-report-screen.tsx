@@ -233,7 +233,7 @@ export function PipDailyReportScreen() {
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const dateStr = formatDate(selectedDate);
 
-  const { data: summaryRaw, isLoading, error, refetch, isFetching } = usePipDailyEntrySummary({ date: dateStr });
+  const { data: summaryRaw, isLoading, error, refetch, isFetching } = usePipDailyEntrySummary({ entryDate: dateStr });
 
   const summary = React.useMemo(() => {
     const d = (summaryRaw as any)?.data ?? summaryRaw;

@@ -152,7 +152,7 @@ export function PipDashboardScreen() {
     };
   }, [dashRaw]);
 
-  const { data: todaySummaryRaw } = usePipDailyEntrySummary({ date: todayStr });
+  const { data: todaySummaryRaw } = usePipDailyEntrySummary({ entryDate: todayStr });
   const todayOperators = React.useMemo(() => {
     const d = (todaySummaryRaw as any)?.data ?? todaySummaryRaw;
     const ops = d?.operators ?? d?.operatorSummaries ?? [];

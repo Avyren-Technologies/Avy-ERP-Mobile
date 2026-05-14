@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,15 +26,17 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
 import { HamburgerButton } from '@/components/ui/sidebar';
-import { useIsDark } from '@/hooks/use-is-dark';
+import { showWarning } from '@/components/ui/utils';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 import {
   usePipConfig,
   usePipSlabConfigs,
   usePipDailyEntries,
 } from '@/features/production/pip/api/use-pip-queries';
 import { useSavePipDailyEntries } from '@/features/production/pip/api/use-pip-mutations';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
-import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useIsDark } from '@/hooks/use-is-dark';
 import type { PipIncentiveConfig, PipSlabConfig } from '@/lib/api/pip';
 
 // ============ TYPES ============
@@ -77,6 +80,14 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Move a calendar day by `delta` (-1 / +1) while keeping YYYY-MM-DD in local date. */
+function bumpCalendarDay(ymd: string, delta: number): string {
+  const [y, mo, da] = ymd.split('-').map((x) => parseInt(x, 10));
+  const dt = new Date(y, mo - 1, da);
+  dt.setDate(dt.getDate() + delta);
+  return formatDate(dt);
+}
+
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -104,6 +115,8 @@ export function PipDailyEntryScreen() {
   const isDark = useIsDark();
   const styles = createStyles(isDark);
   const insets = useSafeAreaInsets();
+  // Must match custom tab bar height in src/app/(app)/_layout.tsx (TabLayoutInner)
+  const tabBarHeight = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
   const { toggle } = useSidebar();
   const confirmModal = useConfirmModal();
 
@@ -144,12 +157,6 @@ export function PipDailyEntryScreen() {
     }));
   }, [employeesRaw]);
 
-  const { data: todayEntriesRaw } = usePipDailyEntries({ date: selectedDate });
-  const todayEntries = React.useMemo(() => {
-    const raw = (todayEntriesRaw as any)?.data ?? todayEntriesRaw ?? [];
-    return Array.isArray(raw) ? raw : [];
-  }, [todayEntriesRaw]);
-
   const saveMutation = useSavePipDailyEntries();
 
   // Fetch company shifts and auto-select based on current time (PRD 17.8)
@@ -158,6 +165,29 @@ export function PipDailyEntryScreen() {
     const raw = (shiftsRaw as any)?.data ?? shiftsRaw ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [shiftsRaw]);
+
+  const fmt = useCompanyFormatter();
+  const dailyEntriesParams = React.useMemo(
+    () => ({
+      entryDate: selectedDate,
+      ...(selectedShift ? { shiftId: selectedShift } : {}),
+      limit: 200,
+    }),
+    [selectedDate, selectedShift],
+  );
+  const { data: todayEntriesRaw, isLoading: entriesLoading } = usePipDailyEntries(
+    dailyEntriesParams,
+    { enabled: Boolean(selectedDate && selectedShift) },
+  );
+  const todayEntries = React.useMemo(() => {
+    const raw = (todayEntriesRaw as any)?.data ?? todayEntriesRaw ?? [];
+    return Array.isArray(raw) ? raw : [];
+  }, [todayEntriesRaw]);
+
+  const selectedShiftName = React.useMemo(() => {
+    const s = (shifts as any[]).find((x: any) => x.id === selectedShift);
+    return s?.name as string | undefined;
+  }, [shifts, selectedShift]);
 
   React.useEffect(() => {
     if (shifts.length > 0 && !selectedShift) {
@@ -292,17 +322,19 @@ export function PipDailyEntryScreen() {
 
   const handleSave = () => {
     if (!selectedOperator || machineSessions.length === 0) return;
+    if (shifts.length > 0 && !selectedShift) {
+      showWarning('Select shift', 'Choose a shift before saving production entries.');
+      return;
+    }
 
     const entries = machineSessions.flatMap((ms) =>
       ms.parts
         .filter((p) => Number(p.qtyProduced) > 0)
         .map((p) => ({
-          operatorId: selectedOperator.id,
           machineId: ms.machineId,
           partId: p.partId,
           slabConfigId: p.slabConfigId,
           qtyProduced: Number(p.qtyProduced),
-          shiftTargetQty: p.shiftTargetQty,
           ncCount: Number(p.ncCount) || 0,
         })),
     );
@@ -313,7 +345,8 @@ export function PipDailyEntryScreen() {
     saveMutation.mutate(
       {
         entryDate: selectedDate,
-        shiftId: selectedShift || undefined,
+        shiftId: selectedShift,
+        operatorId: selectedOperator.id,
         entries,
       },
       {
@@ -335,7 +368,10 @@ export function PipDailyEntryScreen() {
       case 0: return !!selectedOperator;
       case 1: return machineSessions.length > 0;
       case 2: return machineSessions.some((ms) => ms.parts.some((p) => Number(p.qtyProduced) > 0));
-      case 3: return true;
+      case 3: {
+        if (shifts.length > 0 && !selectedShift) return false;
+        return true;
+      }
       default: return false;
     }
   };
@@ -387,7 +423,10 @@ export function PipDailyEntryScreen() {
           <HamburgerButton onPress={toggle} />
           <View style={styles.headerCenter}>
             <Text className="font-inter text-lg font-bold text-white">Daily Production Entry</Text>
-            <Text className="font-inter text-[11px] text-white/80">{selectedDate}</Text>
+            <Text className="font-inter text-[11px] text-white/80" numberOfLines={1}>
+              {fmt.date(`${selectedDate}T12:00:00.000Z`)}
+              {selectedShiftName ? ` · ${selectedShiftName}` : ''}
+            </Text>
           </View>
           <View style={{ width: 36 }} />
         </View>
@@ -435,10 +474,142 @@ export function PipDailyEntryScreen() {
       {/* Content */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 100 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Date & shift (matches web Daily Production Entry) */}
+        <Animated.View entering={FadeInDown.duration(300)}>
+          <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+            Entry date
+          </Text>
+          <View style={styles.dateNavRow}>
+            <Pressable
+              onPress={() => setSelectedDate((d) => bumpCalendarDay(d, -1))}
+              style={({ pressed }) => [styles.dateArrowBtn, pressed && { opacity: 0.7 }]}
+              hitSlop={8}
+            >
+              <Svg width={18} height={18} viewBox="0 0 24 24">
+                <Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Pressable>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
+                {fmt.date(`${selectedDate}T12:00:00.000Z`)}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setSelectedDate((d) => bumpCalendarDay(d, 1))}
+              style={({ pressed }) => [styles.dateArrowBtn, pressed && { opacity: 0.7 }]}
+              hitSlop={8}
+            >
+              <Svg width={18} height={18} viewBox="0 0 24 24">
+                <Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Pressable>
+          </View>
+
+          {shifts.length > 0 && (
+            <>
+              <Text className="mb-2 mt-4 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                Shift
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+                {(shifts as any[]).map((shift: any) => {
+                  const active = selectedShift === shift.id;
+                  return (
+                    <Pressable
+                      key={shift.id}
+                      onPress={() => setSelectedShift(shift.id)}
+                      style={[
+                        styles.shiftChip,
+                        {
+                          backgroundColor: active
+                            ? colors.primary[600]
+                            : isDark ? '#1A1730' : colors.white,
+                          borderColor: active ? colors.primary[600] : isDark ? colors.neutral[700] : colors.neutral[200],
+                        },
+                      ]}
+                    >
+                      <Text
+                        className="font-inter text-xs font-semibold"
+                        style={{ color: active ? colors.white : isDark ? colors.neutral[200] : colors.primary[950] }}
+                        numberOfLines={1}
+                      >
+                        {shift.name ?? 'Shift'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
+
+          <View style={[styles.savedSection, { borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
+            <View style={styles.savedSectionHeader}>
+              <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
+                Saved entries
+              </Text>
+              {todayEntries.length > 0 && (
+                <View style={styles.savedCountBadge}>
+                  <Text className="font-inter text-[10px] font-bold text-primary-700">{todayEntries.length}</Text>
+                </View>
+              )}
+            </View>
+            {!selectedShift ? (
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                Select a shift to load saved production for this date.
+              </Text>
+            ) : entriesLoading ? (
+              <ActivityIndicator color={colors.primary[600]} style={{ marginVertical: 12 }} />
+            ) : todayEntries.length === 0 ? (
+              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                No saved entries for this date and shift yet.
+              </Text>
+            ) : (
+              todayEntries.map((entry: any) => {
+                const opName = entry.operator
+                  ? `${entry.operator.firstName ?? ''} ${entry.operator.lastName ?? ''}`.trim()
+                  : '';
+                const machineLabel = entry.slabConfig?.machine?.assetCode ?? entry.machineId ?? '';
+                const partNo = entry.slabConfig?.part?.partNumber ?? entry.partId ?? '';
+                const partName = entry.slabConfig?.part?.name ?? '';
+                const ach = Number(entry.achievementPct ?? 0);
+                return (
+                  <View
+                    key={entry.id ?? `${opName}-${partNo}-${entry.qtyProduced}`}
+                    style={[
+                      styles.savedRowCard,
+                      {
+                        backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                        borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
+                      },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white" numberOfLines={1}>
+                        {opName || '—'}
+                      </Text>
+                      <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                        {machineLabel} · {partNo}
+                        {partName ? ` — ${partName}` : ''}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">
+                        {entry.qtyProduced ?? 0} pcs
+                      </Text>
+                      <Text className="font-inter text-[10px] text-neutral-500">
+                        {ach.toFixed(0)}% · Rs {Number(entry.incentiveAmount ?? 0).toFixed(0)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </Animated.View>
+
         {/* Step 0: Select Operator */}
         {currentStep === 0 && (
           <Animated.View entering={FadeIn.duration(300)}>
@@ -851,41 +1022,13 @@ export function PipDailyEntryScreen() {
                 <Text className="font-inter text-sm font-bold text-white">New Entry</Text>
               </Pressable>
             </View>
-
-            {/* Today's saved entries */}
-            {todayEntries.length > 0 && (
-              <View style={{ marginTop: 24 }}>
-                <Text className="mb-3 font-inter text-sm font-bold text-primary-950 dark:text-white">
-                  Today&apos;s Saved Entries
-                </Text>
-                {todayEntries.slice(0, 5).map((entry: any, idx: number) => (
-                  <View
-                    key={entry.id ?? idx}
-                    style={[
-                      styles.savedEntryCard,
-                      {
-                        backgroundColor: isDark ? '#1A1730' : colors.white,
-                        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
-                      },
-                    ]}
-                  >
-                    <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">
-                      {entry.operator?.firstName ?? ''} {entry.operator?.lastName ?? ''}
-                    </Text>
-                    <Text className="font-inter text-[10px] text-neutral-500">
-                      {entry.qtyProduced} pcs | {entry.achievementPct?.toFixed(0) ?? 0}%
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
           </Animated.View>
         )}
       </ScrollView>
 
       {/* Bottom Navigation */}
       {currentStep < 4 && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.bottomBar, { paddingBottom: tabBarHeight + 12 }]}>
           <View style={styles.btnRow}>
             {currentStep > 0 && (
               <Pressable
@@ -1137,6 +1280,54 @@ const createStyles = (isDark: boolean) =>
       borderRadius: 12,
       paddingHorizontal: 24,
       paddingVertical: 12,
+    },
+    dateNavRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    dateArrowBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: isDark ? '#1A1730' : colors.white,
+    },
+    shiftChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1.5,
+    },
+    savedSection: {
+      marginTop: 20,
+      marginBottom: 8,
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      backgroundColor: isDark ? '#1A1730' : colors.white,
+    },
+    savedSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    savedCountBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+      backgroundColor: isDark ? colors.primary[900] : colors.primary[100],
+    },
+    savedRowCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      marginBottom: 8,
+      gap: 8,
     },
     savedEntryCard: {
       borderRadius: 10,

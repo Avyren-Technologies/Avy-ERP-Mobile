@@ -292,24 +292,17 @@ export function PipIncentiveCalculatorScreen() {
   };
 
   const handleCalculate = () => {
-    const entries = rows
+    const parts = rows
       .filter((r) => r.partId && Number(r.qty) > 0)
-      .map((r) => {
-        const sc = slabConfigs.find(
-          (s) => s.partId === r.partId && s.machineId === r.machineId,
-        );
-        return {
-          machineId: r.machineId,
-          partId: r.partId,
-          qtyProduced: Number(r.qty),
-          slabConfigId: sc?.id,
-        };
-      });
+      .map((r) => ({
+        partId: r.partId,
+        qtyProduced: Number(r.qty),
+      }));
 
-    if (entries.length === 0) return;
+    if (parts.length === 0) return;
 
     simulate.mutate(
-      { entries },
+      { parts },
       {
         onSuccess: (data: any) => {
           const d = data?.data ?? data;
@@ -577,9 +570,9 @@ export function PipIncentiveCalculatorScreen() {
                     </Text>
                   </View>
                   <View style={[styles.resultMetric, { backgroundColor: isDark ? '#0F0D1A' : colors.info[50] }]}>
-                    <Text className="font-inter text-[10px] text-neutral-500">Cumulative Ratio</Text>
+                    <Text className="font-inter text-[10px] text-neutral-500">Overall completion</Text>
                     <Text className="font-inter text-xl font-bold text-info-700">
-                      {(result.cumulativeRatio * 100).toFixed(1)}%
+                      {Number(result.cumulativeRatio).toFixed(0)}%
                     </Text>
                   </View>
                 </View>

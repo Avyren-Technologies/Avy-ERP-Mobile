@@ -46,10 +46,14 @@ export function usePipSlabConfig(id: string) {
   });
 }
 
-export function usePipDailyEntries(params?: Record<string, unknown>) {
+export function usePipDailyEntries(
+  params?: Record<string, unknown>,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: pipKeys.dailyEntries(params),
     queryFn: () => pipApi.listDailyEntries(params),
+    enabled: options?.enabled ?? true,
   });
 }
 

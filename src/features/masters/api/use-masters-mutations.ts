@@ -10,9 +10,11 @@ export function useCreatePart() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Record<string, unknown>) => partApi.create(data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: mastersKeys.all });
-      showSuccess('Part created', 'New part has been added successfully');
+      const created = res?.data ?? res;
+      const pn = created?.partNumber;
+      showSuccess('Part Created', pn ? `Part ${pn} created successfully` : 'New part has been added successfully');
     },
     onError: showError,
   });

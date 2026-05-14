@@ -9,7 +9,6 @@ import {
   Modal as RNModal,
   ScrollView,
   StyleSheet,
-  Switch,
   TextInput,
   View,
 } from 'react-native';
@@ -31,10 +30,14 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showSuccess } from '@/components/ui/utils';
 import {
   useCreateMachine,
   useUpdateMachine,
   useDeleteMachine,
+  useCreateMachineCategory,
+  useCreateMachineType,
+  useCreateMachineZone,
 } from '@/features/masters/api/use-masters-mutations';
 import {
   useMachines,
@@ -68,7 +71,6 @@ interface MachineData {
   yearOfManufacture?: number;
   status: string;
   idleReason?: string;
-  isActive: boolean;
 }
 
 interface DropdownOption {
@@ -78,17 +80,15 @@ interface DropdownOption {
 
 // ============ HELPERS ============
 
-const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-const STATUS_OPTIONS = ['OPERATIONAL', 'IDLE', 'MAINTENANCE', 'DECOMMISSIONED'];
+const PRIORITY_OPTIONS = ['HIGH', 'MEDIUM', 'LOW'];
+const STATUS_OPTIONS = ['RUNNING', 'IDLE', 'MAINTENANCE', 'DECOMMISSIONED'];
 
 function getPriorityColor(priority: string): { bg: string; text: string } {
   switch (priority?.toUpperCase()) {
-    case 'CRITICAL':
-      return { bg: colors.danger[50], text: colors.danger[700] };
     case 'HIGH':
-      return { bg: colors.warning[50], text: colors.warning[700] };
+      return { bg: colors.danger[50], text: colors.danger[700] };
     case 'MEDIUM':
-      return { bg: colors.info[50], text: colors.info[700] };
+      return { bg: colors.warning[50], text: colors.warning[700] };
     case 'LOW':
       return { bg: colors.neutral[100], text: colors.neutral[600] };
     default:
@@ -98,7 +98,7 @@ function getPriorityColor(priority: string): { bg: string; text: string } {
 
 function getStatusColor(status: string): { bg: string; text: string } {
   switch (status?.toUpperCase()) {
-    case 'OPERATIONAL':
+    case 'RUNNING':
       return { bg: colors.success[50], text: colors.success[700] };
     case 'IDLE':
       return { bg: colors.warning[50], text: colors.warning[700] };
@@ -131,9 +131,8 @@ function mapApiMachine(item: any): MachineData {
     model: item.model ?? undefined,
     powerRating: item.powerRating ?? undefined,
     yearOfManufacture: item.yearOfManufacture ?? undefined,
-    status: item.status ?? 'OPERATIONAL',
+    status: item.status ?? 'RUNNING',
     idleReason: item.idleReason ?? undefined,
-    isActive: item.isActive ?? true,
   };
 }
 
@@ -281,6 +280,91 @@ function MachineCard({
   );
 }
 
+// ============ INLINE CREATE MODAL ============
+
+function InlineCreateModal({
+  visible,
+  onClose,
+  title,
+  fields,
+  onSubmit,
+  isSubmitting,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  fields: { key: string; label: string; placeholder: string; required?: boolean }[];
+  onSubmit: (values: Record<string, string>) => void;
+  isSubmitting: boolean;
+}) {
+  const [values, setValues] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    if (visible) setValues({});
+  }, [visible]);
+
+  const handleSubmit = () => {
+    const requiredField = fields.find((f) => f.required && !values[f.key]?.trim());
+    if (requiredField) return;
+    onSubmit(values);
+  };
+
+  return (
+    <RNModal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={inlineModalStyles.overlay} onPress={onClose}>
+        <Pressable style={inlineModalStyles.content} onPress={(e) => e.stopPropagation()}>
+          <Text className="mb-4 font-inter text-base font-bold text-primary-950">
+            {title}
+          </Text>
+          {fields.map((field) => (
+            <View key={field.key} style={{ marginBottom: 12 }}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                {field.label} {field.required ? <Text className="text-danger-500">*</Text> : null}
+              </Text>
+              <TextInput
+                style={sheetStyles.input}
+                placeholder={field.placeholder}
+                placeholderTextColor={colors.neutral[400]}
+                value={values[field.key] ?? ''}
+                onChangeText={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}
+                autoCapitalize="words"
+              />
+            </View>
+          ))}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+            <Pressable
+              onPress={onClose}
+              style={[inlineModalStyles.btn, { backgroundColor: colors.neutral[100] }]}
+            >
+              <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+              style={[
+                inlineModalStyles.btn,
+                { backgroundColor: colors.primary[600], flex: 1 },
+                isSubmitting && { opacity: 0.6 },
+              ]}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text className="font-inter text-sm font-bold text-white">Create</Text>
+              )}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </RNModal>
+  );
+}
+
 // ============ ADD/EDIT FORM SHEET ============
 
 function MachineFormSheet({
@@ -292,6 +376,9 @@ function MachineFormSheet({
   zones,
   onSubmit,
   isSubmitting,
+  onCategoryCreated,
+  onTypeCreated,
+  onZoneCreated,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -301,6 +388,9 @@ function MachineFormSheet({
   zones: DropdownOption[];
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
+  onCategoryCreated: (data: Record<string, unknown>, onSuccess: (id: string) => void) => void;
+  onTypeCreated: (data: Record<string, unknown>, onSuccess: (id: string) => void) => void;
+  onZoneCreated: (data: Record<string, unknown>, onSuccess: (id: string) => void) => void;
 }) {
   const insets = useSafeAreaInsets();
   const isEdit = !!machine;
@@ -317,10 +407,16 @@ function MachineFormSheet({
   const [capacity, setCapacity] = React.useState('');
   const [make, setMake] = React.useState('');
   const [model, setModel] = React.useState('');
-  const [status, setStatus] = React.useState('OPERATIONAL');
-  const [isActive, setIsActive] = React.useState(true);
+  const [powerRating, setPowerRating] = React.useState('');
+  const [yearOfManufacture, setYearOfManufacture] = React.useState('');
+  const [status, setStatus] = React.useState('RUNNING');
+  const [idleReason, setIdleReason] = React.useState('');
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  // Inline create modal states
+  const [inlineCreateType, setInlineCreateType] = React.useState<'category' | 'type' | 'zone' | null>(null);
+  const [isInlineCreating, setIsInlineCreating] = React.useState(false);
 
   React.useEffect(() => {
     if (visible) {
@@ -337,8 +433,10 @@ function MachineFormSheet({
         setCapacity(machine.capacity ?? '');
         setMake(machine.make ?? '');
         setModel(machine.model ?? '');
-        setStatus(machine.status ?? 'OPERATIONAL');
-        setIsActive(machine.isActive ?? true);
+        setPowerRating(machine.powerRating ?? '');
+        setYearOfManufacture(machine.yearOfManufacture ? String(machine.yearOfManufacture) : '');
+        setStatus(machine.status ?? 'RUNNING');
+        setIdleReason(machine.idleReason ?? '');
       } else {
         setAssetCode('');
         setAssetName('');
@@ -352,8 +450,10 @@ function MachineFormSheet({
         setCapacity('');
         setMake('');
         setModel('');
-        setStatus('OPERATIONAL');
-        setIsActive(true);
+        setPowerRating('');
+        setYearOfManufacture('');
+        setStatus('RUNNING');
+        setIdleReason('');
       }
       setErrors({});
       setOpenDropdown(null);
@@ -387,7 +487,6 @@ function MachineFormSheet({
       assetName: assetName.trim(),
       priority,
       status,
-      isActive,
     };
     if (assetCode.trim()) data.assetCode = assetCode.trim();
     if (machineCode.trim()) data.machineCode = machineCode.trim();
@@ -397,14 +496,57 @@ function MachineFormSheet({
     if (zoneId) data.zoneId = zoneId;
     if (lineWorkCenter.trim()) data.lineWorkCenter = lineWorkCenter.trim();
     if (capacity.trim()) data.capacity = capacity.trim();
+    if (powerRating.trim()) data.powerRating = powerRating.trim();
     if (make.trim()) data.make = make.trim();
     if (model.trim()) data.model = model.trim();
+    if (yearOfManufacture.trim()) data.yearOfManufacture = parseInt(yearOfManufacture, 10);
+    if (status === 'IDLE' && idleReason.trim()) data.idleReason = idleReason.trim();
     onSubmit(data);
   };
 
   const toggleDropdown = (name: string) => {
     setOpenDropdown((prev) => (prev === name ? null : name));
   };
+
+  const handleInlineCreate = (values: Record<string, string>) => {
+    setIsInlineCreating(true);
+    if (inlineCreateType === 'category') {
+      onCategoryCreated({ name: values.name }, (id) => {
+        setCategoryId(id);
+        setInlineCreateType(null);
+        setIsInlineCreating(false);
+      });
+    } else if (inlineCreateType === 'type') {
+      onTypeCreated({ name: values.name }, (id) => {
+        setTypeId(id);
+        setInlineCreateType(null);
+        setIsInlineCreating(false);
+      });
+    } else if (inlineCreateType === 'zone') {
+      onZoneCreated({ name: values.name, code: values.code || undefined }, (id) => {
+        setZoneId(id);
+        setInlineCreateType(null);
+        setIsInlineCreating(false);
+      });
+    }
+  };
+
+  const inlineCreateFields = React.useMemo(() => {
+    if (inlineCreateType === 'zone') {
+      return [
+        { key: 'name', label: 'Name', placeholder: 'Zone name', required: true },
+        { key: 'code', label: 'Code', placeholder: 'Zone code (optional)' },
+      ];
+    }
+    return [
+      {
+        key: 'name',
+        label: 'Name',
+        placeholder: `${inlineCreateType === 'category' ? 'Category' : 'Type'} name`,
+        required: true,
+      },
+    ];
+  }, [inlineCreateType]);
 
   const renderDropdownField = (
     label: string,
@@ -414,13 +556,21 @@ function MachineFormSheet({
     options: DropdownOption[] | string[],
     selectedId: string,
     onSelect: (val: string) => void,
+    onAddNew?: () => void,
   ) => {
     const isOpen = openDropdown === dropdownName;
     return (
       <View style={[sheetStyles.field, { zIndex: isOpen ? 100 : 1 }]}>
-        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-          {label}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+            {label}
+          </Text>
+          {onAddNew ? (
+            <Pressable onPress={onAddNew} hitSlop={8}>
+              <Text className="font-inter text-xs font-bold text-primary-600">+ New</Text>
+            </Pressable>
+          ) : null}
+        </View>
         <Pressable
           onPress={() => toggleDropdown(dropdownName)}
           style={[
@@ -534,22 +684,7 @@ function MachineFormSheet({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Asset Code */}
-          <View style={sheetStyles.field}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-              Asset Code
-            </Text>
-            <TextInput
-              style={sheetStyles.input}
-              placeholder="Leave blank to auto-generate"
-              placeholderTextColor={colors.neutral[400]}
-              value={assetCode}
-              onChangeText={(v) => { setAssetCode(v); }}
-              autoCapitalize="characters"
-            />
-          </View>
-
-          {/* Asset Name */}
+          {/* 1. Asset Name */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Asset Name <Text className="text-danger-500">*</Text>
@@ -572,7 +707,36 @@ function MachineFormSheet({
             ) : null}
           </View>
 
-          {/* Machine Code */}
+          {/* 2. Asset Code */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Asset Code
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="Leave blank to auto-generate"
+              placeholderTextColor={colors.neutral[400]}
+              value={assetCode}
+              onChangeText={(v) => { setAssetCode(v); }}
+              autoCapitalize="characters"
+            />
+          </View>
+
+          {/* 3. Serial Number (MFR) */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Serial Number (MFR)
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="Enter serial number"
+              placeholderTextColor={colors.neutral[400]}
+              value={serialNumber}
+              onChangeText={setSerialNumber}
+            />
+          </View>
+
+          {/* 4. Machine Code */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Machine Code
@@ -586,21 +750,7 @@ function MachineFormSheet({
             />
           </View>
 
-          {/* Serial Number */}
-          <View style={sheetStyles.field}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-              Serial Number
-            </Text>
-            <TextInput
-              style={sheetStyles.input}
-              placeholder="Enter serial number"
-              placeholderTextColor={colors.neutral[400]}
-              value={serialNumber}
-              onChangeText={setSerialNumber}
-            />
-          </View>
-
-          {/* Category Dropdown */}
+          {/* 5. Category Dropdown + New */}
           {renderDropdownField(
             'Category',
             'category',
@@ -609,9 +759,10 @@ function MachineFormSheet({
             categories,
             categoryId,
             setCategoryId,
+            () => setInlineCreateType('category'),
           )}
 
-          {/* Type Dropdown */}
+          {/* 6. Type Dropdown + New */}
           {renderDropdownField(
             'Type',
             'type',
@@ -620,9 +771,10 @@ function MachineFormSheet({
             types,
             typeId,
             setTypeId,
+            () => setInlineCreateType('type'),
           )}
 
-          {/* Zone Dropdown */}
+          {/* 7. Zone Dropdown + New */}
           {renderDropdownField(
             'Zone',
             'zone',
@@ -631,9 +783,10 @@ function MachineFormSheet({
             zones,
             zoneId,
             setZoneId,
+            () => setInlineCreateType('zone'),
           )}
 
-          {/* Line / Work Center */}
+          {/* 8. Line / Work Center */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Line / Work Center
@@ -647,7 +800,7 @@ function MachineFormSheet({
             />
           </View>
 
-          {/* Priority Dropdown */}
+          {/* 9. Priority Dropdown */}
           {renderDropdownField(
             'Priority',
             'priority',
@@ -658,7 +811,34 @@ function MachineFormSheet({
             setPriority,
           )}
 
-          {/* Capacity */}
+          {/* 10. Status Dropdown */}
+          {renderDropdownField(
+            'Status',
+            'status',
+            status,
+            'Select status',
+            STATUS_OPTIONS,
+            status,
+            setStatus,
+          )}
+
+          {/* 11. Idle Reason (only when status is IDLE) */}
+          {status === 'IDLE' ? (
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                Idle Reason
+              </Text>
+              <TextInput
+                style={sheetStyles.input}
+                placeholder="Reason for idle state"
+                placeholderTextColor={colors.neutral[400]}
+                value={idleReason}
+                onChangeText={setIdleReason}
+              />
+            </View>
+          ) : null}
+
+          {/* 12. Capacity */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Capacity
@@ -672,7 +852,21 @@ function MachineFormSheet({
             />
           </View>
 
-          {/* Make */}
+          {/* 13. Power Rating */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Power Rating
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="e.g. 15 kW"
+              placeholderTextColor={colors.neutral[400]}
+              value={powerRating}
+              onChangeText={setPowerRating}
+            />
+          </View>
+
+          {/* 14. Make */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Make
@@ -686,7 +880,7 @@ function MachineFormSheet({
             />
           </View>
 
-          {/* Model */}
+          {/* 15. Model */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Model
@@ -700,37 +894,18 @@ function MachineFormSheet({
             />
           </View>
 
-          {/* Status Dropdown */}
-          {renderDropdownField(
-            'Status',
-            'status',
-            status,
-            'Select status',
-            STATUS_OPTIONS,
-            status,
-            setStatus,
-          )}
-
-          {/* Active Toggle */}
-          <View style={sheetStyles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                {isActive ? 'Active' : 'Inactive'}
-              </Text>
-              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
-                {isActive
-                  ? 'Machine is available for production scheduling'
-                  : 'Machine is disabled and hidden from selections'}
-              </Text>
-            </View>
-            <Switch
-              value={isActive}
-              onValueChange={setIsActive}
-              trackColor={{
-                false: colors.neutral[200],
-                true: colors.primary[400],
-              }}
-              thumbColor={isActive ? colors.primary[600] : colors.neutral[300]}
+          {/* 16. Year of Manufacture */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Year of Manufacture
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="e.g. 2024"
+              placeholderTextColor={colors.neutral[400]}
+              value={yearOfManufacture}
+              onChangeText={setYearOfManufacture}
+              keyboardType="numeric"
             />
           </View>
         </ScrollView>
@@ -758,6 +933,16 @@ function MachineFormSheet({
           </Pressable>
         </View>
       </View>
+
+      {/* Inline Create Modal */}
+      <InlineCreateModal
+        visible={inlineCreateType !== null}
+        onClose={() => { setInlineCreateType(null); setIsInlineCreating(false); }}
+        title={`Create ${inlineCreateType === 'category' ? 'Category' : inlineCreateType === 'type' ? 'Type' : 'Zone'}`}
+        fields={inlineCreateFields}
+        onSubmit={handleInlineCreate}
+        isSubmitting={isInlineCreating}
+      />
     </RNModal>
   );
 }
@@ -801,8 +986,8 @@ export function MachineMasterScreen() {
 
   // Fetch machines
   const statusParam =
-    activeFilter === 'operational'
-      ? 'OPERATIONAL'
+    activeFilter === 'running'
+      ? 'RUNNING'
       : activeFilter === 'idle'
         ? 'IDLE'
         : activeFilter === 'maintenance'
@@ -830,7 +1015,7 @@ export function MachineMasterScreen() {
   const filterChips = React.useMemo(
     () => [
       { key: 'all', label: 'All', count: totalCount },
-      { key: 'operational', label: 'Operational' },
+      { key: 'running', label: 'Running' },
       { key: 'idle', label: 'Idle' },
       { key: 'maintenance', label: 'Maintenance' },
     ],
@@ -841,6 +1026,9 @@ export function MachineMasterScreen() {
   const createMachine = useCreateMachine();
   const updateMachine = useUpdateMachine();
   const deleteMachine = useDeleteMachine();
+  const createCategory = useCreateMachineCategory();
+  const createType = useCreateMachineType();
+  const createZone = useCreateMachineZone();
 
   const handleAdd = () => {
     setEditingMachine(null);
@@ -879,12 +1067,43 @@ export function MachineMasterScreen() {
       );
     } else {
       createMachine.mutate(data, {
-        onSuccess: () => {
+        onSuccess: (res: any) => {
+          const createdCode = res?.data?.assetCode ?? '';
           setSheetVisible(false);
           refetch();
+          if (createdCode) {
+            showSuccess('Machine Created', `Machine ${createdCode} created successfully`);
+          }
         },
       });
     }
+  };
+
+  const handleCategoryCreated = (data: Record<string, unknown>, onSuccess: (id: string) => void) => {
+    createCategory.mutate(data, {
+      onSuccess: (res: any) => {
+        const newId = res?.data?.id ?? '';
+        if (newId) onSuccess(newId);
+      },
+    });
+  };
+
+  const handleTypeCreated = (data: Record<string, unknown>, onSuccess: (id: string) => void) => {
+    createType.mutate(data, {
+      onSuccess: (res: any) => {
+        const newId = res?.data?.id ?? '';
+        if (newId) onSuccess(newId);
+      },
+    });
+  };
+
+  const handleZoneCreated = (data: Record<string, unknown>, onSuccess: (id: string) => void) => {
+    createZone.mutate(data, {
+      onSuccess: (res: any) => {
+        const newId = res?.data?.id ?? '';
+        if (newId) onSuccess(newId);
+      },
+    });
   };
 
   const renderMachine = ({ item, index }: { item: MachineData; index: number }) => (
@@ -994,6 +1213,9 @@ export function MachineMasterScreen() {
         zones={zones}
         onSubmit={handleSubmit}
         isSubmitting={createMachine.isPending || updateMachine.isPending}
+        onCategoryCreated={handleCategoryCreated}
+        onTypeCreated={handleTypeCreated}
+        onZoneCreated={handleZoneCreated}
       />
 
       <ConfirmModal {...confirmModal.modalProps} />
@@ -1151,14 +1373,6 @@ const sheetStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
   submitContainer: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -1177,5 +1391,34 @@ const sheetStyles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
+  },
+});
+
+const inlineModalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  content: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  btn: {
+    borderRadius: 10,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
 });

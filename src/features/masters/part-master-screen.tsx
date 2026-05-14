@@ -35,14 +35,17 @@ import {
   useCreatePart,
   useUpdatePart,
   useDeletePart,
+  useCreatePartCategory,
+  useCreateProductModel,
+  useCreateUom,
 } from '@/features/masters/api/use-masters-mutations';
 import {
   useParts,
   usePartCategories,
   useProductModels,
+  useUoms,
 } from '@/features/masters/api/use-masters-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
-import type { Part } from '@/lib/api/masters';
 
 // ============ TYPES ============
 
@@ -55,9 +58,20 @@ interface PartData {
   categoryId?: string;
   productModelName?: string;
   productModelId?: string;
+  uomId?: string;
+  uomName?: string;
   partType: string;
+  hsnCode?: string;
+  weight?: number;
+  dimensions?: string;
+  revision?: string;
+  drawingReference?: string;
   status: string;
-  isActive: boolean;
+  isBatchTracked: boolean;
+  isSerialTracked: boolean;
+  isBomEnabled: boolean;
+  isQcRequired: boolean;
+  isInventoryItem: boolean;
 }
 
 interface DropdownOption {
@@ -93,9 +107,20 @@ function mapApiPart(item: any): PartData {
     categoryId: item.categoryId ?? '',
     productModelName: item.productModel?.name ?? '',
     productModelId: item.productModelId ?? '',
+    uomId: item.uomId ?? '',
+    uomName: item.uom?.name ?? '',
     partType: item.partType ?? '',
+    hsnCode: item.hsnCode ?? '',
+    weight: item.weight ?? undefined,
+    dimensions: item.dimensions ?? '',
+    revision: item.revision ?? '',
+    drawingReference: item.drawingReference ?? '',
     status: item.status ?? 'ACTIVE',
-    isActive: item.isActive ?? true,
+    isBatchTracked: item.isBatchTracked ?? false,
+    isSerialTracked: item.isSerialTracked ?? false,
+    isBomEnabled: item.isBomEnabled ?? false,
+    isQcRequired: item.isQcRequired ?? false,
+    isInventoryItem: item.isInventoryItem ?? true,
   };
 }
 
@@ -243,6 +268,97 @@ function PartCard({
   );
 }
 
+// ============ INLINE CREATE MODAL ============
+
+function InlineCreateModal({
+  visible,
+  onClose,
+  title,
+  fields,
+  onSubmit,
+  isSubmitting,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  fields: { key: string; label: string; placeholder: string; required?: boolean }[];
+  onSubmit: (values: Record<string, string>) => void;
+  isSubmitting: boolean;
+}) {
+  const [values, setValues] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    if (visible) setValues({});
+  }, [visible]);
+
+  const handleCreate = () => {
+    const required = fields.filter((f) => f.required);
+    for (const f of required) {
+      if (!values[f.key]?.trim()) return;
+    }
+    onSubmit(values);
+  };
+
+  return (
+    <RNModal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={inlineModalStyles.overlay} onPress={onClose}>
+        <Pressable style={inlineModalStyles.content} onPress={() => {}}>
+          <Text className="mb-4 font-inter text-base font-bold text-primary-950">
+            {title}
+          </Text>
+          {fields.map((f) => (
+            <View key={f.key} style={{ marginBottom: 14 }}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
+                {f.label} {f.required ? <Text className="text-danger-500">*</Text> : null}
+              </Text>
+              <TextInput
+                style={sheetStyles.input}
+                placeholder={f.placeholder}
+                placeholderTextColor={colors.neutral[400]}
+                value={values[f.key] ?? ''}
+                onChangeText={(v) => setValues((prev) => ({ ...prev, [f.key]: v }))}
+                autoCapitalize="words"
+              />
+            </View>
+          ))}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <Pressable
+              onPress={onClose}
+              style={[inlineModalStyles.btn, { backgroundColor: colors.neutral[100] }]}
+            >
+              <Text className="font-inter text-sm font-semibold text-neutral-600">
+                Cancel
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleCreate}
+              disabled={isSubmitting}
+              style={[
+                inlineModalStyles.btn,
+                { backgroundColor: colors.primary[600], flex: 1 },
+                isSubmitting && { opacity: 0.6 },
+              ]}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text className="font-inter text-sm font-bold text-white">
+                  Create
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </RNModal>
+  );
+}
+
 // ============ ADD/EDIT FORM SHEET ============
 
 function PartFormSheet({
@@ -251,6 +367,7 @@ function PartFormSheet({
   part,
   categories,
   productModels,
+  uoms,
   onSubmit,
   isSubmitting,
 }: {
@@ -259,25 +376,58 @@ function PartFormSheet({
   part?: PartData | null;
   categories: DropdownOption[];
   productModels: DropdownOption[];
+  uoms: DropdownOption[];
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const isEdit = !!part;
 
+  // Form state — 18 fields
   const [partNumber, setPartNumber] = React.useState('');
   const [name, setName] = React.useState('');
   const [engineeringPartNo, setEngineeringPartNo] = React.useState('');
-  const [categoryId, setCategoryId] = React.useState('');
   const [productModelId, setProductModelId] = React.useState('');
+  const [categoryId, setCategoryId] = React.useState('');
+  const [uomId, setUomId] = React.useState('');
   const [partType, setPartType] = React.useState('FINISH_PART');
+  const [hsnCode, setHsnCode] = React.useState('');
+  const [weight, setWeight] = React.useState('');
+  const [dimensions, setDimensions] = React.useState('');
+  const [revision, setRevision] = React.useState('');
+  const [drawingReference, setDrawingReference] = React.useState('');
   const [status, setStatus] = React.useState('ACTIVE');
-  const [isActive, setIsActive] = React.useState(true);
+  const [isBatchTracked, setIsBatchTracked] = React.useState(false);
+  const [isSerialTracked, setIsSerialTracked] = React.useState(false);
+  const [isBomEnabled, setIsBomEnabled] = React.useState(false);
+  const [isQcRequired, setIsQcRequired] = React.useState(false);
+  const [isInventoryItem, setIsInventoryItem] = React.useState(true);
+
+  // Dropdown visibility
   const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
   const [showModelDropdown, setShowModelDropdown] = React.useState(false);
+  const [showUomDropdown, setShowUomDropdown] = React.useState(false);
   const [showTypeDropdown, setShowTypeDropdown] = React.useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  // Inline create modals
+  const [showCreateModel, setShowCreateModel] = React.useState(false);
+  const [showCreateCategory, setShowCreateCategory] = React.useState(false);
+  const [showCreateUom, setShowCreateUom] = React.useState(false);
+
+  // Inline create mutations
+  const createModelMutation = useCreateProductModel();
+  const createCategoryMutation = useCreatePartCategory();
+  const createUomMutation = useCreateUom();
+
+  const closeAllDropdowns = () => {
+    setShowCategoryDropdown(false);
+    setShowModelDropdown(false);
+    setShowUomDropdown(false);
+    setShowTypeDropdown(false);
+    setShowStatusDropdown(false);
+  };
 
   React.useEffect(() => {
     if (visible) {
@@ -285,31 +435,49 @@ function PartFormSheet({
         setPartNumber(part.partNumber ?? '');
         setName(part.name ?? '');
         setEngineeringPartNo(part.engineeringPartNo ?? '');
-        setCategoryId(part.categoryId ?? '');
         setProductModelId(part.productModelId ?? '');
+        setCategoryId(part.categoryId ?? '');
+        setUomId(part.uomId ?? '');
         setPartType(part.partType ?? 'FINISH_PART');
+        setHsnCode(part.hsnCode ?? '');
+        setWeight(part.weight != null ? String(part.weight) : '');
+        setDimensions(part.dimensions ?? '');
+        setRevision(part.revision ?? '');
+        setDrawingReference(part.drawingReference ?? '');
         setStatus(part.status ?? 'ACTIVE');
-        setIsActive(part.isActive ?? true);
+        setIsBatchTracked(part.isBatchTracked ?? false);
+        setIsSerialTracked(part.isSerialTracked ?? false);
+        setIsBomEnabled(part.isBomEnabled ?? false);
+        setIsQcRequired(part.isQcRequired ?? false);
+        setIsInventoryItem(part.isInventoryItem ?? true);
       } else {
         setPartNumber('');
         setName('');
         setEngineeringPartNo('');
-        setCategoryId('');
         setProductModelId('');
+        setCategoryId('');
+        setUomId('');
         setPartType('FINISH_PART');
+        setHsnCode('');
+        setWeight('');
+        setDimensions('');
+        setRevision('');
+        setDrawingReference('');
         setStatus('ACTIVE');
-        setIsActive(true);
+        setIsBatchTracked(false);
+        setIsSerialTracked(false);
+        setIsBomEnabled(false);
+        setIsQcRequired(false);
+        setIsInventoryItem(true);
       }
       setErrors({});
-      setShowCategoryDropdown(false);
-      setShowModelDropdown(false);
-      setShowTypeDropdown(false);
-      setShowStatusDropdown(false);
+      closeAllDropdowns();
     }
   }, [visible, part]);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const selectedModel = productModels.find((m) => m.id === productModelId);
+  const selectedUom = uoms.find((u) => u.id === uomId);
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -334,13 +502,62 @@ function PartFormSheet({
       name: name.trim(),
       partType,
       status,
-      isActive,
     };
     if (partNumber.trim()) data.partNumber = partNumber.trim();
     if (engineeringPartNo.trim()) data.engineeringPartNo = engineeringPartNo.trim();
-    if (categoryId) data.categoryId = categoryId;
     if (productModelId) data.productModelId = productModelId;
+    if (categoryId) data.categoryId = categoryId;
+    if (uomId) data.uomId = uomId;
+    if (hsnCode.trim()) data.hsnCode = hsnCode.trim();
+    if (weight.trim()) data.weight = parseFloat(weight);
+    if (dimensions.trim()) data.dimensions = dimensions.trim();
+    if (revision.trim()) data.revision = revision.trim();
+    if (drawingReference.trim()) data.drawingReference = drawingReference.trim();
+    data.isBatchTracked = isBatchTracked;
+    data.isSerialTracked = isSerialTracked;
+    data.isBomEnabled = isBomEnabled;
+    data.isQcRequired = isQcRequired;
+    data.isInventoryItem = isInventoryItem;
     onSubmit(data);
+  };
+
+  const handleCreateModel = (values: Record<string, string>) => {
+    createModelMutation.mutate(
+      { name: values.name?.trim(), code: values.code?.trim() || undefined },
+      {
+        onSuccess: (res: any) => {
+          const created = res?.data ?? res;
+          if (created?.id) setProductModelId(created.id);
+          setShowCreateModel(false);
+        },
+      },
+    );
+  };
+
+  const handleCreateCategory = (values: Record<string, string>) => {
+    createCategoryMutation.mutate(
+      { name: values.name?.trim(), code: values.code?.trim() || undefined },
+      {
+        onSuccess: (res: any) => {
+          const created = res?.data ?? res;
+          if (created?.id) setCategoryId(created.id);
+          setShowCreateCategory(false);
+        },
+      },
+    );
+  };
+
+  const handleCreateUom = (values: Record<string, string>) => {
+    createUomMutation.mutate(
+      { name: values.name?.trim(), abbreviation: values.abbreviation?.trim() || undefined },
+      {
+        onSuccess: (res: any) => {
+          const created = res?.data ?? res;
+          if (created?.id) setUomId(created.id);
+          setShowCreateUom(false);
+        },
+      },
+    );
   };
 
   const renderDropdownField = (
@@ -353,11 +570,21 @@ function PartFormSheet({
     selectedId: string,
     onSelect: (val: string) => void,
     onCloseDropdown: () => void,
+    onCreateNew?: () => void,
   ) => (
     <View style={[sheetStyles.field, { zIndex: isOpen ? 100 : 1 }]}>
-      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-        {label}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+          {label}
+        </Text>
+        {onCreateNew ? (
+          <Pressable onPress={onCreateNew} hitSlop={8}>
+            <Text className="font-inter text-xs font-bold text-primary-600">
+              + New
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
       <Pressable
         onPress={toggle}
         style={[
@@ -440,6 +667,33 @@ function PartFormSheet({
     </View>
   );
 
+  const renderToggleRow = (
+    label: string,
+    subtitle: string,
+    value: boolean,
+    onValueChange: (v: boolean) => void,
+  ) => (
+    <View style={sheetStyles.toggleRow}>
+      <View style={{ flex: 1 }}>
+        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+          {label}
+        </Text>
+        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+          {subtitle}
+        </Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{
+          false: colors.neutral[200],
+          true: colors.primary[400],
+        }}
+        thumbColor={value ? colors.primary[600] : colors.neutral[300]}
+      />
+    </View>
+  );
+
   return (
     <RNModal
       visible={visible}
@@ -470,22 +724,7 @@ function PartFormSheet({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Part Number */}
-          <View style={sheetStyles.field}>
-            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-              Part Number
-            </Text>
-            <TextInput
-              style={sheetStyles.input}
-              placeholder="Leave blank to auto-generate"
-              placeholderTextColor={colors.neutral[400]}
-              value={partNumber}
-              onChangeText={(v) => { setPartNumber(v); }}
-              autoCapitalize="characters"
-            />
-          </View>
-
-          {/* Name */}
+          {/* 1. Part Name (required) */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Part Name <Text className="text-danger-500">*</Text>
@@ -508,7 +747,24 @@ function PartFormSheet({
             ) : null}
           </View>
 
-          {/* Engineering Part No */}
+          {/* 2. Product Model + New */}
+          {renderDropdownField(
+            'Product Model',
+            selectedModel?.name,
+            'Select product model',
+            showModelDropdown,
+            () => {
+              closeAllDropdowns();
+              setShowModelDropdown((v) => !v);
+            },
+            productModels,
+            productModelId,
+            setProductModelId,
+            () => setShowModelDropdown(false),
+            () => setShowCreateModel(true),
+          )}
+
+          {/* 3. Engineering Part No */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Engineering Part No
@@ -522,71 +778,15 @@ function PartFormSheet({
             />
           </View>
 
-          {/* Category Dropdown */}
-          {renderDropdownField(
-            'Category',
-            selectedCategory?.name,
-            'Select category',
-            showCategoryDropdown,
-            () => {
-              setShowCategoryDropdown((v) => !v);
-              setShowModelDropdown(false);
-              setShowTypeDropdown(false);
-              setShowStatusDropdown(false);
-            },
-            categories,
-            categoryId,
-            setCategoryId,
-            () => setShowCategoryDropdown(false),
-          )}
-
-          {/* Product Model Dropdown */}
-          {renderDropdownField(
-            'Product Model',
-            selectedModel?.name,
-            'Select product model',
-            showModelDropdown,
-            () => {
-              setShowModelDropdown((v) => !v);
-              setShowCategoryDropdown(false);
-              setShowTypeDropdown(false);
-              setShowStatusDropdown(false);
-            },
-            productModels,
-            productModelId,
-            setProductModelId,
-            () => setShowModelDropdown(false),
-          )}
-
-          {/* Part Type Dropdown */}
-          {renderDropdownField(
-            'Part Type',
-            formatPartType(partType),
-            'Select part type',
-            showTypeDropdown,
-            () => {
-              setShowTypeDropdown((v) => !v);
-              setShowCategoryDropdown(false);
-              setShowModelDropdown(false);
-              setShowStatusDropdown(false);
-            },
-            PART_TYPE_OPTIONS,
-            partType,
-            setPartType,
-            () => setShowTypeDropdown(false),
-          )}
-
-          {/* Status Dropdown */}
+          {/* 4. Status Dropdown */}
           {renderDropdownField(
             'Status',
             status,
             'Select status',
             showStatusDropdown,
             () => {
+              closeAllDropdowns();
               setShowStatusDropdown((v) => !v);
-              setShowCategoryDropdown(false);
-              setShowModelDropdown(false);
-              setShowTypeDropdown(false);
             },
             STATUS_OPTIONS,
             status,
@@ -594,28 +794,155 @@ function PartFormSheet({
             () => setShowStatusDropdown(false),
           )}
 
-          {/* Active Toggle */}
-          <View style={sheetStyles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                {isActive ? 'Active' : 'Inactive'}
-              </Text>
-              <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
-                {isActive
-                  ? 'Part is available for use in production'
-                  : 'Part is disabled and hidden from selections'}
-              </Text>
-            </View>
-            <Switch
-              value={isActive}
-              onValueChange={setIsActive}
-              trackColor={{
-                false: colors.neutral[200],
-                true: colors.primary[400],
-              }}
-              thumbColor={isActive ? colors.primary[600] : colors.neutral[300]}
+          {/* 5. Part Number (auto-generate hint) */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Part Number
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="Leave blank to auto-generate"
+              placeholderTextColor={colors.neutral[400]}
+              value={partNumber}
+              onChangeText={(v) => { setPartNumber(v); }}
+              autoCapitalize="characters"
             />
           </View>
+
+          {/* 6. Category + New */}
+          {renderDropdownField(
+            'Category',
+            selectedCategory?.name,
+            'Select category',
+            showCategoryDropdown,
+            () => {
+              closeAllDropdowns();
+              setShowCategoryDropdown((v) => !v);
+            },
+            categories,
+            categoryId,
+            setCategoryId,
+            () => setShowCategoryDropdown(false),
+            () => setShowCreateCategory(true),
+          )}
+
+          {/* 7. Unit of Measure + New */}
+          {renderDropdownField(
+            'Unit of Measure',
+            selectedUom?.name,
+            'Select unit of measure',
+            showUomDropdown,
+            () => {
+              closeAllDropdowns();
+              setShowUomDropdown((v) => !v);
+            },
+            uoms,
+            uomId,
+            setUomId,
+            () => setShowUomDropdown(false),
+            () => setShowCreateUom(true),
+          )}
+
+          {/* 8. Part Type Dropdown */}
+          {renderDropdownField(
+            'Part Type',
+            formatPartType(partType),
+            'Select part type',
+            showTypeDropdown,
+            () => {
+              closeAllDropdowns();
+              setShowTypeDropdown((v) => !v);
+            },
+            PART_TYPE_OPTIONS,
+            partType,
+            setPartType,
+            () => setShowTypeDropdown(false),
+          )}
+
+          {/* 9. HSN Code */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              HSN Code
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="Enter HSN code"
+              placeholderTextColor={colors.neutral[400]}
+              value={hsnCode}
+              onChangeText={setHsnCode}
+            />
+          </View>
+
+          {/* 10. Weight (kg) */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Weight (kg)
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="Enter weight"
+              placeholderTextColor={colors.neutral[400]}
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="decimal-pad"
+            />
+          </View>
+
+          {/* 11. Dimensions */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Dimensions
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="e.g. 300x200x150mm"
+              placeholderTextColor={colors.neutral[400]}
+              value={dimensions}
+              onChangeText={setDimensions}
+            />
+          </View>
+
+          {/* 12. Revision */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Revision
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="e.g. Rev A"
+              placeholderTextColor={colors.neutral[400]}
+              value={revision}
+              onChangeText={setRevision}
+            />
+          </View>
+
+          {/* 13. Drawing Reference */}
+          <View style={sheetStyles.field}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+              Drawing Reference
+            </Text>
+            <TextInput
+              style={sheetStyles.input}
+              placeholder="e.g. DWG-CS-001"
+              placeholderTextColor={colors.neutral[400]}
+              value={drawingReference}
+              onChangeText={setDrawingReference}
+            />
+          </View>
+
+          {/* 14. Capabilities Section Header */}
+          <View style={sheetStyles.sectionHeader}>
+            <Text className="font-inter text-sm font-bold text-primary-900 dark:text-primary-100">
+              Capabilities
+            </Text>
+          </View>
+
+          {/* 15. Toggle switches */}
+          {renderToggleRow('Batch Tracked', 'Track parts in batches', isBatchTracked, setIsBatchTracked)}
+          {renderToggleRow('Serial Tracked', 'Track individual serial numbers', isSerialTracked, setIsSerialTracked)}
+          {renderToggleRow('BOM Enabled', 'Part has a Bill of Materials', isBomEnabled, setIsBomEnabled)}
+          {renderToggleRow('QC Required', 'Quality check required', isQcRequired, setIsQcRequired)}
+          {renderToggleRow('Inventory Item', 'Tracked in inventory', isInventoryItem, setIsInventoryItem)}
         </ScrollView>
 
         {/* Submit Button */}
@@ -641,6 +968,41 @@ function PartFormSheet({
           </Pressable>
         </View>
       </View>
+
+      {/* Inline Create Modals */}
+      <InlineCreateModal
+        visible={showCreateModel}
+        onClose={() => setShowCreateModel(false)}
+        title="New Product Model"
+        fields={[
+          { key: 'name', label: 'Name', placeholder: 'Enter model name', required: true },
+          { key: 'code', label: 'Code', placeholder: 'Optional code' },
+        ]}
+        onSubmit={handleCreateModel}
+        isSubmitting={createModelMutation.isPending}
+      />
+      <InlineCreateModal
+        visible={showCreateCategory}
+        onClose={() => setShowCreateCategory(false)}
+        title="New Category"
+        fields={[
+          { key: 'name', label: 'Name', placeholder: 'Enter category name', required: true },
+          { key: 'code', label: 'Code', placeholder: 'Optional code' },
+        ]}
+        onSubmit={handleCreateCategory}
+        isSubmitting={createCategoryMutation.isPending}
+      />
+      <InlineCreateModal
+        visible={showCreateUom}
+        onClose={() => setShowCreateUom(false)}
+        title="New Unit of Measure"
+        fields={[
+          { key: 'name', label: 'Name', placeholder: 'Enter UOM name', required: true },
+          { key: 'abbreviation', label: 'Abbreviation', placeholder: 'e.g. kg, pcs, m' },
+        ]}
+        onSubmit={handleCreateUom}
+        isSubmitting={createUomMutation.isPending}
+      />
     </RNModal>
   );
 }
@@ -674,6 +1036,13 @@ export function PartMasterScreen() {
     const list = Array.isArray(data) ? data : [];
     return list.map((m: any) => ({ id: m.id ?? '', name: m.name ?? '' }));
   }, [modelsRaw]);
+
+  const { data: uomsRaw } = useUoms();
+  const uomsList: DropdownOption[] = React.useMemo(() => {
+    const data = (uomsRaw as any)?.data ?? uomsRaw ?? [];
+    const list = Array.isArray(data) ? data : [];
+    return list.map((u: any) => ({ id: u.id ?? '', name: u.name ?? '' }));
+  }, [uomsRaw]);
 
   // Fetch parts
   const statusParam =
@@ -864,6 +1233,7 @@ export function PartMasterScreen() {
         part={editingPart}
         categories={categories}
         productModels={productModels}
+        uoms={uomsList}
         onSubmit={handleSubmit}
         isSubmitting={createPart.isPending || updatePart.isPending}
       />
@@ -1038,6 +1408,13 @@ const sheetStyles = StyleSheet.create({
     borderTopColor: colors.neutral[100],
     backgroundColor: colors.white,
   },
+  sectionHeader: {
+    marginBottom: 16,
+    marginTop: 4,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+  },
   submitBtn: {
     backgroundColor: colors.primary[600],
     borderRadius: 14,
@@ -1049,5 +1426,34 @@ const sheetStyles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
+  },
+});
+
+const inlineModalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  content: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  btn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

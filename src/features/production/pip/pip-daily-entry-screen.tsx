@@ -130,7 +130,9 @@ export function PipDailyEntryScreen() {
     return Array.isArray(raw) ? raw : [];
   }, [slabsRaw]);
 
-  const { data: employeesRaw, isLoading: employeesLoading } = useEmployees();
+  const { data: employeesRaw, isLoading: employeesLoading } = useEmployees({
+    limit: 100,
+  });
   const operators: OperatorOption[] = React.useMemo(() => {
     const raw = (employeesRaw as any)?.data ?? employeesRaw ?? [];
     if (!Array.isArray(raw)) return [];

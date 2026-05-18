@@ -7,6 +7,9 @@ import { pipApi } from '@/lib/api/pip';
 export const pipKeys = {
   all: ['pip'] as const,
   config: () => [...pipKeys.all, 'config'] as const,
+  operations: (params?: Record<string, unknown>) =>
+    params ? ([...pipKeys.all, 'operations', params] as const) : ([...pipKeys.all, 'operations'] as const),
+  operation: (id: string) => [...pipKeys.all, 'operation', id] as const,
   slabConfigs: (params?: Record<string, unknown>) =>
     params ? ([...pipKeys.all, 'slab-configs', params] as const) : ([...pipKeys.all, 'slab-configs'] as const),
   slabConfig: (id: string) => [...pipKeys.all, 'slab-config', id] as const,
@@ -23,6 +26,21 @@ export const pipKeys = {
 };
 
 // --- Queries ---
+
+export function useOperations(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: pipKeys.operations(params),
+    queryFn: () => pipApi.listOperations(params),
+  });
+}
+
+export function useOperation(id: string) {
+  return useQuery({
+    queryKey: pipKeys.operation(id),
+    queryFn: () => pipApi.getOperation(id),
+    enabled: !!id,
+  });
+}
 
 export function usePipConfig() {
   return useQuery({

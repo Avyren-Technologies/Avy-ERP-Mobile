@@ -4,6 +4,46 @@ import { showError, showSuccess } from '@/components/ui/utils';
 import { pipApi } from '@/lib/api/pip';
 import { pipKeys } from '@/features/production/pip/api/use-pip-queries';
 
+// ── Operations ────────────────────────────────────────────────────────
+
+export function useCreateOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => pipApi.createOperation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.all });
+      showSuccess('Operation created', 'New operation has been added');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      pipApi.updateOperation(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.operation(variables.id) });
+      queryClient.invalidateQueries({ queryKey: pipKeys.all });
+      showSuccess('Operation updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pipApi.deleteOperation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.all });
+      showSuccess('Operation deleted');
+    },
+    onError: showError,
+  });
+}
+
 // ── Config ─────────────────────────────────────────────────────────────
 
 export function useUpdatePipConfig() {

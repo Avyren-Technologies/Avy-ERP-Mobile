@@ -2,6 +2,19 @@ import { client } from '@/lib/api/client';
 
 // ---------- Types ----------
 
+export interface Operation {
+  id: string;
+  companyId: string;
+  code: string;
+  operationNumber: string;
+  name: string;
+  processType: string;
+  status: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SlabTier {
   fromQty: number;
   toQty: number | null;
@@ -16,6 +29,8 @@ export interface PipSlabConfig {
   machine?: { id: string; assetCode: string; assetName: string };
   partId: string;
   part?: { id: string; partNumber: string; name: string };
+  operationId: string;
+  operation?: { id: string; code: string; name: string; operationNumber: string; processType: string };
   shiftTargetQty: number;
   slabTiers: SlabTier[];
   isActive: boolean;
@@ -35,6 +50,8 @@ export interface PipDailyEntry {
   machineId: string;
   partId: string;
   slabConfigId?: string;
+  operationId?: string;
+  operation?: { id: string; code: string; name: string };
   qtyProduced: number;
   shiftTargetQty: number;
   achievementPct: number;
@@ -124,6 +141,18 @@ export interface CalculationResult {
 // ---------- PIP API ----------
 
 export const pipApi = {
+  // Operations
+  listOperations: (params?: Record<string, unknown>) =>
+    client.get('/production/pip/operations', { params }),
+  getOperation: (id: string) =>
+    client.get(`/production/pip/operations/${id}`),
+  createOperation: (data: Record<string, unknown>) =>
+    client.post('/production/pip/operations', data),
+  updateOperation: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/production/pip/operations/${id}`, data),
+  deleteOperation: (id: string) =>
+    client.delete(`/production/pip/operations/${id}`),
+
   // Config
   getConfig: () =>
     client.get('/production/pip/config'),

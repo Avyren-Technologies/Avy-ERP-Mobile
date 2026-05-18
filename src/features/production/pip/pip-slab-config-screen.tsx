@@ -899,7 +899,6 @@ export function PipSlabConfigScreen() {
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        estimatedItemSize={180}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}

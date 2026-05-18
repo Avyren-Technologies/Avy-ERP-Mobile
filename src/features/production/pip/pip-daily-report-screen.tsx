@@ -391,7 +391,6 @@ export function PipDailyReportScreen() {
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={140}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}

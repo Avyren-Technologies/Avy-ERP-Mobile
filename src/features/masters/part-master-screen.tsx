@@ -1256,7 +1256,6 @@ export function PartMasterScreen() {
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        estimatedItemSize={110}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}

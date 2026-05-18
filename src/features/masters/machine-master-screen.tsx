@@ -1047,7 +1047,6 @@ export function MachineMasterScreen() {
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        estimatedItemSize={110}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}

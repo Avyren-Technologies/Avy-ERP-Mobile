@@ -65,10 +65,20 @@ interface PartEntry {
   ncCount: string;
 }
 
+interface OperationOption {
+  id: string;
+  code: string;
+  name: string;
+  operationNumber: string;
+}
+
 interface MachineSession {
   machineId: string;
   machineName: string;
   machineCode: string;
+  operationId: string;
+  operationName: string;
+  operationCode: string;
   parts: PartEntry[];
 }
 
@@ -128,6 +138,9 @@ export function PipDailyEntryScreen() {
   const [selectedOperator, setSelectedOperator] = React.useState<OperatorOption | null>(null);
   const [machineSessions, setMachineSessions] = React.useState<MachineSession[]>([]);
   const [currentMachineId, setCurrentMachineId] = React.useState('');
+  // Operation picker: null = no pending machine, otherwise picking operation for this machine
+  const [pendingMachine, setPendingMachine] = React.useState<MachineOption | null>(null);
+  const [pendingOperations, setPendingOperations] = React.useState<OperationOption[]>([]);
   const [operatorSearch, setOperatorSearch] = React.useState('');
   const [partFilter, setPartFilter] = React.useState('');
   const [isSaving, setIsSaving] = React.useState(false);
@@ -275,13 +288,47 @@ export function PipDailyEntryScreen() {
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
   const selectMachine = (machine: MachineOption) => {
+    const machineSlabs = slabConfigs.filter((sc) => sc.machineId === machine.id && sc.isActive);
+    const uniqueOpsMap = new Map<string, OperationOption>();
+    machineSlabs.forEach((sc) => {
+      if (sc.operationId && sc.operation && !uniqueOpsMap.has(sc.operationId)) {
+        uniqueOpsMap.set(sc.operationId, {
+          id: sc.operationId,
+          code: sc.operation.code,
+          name: sc.operation.name,
+          operationNumber: sc.operation.operationNumber,
+        });
+      }
+    });
+    const uniqueOps = Array.from(uniqueOpsMap.values());
+
+    if (uniqueOps.length === 1) {
+      // Auto-select the single operation
+      confirmMachineWithOperation(machine, uniqueOps[0]);
+    } else if (uniqueOps.length > 1) {
+      // Show operation picker
+      setPendingMachine(machine);
+      setPendingOperations(uniqueOps);
+    } else {
+      // No operations on slab configs (shouldn't happen) — proceed with empty operation
+      confirmMachineWithOperation(machine, null);
+    }
+  };
+
+  const confirmMachineWithOperation = (machine: MachineOption, operation: OperationOption | null) => {
+    setPendingMachine(null);
+    setPendingOperations([]);
     setCurrentMachineId(machine.id);
     setPartFilter('');
-    // Initialize parts for this machine if not already in sessions
-    const existing = machineSessions.find((ms) => ms.machineId === machine.id);
+
+    const existing = machineSessions.find((ms) => ms.machineId === machine.id && ms.operationId === (operation?.id ?? ''));
     if (!existing) {
       const parts = slabConfigs
-        .filter((sc) => sc.machineId === machine.id && sc.isActive)
+        .filter((sc) =>
+          sc.machineId === machine.id &&
+          sc.isActive &&
+          (operation ? sc.operationId === operation.id : true),
+        )
         .map((sc) => ({
           partId: sc.partId,
           partNumber: sc.part?.partNumber ?? '',
@@ -297,6 +344,9 @@ export function PipDailyEntryScreen() {
           machineId: machine.id,
           machineName: machine.name,
           machineCode: machine.code,
+          operationId: operation?.id ?? '',
+          operationName: operation?.name ?? '',
+          operationCode: operation?.code ?? '',
           parts,
         },
       ]);
@@ -337,6 +387,7 @@ export function PipDailyEntryScreen() {
           machineId: ms.machineId,
           partId: p.partId,
           slabConfigId: p.slabConfigId,
+          ...(ms.operationId ? { operationId: ms.operationId } : {}),
           qtyProduced: Number(p.qtyProduced),
           ncCount: Number(p.ncCount) || 0,
         })),
@@ -360,6 +411,8 @@ export function PipDailyEntryScreen() {
           setSelectedOperator(null);
           setMachineSessions([]);
           setCurrentMachineId('');
+          setPendingMachine(null);
+          setPendingOperations([]);
         },
         onSettled: () => setIsSaving(false),
       },
@@ -703,96 +756,165 @@ export function PipDailyEntryScreen() {
           </Animated.View>
         )}
 
-        {/* Step 1: Select Machine */}
+        {/* Step 1: Select Machine (or pick operation for pending machine) */}
         {currentStep === 1 && (
           <Animated.View entering={FadeIn.duration(300)}>
-            <Text className="mb-2 font-inter text-base font-bold text-primary-950 dark:text-white">
-              Select Machine
-            </Text>
-            <Text className="mb-4 font-inter text-xs text-neutral-500 dark:text-neutral-400">
-              Only machines with slab configurations are shown. Tap to add.
-            </Text>
-
-            {/* Already added machines */}
-            {machineSessions.length > 0 && (
-              <View style={{ marginBottom: 16 }}>
-                <Text className="mb-2 font-inter text-xs font-bold text-success-700">
-                  Added ({machineSessions.length})
+            {pendingMachine ? (
+              /* Operation picker — shown when machine has multiple operations */
+              <>
+                <View style={styles.operationPickerHeader}>
+                  <Pressable
+                    onPress={() => { setPendingMachine(null); setPendingOperations([]); }}
+                    style={({ pressed }) => [styles.backChip, pressed && { opacity: 0.7 }]}
+                    hitSlop={8}
+                  >
+                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                      <Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                    <Text className="font-inter text-xs font-semibold text-primary-600">Back</Text>
+                  </Pressable>
+                </View>
+                <Text className="mb-1 font-inter text-base font-bold text-primary-950 dark:text-white">
+                  Select Operation
                 </Text>
-                {machineSessions.map((ms) => (
-                  <View
-                    key={ms.machineId}
+                <Text className="mb-4 font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                  {pendingMachine.name} ({pendingMachine.code}) has multiple operations. Choose one.
+                </Text>
+                {pendingOperations.map((op) => (
+                  <Pressable
+                    key={op.id}
+                    onPress={() => confirmMachineWithOperation(pendingMachine, op)}
                     style={[
-                      styles.addedMachine,
-                      { backgroundColor: isDark ? colors.success[900] : colors.success[50] },
+                      styles.optionCard,
+                      {
+                        backgroundColor: isDark ? '#1A1730' : colors.white,
+                        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
                     ]}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text className="font-inter text-sm font-semibold text-success-700">
-                        {ms.machineName}
-                      </Text>
-                      <Text className="font-inter text-[11px] text-success-600">
-                        {ms.machineCode} - {ms.parts.length} part(s)
+                    <View
+                      style={[
+                        styles.opIconBadge,
+                        { backgroundColor: isDark ? colors.accent[900] : colors.accent[50] },
+                      ]}
+                    >
+                      <Text className="font-inter text-[10px] font-bold text-accent-700">
+                        {op.operationNumber}
                       </Text>
                     </View>
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                        {op.name}
+                      </Text>
+                      <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
+                        {op.code}
+                      </Text>
+                    </View>
+                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                      <Path
+                        d="M9 6l6 6-6 6"
+                        stroke={colors.primary[500]}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </Svg>
+                  </Pressable>
+                ))}
+              </>
+            ) : (
+              /* Machine list */
+              <>
+                <Text className="mb-2 font-inter text-base font-bold text-primary-950 dark:text-white">
+                  Select Machine
+                </Text>
+                <Text className="mb-4 font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                  Only machines with slab configurations are shown. Tap to add.
+                </Text>
+
+                {/* Already added machines */}
+                {machineSessions.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text className="mb-2 font-inter text-xs font-bold text-success-700">
+                      Added ({machineSessions.length})
+                    </Text>
+                    {machineSessions.map((ms) => (
+                      <View
+                        key={`${ms.machineId}-${ms.operationId}`}
+                        style={[
+                          styles.addedMachine,
+                          { backgroundColor: isDark ? colors.success[900] : colors.success[50] },
+                        ]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text className="font-inter text-sm font-semibold text-success-700">
+                            {ms.machineName}
+                          </Text>
+                          <Text className="font-inter text-[11px] text-success-600">
+                            {ms.machineCode}
+                            {ms.operationName ? ` · ${ms.operationCode} ${ms.operationName}` : ''}
+                            {` — ${ms.parts.length} part(s)`}
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={() => removeMachineSession(ms.machineId)}
+                          hitSlop={8}
+                        >
+                          <Svg width={16} height={16} viewBox="0 0 24 24">
+                            <Path
+                              d="M18 6L6 18M6 6l12 12"
+                              stroke={colors.danger[500]}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </Svg>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Available machines */}
+                {availableMachines
+                  .filter((m) => !machineSessions.find((ms) => ms.machineId === m.id))
+                  .map((machine) => (
                     <Pressable
-                      onPress={() => removeMachineSession(ms.machineId)}
-                      hitSlop={8}
+                      key={machine.id}
+                      onPress={() => selectMachine(machine)}
+                      style={[
+                        styles.optionCard,
+                        {
+                          backgroundColor: isDark ? '#1A1730' : colors.white,
+                          borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                        },
+                      ]}
                     >
-                      <Svg width={16} height={16} viewBox="0 0 24 24">
+                      <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                          {machine.name}
+                        </Text>
+                        <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
+                          {machine.code}
+                        </Text>
+                      </View>
+                      <Svg width={18} height={18} viewBox="0 0 24 24">
                         <Path
-                          d="M18 6L6 18M6 6l12 12"
-                          stroke={colors.danger[500]}
+                          d="M12 5v14M5 12h14"
+                          stroke={colors.primary[500]}
                           strokeWidth="2"
                           strokeLinecap="round"
                         />
                       </Svg>
                     </Pressable>
-                  </View>
-                ))}
-              </View>
-            )}
+                  ))}
 
-            {/* Available machines */}
-            {availableMachines
-              .filter((m) => !machineSessions.find((ms) => ms.machineId === m.id))
-              .map((machine) => (
-                <Pressable
-                  key={machine.id}
-                  onPress={() => selectMachine(machine)}
-                  style={[
-                    styles.optionCard,
-                    {
-                      backgroundColor: isDark ? '#1A1730' : colors.white,
-                      borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                      {machine.name}
-                    </Text>
-                    <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
-                      {machine.code}
-                    </Text>
-                  </View>
-                  <Svg width={18} height={18} viewBox="0 0 24 24">
-                    <Path
-                      d="M12 5v14M5 12h14"
-                      stroke={colors.primary[500]}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </Svg>
-                </Pressable>
-              ))}
-
-            {availableMachines.length === 0 && (
-              <EmptyState
-                icon="inbox"
-                title="No machines available"
-                message="Configure slab tiers for machines first."
-              />
+                {availableMachines.length === 0 && (
+                  <EmptyState
+                    icon="inbox"
+                    title="No machines available"
+                    message="Configure slab tiers for machines first."
+                  />
+                )}
+              </>
             )}
           </Animated.View>
         )}
@@ -823,16 +945,25 @@ export function PipDailyEntryScreen() {
               });
 
               return (
-              <View key={ms.machineId} style={{ marginBottom: 20 }}>
+              <View key={`${ms.machineId}-${ms.operationId}`} style={{ marginBottom: 20 }}>
                 <View
                   style={[
                     styles.machineHeader,
                     { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
                   ]}
                 >
-                  <Text className="font-inter text-xs font-bold text-primary-700">
-                    {ms.machineName} ({ms.machineCode})
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                    <Text className="font-inter text-xs font-bold text-primary-700">
+                      {ms.machineName} ({ms.machineCode})
+                    </Text>
+                    {ms.operationName ? (
+                      <View style={[styles.opBadge, { backgroundColor: isDark ? colors.accent[800] : colors.accent[100] }]}>
+                        <Text className="font-inter text-[9px] font-semibold text-accent-700">
+                          {ms.operationCode} · {ms.operationName}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
 
                 {filteredParts.length === 0 && ms.parts.length > 0 ? (
@@ -988,7 +1119,7 @@ export function PipDailyEntryScreen() {
             {/* Machine breakdowns */}
             {machineSessions.map((ms) => (
               <View
-                key={ms.machineId}
+                key={`${ms.machineId}-${ms.operationId}`}
                 style={[
                   styles.reviewCard,
                   {
@@ -997,9 +1128,18 @@ export function PipDailyEntryScreen() {
                   },
                 ]}
               >
-                <Text className="mb-2 font-inter text-sm font-bold text-primary-950 dark:text-white">
-                  {ms.machineName} ({ms.machineCode})
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
+                    {ms.machineName} ({ms.machineCode})
+                  </Text>
+                  {ms.operationName ? (
+                    <View style={[styles.opBadge, { backgroundColor: isDark ? colors.accent[800] : colors.accent[100] }]}>
+                      <Text className="font-inter text-[9px] font-semibold text-accent-700">
+                        {ms.operationCode} · {ms.operationName}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
                 {ms.parts.map((p) => {
                   const qty = Number(p.qtyProduced) || 0;
                   return (
@@ -1057,6 +1197,8 @@ export function PipDailyEntryScreen() {
                   setSelectedOperator(null);
                   setMachineSessions([]);
                   setCurrentMachineId('');
+                  setPendingMachine(null);
+                  setPendingOperations([]);
                 }}
               >
                 <Text className="font-inter text-sm font-bold text-white">New Entry</Text>
@@ -1374,6 +1516,32 @@ const createStyles = (isDark: boolean) =>
       borderWidth: 1,
       padding: 12,
       marginBottom: 6,
+    },
+    operationPickerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    backChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: isDark ? '#1A1730' : colors.primary[50],
+    },
+    opIconBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    opBadge: {
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 6,
     },
     bottomBar: {
       paddingHorizontal: 24,

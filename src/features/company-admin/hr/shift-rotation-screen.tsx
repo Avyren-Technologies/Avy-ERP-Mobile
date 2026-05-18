@@ -604,10 +604,12 @@ export function ShiftRotationScreen() {
     const availableShifts: CompanyShift[] = React.useMemo(() => {
         const raw = (shiftsResponse as any)?.data ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((s: any) => ({ id: s.id, name: s.name, fromTime: s.fromTime ?? '', toTime: s.toTime ?? '' }));
+        return raw
+            .filter((s: any) => !s.noShuffle)
+            .map((s: any) => ({ id: s.id, name: s.name, fromTime: s.startTime ?? '', toTime: s.endTime ?? '' }));
     }, [shiftsResponse]);
 
-    const { data: empResponse } = useEmployees();
+    const { data: empResponse } = useEmployees({ limit: 500 });
     const allEmployees: Employee[] = React.useMemo(() => {
         const raw = (empResponse as any)?.data ?? [];
         if (!Array.isArray(raw)) return [];

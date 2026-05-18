@@ -307,6 +307,8 @@ function PartFormSheet({
   isSubmitting: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const isDark = useIsDark();
+  const sheetStyles = createSheetStyles(isDark);
   const isEdit = !!part;
 
   // Form state — 18 fields
@@ -1058,28 +1060,28 @@ export function PartMasterScreen() {
   // Fetch categories and product models for dropdowns
   const { data: categoriesRaw } = usePartCategories();
   const categories: DropdownOption[] = React.useMemo(() => {
-    const data = (categoriesRaw as any)?.data ?? categoriesRaw ?? [];
+    const data = (categoriesRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((c: any) => ({ id: c.id ?? '', name: c.name ?? '' }));
   }, [categoriesRaw]);
 
   const { data: modelsRaw } = useProductModels();
   const productModels: DropdownOption[] = React.useMemo(() => {
-    const data = (modelsRaw as any)?.data ?? modelsRaw ?? [];
+    const data = (modelsRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((m: any) => ({ id: m.id ?? '', name: m.name ?? '' }));
   }, [modelsRaw]);
 
   const { data: uomsRaw } = useUoms();
   const uomsList: DropdownOption[] = React.useMemo(() => {
-    const data = (uomsRaw as any)?.data ?? uomsRaw ?? [];
+    const data = (uomsRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((u: any) => ({ id: u.id ?? '', name: u.name ?? '' }));
   }, [uomsRaw]);
 
   const { data: componentTypesRaw } = useComponentTypes();
   const componentTypesList: DropdownOption[] = React.useMemo(() => {
-    const data = (componentTypesRaw as any)?.data ?? componentTypesRaw ?? [];
+    const data = (componentTypesRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((ct: any) => ({ id: ct.id ?? '', name: ct.name ?? '' }));
   }, [componentTypesRaw]);
@@ -1103,7 +1105,7 @@ export function PartMasterScreen() {
   });
 
   const parts: PartData[] = React.useMemo(() => {
-    const raw = (response as any)?.data ?? response ?? [];
+    const raw = (response as any)?.data ?? [];
     if (!Array.isArray(raw)) return [];
     return raw.map(mapApiPart);
   }, [response]);
@@ -1375,98 +1377,99 @@ const cardStyles = StyleSheet.create({
   },
 });
 
-const sheetStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  formContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  field: {
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: colors.primary[950],
-  },
-  inputError: {
-    borderColor: colors.danger[400],
-    borderWidth: 1.5,
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    zIndex: 200,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 20,
-    overflow: 'hidden',
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  submitContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-    backgroundColor: colors.white,
-  },
-  sectionHeader: {
-    marginBottom: 16,
-    marginTop: 4,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  submitBtn: {
-    backgroundColor: colors.primary[600],
-    borderRadius: 14,
-    height: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary[500],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-});
+const createSheetStyles = (isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? '#1A1730' : colors.white,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100],
+    },
+    formContent: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    field: {
+      marginBottom: 20,
+    },
+    input: {
+      backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 14,
+      color: isDark ? colors.white : colors.primary[950],
+    },
+    inputError: {
+      borderColor: colors.danger[400],
+      borderWidth: 1.5,
+    },
+    dropdown: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      zIndex: 200,
+      backgroundColor: isDark ? '#1A1730' : '#fff',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: isDark ? colors.primary[800] : colors.primary[200],
+      marginTop: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 10,
+      elevation: 20,
+      overflow: 'hidden',
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+    },
+    submitContainer: {
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100],
+      backgroundColor: isDark ? '#1A1730' : colors.white,
+    },
+    sectionHeader: {
+      marginBottom: 16,
+      marginTop: 4,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100],
+    },
+    submitBtn: {
+      backgroundColor: colors.primary[600],
+      borderRadius: 14,
+      height: 52,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: colors.primary[500],
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+  });
 

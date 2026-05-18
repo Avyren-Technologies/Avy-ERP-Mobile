@@ -315,6 +315,8 @@ function MachineFormSheet({
   onManageZone: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const isDark = useIsDark();
+  const sheetStyles = createSheetStyles(isDark);
   const isEdit = !!machine;
 
   const [assetCode, setAssetCode] = React.useState('');
@@ -834,21 +836,21 @@ export function MachineMasterScreen() {
   // Fetch dropdowns
   const { data: categoriesRaw } = useMachineCategories();
   const categories: DropdownOption[] = React.useMemo(() => {
-    const data = (categoriesRaw as any)?.data ?? categoriesRaw ?? [];
+    const data = (categoriesRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((c: any) => ({ id: c.id ?? '', name: c.name ?? '' }));
   }, [categoriesRaw]);
 
   const { data: typesRaw } = useMachineTypes();
   const types: DropdownOption[] = React.useMemo(() => {
-    const data = (typesRaw as any)?.data ?? typesRaw ?? [];
+    const data = (typesRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((t: any) => ({ id: t.id ?? '', name: t.name ?? '' }));
   }, [typesRaw]);
 
   const { data: zonesRaw } = useMachineZones();
   const zones: DropdownOption[] = React.useMemo(() => {
-    const data = (zonesRaw as any)?.data ?? zonesRaw ?? [];
+    const data = (zonesRaw as any)?.data ?? [];
     const list = Array.isArray(data) ? data : [];
     return list.map((z: any) => ({ id: z.id ?? '', name: z.name ?? '' }));
   }, [zonesRaw]);
@@ -874,7 +876,7 @@ export function MachineMasterScreen() {
   });
 
   const machines: MachineData[] = React.useMemo(() => {
-    const raw = (response as any)?.data ?? response ?? [];
+    const raw = (response as any)?.data ?? [];
     if (!Array.isArray(raw)) return [];
     return raw.map(mapApiMachine);
   }, [response]);
@@ -1253,83 +1255,84 @@ const cardStyles = StyleSheet.create({
   },
 });
 
-const sheetStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  formContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  field: {
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: colors.primary[950],
-  },
-  inputError: {
-    borderColor: colors.danger[400],
-    borderWidth: 1.5,
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    zIndex: 200,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 20,
-    overflow: 'hidden',
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-  },
-  submitContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-    backgroundColor: colors.white,
-  },
-  submitBtn: {
-    backgroundColor: colors.primary[600],
-    borderRadius: 14,
-    height: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary[500],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-});
+const createSheetStyles = (isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? '#1A1730' : colors.white,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100],
+    },
+    formContent: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    field: {
+      marginBottom: 20,
+    },
+    input: {
+      backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 14,
+      color: isDark ? colors.white : colors.primary[950],
+    },
+    inputError: {
+      borderColor: colors.danger[400],
+      borderWidth: 1.5,
+    },
+    dropdown: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      zIndex: 200,
+      backgroundColor: isDark ? '#1A1730' : '#fff',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: isDark ? colors.primary[800] : colors.primary[200],
+      marginTop: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 10,
+      elevation: 20,
+      overflow: 'hidden',
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+    },
+    submitContainer: {
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100],
+      backgroundColor: isDark ? '#1A1730' : colors.white,
+    },
+    submitBtn: {
+      backgroundColor: colors.primary[600],
+      borderRadius: 14,
+      height: 52,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: colors.primary[500],
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+  });
 

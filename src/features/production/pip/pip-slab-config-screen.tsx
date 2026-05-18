@@ -31,7 +31,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useIsDark } from '@/hooks/use-is-dark';
-import { usePipSlabConfigs } from '@/features/production/pip/api/use-pip-queries';
+import { usePipSlabConfigs, useOperations } from '@/features/production/pip/api/use-pip-queries';
 import {
   useCreatePipSlabConfig,
   useUpdatePipSlabConfig,
@@ -48,6 +48,10 @@ interface SlabConfigData {
   machineCode: string;
   machineName: string;
   machineId: string;
+  operationCode: string;
+  operationName: string;
+  operationId: string;
+  operationProcessType: string;
   partNumber: string;
   partName: string;
   partId: string;
@@ -77,6 +81,10 @@ function mapSlabConfig(item: any): SlabConfigData {
     machineCode: item.machine?.assetCode ?? '',
     machineName: item.machine?.assetName ?? '',
     machineId: item.machineId ?? '',
+    operationCode: item.operation?.code ?? '',
+    operationName: item.operation?.name ?? '',
+    operationId: item.operationId ?? '',
+    operationProcessType: item.operation?.processType ?? '',
     partNumber: item.part?.partNumber ?? '',
     partName: item.part?.name ?? '',
     partId: item.partId ?? '',
@@ -186,7 +194,28 @@ function SlabConfigCard({
           </View>
         </View>
 
-        {/* Part + Target Row */}
+        {/* Operation Row */}
+        {(item.operationCode || item.operationName) && (
+          <View style={cardStyles.detailsRow}>
+            <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.info[900] : colors.info[50] }]}>
+              <Text className="font-inter text-[10px] font-bold text-info-700">
+                {item.operationCode}
+              </Text>
+            </View>
+            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400" numberOfLines={1} style={{ flex: 1 }}>
+              {item.operationName}
+            </Text>
+            {item.operationProcessType ? (
+              <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
+                <Text className="font-inter text-[9px] font-bold text-primary-600">
+                  {item.operationProcessType}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {/* Part Row */}
         <View style={cardStyles.detailsRow}>
           <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.accent[900] : colors.accent[50] }]}>
             <Text className="font-inter text-[10px] font-bold text-accent-700">
@@ -257,11 +286,16 @@ function SlabConfigCard({
 
 // ============ FORM SHEET ============
 
+interface OperationOption extends DropdownOption {
+  processType?: string;
+}
+
 function SlabConfigFormSheet({
   visible,
   onClose,
   editItem,
   machines,
+  operations,
   parts,
   onSubmit,
   isSubmitting,
@@ -270,6 +304,7 @@ function SlabConfigFormSheet({
   onClose: () => void;
   editItem?: SlabConfigData | null;
   machines: DropdownOption[];
+  operations: OperationOption[];
   parts: DropdownOption[];
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
@@ -280,18 +315,21 @@ function SlabConfigFormSheet({
 
   const [step, setStep] = React.useState(1);
   const [machineId, setMachineId] = React.useState('');
+  const [operationId, setOperationId] = React.useState('');
   const [partId, setPartId] = React.useState('');
   const [shiftTarget, setShiftTarget] = React.useState('');
   const [tiers, setTiers] = React.useState<TierRow[]>([
     { fromQty: '', toQty: '', ratePerPiece: '' },
   ]);
   const [machineSearch, setMachineSearch] = React.useState('');
+  const [operationSearch, setOperationSearch] = React.useState('');
   const [partSearch, setPartSearch] = React.useState('');
 
   React.useEffect(() => {
     if (visible) {
       if (editItem) {
         setMachineId(editItem.machineId);
+        setOperationId(editItem.operationId);
         setPartId(editItem.partId);
         setShiftTarget(String(editItem.shiftTargetQty));
         setTiers(
@@ -301,15 +339,17 @@ function SlabConfigFormSheet({
             ratePerPiece: String(t.ratePerPiece),
           })),
         );
-        setStep(3); // Jump to target/tiers for edit
+        setStep(4); // Jump to target/tiers for edit
       } else {
         setMachineId('');
+        setOperationId('');
         setPartId('');
         setShiftTarget('');
         setTiers([{ fromQty: '', toQty: '', ratePerPiece: '' }]);
         setStep(1);
       }
       setMachineSearch('');
+      setOperationSearch('');
       setPartSearch('');
     }
   }, [visible, editItem]);
@@ -321,6 +361,17 @@ function SlabConfigFormSheet({
       (m) => m.label.toLowerCase().includes(q) || (m.sublabel ?? '').toLowerCase().includes(q),
     );
   }, [machines, machineSearch]);
+
+  const filteredOperations = React.useMemo(() => {
+    if (!operationSearch.trim()) return operations;
+    const q = operationSearch.toLowerCase();
+    return operations.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) ||
+        (o.sublabel ?? '').toLowerCase().includes(q) ||
+        ((o as OperationOption).processType ?? '').toLowerCase().includes(q),
+    );
+  }, [operations, operationSearch]);
 
   const filteredParts = React.useMemo(() => {
     if (!partSearch.trim()) return parts;
@@ -353,6 +404,7 @@ function SlabConfigFormSheet({
 
     onSubmit({
       machineId,
+      operationId,
       partId,
       shiftTargetQty: Number(shiftTarget),
       slabTiers: parsedTiers,
@@ -360,12 +412,14 @@ function SlabConfigFormSheet({
   };
 
   const selectedMachine = machines.find((m) => m.id === machineId);
+  const selectedOperation = operations.find((o) => o.id === operationId);
   const selectedPart = parts.find((p) => p.id === partId);
 
   const canProceed = () => {
     if (step === 1) return !!machineId;
-    if (step === 2) return !!partId;
-    if (step === 3) {
+    if (step === 2) return !!operationId;
+    if (step === 3) return !!partId;
+    if (step === 4) {
       return (
         !!shiftTarget &&
         Number(shiftTarget) > 0 &&
@@ -387,7 +441,7 @@ function SlabConfigFormSheet({
             </Text>
           </Pressable>
           <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
-            {isEdit ? 'Edit Slab Config' : `Step ${step} of 3`}
+            {isEdit ? 'Edit Slab Config' : `Step ${step} of 4`}
           </Text>
           <View style={{ width: 52 }} />
         </View>
@@ -395,7 +449,7 @@ function SlabConfigFormSheet({
         {/* Step Indicators */}
         {!isEdit && (
           <View style={sheetStyles.stepRow}>
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <View
                 key={s}
                 style={[
@@ -479,8 +533,80 @@ function SlabConfigFormSheet({
             </View>
           )}
 
-          {/* Step 2: Select Part */}
+          {/* Step 2: Select Operation */}
           {step === 2 && (
+            <View>
+              <Text className="mb-3 font-inter text-base font-bold text-primary-950 dark:text-white">
+                Select Operation
+              </Text>
+              <TextInput
+                style={[
+                  sheetStyles.searchInput,
+                  {
+                    backgroundColor: isDark ? '#1A1730' : colors.neutral[50],
+                    color: isDark ? colors.white : colors.primary[950],
+                    borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                  },
+                ]}
+                placeholder="Search operations..."
+                placeholderTextColor={colors.neutral[400]}
+                value={operationSearch}
+                onChangeText={setOperationSearch}
+              />
+              {filteredOperations.map((o) => (
+                <Pressable
+                  key={o.id}
+                  onPress={() => setOperationId(o.id)}
+                  style={[
+                    sheetStyles.optionCard,
+                    {
+                      backgroundColor: operationId === o.id
+                        ? isDark ? colors.primary[900] : colors.primary[50]
+                        : isDark ? '#1A1730' : colors.white,
+                      borderColor: operationId === o.id
+                        ? colors.primary[400]
+                        : isDark ? colors.neutral[700] : colors.neutral[200],
+                    },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.info[900] : colors.info[50] }]}>
+                        <Text className="font-inter text-[10px] font-bold text-info-700">
+                          {o.sublabel}
+                        </Text>
+                      </View>
+                      <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>
+                        {o.label}
+                      </Text>
+                    </View>
+                    {(o as OperationOption).processType ? (
+                      <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], alignSelf: 'flex-start' }]}>
+                        <Text className="font-inter text-[9px] font-bold text-primary-600">
+                          {(o as OperationOption).processType}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  {operationId === o.id && (
+                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                      <Path
+                        d="M5 12l5 5L20 7"
+                        stroke={colors.primary[600]}
+                        strokeWidth="2.5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          {/* Step 3: Select Part */}
+          {step === 3 && (
             <View>
               <Text className="mb-3 font-inter text-base font-bold text-primary-950 dark:text-white">
                 Select Part
@@ -542,15 +668,20 @@ function SlabConfigFormSheet({
             </View>
           )}
 
-          {/* Step 3: Target + Tiers */}
-          {step === 3 && (
+          {/* Step 4: Target + Tiers */}
+          {step === 4 && (
             <View>
               {/* Summary of selected */}
-              {(selectedMachine || selectedPart) && (
+              {(selectedMachine || selectedOperation || selectedPart) && (
                 <View style={[sheetStyles.summaryCard, { backgroundColor: isDark ? '#1A1730' : colors.primary[50] }]}>
                   {selectedMachine && (
                     <Text className="font-inter text-xs text-primary-700">
                       Machine: {selectedMachine.label}
+                    </Text>
+                  )}
+                  {selectedOperation && (
+                    <Text className="font-inter text-xs text-info-700">
+                      Operation: {selectedOperation.sublabel} — {selectedOperation.label}
                     </Text>
                   )}
                   {selectedPart && (
@@ -686,7 +817,7 @@ function SlabConfigFormSheet({
                 (!canProceed() || isSubmitting) && { opacity: 0.6 },
               ]}
               onPress={() => {
-                if (step < 3 && !isEdit) setStep((s) => s + 1);
+                if (step < 4 && !isEdit) setStep((s) => s + 1);
                 else handleSubmit();
               }}
               disabled={!canProceed() || isSubmitting}
@@ -695,7 +826,7 @@ function SlabConfigFormSheet({
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <Text className="font-inter text-base font-bold text-white">
-                  {step < 3 && !isEdit ? 'Next' : isEdit ? 'Update' : 'Create'}
+                  {step < 4 && !isEdit ? 'Next' : isEdit ? 'Update' : 'Create'}
                 </Text>
               )}
             </Pressable>
@@ -730,7 +861,7 @@ export function PipSlabConfigScreen() {
     return raw.map(mapSlabConfig);
   }, [response]);
 
-  // Fetch machines and parts for the form
+  // Fetch machines, operations, and parts for the form
   const { data: machinesRaw } = useMachines();
   const machines: DropdownOption[] = React.useMemo(() => {
     const data = (machinesRaw as any)?.data ?? machinesRaw ?? [];
@@ -741,6 +872,18 @@ export function PipSlabConfigScreen() {
       sublabel: m.assetCode ?? '',
     }));
   }, [machinesRaw]);
+
+  const { data: operationsRaw } = useOperations({ status: 'ACTIVE' });
+  const operationOptions: OperationOption[] = React.useMemo(() => {
+    const data = (operationsRaw as any)?.data ?? operationsRaw ?? [];
+    const list = Array.isArray(data) ? data : [];
+    return list.map((o: any) => ({
+      id: o.id ?? '',
+      label: o.name ?? '',
+      sublabel: o.code ?? '',
+      processType: o.processType ?? '',
+    }));
+  }, [operationsRaw]);
 
   const { data: partsRaw } = useParts();
   const partOptions: DropdownOption[] = React.useMemo(() => {
@@ -844,7 +987,7 @@ export function PipSlabConfigScreen() {
         <SearchBar
           value={search}
           onChangeText={setSearch}
-          placeholder="Search by machine or part..."
+          placeholder="Search by machine, operation or part..."
         />
       </Animated.View>
     </>
@@ -916,6 +1059,7 @@ export function PipSlabConfigScreen() {
         onClose={() => setSheetVisible(false)}
         editItem={editingItem}
         machines={machines}
+        operations={operationOptions}
         parts={partOptions}
         onSubmit={handleSubmit}
         isSubmitting={createSlab.isPending || updateSlab.isPending}

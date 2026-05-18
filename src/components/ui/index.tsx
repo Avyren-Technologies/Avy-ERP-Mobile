@@ -14,6 +14,7 @@ export * from './image-viewer';
 export * from './info-tooltip';
 export * from './input';
 export * from './list';
+export * from './manage-modal';
 export * from './modal';
 export * from './no-permission-screen';
 export * from './progress-bar';

@@ -27,6 +27,7 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { ManageModal } from '@/components/ui/manage-modal';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -36,8 +37,14 @@ import {
   useUpdateMachine,
   useDeleteMachine,
   useCreateMachineCategory,
+  useUpdateMachineCategory,
+  useDeleteMachineCategory,
   useCreateMachineType,
+  useUpdateMachineType,
+  useDeleteMachineType,
   useCreateMachineZone,
+  useUpdateMachineZone,
+  useDeleteMachineZone,
 } from '@/features/masters/api/use-masters-mutations';
 import {
   useMachines,
@@ -280,91 +287,6 @@ function MachineCard({
   );
 }
 
-// ============ INLINE CREATE MODAL ============
-
-function InlineCreateModal({
-  visible,
-  onClose,
-  title,
-  fields,
-  onSubmit,
-  isSubmitting,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  title: string;
-  fields: { key: string; label: string; placeholder: string; required?: boolean }[];
-  onSubmit: (values: Record<string, string>) => void;
-  isSubmitting: boolean;
-}) {
-  const [values, setValues] = React.useState<Record<string, string>>({});
-
-  React.useEffect(() => {
-    if (visible) setValues({});
-  }, [visible]);
-
-  const handleSubmit = () => {
-    const requiredField = fields.find((f) => f.required && !values[f.key]?.trim());
-    if (requiredField) return;
-    onSubmit(values);
-  };
-
-  return (
-    <RNModal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable style={inlineModalStyles.overlay} onPress={onClose}>
-        <Pressable style={inlineModalStyles.content} onPress={(e) => e.stopPropagation()}>
-          <Text className="mb-4 font-inter text-base font-bold text-primary-950">
-            {title}
-          </Text>
-          {fields.map((field) => (
-            <View key={field.key} style={{ marginBottom: 12 }}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                {field.label} {field.required ? <Text className="text-danger-500">*</Text> : null}
-              </Text>
-              <TextInput
-                style={sheetStyles.input}
-                placeholder={field.placeholder}
-                placeholderTextColor={colors.neutral[400]}
-                value={values[field.key] ?? ''}
-                onChangeText={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}
-                autoCapitalize="words"
-              />
-            </View>
-          ))}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-            <Pressable
-              onPress={onClose}
-              style={[inlineModalStyles.btn, { backgroundColor: colors.neutral[100] }]}
-            >
-              <Text className="font-inter text-sm font-semibold text-neutral-600">Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-              style={[
-                inlineModalStyles.btn,
-                { backgroundColor: colors.primary[600], flex: 1 },
-                isSubmitting && { opacity: 0.6 },
-              ]}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text className="font-inter text-sm font-bold text-white">Create</Text>
-              )}
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </RNModal>
-  );
-}
-
 // ============ ADD/EDIT FORM SHEET ============
 
 function MachineFormSheet({
@@ -376,9 +298,9 @@ function MachineFormSheet({
   zones,
   onSubmit,
   isSubmitting,
-  onCategoryCreated,
-  onTypeCreated,
-  onZoneCreated,
+  onManageCategory,
+  onManageType,
+  onManageZone,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -388,9 +310,9 @@ function MachineFormSheet({
   zones: DropdownOption[];
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
-  onCategoryCreated: (data: Record<string, unknown>, onSuccess: (id: string) => void) => void;
-  onTypeCreated: (data: Record<string, unknown>, onSuccess: (id: string) => void) => void;
-  onZoneCreated: (data: Record<string, unknown>, onSuccess: (id: string) => void) => void;
+  onManageCategory: () => void;
+  onManageType: () => void;
+  onManageZone: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const isEdit = !!machine;
@@ -413,10 +335,6 @@ function MachineFormSheet({
   const [idleReason, setIdleReason] = React.useState('');
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-
-  // Inline create modal states
-  const [inlineCreateType, setInlineCreateType] = React.useState<'category' | 'type' | 'zone' | null>(null);
-  const [isInlineCreating, setIsInlineCreating] = React.useState(false);
 
   React.useEffect(() => {
     if (visible) {
@@ -507,46 +425,6 @@ function MachineFormSheet({
   const toggleDropdown = (name: string) => {
     setOpenDropdown((prev) => (prev === name ? null : name));
   };
-
-  const handleInlineCreate = (values: Record<string, string>) => {
-    setIsInlineCreating(true);
-    if (inlineCreateType === 'category') {
-      onCategoryCreated({ name: values.name }, (id) => {
-        setCategoryId(id);
-        setInlineCreateType(null);
-        setIsInlineCreating(false);
-      });
-    } else if (inlineCreateType === 'type') {
-      onTypeCreated({ name: values.name }, (id) => {
-        setTypeId(id);
-        setInlineCreateType(null);
-        setIsInlineCreating(false);
-      });
-    } else if (inlineCreateType === 'zone') {
-      onZoneCreated({ name: values.name, code: values.code || undefined }, (id) => {
-        setZoneId(id);
-        setInlineCreateType(null);
-        setIsInlineCreating(false);
-      });
-    }
-  };
-
-  const inlineCreateFields = React.useMemo(() => {
-    if (inlineCreateType === 'zone') {
-      return [
-        { key: 'name', label: 'Name', placeholder: 'Zone name', required: true },
-        { key: 'code', label: 'Code', placeholder: 'Zone code (optional)' },
-      ];
-    }
-    return [
-      {
-        key: 'name',
-        label: 'Name',
-        placeholder: `${inlineCreateType === 'category' ? 'Category' : 'Type'} name`,
-        required: true,
-      },
-    ];
-  }, [inlineCreateType]);
 
   const renderDropdownField = (
     label: string,
@@ -759,7 +637,7 @@ function MachineFormSheet({
             categories,
             categoryId,
             setCategoryId,
-            () => setInlineCreateType('category'),
+            onManageCategory,
           )}
 
           {/* 6. Type Dropdown + New */}
@@ -771,7 +649,7 @@ function MachineFormSheet({
             types,
             typeId,
             setTypeId,
-            () => setInlineCreateType('type'),
+            onManageType,
           )}
 
           {/* 7. Zone Dropdown + New */}
@@ -783,7 +661,7 @@ function MachineFormSheet({
             zones,
             zoneId,
             setZoneId,
-            () => setInlineCreateType('zone'),
+            onManageZone,
           )}
 
           {/* 8. Line / Work Center */}
@@ -934,15 +812,6 @@ function MachineFormSheet({
         </View>
       </View>
 
-      {/* Inline Create Modal */}
-      <InlineCreateModal
-        visible={inlineCreateType !== null}
-        onClose={() => { setInlineCreateType(null); setIsInlineCreating(false); }}
-        title={`Create ${inlineCreateType === 'category' ? 'Category' : inlineCreateType === 'type' ? 'Type' : 'Zone'}`}
-        fields={inlineCreateFields}
-        onSubmit={handleInlineCreate}
-        isSubmitting={isInlineCreating}
-      />
     </RNModal>
   );
 }
@@ -1027,8 +896,20 @@ export function MachineMasterScreen() {
   const updateMachine = useUpdateMachine();
   const deleteMachine = useDeleteMachine();
   const createCategory = useCreateMachineCategory();
+  const updateCategory = useUpdateMachineCategory();
+  const deleteCategory = useDeleteMachineCategory();
   const createType = useCreateMachineType();
+  const updateType = useUpdateMachineType();
+  const deleteType = useDeleteMachineType();
   const createZone = useCreateMachineZone();
+  const updateZone = useUpdateMachineZone();
+  const deleteZone = useDeleteMachineZone();
+
+  // Manage modal state
+  const [manageModal, setManageModal] = React.useState<'category' | 'zone' | 'type' | null>(null);
+
+  // Ref to auto-select newly created items back in the form sheet
+  const pendingSelectRef = React.useRef<{ field: 'categoryId' | 'typeId' | 'zoneId'; id: string } | null>(null);
 
   const handleAdd = () => {
     setEditingMachine(null);
@@ -1077,33 +958,6 @@ export function MachineMasterScreen() {
         },
       });
     }
-  };
-
-  const handleCategoryCreated = (data: Record<string, unknown>, onSuccess: (id: string) => void) => {
-    createCategory.mutate(data, {
-      onSuccess: (res: any) => {
-        const newId = res?.data?.id ?? '';
-        if (newId) onSuccess(newId);
-      },
-    });
-  };
-
-  const handleTypeCreated = (data: Record<string, unknown>, onSuccess: (id: string) => void) => {
-    createType.mutate(data, {
-      onSuccess: (res: any) => {
-        const newId = res?.data?.id ?? '';
-        if (newId) onSuccess(newId);
-      },
-    });
-  };
-
-  const handleZoneCreated = (data: Record<string, unknown>, onSuccess: (id: string) => void) => {
-    createZone.mutate(data, {
-      onSuccess: (res: any) => {
-        const newId = res?.data?.id ?? '';
-        if (newId) onSuccess(newId);
-      },
-    });
   };
 
   const renderMachine = ({ item, index }: { item: MachineData; index: number }) => (
@@ -1213,9 +1067,94 @@ export function MachineMasterScreen() {
         zones={zones}
         onSubmit={handleSubmit}
         isSubmitting={createMachine.isPending || updateMachine.isPending}
-        onCategoryCreated={handleCategoryCreated}
-        onTypeCreated={handleTypeCreated}
-        onZoneCreated={handleZoneCreated}
+        onManageCategory={() => setManageModal('category')}
+        onManageType={() => setManageModal('type')}
+        onManageZone={() => setManageModal('zone')}
+      />
+
+      {/* Manage Machine Category */}
+      <ManageModal
+        visible={manageModal === 'category'}
+        onClose={() => setManageModal(null)}
+        title="Manage Machine Categories"
+        items={categories}
+        isLoading={false}
+        createFields={[
+          { key: 'name', label: 'Name', placeholder: 'e.g. CNC', required: true },
+        ]}
+        onCreate={async (values) => {
+          const res: any = await createCategory.mutateAsync(values);
+          const newId = res?.data?.id ?? '';
+          if (newId) {
+            pendingSelectRef.current = { field: 'categoryId', id: newId };
+          }
+        }}
+        onUpdate={async (id, values) => {
+          await updateCategory.mutateAsync({ id, data: values });
+        }}
+        onDelete={async (id) => {
+          await deleteCategory.mutateAsync(id);
+        }}
+        isCreating={createCategory.isPending}
+        isUpdating={updateCategory.isPending}
+        isDeleting={deleteCategory.isPending}
+      />
+
+      {/* Manage Machine Zones */}
+      <ManageModal
+        visible={manageModal === 'zone'}
+        onClose={() => setManageModal(null)}
+        title="Manage Machine Zones"
+        items={zones}
+        isLoading={false}
+        createFields={[
+          { key: 'name', label: 'Name', placeholder: 'e.g. Zone A', required: true },
+          { key: 'code', label: 'Code', placeholder: 'e.g. ZN-A' },
+        ]}
+        onCreate={async (values) => {
+          const res: any = await createZone.mutateAsync(values);
+          const newId = res?.data?.id ?? '';
+          if (newId) {
+            pendingSelectRef.current = { field: 'zoneId', id: newId };
+          }
+        }}
+        onUpdate={async (id, values) => {
+          await updateZone.mutateAsync({ id, data: values });
+        }}
+        onDelete={async (id) => {
+          await deleteZone.mutateAsync(id);
+        }}
+        isCreating={createZone.isPending}
+        isUpdating={updateZone.isPending}
+        isDeleting={deleteZone.isPending}
+      />
+
+      {/* Manage Machine Types */}
+      <ManageModal
+        visible={manageModal === 'type'}
+        onClose={() => setManageModal(null)}
+        title="Manage Machine Types"
+        items={types}
+        isLoading={false}
+        createFields={[
+          { key: 'name', label: 'Name', placeholder: 'e.g. Lathe', required: true },
+        ]}
+        onCreate={async (values) => {
+          const res: any = await createType.mutateAsync(values);
+          const newId = res?.data?.id ?? '';
+          if (newId) {
+            pendingSelectRef.current = { field: 'typeId', id: newId };
+          }
+        }}
+        onUpdate={async (id, values) => {
+          await updateType.mutateAsync({ id, data: values });
+        }}
+        onDelete={async (id) => {
+          await deleteType.mutateAsync(id);
+        }}
+        isCreating={createType.isPending}
+        isUpdating={updateType.isPending}
+        isDeleting={deleteType.isPending}
       />
 
       <ConfirmModal {...confirmModal.modalProps} />
@@ -1394,31 +1333,3 @@ const sheetStyles = StyleSheet.create({
   },
 });
 
-const inlineModalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  content: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  btn: {
-    borderRadius: 10,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-});

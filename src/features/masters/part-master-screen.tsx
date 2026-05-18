@@ -28,6 +28,7 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { ManageModal } from '@/components/ui/manage-modal';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -36,14 +37,24 @@ import {
   useUpdatePart,
   useDeletePart,
   useCreatePartCategory,
+  useUpdatePartCategory,
+  useDeletePartCategory,
   useCreateProductModel,
+  useUpdateProductModel,
+  useDeleteProductModel,
   useCreateUom,
+  useUpdateUom,
+  useDeleteUom,
+  useCreateComponentType,
+  useUpdateComponentType,
+  useDeleteComponentType,
 } from '@/features/masters/api/use-masters-mutations';
 import {
   useParts,
   usePartCategories,
   useProductModels,
   useUoms,
+  useComponentTypes,
 } from '@/features/masters/api/use-masters-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -60,6 +71,8 @@ interface PartData {
   productModelId?: string;
   uomId?: string;
   uomName?: string;
+  componentTypeId?: string;
+  componentTypeName?: string;
   partType: string;
   hsnCode?: string;
   weight?: number;
@@ -109,6 +122,8 @@ function mapApiPart(item: any): PartData {
     productModelId: item.productModelId ?? '',
     uomId: item.uomId ?? '',
     uomName: item.uom?.name ?? '',
+    componentTypeId: item.componentTypeId ?? '',
+    componentTypeName: item.componentType?.name ?? '',
     partType: item.partType ?? '',
     hsnCode: item.hsnCode ?? '',
     weight: item.weight ?? undefined,
@@ -268,97 +283,6 @@ function PartCard({
   );
 }
 
-// ============ INLINE CREATE MODAL ============
-
-function InlineCreateModal({
-  visible,
-  onClose,
-  title,
-  fields,
-  onSubmit,
-  isSubmitting,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  title: string;
-  fields: { key: string; label: string; placeholder: string; required?: boolean }[];
-  onSubmit: (values: Record<string, string>) => void;
-  isSubmitting: boolean;
-}) {
-  const [values, setValues] = React.useState<Record<string, string>>({});
-
-  React.useEffect(() => {
-    if (visible) setValues({});
-  }, [visible]);
-
-  const handleCreate = () => {
-    const required = fields.filter((f) => f.required);
-    for (const f of required) {
-      if (!values[f.key]?.trim()) return;
-    }
-    onSubmit(values);
-  };
-
-  return (
-    <RNModal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable style={inlineModalStyles.overlay} onPress={onClose}>
-        <Pressable style={inlineModalStyles.content} onPress={() => {}}>
-          <Text className="mb-4 font-inter text-base font-bold text-primary-950">
-            {title}
-          </Text>
-          {fields.map((f) => (
-            <View key={f.key} style={{ marginBottom: 14 }}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900">
-                {f.label} {f.required ? <Text className="text-danger-500">*</Text> : null}
-              </Text>
-              <TextInput
-                style={sheetStyles.input}
-                placeholder={f.placeholder}
-                placeholderTextColor={colors.neutral[400]}
-                value={values[f.key] ?? ''}
-                onChangeText={(v) => setValues((prev) => ({ ...prev, [f.key]: v }))}
-                autoCapitalize="words"
-              />
-            </View>
-          ))}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-            <Pressable
-              onPress={onClose}
-              style={[inlineModalStyles.btn, { backgroundColor: colors.neutral[100] }]}
-            >
-              <Text className="font-inter text-sm font-semibold text-neutral-600">
-                Cancel
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={handleCreate}
-              disabled={isSubmitting}
-              style={[
-                inlineModalStyles.btn,
-                { backgroundColor: colors.primary[600], flex: 1 },
-                isSubmitting && { opacity: 0.6 },
-              ]}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text className="font-inter text-sm font-bold text-white">
-                  Create
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </RNModal>
-  );
-}
-
 // ============ ADD/EDIT FORM SHEET ============
 
 function PartFormSheet({
@@ -368,6 +292,7 @@ function PartFormSheet({
   categories,
   productModels,
   uoms,
+  componentTypes,
   onSubmit,
   isSubmitting,
 }: {
@@ -377,6 +302,7 @@ function PartFormSheet({
   categories: DropdownOption[];
   productModels: DropdownOption[];
   uoms: DropdownOption[];
+  componentTypes: DropdownOption[];
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
 }) {
@@ -390,6 +316,7 @@ function PartFormSheet({
   const [productModelId, setProductModelId] = React.useState('');
   const [categoryId, setCategoryId] = React.useState('');
   const [uomId, setUomId] = React.useState('');
+  const [componentTypeId, setComponentTypeId] = React.useState('');
   const [partType, setPartType] = React.useState('FINISH_PART');
   const [hsnCode, setHsnCode] = React.useState('');
   const [weight, setWeight] = React.useState('');
@@ -407,24 +334,36 @@ function PartFormSheet({
   const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
   const [showModelDropdown, setShowModelDropdown] = React.useState(false);
   const [showUomDropdown, setShowUomDropdown] = React.useState(false);
+  const [showComponentTypeDropdown, setShowComponentTypeDropdown] = React.useState(false);
   const [showTypeDropdown, setShowTypeDropdown] = React.useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
-  // Inline create modals
-  const [showCreateModel, setShowCreateModel] = React.useState(false);
-  const [showCreateCategory, setShowCreateCategory] = React.useState(false);
-  const [showCreateUom, setShowCreateUom] = React.useState(false);
+  // ManageModal visibility
+  const [showManageModel, setShowManageModel] = React.useState(false);
+  const [showManageCategory, setShowManageCategory] = React.useState(false);
+  const [showManageUom, setShowManageUom] = React.useState(false);
+  const [showManageComponentType, setShowManageComponentType] = React.useState(false);
 
-  // Inline create mutations
+  // Mutations for ManageModal
   const createModelMutation = useCreateProductModel();
+  const updateModelMutation = useUpdateProductModel();
+  const deleteModelMutation = useDeleteProductModel();
   const createCategoryMutation = useCreatePartCategory();
+  const updateCategoryMutation = useUpdatePartCategory();
+  const deleteCategoryMutation = useDeletePartCategory();
   const createUomMutation = useCreateUom();
+  const updateUomMutation = useUpdateUom();
+  const deleteUomMutation = useDeleteUom();
+  const createComponentTypeMutation = useCreateComponentType();
+  const updateComponentTypeMutation = useUpdateComponentType();
+  const deleteComponentTypeMutation = useDeleteComponentType();
 
   const closeAllDropdowns = () => {
     setShowCategoryDropdown(false);
     setShowModelDropdown(false);
     setShowUomDropdown(false);
+    setShowComponentTypeDropdown(false);
     setShowTypeDropdown(false);
     setShowStatusDropdown(false);
   };
@@ -438,6 +377,7 @@ function PartFormSheet({
         setProductModelId(part.productModelId ?? '');
         setCategoryId(part.categoryId ?? '');
         setUomId(part.uomId ?? '');
+        setComponentTypeId(part.componentTypeId ?? '');
         setPartType(part.partType ?? 'FINISH_PART');
         setHsnCode(part.hsnCode ?? '');
         setWeight(part.weight != null ? String(part.weight) : '');
@@ -457,6 +397,7 @@ function PartFormSheet({
         setProductModelId('');
         setCategoryId('');
         setUomId('');
+        setComponentTypeId('');
         setPartType('FINISH_PART');
         setHsnCode('');
         setWeight('');
@@ -478,6 +419,7 @@ function PartFormSheet({
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const selectedModel = productModels.find((m) => m.id === productModelId);
   const selectedUom = uoms.find((u) => u.id === uomId);
+  const selectedComponentType = componentTypes.find((ct) => ct.id === componentTypeId);
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -508,6 +450,7 @@ function PartFormSheet({
     if (productModelId) data.productModelId = productModelId;
     if (categoryId) data.categoryId = categoryId;
     if (uomId) data.uomId = uomId;
+    if (componentTypeId) data.componentTypeId = componentTypeId;
     if (hsnCode.trim()) data.hsnCode = hsnCode.trim();
     if (weight.trim()) data.weight = parseFloat(weight);
     if (dimensions.trim()) data.dimensions = dimensions.trim();
@@ -521,43 +464,74 @@ function PartFormSheet({
     onSubmit(data);
   };
 
-  const handleCreateModel = (values: Record<string, string>) => {
-    createModelMutation.mutate(
-      { name: values.name?.trim(), code: values.code?.trim() || undefined },
-      {
-        onSuccess: (res: any) => {
-          const created = res?.data ?? res;
-          if (created?.id) setProductModelId(created.id);
-          setShowCreateModel(false);
-        },
-      },
-    );
+  // ManageModal async handlers
+  const handleManageCreateModel = async (values: Record<string, string>) => {
+    const res: any = await createModelMutation.mutateAsync({ name: values.name?.trim() });
+    const created = res?.data ?? res;
+    if (created?.id) setProductModelId(created.id);
   };
 
-  const handleCreateCategory = (values: Record<string, string>) => {
-    createCategoryMutation.mutate(
-      { name: values.name?.trim(), code: values.code?.trim() || undefined },
-      {
-        onSuccess: (res: any) => {
-          const created = res?.data ?? res;
-          if (created?.id) setCategoryId(created.id);
-          setShowCreateCategory(false);
-        },
-      },
-    );
+  const handleManageUpdateModel = async (id: string, values: Record<string, string>) => {
+    await updateModelMutation.mutateAsync({ id, data: { name: values.name?.trim() } });
   };
 
-  const handleCreateUom = (values: Record<string, string>) => {
-    createUomMutation.mutate(
-      { name: values.name?.trim(), abbreviation: values.abbreviation?.trim() || undefined },
-      {
-        onSuccess: (res: any) => {
-          const created = res?.data ?? res;
-          if (created?.id) setUomId(created.id);
-          setShowCreateUom(false);
-        },
-      },
-    );
+  const handleManageDeleteModel = async (id: string) => {
+    await deleteModelMutation.mutateAsync(id);
+    if (productModelId === id) setProductModelId('');
+  };
+
+  const handleManageCreateCategory = async (values: Record<string, string>) => {
+    const res: any = await createCategoryMutation.mutateAsync({ name: values.name?.trim() });
+    const created = res?.data ?? res;
+    if (created?.id) setCategoryId(created.id);
+  };
+
+  const handleManageUpdateCategory = async (id: string, values: Record<string, string>) => {
+    await updateCategoryMutation.mutateAsync({ id, data: { name: values.name?.trim() } });
+  };
+
+  const handleManageDeleteCategory = async (id: string) => {
+    await deleteCategoryMutation.mutateAsync(id);
+    if (categoryId === id) setCategoryId('');
+  };
+
+  const handleManageCreateUom = async (values: Record<string, string>) => {
+    const res: any = await createUomMutation.mutateAsync({
+      name: values.name?.trim(),
+      abbreviation: values.abbreviation?.trim() || undefined,
+    });
+    const created = res?.data ?? res;
+    if (created?.id) setUomId(created.id);
+  };
+
+  const handleManageUpdateUom = async (id: string, values: Record<string, string>) => {
+    await updateUomMutation.mutateAsync({
+      id,
+      data: { name: values.name?.trim(), abbreviation: values.abbreviation?.trim() || undefined },
+    });
+  };
+
+  const handleManageDeleteUom = async (id: string) => {
+    await deleteUomMutation.mutateAsync(id);
+    if (uomId === id) setUomId('');
+  };
+
+  const handleManageCreateComponentType = async (values: Record<string, string>) => {
+    const res: any = await createComponentTypeMutation.mutateAsync({ name: values.name?.trim() });
+    const created = res?.data ?? res;
+    if (created?.id) {
+      setComponentTypeId(created.id);
+      if (!name.trim()) setName(values.name?.trim() ?? '');
+    }
+  };
+
+  const handleManageUpdateComponentType = async (id: string, values: Record<string, string>) => {
+    await updateComponentTypeMutation.mutateAsync({ id, data: { name: values.name?.trim() } });
+  };
+
+  const handleManageDeleteComponentType = async (id: string) => {
+    await deleteComponentTypeMutation.mutateAsync(id);
+    if (componentTypeId === id) setComponentTypeId('');
   };
 
   const renderDropdownField = (
@@ -724,7 +698,28 @@ function PartFormSheet({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Part Name (required) */}
+          {/* 1. Component Type dropdown */}
+          {renderDropdownField(
+            'Component / Part Type',
+            selectedComponentType?.name,
+            'Select component type',
+            showComponentTypeDropdown,
+            () => {
+              closeAllDropdowns();
+              setShowComponentTypeDropdown((v) => !v);
+            },
+            componentTypes,
+            componentTypeId,
+            (val) => {
+              setComponentTypeId(val);
+              const ct = componentTypes.find((c) => c.id === val);
+              if (ct && !name.trim()) setName(ct.name);
+            },
+            () => setShowComponentTypeDropdown(false),
+            () => setShowManageComponentType(true),
+          )}
+
+          {/* 2. Part Name (required) */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
               Part Name <Text className="text-danger-500">*</Text>
@@ -747,7 +742,7 @@ function PartFormSheet({
             ) : null}
           </View>
 
-          {/* 2. Product Model + New */}
+          {/* 3. Product Model + Manage */}
           {renderDropdownField(
             'Product Model',
             selectedModel?.name,
@@ -761,7 +756,7 @@ function PartFormSheet({
             productModelId,
             setProductModelId,
             () => setShowModelDropdown(false),
-            () => setShowCreateModel(true),
+            () => setShowManageModel(true),
           )}
 
           {/* 3. Engineering Part No */}
@@ -809,7 +804,7 @@ function PartFormSheet({
             />
           </View>
 
-          {/* 6. Category + New */}
+          {/* 7. Category + Manage */}
           {renderDropdownField(
             'Category',
             selectedCategory?.name,
@@ -823,10 +818,10 @@ function PartFormSheet({
             categoryId,
             setCategoryId,
             () => setShowCategoryDropdown(false),
-            () => setShowCreateCategory(true),
+            () => setShowManageCategory(true),
           )}
 
-          {/* 7. Unit of Measure + New */}
+          {/* 8. Unit of Measure + Manage */}
           {renderDropdownField(
             'Unit of Measure',
             selectedUom?.name,
@@ -840,7 +835,7 @@ function PartFormSheet({
             uomId,
             setUomId,
             () => setShowUomDropdown(false),
-            () => setShowCreateUom(true),
+            () => setShowManageUom(true),
           )}
 
           {/* 8. Part Type Dropdown */}
@@ -969,39 +964,77 @@ function PartFormSheet({
         </View>
       </View>
 
-      {/* Inline Create Modals */}
-      <InlineCreateModal
-        visible={showCreateModel}
-        onClose={() => setShowCreateModel(false)}
-        title="New Product Model"
-        fields={[
+      {/* ManageModal — Product Model */}
+      <ManageModal
+        visible={showManageModel}
+        onClose={() => setShowManageModel(false)}
+        title="Manage Product Models"
+        items={productModels.map((m) => ({ id: m.id, name: m.name }))}
+        isLoading={false}
+        createFields={[
           { key: 'name', label: 'Name', placeholder: 'Enter model name', required: true },
-          { key: 'code', label: 'Code', placeholder: 'Optional code' },
         ]}
-        onSubmit={handleCreateModel}
-        isSubmitting={createModelMutation.isPending}
+        onCreate={handleManageCreateModel}
+        onUpdate={handleManageUpdateModel}
+        onDelete={handleManageDeleteModel}
+        isCreating={createModelMutation.isPending}
+        isUpdating={updateModelMutation.isPending}
+        isDeleting={deleteModelMutation.isPending}
       />
-      <InlineCreateModal
-        visible={showCreateCategory}
-        onClose={() => setShowCreateCategory(false)}
-        title="New Category"
-        fields={[
+
+      {/* ManageModal — Category */}
+      <ManageModal
+        visible={showManageCategory}
+        onClose={() => setShowManageCategory(false)}
+        title="Manage Categories"
+        items={categories.map((c) => ({ id: c.id, name: c.name }))}
+        isLoading={false}
+        createFields={[
           { key: 'name', label: 'Name', placeholder: 'Enter category name', required: true },
-          { key: 'code', label: 'Code', placeholder: 'Optional code' },
         ]}
-        onSubmit={handleCreateCategory}
-        isSubmitting={createCategoryMutation.isPending}
+        onCreate={handleManageCreateCategory}
+        onUpdate={handleManageUpdateCategory}
+        onDelete={handleManageDeleteCategory}
+        isCreating={createCategoryMutation.isPending}
+        isUpdating={updateCategoryMutation.isPending}
+        isDeleting={deleteCategoryMutation.isPending}
       />
-      <InlineCreateModal
-        visible={showCreateUom}
-        onClose={() => setShowCreateUom(false)}
-        title="New Unit of Measure"
-        fields={[
+
+      {/* ManageModal — Unit of Measure */}
+      <ManageModal
+        visible={showManageUom}
+        onClose={() => setShowManageUom(false)}
+        title="Manage Units of Measure"
+        items={uoms.map((u) => ({ id: u.id, name: u.name }))}
+        isLoading={false}
+        createFields={[
           { key: 'name', label: 'Name', placeholder: 'Enter UOM name', required: true },
           { key: 'abbreviation', label: 'Abbreviation', placeholder: 'e.g. kg, pcs, m' },
         ]}
-        onSubmit={handleCreateUom}
-        isSubmitting={createUomMutation.isPending}
+        onCreate={handleManageCreateUom}
+        onUpdate={handleManageUpdateUom}
+        onDelete={handleManageDeleteUom}
+        isCreating={createUomMutation.isPending}
+        isUpdating={updateUomMutation.isPending}
+        isDeleting={deleteUomMutation.isPending}
+      />
+
+      {/* ManageModal — Component Type */}
+      <ManageModal
+        visible={showManageComponentType}
+        onClose={() => setShowManageComponentType(false)}
+        title="Manage Component Types"
+        items={componentTypes.map((ct) => ({ id: ct.id, name: ct.name }))}
+        isLoading={false}
+        createFields={[
+          { key: 'name', label: 'Name', placeholder: 'Enter component type name', required: true },
+        ]}
+        onCreate={handleManageCreateComponentType}
+        onUpdate={handleManageUpdateComponentType}
+        onDelete={handleManageDeleteComponentType}
+        isCreating={createComponentTypeMutation.isPending}
+        isUpdating={updateComponentTypeMutation.isPending}
+        isDeleting={deleteComponentTypeMutation.isPending}
       />
     </RNModal>
   );
@@ -1043,6 +1076,13 @@ export function PartMasterScreen() {
     const list = Array.isArray(data) ? data : [];
     return list.map((u: any) => ({ id: u.id ?? '', name: u.name ?? '' }));
   }, [uomsRaw]);
+
+  const { data: componentTypesRaw } = useComponentTypes();
+  const componentTypesList: DropdownOption[] = React.useMemo(() => {
+    const data = (componentTypesRaw as any)?.data ?? componentTypesRaw ?? [];
+    const list = Array.isArray(data) ? data : [];
+    return list.map((ct: any) => ({ id: ct.id ?? '', name: ct.name ?? '' }));
+  }, [componentTypesRaw]);
 
   // Fetch parts
   const statusParam =
@@ -1234,6 +1274,7 @@ export function PartMasterScreen() {
         categories={categories}
         productModels={productModels}
         uoms={uomsList}
+        componentTypes={componentTypesList}
         onSubmit={handleSubmit}
         isSubmitting={createPart.isPending || updatePart.isPending}
       />
@@ -1429,31 +1470,3 @@ const sheetStyles = StyleSheet.create({
   },
 });
 
-const inlineModalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  content: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  btn: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

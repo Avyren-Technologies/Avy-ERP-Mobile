@@ -57,6 +57,13 @@ export interface UnitOfMeasure {
   isActive: boolean;
 }
 
+export interface PartComponentType {
+  id: string;
+  companyId: string;
+  name: string;
+  isActive: boolean;
+}
+
 export interface Machine {
   id: string;
   companyId: string;
@@ -150,6 +157,15 @@ export const partApi = {
     client.patch(`/masters/parts/uoms/${id}`, data),
   deleteUom: (id: string) =>
     client.delete(`/masters/parts/uoms/${id}`),
+
+  listComponentTypes: () =>
+    client.get('/masters/parts/component-types/list'),
+  createComponentType: (data: Record<string, unknown>) =>
+    client.post('/masters/parts/component-types', data),
+  updateComponentType: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/masters/parts/component-types/${id}`, data),
+  deleteComponentType: (id: string) =>
+    client.delete(`/masters/parts/component-types/${id}`),
 };
 
 // ---------- Machine API ----------

@@ -163,6 +163,45 @@ export function useDeleteUom() {
   });
 }
 
+// ── Component Type ────────────────────────────────────────────────────
+
+export function useCreateComponentType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => partApi.createComponentType(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mastersKeys.componentTypes() });
+      showSuccess('Component type created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateComponentType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      partApi.updateComponentType(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mastersKeys.componentTypes() });
+      showSuccess('Component type updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteComponentType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => partApi.deleteComponentType(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mastersKeys.componentTypes() });
+      showSuccess('Component type deleted');
+    },
+    onError: showError,
+  });
+}
+
 // ── Machine CRUD ───────────────────────────────────────────────────────
 
 export function useCreateMachine() {

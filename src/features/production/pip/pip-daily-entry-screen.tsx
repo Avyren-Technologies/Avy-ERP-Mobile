@@ -22,6 +22,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { SearchBar } from '@/components/ui/search-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -128,6 +129,7 @@ export function PipDailyEntryScreen() {
   const [machineSessions, setMachineSessions] = React.useState<MachineSession[]>([]);
   const [currentMachineId, setCurrentMachineId] = React.useState('');
   const [operatorSearch, setOperatorSearch] = React.useState('');
+  const [partFilter, setPartFilter] = React.useState('');
   const [isSaving, setIsSaving] = React.useState(false);
 
   // Data fetching
@@ -274,6 +276,7 @@ export function PipDailyEntryScreen() {
 
   const selectMachine = (machine: MachineOption) => {
     setCurrentMachineId(machine.id);
+    setPartFilter('');
     // Initialize parts for this machine if not already in sessions
     const existing = machineSessions.find((ms) => ms.machineId === machine.id);
     if (!existing) {
@@ -598,10 +601,20 @@ export function PipDailyEntryScreen() {
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">
                         {entry.qtyProduced ?? 0} pcs
+                        {entry.incentiveAmount != null ? ` · ₹${Number(entry.incentiveAmount).toFixed(0)}` : ''}
                       </Text>
-                      <Text className="font-inter text-[10px] text-neutral-500">
-                        {ach.toFixed(0)}% · Rs {Number(entry.incentiveAmount ?? 0).toFixed(0)}
-                      </Text>
+                      {entry.consideredPct != null ? (
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                          {ach.toFixed(0)}%→{Number(entry.consideredPct).toFixed(0)}%
+                          {entry.appliedSlabLabel ? ` · ${entry.appliedSlabLabel}` : ''}
+                          {entry.appliedRate != null ? `: ₹${Number(entry.appliedRate)}/pc` : ''}
+                        </Text>
+                      ) : (
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                          {ach.toFixed(0)}%
+                          {entry.incentiveAmount != null ? ` · ₹${Number(entry.incentiveAmount).toFixed(0)}` : ''}
+                        </Text>
+                      )}
                     </View>
                   </View>
                 );
@@ -791,7 +804,25 @@ export function PipDailyEntryScreen() {
               Enter Quantities
             </Text>
 
-            {machineSessions.map((ms) => (
+            <View style={{ marginBottom: 12 }}>
+              <SearchBar
+                value={partFilter}
+                onChangeText={setPartFilter}
+                placeholder="Filter parts..."
+              />
+            </View>
+
+            {machineSessions.map((ms) => {
+              const filteredParts = ms.parts.filter((p) => {
+                if (!partFilter.trim()) return true;
+                const q = partFilter.toLowerCase();
+                return (
+                  p.partNumber?.toLowerCase().includes(q) ||
+                  p.partName?.toLowerCase().includes(q)
+                );
+              });
+
+              return (
               <View key={ms.machineId} style={{ marginBottom: 20 }}>
                 <View
                   style={[
@@ -804,7 +835,15 @@ export function PipDailyEntryScreen() {
                   </Text>
                 </View>
 
-                {ms.parts.map((part) => {
+                {filteredParts.length === 0 && ms.parts.length > 0 ? (
+                  <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                    <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                      No parts match "{partFilter}"
+                    </Text>
+                  </View>
+                ) : null}
+
+                {filteredParts.map((part) => {
                   const qty = Number(part.qtyProduced) || 0;
                   const pct = part.shiftTargetQty > 0 ? (qty / part.shiftTargetQty) * 100 : 0;
                   const pctColor = pct >= 100 ? colors.success[500] : pct >= 80 ? colors.warning[500] : colors.danger[500];
@@ -898,7 +937,8 @@ export function PipDailyEntryScreen() {
                   );
                 })}
               </View>
-            ))}
+              );
+            })}
           </Animated.View>
         )}
 

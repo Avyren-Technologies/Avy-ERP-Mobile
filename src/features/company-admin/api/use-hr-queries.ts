@@ -2,7 +2,10 @@
 import { Buffer } from 'buffer';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+
+/** Page size for employee pickers (assign modals, async lists). */
+export const EMPLOYEE_PICKER_PAGE_SIZE = 25;
 
 import {
   hrApi,
@@ -169,6 +172,27 @@ export function useEmployees(params?: EmployeeListParams) {
   return useQuery({
     queryKey: hrKeys.employees(params),
     queryFn: () => hrApi.listEmployees(params),
+  });
+}
+
+/** Infinite employee list for pickers — scroll/search loads additional pages. */
+export function useEmployeesInfinite(search: string, enabled = true) {
+  const trimmed = search.trim();
+  return useInfiniteQuery({
+    queryKey: [...hrKeys.all, 'employees-infinite', trimmed] as const,
+    queryFn: ({ pageParam }) =>
+      hrApi.listEmployees({
+        page: pageParam,
+        limit: EMPLOYEE_PICKER_PAGE_SIZE,
+        search: trimmed || undefined,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const meta = (lastPage as { meta?: { page: number; totalPages: number } })?.meta;
+      if (!meta) return undefined;
+      return meta.page < meta.totalPages ? meta.page + 1 : undefined;
+    },
+    enabled,
   });
 }
 

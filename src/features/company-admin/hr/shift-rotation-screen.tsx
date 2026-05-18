@@ -31,7 +31,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { useEmployeesInfinite } from '@/features/company-admin/api/use-hr-queries';
 import {
     useAssignShiftSchedule,
     useCreateShiftSchedule,
@@ -333,26 +333,53 @@ function ScheduleFormModal({
 
 // ============ ASSIGN MODAL (Multi-select Employee Picker) ============
 
-function AssignModal({ visible, onClose, onAssign, isAssigning, allEmployees }: {
+function AssignModal({ visible, onClose, onAssign, isAssigning }: {
     visible: boolean; onClose: () => void; onAssign: (ids: string[]) => void; isAssigning: boolean;
-    allEmployees: Employee[];
 }) {
     const insets = useSafeAreaInsets();
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [searchText, setSearchText] = React.useState('');
+    const [debouncedSearch, setDebouncedSearch] = React.useState('');
 
     React.useEffect(() => {
-        if (visible) { setSelectedIds([]); setSearchText(''); }
+        if (visible) {
+            setSelectedIds([]);
+            setSearchText('');
+            setDebouncedSearch('');
+        }
     }, [visible]);
 
-    const filtered = React.useMemo(() => {
-        if (!searchText.trim()) return allEmployees;
-        const q = searchText.toLowerCase();
-        return allEmployees.filter(e =>
-            `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||
-            e.employeeId?.toLowerCase().includes(q)
-        );
-    }, [allEmployees, searchText]);
+    React.useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchText), 300);
+        return () => clearTimeout(timer);
+    }, [searchText]);
+
+    const {
+        data: employeesData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+    } = useEmployeesInfinite(debouncedSearch, visible);
+
+    const employees = React.useMemo(() => {
+        const seen = new Set<string>();
+        const list: Employee[] = [];
+        for (const page of employeesData?.pages ?? []) {
+            const raw = (page as { data?: Employee[] })?.data ?? [];
+            for (const e of raw) {
+                if (!e.id || seen.has(e.id)) continue;
+                seen.add(e.id);
+                list.push({
+                    id: e.id,
+                    firstName: e.firstName ?? '',
+                    lastName: e.lastName ?? '',
+                    employeeId: e.employeeId ?? '',
+                });
+            }
+        }
+        return list;
+    }, [employeesData]);
 
     const toggleEmployee = (id: string) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -376,8 +403,14 @@ function AssignModal({ visible, onClose, onAssign, isAssigning, allEmployees }: 
                         />
                     </View>
                     <FlashList
-                        data={filtered}
+                        data={employees}
                         keyExtractor={item => item.id}
+                        onEndReached={() => {
+                            if (hasNextPage && !isFetchingNextPage) {
+                                void fetchNextPage();
+                            }
+                        }}
+                        onEndReachedThreshold={0.3}
                         renderItem={({ item }) => {
                             const isSelected = selectedIds.includes(item.id);
                             return (
@@ -401,8 +434,17 @@ function AssignModal({ visible, onClose, onAssign, isAssigning, allEmployees }: 
                         }}
                         ListEmptyComponent={
                             <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-                                <Text className="font-inter text-sm text-neutral-400">No employees found.</Text>
+                                <Text className="font-inter text-sm text-neutral-400">
+                                    {isLoading ? 'Loading employees...' : 'No employees found.'}
+                                </Text>
                             </View>
+                        }
+                        ListFooterComponent={
+                            isFetchingNextPage ? (
+                                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                                    <Text className="font-inter text-xs text-neutral-400">Loading more...</Text>
+                                </View>
+                            ) : null
                         }
                         showsVerticalScrollIndicator={false}
                         style={{ maxHeight: 300 }}
@@ -609,16 +651,6 @@ export function ShiftRotationScreen() {
             .map((s: any) => ({ id: s.id, name: s.name, fromTime: s.startTime ?? '', toTime: s.endTime ?? '' }));
     }, [shiftsResponse]);
 
-    const { data: empResponse } = useEmployees({ limit: 500 });
-    const allEmployees: Employee[] = React.useMemo(() => {
-        const raw = (empResponse as any)?.data ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map((e: any) => ({ id: e.id, firstName: e.firstName ?? '', lastName: e.lastName ?? '', employeeId: e.employeeId ?? '' }));
-    }, [empResponse]);
-
-    // Build lookup map for employee display in detail panel
-    const employeeMap = React.useMemo(() => new Map(allEmployees.map(e => [e.id, `${e.firstName} ${e.lastName} (${e.employeeId})`])), [allEmployees]);
-
     const { data: overviewResponse, isLoading: overviewLoading, refetch: refetchOverview, isFetching: isFetchingOverview } = useRotationEmployeeOverview(overviewSearch || undefined);
 
     const overviewEmployees = React.useMemo(() => {
@@ -784,7 +816,7 @@ export function ShiftRotationScreen() {
             )}
             {activeTab === 'schedules' && <FAB onPress={handleAdd} />}
             <ScheduleFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending} availableShifts={availableShifts} />
-            <AssignModal visible={assignVisible} onClose={() => setAssignVisible(false)} onAssign={handleAssign} isAssigning={assignMutation.isPending} allEmployees={allEmployees} />
+            <AssignModal visible={assignVisible} onClose={() => setAssignVisible(false)} onAssign={handleAssign} isAssigning={assignMutation.isPending} />
 
             {/* Detail Modal */}
             {detailItem && (
@@ -804,7 +836,7 @@ export function ShiftRotationScreen() {
                                 ) : (
                                     (detailItem.assignedEmployees ?? []).map(emp => (
                                         <View key={emp.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
-                                            <Text className="font-inter text-sm font-medium text-primary-950 dark:text-white">{emp.name ?? employeeMap.get(emp.id) ?? emp.id}</Text>
+                                            <Text className="font-inter text-sm font-medium text-primary-950 dark:text-white">{emp.name ?? emp.id}</Text>
                                             <Pressable onPress={() => handleRemoveEmployee(emp.id)} hitSlop={8}>
                                                 <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" strokeLinecap="round" /></Svg>
                                             </Pressable>

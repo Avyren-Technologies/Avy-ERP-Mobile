@@ -243,7 +243,8 @@ export function ManageModal({
       >
         <KeyboardAvoidingView
           style={styles.backdrop}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
@@ -265,217 +266,221 @@ export function ManageModal({
               </View>
             ) : null}
 
-            {/* Loading state */}
-            {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator
-                  size="small"
-                  color={colors.primary[600]}
-                />
-                <Text className="ml-2 font-inter text-sm text-neutral-500">
-                  Loading...
-                </Text>
-              </View>
-            ) : (
-              /* Existing items list */
-              <ScrollView
-                style={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                {items.length === 0 ? (
-                  <View style={styles.emptyContainer}>
-                    <Text className="font-inter text-sm text-neutral-400">
-                      No items yet
-                    </Text>
-                  </View>
-                ) : (
-                  items.map((item) => (
-                    <View key={item.id} style={styles.itemRow}>
-                      {editingId === item.id ? (
-                        /* Edit mode */
-                        <View style={styles.editContainer}>
-                          {createFields.map((field) => (
-                            <TextInput
-                              key={field.key}
-                              style={styles.input}
-                              placeholder={field.placeholder}
-                              placeholderTextColor={colors.neutral[400]}
-                              value={editValues[field.key] ?? ''}
-                              onChangeText={(text) =>
-                                setEditValues((prev) => ({
-                                  ...prev,
-                                  [field.key]: text,
-                                }))
-                              }
-                            />
-                          ))}
-                          <View style={styles.editActions}>
-                            <Pressable
-                              style={({ pressed }) => [
-                                styles.smallBtn,
-                                styles.cancelSmallBtn,
-                                pressed && { opacity: 0.8 },
-                              ]}
-                              onPress={handleCancelEdit}
-                            >
-                              <Text className="font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-                                Cancel
-                              </Text>
-                            </Pressable>
-                            <Pressable
-                              style={({ pressed }) => [
-                                styles.smallBtn,
-                                styles.saveSmallBtn,
-                                pressed && { opacity: 0.85 },
-                              ]}
-                              onPress={handleSaveEdit}
-                              disabled={isUpdating}
-                            >
-                              {isUpdating ? (
-                                <ActivityIndicator
-                                  size="small"
-                                  color={colors.white}
-                                />
-                              ) : (
-                                <Text className="font-inter text-xs font-bold text-white">
-                                  Save
-                                </Text>
-                              )}
-                            </Pressable>
-                          </View>
-                        </View>
-                      ) : (
-                        /* Display mode */
-                        <>
-                          <View style={styles.itemContent}>
-                            {item.code ? (
-                              <View style={styles.codeBadge}>
-                                <Text className="font-inter text-[10px] font-bold text-primary-700 dark:text-primary-300">
-                                  {item.code}
-                                </Text>
-                              </View>
-                            ) : null}
-                            <Text
-                              className="flex-1 font-inter text-sm font-medium text-neutral-800 dark:text-neutral-200"
-                              numberOfLines={1}
-                            >
-                              {item.name}
-                            </Text>
-                          </View>
-                          <View style={styles.itemActions}>
-                            <Pressable
-                              style={({ pressed }) => [
-                                styles.iconBtn,
-                                pressed && { opacity: 0.6 },
-                              ]}
-                              onPress={() => handleStartEdit(item)}
-                              hitSlop={8}
-                            >
-                              <PencilIcon
-                                color={
-                                  isDark
-                                    ? colors.neutral[400]
-                                    : colors.neutral[500]
+            {/* Single scrollable area for items list + create form */}
+            <ScrollView
+              style={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 8 }}
+            >
+              {/* Loading state */}
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.primary[600]}
+                  />
+                  <Text className="ml-2 font-inter text-sm text-neutral-500">
+                    Loading...
+                  </Text>
+                </View>
+              ) : (
+                /* Existing items list */
+                <>
+                  {items.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                      <Text className="font-inter text-sm text-neutral-400">
+                        No items yet
+                      </Text>
+                    </View>
+                  ) : (
+                    items.map((item) => (
+                      <View key={item.id} style={styles.itemRow}>
+                        {editingId === item.id ? (
+                          /* Edit mode */
+                          <View style={styles.editContainer}>
+                            {createFields.map((field) => (
+                              <TextInput
+                                key={field.key}
+                                style={styles.input}
+                                placeholder={field.placeholder}
+                                placeholderTextColor={colors.neutral[400]}
+                                value={editValues[field.key] ?? ''}
+                                onChangeText={(text) =>
+                                  setEditValues((prev) => ({
+                                    ...prev,
+                                    [field.key]: text,
+                                  }))
                                 }
                               />
-                            </Pressable>
-                            <Pressable
-                              style={({ pressed }) => [
-                                styles.iconBtn,
-                                pressed && { opacity: 0.6 },
-                              ]}
-                              onPress={() => handleDelete(item)}
-                              hitSlop={8}
-                              disabled={isDeleting}
-                            >
-                              <TrashIcon color={colors.danger[500]} />
-                            </Pressable>
+                            ))}
+                            <View style={styles.editActions}>
+                              <Pressable
+                                style={({ pressed }) => [
+                                  styles.smallBtn,
+                                  styles.cancelSmallBtn,
+                                  pressed && { opacity: 0.8 },
+                                ]}
+                                onPress={handleCancelEdit}
+                              >
+                                <Text className="font-inter text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+                                  Cancel
+                                </Text>
+                              </Pressable>
+                              <Pressable
+                                style={({ pressed }) => [
+                                  styles.smallBtn,
+                                  styles.saveSmallBtn,
+                                  pressed && { opacity: 0.85 },
+                                ]}
+                                onPress={handleSaveEdit}
+                                disabled={isUpdating}
+                              >
+                                {isUpdating ? (
+                                  <ActivityIndicator
+                                    size="small"
+                                    color={colors.white}
+                                  />
+                                ) : (
+                                  <Text className="font-inter text-xs font-bold text-white">
+                                    Save
+                                  </Text>
+                                )}
+                              </Pressable>
+                            </View>
                           </View>
-                        </>
-                      )}
-                    </View>
-                  ))
-                )}
-              </ScrollView>
-            )}
+                        ) : (
+                          /* Display mode */
+                          <>
+                            <View style={styles.itemContent}>
+                              {item.code ? (
+                                <View style={styles.codeBadge}>
+                                  <Text className="font-inter text-[10px] font-bold text-primary-700 dark:text-primary-300">
+                                    {item.code}
+                                  </Text>
+                                </View>
+                              ) : null}
+                              <Text
+                                className="flex-1 font-inter text-sm font-medium text-neutral-800 dark:text-neutral-200"
+                                numberOfLines={1}
+                              >
+                                {item.name}
+                              </Text>
+                            </View>
+                            <View style={styles.itemActions}>
+                              <Pressable
+                                style={({ pressed }) => [
+                                  styles.iconBtn,
+                                  pressed && { opacity: 0.6 },
+                                ]}
+                                onPress={() => handleStartEdit(item)}
+                                hitSlop={8}
+                              >
+                                <PencilIcon
+                                  color={
+                                    isDark
+                                      ? colors.neutral[400]
+                                      : colors.neutral[500]
+                                  }
+                                />
+                              </Pressable>
+                              <Pressable
+                                style={({ pressed }) => [
+                                  styles.iconBtn,
+                                  pressed && { opacity: 0.6 },
+                                ]}
+                                onPress={() => handleDelete(item)}
+                                hitSlop={8}
+                                disabled={isDeleting}
+                              >
+                                <TrashIcon color={colors.danger[500]} />
+                              </Pressable>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
 
-            {/* Add New Section */}
-            {showCreateForm ? (
-              <View style={styles.createSection}>
-                <Text className="mb-3 font-inter text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                  Add New
-                </Text>
-                {createFields.map((field) => (
-                  <View key={field.key} style={styles.fieldContainer}>
-                    <Text className="mb-1 font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      {field.label}
-                      {field.required ? (
-                        <Text className="font-inter text-xs text-danger-500">
-                          {' '}
-                          *
-                        </Text>
-                      ) : null}
-                    </Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder={field.placeholder}
-                      placeholderTextColor={colors.neutral[400]}
-                      value={createValues[field.key] ?? ''}
-                      onChangeText={(text) =>
-                        setCreateValues((prev) => ({
-                          ...prev,
-                          [field.key]: text,
-                        }))
-                      }
-                    />
-                  </View>
-                ))}
-                <View style={styles.createActions}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.actionBtn,
-                      styles.cancelBtn,
-                      pressed && { opacity: 0.8 },
-                    ]}
-                    onPress={handleCancelCreate}
-                  >
-                    <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                      Cancel
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.actionBtn,
-                      styles.createBtn,
-                      pressed && { opacity: 0.85 },
-                    ]}
-                    onPress={handleCreate}
-                    disabled={isCreating}
-                  >
-                    {isCreating ? (
-                      <ActivityIndicator size="small" color={colors.white} />
-                    ) : (
-                      <Text className="font-inter text-sm font-bold text-white">
-                        Create
+              {/* Add New Section — inside ScrollView so it scrolls with keyboard */}
+              {showCreateForm ? (
+                <View style={styles.createSection}>
+                  <Text className="mb-3 font-inter text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    Add New
+                  </Text>
+                  {createFields.map((field) => (
+                    <View key={field.key} style={styles.fieldContainer}>
+                      <Text className="mb-1 font-inter text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                        {field.label}
+                        {field.required ? (
+                          <Text className="font-inter text-xs text-danger-500">
+                            {' '}
+                            *
+                          </Text>
+                        ) : null}
                       </Text>
-                    )}
-                  </Pressable>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={field.placeholder}
+                        placeholderTextColor={colors.neutral[400]}
+                        value={createValues[field.key] ?? ''}
+                        onChangeText={(text) =>
+                          setCreateValues((prev) => ({
+                            ...prev,
+                            [field.key]: text,
+                          }))
+                        }
+                      />
+                    </View>
+                  ))}
+                  <View style={styles.createActions}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.actionBtn,
+                        styles.cancelBtn,
+                        pressed && { opacity: 0.8 },
+                      ]}
+                      onPress={handleCancelCreate}
+                    >
+                      <Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                        Cancel
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.actionBtn,
+                        styles.createBtn,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={handleCreate}
+                      disabled={isCreating}
+                    >
+                      {isCreating ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <Text className="font-inter text-sm font-bold text-white">
+                          Create
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.addNewBtn,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={handleShowCreate}
-              >
-                <Text className="font-inter text-sm font-semibold text-primary-600">
-                  + Add New
-                </Text>
-              </Pressable>
-            )}
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.addNewBtn,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={handleShowCreate}
+                >
+                  <Text className="font-inter text-sm font-semibold text-primary-600">
+                    + Add New
+                  </Text>
+                </Pressable>
+              )}
+            </ScrollView>
 
             {/* Bottom safe area */}
             <View style={{ height: insets.bottom + 8 }} />
@@ -526,9 +531,9 @@ const createStyles = (isDark: boolean) =>
       justifyContent: 'center',
       paddingVertical: 32,
     },
-    listContainer: {
-      maxHeight: 280,
-      marginBottom: 12,
+    scrollContent: {
+      flex: 1,
+      maxHeight: '100%',
     },
     emptyContainer: {
       alignItems: 'center',

@@ -505,8 +505,10 @@ const createStyles = (isDark: boolean) =>
     },
     sheetWrapper: {
       maxHeight: '85%',
+      minHeight: '50%',
     },
     sheet: {
+      flex: 1,
       backgroundColor: isDark ? '#1A1730' : colors.white,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
@@ -535,8 +537,7 @@ const createStyles = (isDark: boolean) =>
       paddingVertical: 32,
     },
     scrollContent: {
-      flex: 1,
-      maxHeight: '100%',
+      flexGrow: 1,
     },
     emptyContainer: {
       alignItems: 'center',

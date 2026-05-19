@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Modal as RNModal,
   Platform,
   Pressable,
   ScrollView,
@@ -22,6 +23,8 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { ManageModal } from '@/components/ui/manage-modal';
+import type { ManageModalItem } from '@/components/ui/manage-modal';
 import { SearchBar } from '@/components/ui/search-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -34,8 +37,14 @@ import {
   usePipConfig,
   usePipSlabConfigs,
   usePipDailyEntries,
+  useDowntimeReasons,
 } from '@/features/production/pip/api/use-pip-queries';
-import { useSavePipDailyEntries } from '@/features/production/pip/api/use-pip-mutations';
+import {
+  useSavePipDailyEntries,
+  useCreateDowntimeReason,
+  useUpdateDowntimeReason,
+  useDeleteDowntimeReason,
+} from '@/features/production/pip/api/use-pip-mutations';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 import type { PipIncentiveConfig, PipSlabConfig } from '@/lib/api/pip';
@@ -63,13 +72,20 @@ interface PartEntry {
   shiftTargetQty: number;
   qtyProduced: string;
   ncCount: string;
+  downtimeReasonId: string;
+  downtimeMinutes: string;
+}
+
+interface DowntimeReasonOption {
+  id: string;
+  code: string;
+  name: string;
 }
 
 interface OperationOption {
   id: string;
   code: string;
   name: string;
-  operationNumber: string;
 }
 
 interface MachineSession {
@@ -173,6 +189,23 @@ export function PipDailyEntryScreen() {
   }, [employeesRaw]);
 
   const saveMutation = useSavePipDailyEntries();
+
+  // Downtime reasons
+  const [manageDowntimeVisible, setManageDowntimeVisible] = React.useState(false);
+  const [downtimePickerPartKey, setDowntimePickerPartKey] = React.useState<{ machineId: string; partId: string } | null>(null);
+  const { data: downtimeReasonsRaw, isLoading: downtimeReasonsLoading } = useDowntimeReasons();
+  const downtimeReasonList: DowntimeReasonOption[] = React.useMemo(() => {
+    const raw = (downtimeReasonsRaw as any)?.data ?? downtimeReasonsRaw ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((r: any) => ({ id: r.id ?? '', code: r.code ?? '', name: r.name ?? '' }));
+  }, [downtimeReasonsRaw]);
+  const manageDowntimeItems: ManageModalItem[] = React.useMemo(
+    () => downtimeReasonList.map((r) => ({ id: r.id, name: r.name, code: r.code })),
+    [downtimeReasonList],
+  );
+  const createDTR = useCreateDowntimeReason();
+  const updateDTR = useUpdateDowntimeReason();
+  const deleteDTR = useDeleteDowntimeReason();
 
   // Fetch company shifts and auto-select based on current time (PRD 17.8)
   const { data: shiftsRaw } = useCompanyShifts();
@@ -296,7 +329,6 @@ export function PipDailyEntryScreen() {
           id: sc.operationId,
           code: sc.operation.code,
           name: sc.operation.name,
-          operationNumber: sc.operation.operationNumber,
         });
       }
     });
@@ -337,6 +369,8 @@ export function PipDailyEntryScreen() {
           shiftTargetQty: sc.shiftTargetQty,
           qtyProduced: '',
           ncCount: '0',
+          downtimeReasonId: '',
+          downtimeMinutes: '',
         }));
       setMachineSessions((prev) => [
         ...prev,
@@ -354,7 +388,7 @@ export function PipDailyEntryScreen() {
     goNext();
   };
 
-  const updatePartQty = (machineId: string, partId: string, field: 'qtyProduced' | 'ncCount', value: string) => {
+  const updatePartQty = (machineId: string, partId: string, field: 'qtyProduced' | 'ncCount' | 'downtimeReasonId' | 'downtimeMinutes', value: string) => {
     setMachineSessions((prev) =>
       prev.map((ms) =>
         ms.machineId === machineId
@@ -390,6 +424,8 @@ export function PipDailyEntryScreen() {
           ...(ms.operationId ? { operationId: ms.operationId } : {}),
           qtyProduced: Number(p.qtyProduced),
           ncCount: Number(p.ncCount) || 0,
+          ...(p.downtimeReasonId ? { downtimeReasonId: p.downtimeReasonId } : {}),
+          ...(p.downtimeMinutes && Number(p.downtimeMinutes) > 0 ? { downtimeMinutes: Number(p.downtimeMinutes) } : {}),
         })),
     );
 
@@ -799,7 +835,7 @@ export function PipDailyEntryScreen() {
                       ]}
                     >
                       <Text className="font-inter text-[10px] font-bold text-accent-700">
-                        {op.operationNumber}
+                        {op.code}
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
@@ -1064,6 +1100,113 @@ export function PipDailyEntryScreen() {
                           {pct.toFixed(0)}%
                         </Text>
                       </View>
+
+                      {/* Downtime / Idle Reason */}
+                      <View style={[styles.downtimeSection, { borderTopColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <Text className="font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">
+                            Downtime / Idle Reason
+                          </Text>
+                          <Pressable onPress={() => setManageDowntimeVisible(true)} hitSlop={8}>
+                            <Text className="font-inter text-[10px] font-semibold text-primary-600">
+                              Manage
+                            </Text>
+                          </Pressable>
+                        </View>
+
+                        {/* Reason Picker */}
+                        <Pressable
+                          onPress={() => setDowntimePickerPartKey({ machineId: ms.machineId, partId: part.partId })}
+                          style={[
+                            styles.downtimePickerBtn,
+                            {
+                              backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                              borderColor: part.downtimeReasonId
+                                ? colors.warning[400]
+                                : isDark ? colors.neutral[700] : colors.neutral[200],
+                            },
+                          ]}
+                        >
+                          <Text
+                            className={`font-inter text-xs ${
+                              part.downtimeReasonId
+                                ? 'font-semibold text-warning-700 dark:text-warning-400'
+                                : 'text-neutral-400'
+                            }`}
+                            numberOfLines={1}
+                          >
+                            {part.downtimeReasonId
+                              ? downtimeReasonList.find((r) => r.id === part.downtimeReasonId)?.name ?? 'Selected'
+                              : 'Select reason (optional)'}
+                          </Text>
+                          <Svg width={14} height={14} viewBox="0 0 24 24">
+                            <Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          </Svg>
+                        </Pressable>
+
+                        {/* Duration chips */}
+                        {part.downtimeReasonId ? (
+                          <View style={{ marginTop: 8 }}>
+                            <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">
+                              Duration (minutes)
+                            </Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 4 }}>
+                              {[5, 10, 15, 30, 45, 60, 90, 120].map((mins) => {
+                                const active = part.downtimeMinutes === String(mins);
+                                return (
+                                  <Pressable
+                                    key={mins}
+                                    onPress={() => updatePartQty(ms.machineId, part.partId, 'downtimeMinutes', String(mins))}
+                                    style={[
+                                      styles.durationChip,
+                                      {
+                                        backgroundColor: active
+                                          ? colors.warning[500]
+                                          : isDark ? '#0F0D1A' : colors.neutral[50],
+                                        borderColor: active
+                                          ? colors.warning[500]
+                                          : isDark ? colors.neutral[700] : colors.neutral[200],
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      className="font-inter text-[11px] font-semibold"
+                                      style={{ color: active ? colors.white : isDark ? colors.neutral[300] : colors.neutral[600] }}
+                                    >
+                                      {mins}m
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </ScrollView>
+                            {/* Custom minutes input */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
+                              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                                Custom:
+                              </Text>
+                              <TextInput
+                                style={[
+                                  styles.downtimeCustomInput,
+                                  {
+                                    backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                                    color: isDark ? colors.white : colors.primary[950],
+                                    borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                                  },
+                                ]}
+                                value={
+                                  [5, 10, 15, 30, 45, 60, 90, 120].includes(Number(part.downtimeMinutes))
+                                    ? ''
+                                    : part.downtimeMinutes
+                                }
+                                onChangeText={(v) => updatePartQty(ms.machineId, part.partId, 'downtimeMinutes', v)}
+                                keyboardType="numeric"
+                                placeholder="min"
+                                placeholderTextColor={colors.neutral[400]}
+                              />
+                            </View>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                   );
                 })}
@@ -1251,6 +1394,137 @@ export function PipDailyEntryScreen() {
           </View>
         </View>
       )}
+
+      {/* Downtime Reason Picker Modal */}
+      <RNModal
+        visible={!!downtimePickerPartKey}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setDowntimePickerPartKey(null)}
+      >
+        <View style={[styles.pickerModal, { paddingTop: insets.top, backgroundColor: isDark ? '#0F0D1A' : colors.white }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: isDark ? colors.neutral[800] : colors.neutral[100] }]}>
+            <Pressable onPress={() => setDowntimePickerPartKey(null)}>
+              <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+                Cancel
+              </Text>
+            </Pressable>
+            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
+              Select Downtime Reason
+            </Text>
+            <Pressable
+              onPress={() => {
+                if (downtimePickerPartKey) {
+                  updatePartQty(downtimePickerPartKey.machineId, downtimePickerPartKey.partId, 'downtimeReasonId', '');
+                  updatePartQty(downtimePickerPartKey.machineId, downtimePickerPartKey.partId, 'downtimeMinutes', '');
+                }
+                setDowntimePickerPartKey(null);
+              }}
+            >
+              <Text className="font-inter text-sm font-semibold text-danger-500">
+                Clear
+              </Text>
+            </Pressable>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}>
+            {downtimeReasonList.length === 0 ? (
+              <View style={{ paddingTop: 40, alignItems: 'center' }}>
+                <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400">
+                  No downtime reasons configured.
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    setDowntimePickerPartKey(null);
+                    setManageDowntimeVisible(true);
+                  }}
+                  style={{ marginTop: 12 }}
+                >
+                  <Text className="font-inter text-sm font-semibold text-primary-600">
+                    Add Downtime Reasons
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              downtimeReasonList.map((reason) => {
+                const currentPartKey = downtimePickerPartKey;
+                const session = currentPartKey
+                  ? machineSessions.find((ms) => ms.machineId === currentPartKey.machineId)
+                  : null;
+                const part = session?.parts.find((p) => p.partId === currentPartKey?.partId);
+                const isSelected = part?.downtimeReasonId === reason.id;
+
+                return (
+                  <Pressable
+                    key={reason.id}
+                    onPress={() => {
+                      if (currentPartKey) {
+                        updatePartQty(currentPartKey.machineId, currentPartKey.partId, 'downtimeReasonId', reason.id);
+                      }
+                      setDowntimePickerPartKey(null);
+                    }}
+                    style={[
+                      styles.pickerOption,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark ? colors.warning[900] : colors.warning[50]
+                          : isDark ? '#1A1730' : colors.white,
+                        borderColor: isSelected
+                          ? colors.warning[400]
+                          : isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                        {reason.name}
+                      </Text>
+                      <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
+                        {reason.code}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Svg width={18} height={18} viewBox="0 0 24 24">
+                        <Path
+                          d="M5 12l5 5L20 7"
+                          stroke={colors.warning[600]}
+                          strokeWidth="2.5"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                    )}
+                  </Pressable>
+                );
+              })
+            )}
+          </ScrollView>
+        </View>
+      </RNModal>
+
+      {/* Downtime Reason Manage Modal */}
+      <ManageModal
+        visible={manageDowntimeVisible}
+        onClose={() => setManageDowntimeVisible(false)}
+        title="Downtime Reasons"
+        items={manageDowntimeItems}
+        isLoading={downtimeReasonsLoading}
+        createFields={[
+          { key: 'name', label: 'Name', placeholder: 'e.g. Power Outage', required: true },
+        ]}
+        onCreate={async (values) => {
+          await createDTR.mutateAsync({ name: values.name });
+        }}
+        onUpdate={async (id, values) => {
+          await updateDTR.mutateAsync({ id, data: { name: values.name } });
+        }}
+        onDelete={async (id) => {
+          await deleteDTR.mutateAsync(id);
+        }}
+        isCreating={createDTR.isPending}
+        isUpdating={updateDTR.isPending}
+        isDeleting={deleteDTR.isPending}
+      />
 
       <ConfirmModal {...confirmModal.modalProps} />
     </View>
@@ -1542,6 +1816,54 @@ const createStyles = (isDark: boolean) =>
       paddingHorizontal: 7,
       paddingVertical: 3,
       borderRadius: 6,
+    },
+    downtimeSection: {
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: 1,
+    },
+    downtimePickerBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    durationChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    downtimeCustomInput: {
+      borderRadius: 8,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      fontSize: 13,
+      fontWeight: '600' as const,
+      width: 70,
+    },
+    pickerModal: {
+      flex: 1,
+    },
+    pickerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+    },
+    pickerOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 12,
+      borderWidth: 1.5,
+      padding: 14,
+      marginBottom: 8,
     },
     bottomBar: {
       paddingHorizontal: 24,

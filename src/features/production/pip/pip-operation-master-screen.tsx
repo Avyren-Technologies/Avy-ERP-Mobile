@@ -49,7 +49,6 @@ import type { Operation, ProcessCategory } from '@/lib/api/pip';
 interface OperationData {
   id: string;
   code: string;
-  operationNumber: string;
   name: string;
   processType?: string;
   processCategoryId?: string;
@@ -66,7 +65,6 @@ function mapOperation(item: any): OperationData {
   return {
     id: item.id ?? '',
     code: item.code ?? '',
-    operationNumber: item.operationNumber ?? '',
     name: item.name ?? '',
     processType: item.processType,
     processCategoryId: item.processCategoryId ?? item.processCategory?.id,
@@ -152,9 +150,6 @@ function OperationCard({
               numberOfLines={1}
             >
               {item.name}
-            </Text>
-            <Text className="mt-0.5 font-inter text-xs text-neutral-500 dark:text-neutral-400">
-              #{item.operationNumber}
             </Text>
           </View>
 
@@ -368,10 +363,10 @@ function OperationFormSheet({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Operation Number (auto-generated) */}
+          {/* Code (auto-generated) */}
           <View style={formStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-              Operation Number
+              Code
             </Text>
             <TextInput
               style={[
@@ -382,9 +377,9 @@ function OperationFormSheet({
                   borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
                 },
               ]}
-              placeholder={isEdit ? editItem?.operationNumber : 'Auto Generated'}
+              placeholder={isEdit ? editItem?.code : 'Auto Generated'}
               placeholderTextColor={colors.neutral[400]}
-              value={isEdit ? editItem?.operationNumber ?? '' : ''}
+              value={isEdit ? editItem?.code ?? '' : ''}
               editable={false}
             />
           </View>
@@ -715,13 +710,12 @@ export function PipOperationMasterScreen() {
         isLoading={catLoading}
         createFields={[
           { key: 'name', label: 'Name', placeholder: 'e.g. Machining', required: true },
-          { key: 'code', label: 'Code', placeholder: 'e.g. MACH', required: true },
         ]}
         onCreate={async (values) => {
-          await createCat.mutateAsync({ name: values.name, code: values.code });
+          await createCat.mutateAsync({ name: values.name });
         }}
         onUpdate={async (id, values) => {
-          await updateCat.mutateAsync({ id, data: { name: values.name, code: values.code } });
+          await updateCat.mutateAsync({ id, data: { name: values.name } });
         }}
         onDelete={async (id) => {
           await deleteCat.mutateAsync(id);

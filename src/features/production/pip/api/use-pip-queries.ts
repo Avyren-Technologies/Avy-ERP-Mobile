@@ -25,6 +25,8 @@ export const pipKeys = {
   payrollMergePreview: (id: string) => [...pipKeys.all, 'merge-preview', id] as const,
   processCategories: (params?: Record<string, unknown>) =>
     params ? ([...pipKeys.all, 'process-categories', params] as const) : ([...pipKeys.all, 'process-categories'] as const),
+  downtimeReasons: (params?: Record<string, unknown>) =>
+    params ? ([...pipKeys.all, 'downtime-reasons', params] as const) : ([...pipKeys.all, 'downtime-reasons'] as const),
 };
 
 // --- Queries ---
@@ -110,6 +112,13 @@ export function useProcessCategories(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: pipKeys.processCategories(params),
     queryFn: () => pipApi.listProcessCategories(params),
+  });
+}
+
+export function useDowntimeReasons(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: pipKeys.downtimeReasons(params),
+    queryFn: () => pipApi.listDowntimeReasons(params),
   });
 }
 

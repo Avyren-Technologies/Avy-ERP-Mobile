@@ -17,12 +17,22 @@ export interface Operation {
   id: string;
   companyId: string;
   code: string;
-  operationNumber: string;
   name: string;
   processType?: string;
   processCategoryId?: string;
   processCategory?: { id: string; name: string; code: string };
   status: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DowntimeReason {
+  id: string;
+  companyId: string;
+  code: string;
+  name: string;
+  description?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -43,7 +53,7 @@ export interface PipSlabConfig {
   partId: string;
   part?: { id: string; partNumber: string; name: string };
   operationId: string;
-  operation?: { id: string; code: string; name: string; operationNumber: string; processType?: string; processCategoryId?: string; processCategory?: { id: string; name: string; code: string } };
+  operation?: { id: string; code: string; name: string; processType?: string; processCategoryId?: string; processCategory?: { id: string; name: string; code: string } };
   shiftTargetQty: number;
   slabTiers: SlabTier[];
   isActive: boolean;
@@ -70,6 +80,9 @@ export interface PipDailyEntry {
   achievementPct: number;
   ncCount: number;
   ncReason?: string;
+  downtimeReasonId?: string;
+  downtimeMinutes?: number;
+  downtimeReason?: { id: string; code: string; name: string };
   methodUsed?: string;
   methodNumber?: number;
   cumulativeRatio?: number;
@@ -163,6 +176,16 @@ export const pipApi = {
     client.patch(`/production/pip/process-categories/${id}`, data),
   deleteProcessCategory: (id: string) =>
     client.delete(`/production/pip/process-categories/${id}`),
+
+  // Downtime Reasons
+  listDowntimeReasons: (params?: Record<string, unknown>) =>
+    client.get('/production/pip/downtime-reasons', { params }),
+  createDowntimeReason: (data: Record<string, unknown>) =>
+    client.post('/production/pip/downtime-reasons', data),
+  updateDowntimeReason: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/production/pip/downtime-reasons/${id}`, data),
+  deleteDowntimeReason: (id: string) =>
+    client.delete(`/production/pip/downtime-reasons/${id}`),
 
   // Operations
   listOperations: (params?: Record<string, unknown>) =>

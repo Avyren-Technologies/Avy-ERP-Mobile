@@ -43,6 +43,45 @@ export function useDeleteProcessCategory() {
   });
 }
 
+// ── Downtime Reasons ─────────────────────────────────────────────────
+
+export function useCreateDowntimeReason() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => pipApi.createDowntimeReason(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.downtimeReasons() });
+      showSuccess('Downtime reason created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateDowntimeReason() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      pipApi.updateDowntimeReason(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.downtimeReasons() });
+      showSuccess('Downtime reason updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteDowntimeReason() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pipApi.deleteDowntimeReason(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.downtimeReasons() });
+      showSuccess('Downtime reason deleted');
+    },
+    onError: showError,
+  });
+}
+
 // ── Operations ────────────────────────────────────────────────────────
 
 export function useCreateOperation() {

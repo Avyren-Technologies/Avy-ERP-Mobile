@@ -116,7 +116,7 @@ export const leaveApi = {
 
   // ── Leave Balances — Bulk Import ──────────────────────────────────
   downloadBalanceTemplate: () =>
-    client.get('/hr/leave-balances/bulk/template', { responseType: 'blob' }),
+    client.get('/hr/leave-balances/bulk/template', { responseType: 'arraybuffer' }),
 
   validateBalanceUpload: (file: any) => {
     const formData = new FormData();

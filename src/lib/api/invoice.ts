@@ -109,5 +109,5 @@ export const invoiceApi = {
     client.post(`/platform/billing/invoices/${id}/send-email`) as Promise<{ success: boolean }>,
 
   downloadPdf: (id: string) =>
-    client.get(`/platform/billing/invoices/${id}/pdf`, { responseType: 'blob' }) as Promise<Blob>,
+    client.get(`/platform/billing/invoices/${id}/pdf`, { responseType: 'arraybuffer' }),
 };

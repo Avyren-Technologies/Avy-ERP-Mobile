@@ -49,7 +49,13 @@ client.interceptors.request.use(
 // --- Response interceptor: unwrap data + handle 401 refresh ---
 client.interceptors.response.use(
   // Success: unwrap axios response.data so consumers get ApiResponse directly
-  (response) => response.data,
+  // Preserve full Axios response for binary downloads (Excel, PDF files)
+  (response) => {
+    if (response.config.responseType === 'arraybuffer' || response.config.responseType === 'blob') {
+      return response;
+    }
+    return response.data;
+  },
 
   // Error handler
   async (error: AxiosError<{ success: boolean; code?: string; message?: string }>) => {

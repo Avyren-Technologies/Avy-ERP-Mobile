@@ -1,6 +1,4 @@
-import { File as ExpoFile, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
-import { shareAsync } from 'expo-sharing';
 import {
   AlertTriangle,
   Banknote,
@@ -51,6 +49,7 @@ import {
   useGrades,
 } from '@/features/company-admin/api/use-hr-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useFileDownload } from '@/hooks/use-file-download';
 import { analyticsApi } from '@/lib/api/analytics';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -378,6 +377,7 @@ export function ReportsHubScreen() {
   const [filterVisible, setFilterVisible] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
+  const { download } = useFileDownload();
 
   // --- Queries ---
   const { data: catalogRes, isLoading: catalogLoading } = useReportCatalog();
@@ -481,32 +481,13 @@ export function ReportsHubScreen() {
           format: 'excel',
         });
 
-        // response is an Axios response with blob data
-        // Convert blob to base64 and write using new expo-file-system API
-        const blob = response.data as Blob;
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          reader.onload = () => {
-            const dataUrl = reader.result as string;
-            const base64 = dataUrl.split(',')[1] ?? '';
-            resolve(base64);
-          };
-          reader.onerror = reject;
-        });
-        reader.readAsDataURL(blob);
-        const base64Data = await base64Promise;
-
-        const file = new ExpoFile(Paths.cache, `${reportType}_${Date.now()}.xlsx`);
-        file.create();
-        file.write(base64Data, { encoding: 'base64' });
-
-        await shareAsync(file.uri, {
-          mimeType:
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        const fileName = `${reportType}_${Date.now()}.xlsx`;
+        const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        await download(response.data as ArrayBuffer, {
+          fileName,
+          mimeType,
           dialogTitle: `Share ${reportType} report`,
         });
-
-        showSuccess('Report downloaded successfully');
         await refetchRateLimit();
         await refetchHistory();
       } catch (err: unknown) {
@@ -519,7 +500,7 @@ export function ReportsHubScreen() {
         setDownloadingType(null);
       }
     },
-    [filters, rateLimitReached, refetchRateLimit, refetchHistory],
+    [filters, rateLimitReached, refetchRateLimit, refetchHistory, download],
   );
 
   // --- History refresh ---

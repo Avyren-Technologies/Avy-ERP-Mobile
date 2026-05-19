@@ -8,7 +8,7 @@ export const analyticsApi = {
     client.get(`/hr/analytics/drilldown/${dashboard}`, { params }).then(r => r.data),
 
   exportReport: (reportType: string, params: Record<string, unknown>) =>
-    client.get(`/hr/analytics/export/${reportType}`, { params, responseType: 'blob' }),
+    client.get(`/hr/analytics/export/${reportType}`, { params, responseType: 'arraybuffer' }),
 
   getAlerts: (params?: Record<string, unknown>) =>
     client.get('/hr/analytics/alerts', { params }).then(r => r.data),

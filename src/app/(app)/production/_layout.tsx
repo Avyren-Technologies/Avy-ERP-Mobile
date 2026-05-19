@@ -4,7 +4,6 @@ export default function ProductionLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="pip" />
-      <Stack.Screen name="pip-reports" />
     </Stack>
   );
 }

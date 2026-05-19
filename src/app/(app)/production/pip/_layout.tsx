@@ -12,6 +12,7 @@ export default function PipLayout() {
       <Stack.Screen name="summary-report" />
       <Stack.Screen name="config" />
       <Stack.Screen name="operations" />
+      <Stack.Screen name="reports" />
     </Stack>
   );
 }

@@ -241,14 +241,14 @@ export function ManageModal({
         statusBarTranslucent
         onRequestClose={onClose}
       >
-        <KeyboardAvoidingView
-          style={styles.backdrop}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
+        <View style={styles.backdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-          <View style={styles.sheet}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.sheetWrapper}
+          >
+            <View style={styles.sheet}>
             {/* Handle */}
             <View style={styles.handle} />
 
@@ -485,7 +485,8 @@ export function ManageModal({
             {/* Bottom safe area */}
             <View style={{ height: insets.bottom + 8 }} />
           </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </RNModal>
 
       <ConfirmModal {...confirmModalProps} />
@@ -502,13 +503,15 @@ const createStyles = (isDark: boolean) =>
       backgroundColor: 'rgba(8, 15, 40, 0.32)',
       justifyContent: 'flex-end',
     },
+    sheetWrapper: {
+      maxHeight: '85%',
+    },
     sheet: {
       backgroundColor: isDark ? '#1A1730' : colors.white,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       paddingHorizontal: 24,
       paddingTop: 12,
-      maxHeight: '85%',
     },
     handle: {
       width: 40,

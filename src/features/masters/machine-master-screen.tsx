@@ -1110,10 +1110,9 @@ export function MachineMasterScreen() {
         isLoading={false}
         createFields={[
           { key: 'name', label: 'Name', placeholder: 'e.g. Zone A', required: true },
-          { key: 'code', label: 'Code', placeholder: 'e.g. ZN-A' },
         ]}
         onCreate={async (values) => {
-          const res: any = await createZone.mutateAsync(values);
+          const res: any = await createZone.mutateAsync({ name: values.name });
           const newId = res?.data?.id ?? '';
           if (newId) {
             pendingSelectRef.current = { field: 'zoneId', id: newId };

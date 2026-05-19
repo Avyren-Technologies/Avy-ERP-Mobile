@@ -157,7 +157,7 @@ function calcSampleIncentive(
       const prev = runningRatio;
       runningRatio += pctContrib;
       let earningQty = 0;
-      if (prev >= 1) earningQty = p.qtyProduced;
+      if (prev >= 1) earningQty = Math.max(0, p.qtyProduced - p.shiftTargetQty);
       else if (runningRatio > 1) earningQty = Math.max(0, p.qtyProduced - Math.ceil((1 - prev) * p.shiftTargetQty));
       const excessAboveTarget = Math.max(0, p.qtyProduced - p.shiftTargetQty);
       const slab1Earning = Math.max(0, earningQty - excessAboveTarget);

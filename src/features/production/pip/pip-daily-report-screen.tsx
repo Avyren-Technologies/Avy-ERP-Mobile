@@ -1,12 +1,12 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
 
+import BottomSheet from '@gorhom/bottom-sheet';
 import * as React from 'react';
 import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   View,
 } from 'react-native';
@@ -23,10 +23,14 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ExportSheet } from '@/components/ui/export-sheet';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { useFileDownload } from '@/hooks/use-file-download';
 import { usePipDailyEntrySummary } from '@/features/production/pip/api/use-pip-queries';
+import { analyticsApi } from '@/lib/api/analytics';
 
 // ============ TYPES ============
 
@@ -230,6 +234,9 @@ export function PipDailyReportScreen() {
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
 
+  const exportRef = React.useRef<BottomSheet>(null);
+  const { download, isDownloading } = useFileDownload();
+
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const dateStr = formatDate(selectedDate);
 
@@ -278,17 +285,24 @@ export function PipDailyReportScreen() {
     });
   };
 
-  const handleExport = async () => {
-    const lines = ['Daily Production Report', `Date: ${dateStr}`, '', 'Operator, Produced, Target, Achievement%, Incentive'];
-    operators.forEach((op) => {
-      lines.push(`${op.operatorName}, ${op.totalProduced}, ${op.totalTarget}, ${Number(op.achievementPct ?? 0).toFixed(1)}%, Rs ${Number(op.incentiveAmount ?? 0).toFixed(2)}`);
-    });
+  const handleExport = React.useCallback(async (format: 'excel' | 'pdf') => {
+    exportRef.current?.close();
     try {
-      await Share.share({ message: lines.join('\n'), title: `Production Report ${dateStr}` });
+      const response = await analyticsApi.exportReport('pip-daily-production', {
+        dateFrom: dateStr,
+        dateTo: dateStr,
+        format,
+      });
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await download(response.data, {
+        fileName: `daily-production-${dateStr}.${ext}`,
+        mimeType: mime,
+      });
     } catch {
-      // Ignored
+      showErrorMessage('Failed to export report');
     }
-  };
+  }, [dateStr, download]);
 
   const renderHeader = () => (
     <>
@@ -298,7 +312,7 @@ export function PipDailyReportScreen() {
           subtitle={dateStr}
           onMenuPress={toggle}
           rightSlot={
-            <Pressable onPress={handleExport} hitSlop={8}>
+            <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
               <Svg width={22} height={22} viewBox="0 0 24 24">
                 <Path
                   d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
@@ -400,6 +414,8 @@ export function PipDailyReportScreen() {
           />
         }
       />
+
+      <ExportSheet ref={exportRef} onExport={handleExport} isDownloading={isDownloading} />
     </View>
   );
 }

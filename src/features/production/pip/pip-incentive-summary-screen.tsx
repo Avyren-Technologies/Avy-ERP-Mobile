@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import BottomSheet from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
@@ -23,9 +24,13 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ExportSheet } from '@/components/ui/export-sheet';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { useFileDownload } from '@/hooks/use-file-download';
+import { analyticsApi } from '@/lib/api/analytics';
 import {
   usePipMonthlyReports,
   usePipMonthlyReport,
@@ -160,6 +165,8 @@ export function PipIncentiveSummaryScreen() {
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
   const confirmModal = useConfirmModal();
+  const exportRef = React.useRef<BottomSheet>(null);
+  const { download, isDownloading } = useFileDownload();
 
   const now = new Date();
   const [month, setMonth] = React.useState(now.getMonth() + 1);
@@ -238,6 +245,25 @@ export function PipIncentiveSummaryScreen() {
     });
   };
 
+  const handleExport = React.useCallback(async (format: 'excel' | 'pdf') => {
+    exportRef.current?.close();
+    try {
+      const response = await analyticsApi.exportReport('pip-incentive-summary', {
+        month,
+        year,
+        format,
+      });
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await download(response.data, {
+        fileName: `incentive-summary-${year}-${String(month).padStart(2, '0')}.${ext}`,
+        mimeType: mime,
+      });
+    } catch {
+      showErrorMessage('Failed to export report');
+    }
+  }, [month, year, download]);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -264,6 +290,20 @@ export function PipIncentiveSummaryScreen() {
             title="Incentive Summary"
             subtitle={`${MONTHS[month - 1]} ${year}`}
             onMenuPress={toggle}
+            rightSlot={
+              <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
+                <Svg width={22} height={22} viewBox="0 0 24 24">
+                  <Path
+                    d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                    stroke={colors.white}
+                    strokeWidth="1.8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+            }
           />
         </Animated.View>
 
@@ -487,6 +527,7 @@ export function PipIncentiveSummaryScreen() {
         </View>
       </ScrollView>
 
+      <ExportSheet ref={exportRef} onExport={handleExport} isDownloading={isDownloading} />
       <ConfirmModal {...confirmModal.modalProps} />
     </View>
   );

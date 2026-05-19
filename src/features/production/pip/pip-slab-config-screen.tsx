@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import BottomSheet from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import * as React from 'react';
@@ -26,11 +27,15 @@ import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ExportSheet } from '@/components/ui/export-sheet';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
+import { showErrorMessage } from '@/components/ui/utils';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { useFileDownload } from '@/hooks/use-file-download';
+import { analyticsApi } from '@/lib/api/analytics';
 import { usePipSlabConfigs, useOperations } from '@/features/production/pip/api/use-pip-queries';
 import {
   useCreatePipSlabConfig,
@@ -844,6 +849,8 @@ export function PipSlabConfigScreen() {
   const styles = createStyles(isDark);
   const insets = useSafeAreaInsets();
   const { toggle } = useSidebar();
+  const exportRef = React.useRef<BottomSheet>(null);
+  const { download, isDownloading } = useFileDownload();
 
   const [search, setSearch] = React.useState('');
   const [sheetVisible, setSheetVisible] = React.useState(false);
@@ -901,6 +908,21 @@ export function PipSlabConfigScreen() {
   const updateSlab = useUpdatePipSlabConfig();
   const deleteSlab = useDeletePipSlabConfig();
 
+  const handleExport = React.useCallback(async (format: 'excel' | 'pdf') => {
+    exportRef.current?.close();
+    try {
+      const response = await analyticsApi.exportReport('pip-slab-config', { format });
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await download(response.data, {
+        fileName: `slab-config.${ext}`,
+        mimeType: mime,
+      });
+    } catch {
+      showErrorMessage('Failed to export report');
+    }
+  }, [download]);
+
   const handleAdd = () => {
     setEditingItem(null);
     setSheetVisible(true);
@@ -953,6 +975,20 @@ export function PipSlabConfigScreen() {
           title="Slab Configuration"
           subtitle={`${configs.length} config${configs.length !== 1 ? 's' : ''}`}
           onMenuPress={toggle}
+          rightSlot={
+            <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Path
+                  d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                  stroke={colors.white}
+                  strokeWidth="1.8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </Pressable>
+          }
         />
       </Animated.View>
 
@@ -1065,6 +1101,7 @@ export function PipSlabConfigScreen() {
         isSubmitting={createSlab.isPending || updateSlab.isPending}
       />
 
+      <ExportSheet ref={exportRef} onExport={handleExport} isDownloading={isDownloading} />
       <ConfirmModal {...confirmModal.modalProps} />
     </View>
   );

@@ -40,6 +40,7 @@ import {
   useDashboardToday,
   useVisitorTypes,
 } from '@/features/company-admin/api/use-visitor-queries';
+import { visitorsApi } from '@/lib/api/visitors';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -367,21 +368,39 @@ export function GateCheckInScreen() {
     return raw.filter((v: any) => v.status === 'EXPECTED' || v.status === 'ARRIVED');
   }, [todayResponse]);
 
-  const handleCodeCheckIn = () => {
+  const [isLookingUp, setIsLookingUp] = React.useState(false);
+
+  const handleCodeCheckIn = async () => {
     if (!visitCode.trim()) return;
-    const data: Record<string, unknown> = {};
-    if (visitorPhoto) data.visitorPhoto = visitorPhoto;
-    checkInMutation.mutate(
-      { id: visitCode.trim(), data: Object.keys(data).length > 0 ? data : undefined },
-      {
-        onSuccess: (result: any) => {
-          const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
-          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
-          setVisitCode('');
-          setVisitorPhoto(null);
+    try {
+      setIsLookingUp(true);
+      // First look up the visit by code to get the actual visit ID
+      const lookupResult = await visitorsApi.getVisitByCode(visitCode.trim());
+      const visit = (lookupResult as any)?.data ?? lookupResult;
+      if (!visit?.id) {
+        showWarning('No visit found for this code');
+        return;
+      }
+      const data: Record<string, unknown> = {};
+      if (visitorPhoto) data.visitorPhoto = visitorPhoto;
+      if (visit.gateId) data.checkInGateId = visit.gateId;
+      else if (visit.checkInGateId) data.checkInGateId = visit.checkInGateId;
+      checkInMutation.mutate(
+        { id: visit.id, data: Object.keys(data).length > 0 ? data : undefined },
+        {
+          onSuccess: (result: any) => {
+            const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
+            showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
+            setVisitCode('');
+            setVisitorPhoto(null);
+          },
         },
-      },
-    );
+      );
+    } catch {
+      showWarning('Visit not found for this code');
+    } finally {
+      setIsLookingUp(false);
+    }
   };
 
   const handleExpectedCheckIn = (visitId: string) => {
@@ -419,22 +438,39 @@ export function GateCheckInScreen() {
     setShowScanner(true);
   };
 
-  const handleBarcodeScanned = (scanResult: { data: string }) => {
+  const handleBarcodeScanned = async (scanResult: { data: string }) => {
     if (scanProcessedRef.current) return;
     scanProcessedRef.current = true;
     setShowScanner(false);
-    setVisitCode(scanResult.data);
-    // Auto-trigger check-in with the scanned code
-    checkInMutation.mutate(
-      { id: scanResult.data.trim() },
-      {
-        onSuccess: (result: any) => {
-          const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
-          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
-          setVisitCode('');
+    const scannedCode = scanResult.data.trim();
+    setVisitCode(scannedCode);
+    // Look up visit by code, then check in with the actual ID
+    try {
+      setIsLookingUp(true);
+      const lookupResult = await visitorsApi.getVisitByCode(scannedCode);
+      const visit = (lookupResult as any)?.data ?? lookupResult;
+      if (!visit?.id) {
+        showWarning('No visit found for scanned code');
+        return;
+      }
+      const data: Record<string, unknown> = {};
+      if (visit.gateId) data.checkInGateId = visit.gateId;
+      else if (visit.checkInGateId) data.checkInGateId = visit.checkInGateId;
+      checkInMutation.mutate(
+        { id: visit.id, data: Object.keys(data).length > 0 ? data : undefined },
+        {
+          onSuccess: (result: any) => {
+            const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
+            showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
+            setVisitCode('');
+          },
         },
-      },
-    );
+      );
+    } catch {
+      showWarning('Visit not found for scanned code');
+    } finally {
+      setIsLookingUp(false);
+    }
   };
 
   return (
@@ -490,8 +526,8 @@ export function GateCheckInScreen() {
                   </Pressable>
                   <Pressable
                     onPress={handleCodeCheckIn}
-                    disabled={checkInMutation.isPending || !visitCode.trim()}
-                    style={[s.codeSubmitBtn, (!visitCode.trim() || checkInMutation.isPending) && { opacity: 0.5 }]}
+                    disabled={checkInMutation.isPending || isLookingUp || !visitCode.trim()}
+                    style={[s.codeSubmitBtn, (!visitCode.trim() || checkInMutation.isPending || isLookingUp) && { opacity: 0.5 }]}
                   >
                     <Svg width={20} height={20} viewBox="0 0 24 24">
                       <Path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />

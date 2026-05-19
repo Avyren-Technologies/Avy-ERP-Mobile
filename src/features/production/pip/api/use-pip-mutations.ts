@@ -4,6 +4,45 @@ import { showError, showSuccess } from '@/components/ui/utils';
 import { pipApi } from '@/lib/api/pip';
 import { pipKeys } from '@/features/production/pip/api/use-pip-queries';
 
+// ── Process Categories ────────────────────────────────────────────────
+
+export function useCreateProcessCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => pipApi.createProcessCategory(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.processCategories() });
+      showSuccess('Process category created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateProcessCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      pipApi.updateProcessCategory(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.processCategories() });
+      showSuccess('Process category updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteProcessCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pipApi.deleteProcessCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.processCategories() });
+      showSuccess('Process category deleted');
+    },
+    onError: showError,
+  });
+}
+
 // ── Operations ────────────────────────────────────────────────────────
 
 export function useCreateOperation() {

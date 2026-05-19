@@ -2,13 +2,26 @@ import { client } from '@/lib/api/client';
 
 // ---------- Types ----------
 
+export interface ProcessCategory {
+  id: string;
+  companyId: string;
+  name: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Operation {
   id: string;
   companyId: string;
   code: string;
   operationNumber: string;
   name: string;
-  processType: string;
+  processType?: string;
+  processCategoryId?: string;
+  processCategory?: { id: string; name: string; code: string };
   status: string;
   isActive: boolean;
   createdAt: string;
@@ -30,7 +43,7 @@ export interface PipSlabConfig {
   partId: string;
   part?: { id: string; partNumber: string; name: string };
   operationId: string;
-  operation?: { id: string; code: string; name: string; operationNumber: string; processType: string };
+  operation?: { id: string; code: string; name: string; operationNumber: string; processType?: string; processCategoryId?: string; processCategory?: { id: string; name: string; code: string } };
   shiftTargetQty: number;
   slabTiers: SlabTier[];
   isActive: boolean;
@@ -141,6 +154,16 @@ export interface CalculationResult {
 // ---------- PIP API ----------
 
 export const pipApi = {
+  // Process Categories
+  listProcessCategories: (params?: Record<string, unknown>) =>
+    client.get('/production/pip/process-categories', { params }),
+  createProcessCategory: (data: Record<string, unknown>) =>
+    client.post('/production/pip/process-categories', data),
+  updateProcessCategory: (id: string, data: Record<string, unknown>) =>
+    client.patch(`/production/pip/process-categories/${id}`, data),
+  deleteProcessCategory: (id: string) =>
+    client.delete(`/production/pip/process-categories/${id}`),
+
   // Operations
   listOperations: (params?: Record<string, unknown>) =>
     client.get('/production/pip/operations', { params }),

@@ -27,17 +27,22 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
+import { ManageModal } from '@/components/ui/manage-modal';
+import type { ManageModalItem } from '@/components/ui/manage-modal';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useIsDark } from '@/hooks/use-is-dark';
-import { useOperations } from '@/features/production/pip/api/use-pip-queries';
+import { useOperations, useProcessCategories } from '@/features/production/pip/api/use-pip-queries';
 import {
   useCreateOperation,
   useUpdateOperation,
   useDeleteOperation,
+  useCreateProcessCategory,
+  useUpdateProcessCategory,
+  useDeleteProcessCategory,
 } from '@/features/production/pip/api/use-pip-mutations';
-import type { Operation } from '@/lib/api/pip';
+import type { Operation, ProcessCategory } from '@/lib/api/pip';
 
 // ============ TYPES ============
 
@@ -46,12 +51,13 @@ interface OperationData {
   code: string;
   operationNumber: string;
   name: string;
-  processType: string;
+  processType?: string;
+  processCategoryId?: string;
+  processCategoryName?: string;
   status: string;
   isActive: boolean;
 }
 
-const PROCESS_TYPES = ['MACHINING', 'MOULDING', 'ASSEMBLY', 'INSPECTION', 'FINISHING', 'PACKAGING'] as const;
 const STATUSES = ['ACTIVE', 'INACTIVE'] as const;
 
 // ============ HELPERS ============
@@ -62,7 +68,9 @@ function mapOperation(item: any): OperationData {
     code: item.code ?? '',
     operationNumber: item.operationNumber ?? '',
     name: item.name ?? '',
-    processType: item.processType ?? '',
+    processType: item.processType,
+    processCategoryId: item.processCategoryId ?? item.processCategory?.id,
+    processCategoryName: item.processCategory?.name ?? item.processType ?? '',
     status: item.status ?? 'ACTIVE',
     isActive: item.isActive ?? true,
   };
@@ -114,7 +122,8 @@ function OperationCard({
   onDelete: (item: OperationData) => void;
 }) {
   const statusColor = getStatusColor(item.status);
-  const processColor = getProcessTypeColor(item.processType);
+  const displayProcessType = item.processCategoryName || item.processType || '';
+  const processColor = getProcessTypeColor(displayProcessType);
 
   return (
     <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 50)}>
@@ -200,7 +209,7 @@ function OperationCard({
               style={{ color: processColor.text }}
               className="font-inter text-[10px] font-bold"
             >
-              {item.processType}
+              {displayProcessType}
             </Text>
           </View>
 
@@ -279,39 +288,46 @@ function ChipSelector<T extends string>({
 
 // ============ FORM SHEET ============
 
+interface ProcessCategoryOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
 function OperationFormSheet({
   visible,
   onClose,
   editItem,
   onSubmit,
   isSubmitting,
+  processCategories,
+  onManageCategories,
 }: {
   visible: boolean;
   onClose: () => void;
   editItem?: OperationData | null;
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
+  processCategories: ProcessCategoryOption[];
+  onManageCategories: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const isDark = useIsDark();
   const isEdit = !!editItem;
 
-  const [operationNumber, setOperationNumber] = React.useState('');
   const [name, setName] = React.useState('');
-  const [processType, setProcessType] = React.useState<typeof PROCESS_TYPES[number]>('MACHINING');
+  const [processCategoryId, setProcessCategoryId] = React.useState('');
   const [status, setStatus] = React.useState<typeof STATUSES[number]>('ACTIVE');
 
   React.useEffect(() => {
     if (visible) {
       if (editItem) {
-        setOperationNumber(editItem.operationNumber);
         setName(editItem.name);
-        setProcessType((editItem.processType as typeof PROCESS_TYPES[number]) || 'MACHINING');
+        setProcessCategoryId(editItem.processCategoryId ?? '');
         setStatus((editItem.status as typeof STATUSES[number]) || 'ACTIVE');
       } else {
-        setOperationNumber('');
         setName('');
-        setProcessType('MACHINING');
+        setProcessCategoryId('');
         setStatus('ACTIVE');
       }
     }
@@ -319,9 +335,8 @@ function OperationFormSheet({
 
   const handleSubmit = () => {
     const data: Record<string, unknown> = {
-      operationNumber,
       name,
-      processType,
+      processCategoryId: processCategoryId || undefined,
     };
     if (isEdit) {
       data.status = status;
@@ -329,7 +344,7 @@ function OperationFormSheet({
     onSubmit(data);
   };
 
-  const canSubmit = !!operationNumber.trim() && !!name.trim() && !!processType;
+  const canSubmit = !!name.trim() && !!processCategoryId;
 
   return (
     <RNModal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -353,25 +368,24 @@ function OperationFormSheet({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Operation Number */}
+          {/* Operation Number (auto-generated) */}
           <View style={formStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-              Operation Number <Text className="font-inter text-danger-500">*</Text>
+              Operation Number
             </Text>
             <TextInput
               style={[
                 formStyles.input,
                 {
-                  backgroundColor: isDark ? '#1A1730' : colors.neutral[50],
-                  color: isDark ? colors.white : colors.primary[950],
+                  backgroundColor: isDark ? '#141225' : colors.neutral[100],
+                  color: isDark ? colors.neutral[400] : colors.neutral[500],
                   borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
                 },
               ]}
-              placeholder="e.g. OP-001"
+              placeholder={isEdit ? editItem?.operationNumber : 'Auto Generated'}
               placeholderTextColor={colors.neutral[400]}
-              value={operationNumber}
-              onChangeText={setOperationNumber}
-              autoCapitalize="characters"
+              value={isEdit ? editItem?.operationNumber ?? '' : ''}
+              editable={false}
             />
           </View>
 
@@ -396,15 +410,56 @@ function OperationFormSheet({
             />
           </View>
 
-          {/* Process Type */}
-          <ChipSelector
-            label="Process Type"
-            options={PROCESS_TYPES}
-            value={processType}
-            onChange={setProcessType}
-            isDark={isDark}
-            required
-          />
+          {/* Process Category */}
+          <View style={formStyles.field}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                Process Category <Text className="font-inter text-danger-500">*</Text>
+              </Text>
+              <Pressable onPress={onManageCategories} hitSlop={8}>
+                <Text className="font-inter text-xs font-semibold text-primary-600">
+                  Manage
+                </Text>
+              </Pressable>
+            </View>
+            <View style={formStyles.chipRow}>
+              {processCategories.map((cat) => {
+                const selected = processCategoryId === cat.id;
+                return (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => setProcessCategoryId(cat.id)}
+                    style={[
+                      formStyles.chip,
+                      {
+                        backgroundColor: selected
+                          ? isDark ? colors.primary[800] : colors.primary[50]
+                          : isDark ? '#1A1730' : colors.neutral[50],
+                        borderColor: selected
+                          ? colors.primary[400]
+                          : isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
+                    ]}
+                  >
+                    <Text
+                      className={`font-inter text-xs font-semibold ${
+                        selected
+                          ? 'text-primary-700 dark:text-primary-300'
+                          : 'text-neutral-500 dark:text-neutral-400'
+                      }`}
+                    >
+                      {cat.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {processCategories.length === 0 && (
+                <Text className="font-inter text-xs text-neutral-400">
+                  No process categories. Tap Manage to add one.
+                </Text>
+              )}
+            </View>
+          </View>
 
           {/* Status (edit only) */}
           {isEdit && (
@@ -454,6 +509,7 @@ export function PipOperationMasterScreen() {
   const [search, setSearch] = React.useState('');
   const [sheetVisible, setSheetVisible] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<OperationData | null>(null);
+  const [manageCategoriesVisible, setManageCategoriesVisible] = React.useState(false);
 
   const confirmModal = useConfirmModal();
 
@@ -467,10 +523,26 @@ export function PipOperationMasterScreen() {
     return raw.map(mapOperation);
   }, [response]);
 
+  // Process categories
+  const { data: catResponse, isLoading: catLoading } = useProcessCategories();
+  const processCategoryList: ProcessCategoryOption[] = React.useMemo(() => {
+    const raw = (catResponse as any)?.data ?? catResponse ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map((c: any) => ({ id: c.id ?? '', name: c.name ?? '', code: c.code ?? '' }));
+  }, [catResponse]);
+
+  const manageCategoryItems: ManageModalItem[] = React.useMemo(
+    () => processCategoryList.map((c) => ({ id: c.id, name: c.name, code: c.code })),
+    [processCategoryList],
+  );
+
   // Mutations
   const createOp = useCreateOperation();
   const updateOp = useUpdateOperation();
   const deleteOp = useDeleteOperation();
+  const createCat = useCreateProcessCategory();
+  const updateCat = useUpdateProcessCategory();
+  const deleteCat = useDeleteProcessCategory();
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -631,6 +703,32 @@ export function PipOperationMasterScreen() {
         editItem={editingItem}
         onSubmit={handleSubmit}
         isSubmitting={createOp.isPending || updateOp.isPending}
+        processCategories={processCategoryList}
+        onManageCategories={() => setManageCategoriesVisible(true)}
+      />
+
+      <ManageModal
+        visible={manageCategoriesVisible}
+        onClose={() => setManageCategoriesVisible(false)}
+        title="Process Categories"
+        items={manageCategoryItems}
+        isLoading={catLoading}
+        createFields={[
+          { key: 'name', label: 'Name', placeholder: 'e.g. Machining', required: true },
+          { key: 'code', label: 'Code', placeholder: 'e.g. MACH', required: true },
+        ]}
+        onCreate={async (values) => {
+          await createCat.mutateAsync({ name: values.name, code: values.code });
+        }}
+        onUpdate={async (id, values) => {
+          await updateCat.mutateAsync({ id, data: { name: values.name, code: values.code } });
+        }}
+        onDelete={async (id) => {
+          await deleteCat.mutateAsync(id);
+        }}
+        isCreating={createCat.isPending}
+        isUpdating={updateCat.isPending}
+        isDeleting={deleteCat.isPending}
       />
 
       <ConfirmModal {...confirmModal.modalProps} />

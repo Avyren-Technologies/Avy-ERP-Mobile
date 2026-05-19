@@ -23,6 +23,8 @@ export const pipKeys = {
     params ? ([...pipKeys.all, 'monthly-reports', params] as const) : ([...pipKeys.all, 'monthly-reports'] as const),
   monthlyReport: (id: string) => [...pipKeys.all, 'monthly-report', id] as const,
   payrollMergePreview: (id: string) => [...pipKeys.all, 'merge-preview', id] as const,
+  processCategories: (params?: Record<string, unknown>) =>
+    params ? ([...pipKeys.all, 'process-categories', params] as const) : ([...pipKeys.all, 'process-categories'] as const),
 };
 
 // --- Queries ---
@@ -101,6 +103,13 @@ export function usePipMonthlyReport(id: string) {
     queryKey: pipKeys.monthlyReport(id),
     queryFn: () => pipApi.getMonthlyReport(id),
     enabled: !!id,
+  });
+}
+
+export function useProcessCategories(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: pipKeys.processCategories(params),
+    queryFn: () => pipApi.listProcessCategories(params),
   });
 }
 

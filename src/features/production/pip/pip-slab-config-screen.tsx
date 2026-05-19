@@ -84,7 +84,7 @@ function mapSlabConfig(item: any): SlabConfigData {
     operationCode: item.operation?.code ?? '',
     operationName: item.operation?.name ?? '',
     operationId: item.operationId ?? '',
-    operationProcessType: item.operation?.processType ?? '',
+    operationProcessType: item.operation?.processCategory?.name ?? item.operation?.processType ?? '',
     partNumber: item.part?.partNumber ?? '',
     partName: item.part?.name ?? '',
     partId: item.partId ?? '',
@@ -881,7 +881,7 @@ export function PipSlabConfigScreen() {
       id: o.id ?? '',
       label: o.name ?? '',
       sublabel: o.code ?? '',
-      processType: o.processType ?? '',
+      processType: o.processCategory?.name ?? o.processType ?? '',
     }));
   }, [operationsRaw]);
 

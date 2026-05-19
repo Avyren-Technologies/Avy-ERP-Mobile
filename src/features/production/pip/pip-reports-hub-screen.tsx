@@ -18,6 +18,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ExportSheet } from '@/components/ui/export-sheet';
+import { DownloadIcon } from '@/features/production/pip/download-icon';
 import { showErrorMessage } from '@/components/ui/utils';
 import { useFileDownload } from '@/hooks/use-file-download';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -84,16 +85,7 @@ function ReportCard({
             hitSlop={8}
             activeOpacity={0.7}
           >
-            <Svg width={20} height={20} viewBox="0 0 24 24">
-              <Path
-                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
-                stroke={colors.primary[600]}
-                strokeWidth="1.8"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
+            <DownloadIcon size={20} color={colors.primary[600]} />
           </TouchableOpacity>
         </View>
       </View>

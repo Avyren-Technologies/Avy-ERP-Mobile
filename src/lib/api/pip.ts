@@ -251,10 +251,6 @@ export const pipApi = {
   rejectMonthlyReport: (id: string, data: Record<string, unknown>) =>
     client.patch(`/production/pip/monthly-reports/${id}/reject`, data),
 
-  // Export
-  exportReport: (reportType: string, params: Record<string, unknown>) =>
-    client.get(`/hr/analytics/export/${reportType}`, { params, responseType: 'arraybuffer' }),
-
   // Payroll
   mergeToPayroll: (id: string, data: Record<string, unknown>) =>
     client.post(`/production/pip/monthly-reports/${id}/merge`, data),

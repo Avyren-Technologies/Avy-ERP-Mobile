@@ -18,7 +18,7 @@ export function useFileDownload() {
     setIsDownloading(true);
     try {
       const base64 = Buffer.from(data).toString('base64');
-      const file = new ExpoFile(Paths.cache, options.fileName);
+      const file = new ExpoFile(Paths.document, options.fileName);
       file.create();
       file.write(base64, { encoding: 'base64' });
 

@@ -26,6 +26,7 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { DownloadIcon } from '@/features/production/pip/download-icon';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ExportSheet } from '@/components/ui/export-sheet';
 import { FAB } from '@/components/ui/fab';
@@ -977,16 +978,7 @@ export function PipSlabConfigScreen() {
           onMenuPress={toggle}
           rightSlot={
             <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
-              <Svg width={22} height={22} viewBox="0 0 24 24">
-                <Path
-                  d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
-                  stroke={colors.white}
-                  strokeWidth="1.8"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
+              <DownloadIcon color={colors.white} />
             </Pressable>
           }
         />

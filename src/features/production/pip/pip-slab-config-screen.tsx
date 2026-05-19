@@ -40,6 +40,7 @@ import { analyticsApi } from '@/lib/api/analytics';
 import { usePipSlabConfigs, useOperations } from '@/features/production/pip/api/use-pip-queries';
 import {
   useCreatePipSlabConfig,
+  useBulkCreatePipSlabConfigs,
   useUpdatePipSlabConfig,
   useDeletePipSlabConfig,
 } from '@/features/production/pip/api/use-pip-mutations';
@@ -320,9 +321,10 @@ function SlabConfigFormSheet({
   const isEdit = !!editItem;
 
   const [step, setStep] = React.useState(1);
-  const [machineId, setMachineId] = React.useState('');
-  const [operationId, setOperationId] = React.useState('');
-  const [partId, setPartId] = React.useState('');
+  // Multi-select state for CREATE mode
+  const [selectedMachineIds, setSelectedMachineIds] = React.useState<Set<string>>(new Set());
+  const [selectedOperationIds, setSelectedOperationIds] = React.useState<Set<string>>(new Set());
+  const [selectedPartIds, setSelectedPartIds] = React.useState<Set<string>>(new Set());
   const [shiftTarget, setShiftTarget] = React.useState('');
   const [tiers, setTiers] = React.useState<TierRow[]>([
     { fromQty: '', toQty: '', ratePerPiece: '' },
@@ -334,9 +336,9 @@ function SlabConfigFormSheet({
   React.useEffect(() => {
     if (visible) {
       if (editItem) {
-        setMachineId(editItem.machineId);
-        setOperationId(editItem.operationId);
-        setPartId(editItem.partId);
+        setSelectedMachineIds(new Set([editItem.machineId]));
+        setSelectedOperationIds(new Set([editItem.operationId]));
+        setSelectedPartIds(new Set([editItem.partId]));
         setShiftTarget(String(editItem.shiftTargetQty));
         setTiers(
           editItem.slabTiers.map((t) => ({
@@ -347,9 +349,9 @@ function SlabConfigFormSheet({
         );
         setStep(4); // Jump to target/tiers for edit
       } else {
-        setMachineId('');
-        setOperationId('');
-        setPartId('');
+        setSelectedMachineIds(new Set());
+        setSelectedOperationIds(new Set());
+        setSelectedPartIds(new Set());
         setShiftTarget('');
         setTiers([{ fromQty: '', toQty: '', ratePerPiece: '' }]);
         setStep(1);
@@ -408,23 +410,33 @@ function SlabConfigFormSheet({
         ratePerPiece: Number(t.ratePerPiece),
       }));
 
-    onSubmit({
-      machineId,
-      operationId,
-      partId,
-      shiftTargetQty: Number(shiftTarget),
-      slabTiers: parsedTiers,
-    });
+    if (isEdit) {
+      // Edit mode: single config
+      onSubmit({
+        machineId: editItem!.machineId,
+        operationId: editItem!.operationId,
+        partId: editItem!.partId,
+        shiftTargetQty: Number(shiftTarget),
+        slabTiers: parsedTiers,
+      });
+    } else {
+      // Create mode: bulk configs
+      onSubmit({
+        machineIds: Array.from(selectedMachineIds),
+        operationIds: Array.from(selectedOperationIds),
+        partIds: Array.from(selectedPartIds),
+        shiftTargetQty: Number(shiftTarget),
+        slabTiers: parsedTiers,
+      });
+    }
   };
 
-  const selectedMachine = machines.find((m) => m.id === machineId);
-  const selectedOperation = operations.find((o) => o.id === operationId);
-  const selectedPart = parts.find((p) => p.id === partId);
+  const bulkTotal = selectedMachineIds.size * selectedOperationIds.size * selectedPartIds.size;
 
   const canProceed = () => {
-    if (step === 1) return !!machineId;
-    if (step === 2) return !!operationId;
-    if (step === 3) return !!partId;
+    if (step === 1) return selectedMachineIds.size > 0;
+    if (step === 2) return selectedOperationIds.size > 0;
+    if (step === 3) return selectedPartIds.size > 0;
     if (step === 4) {
       return (
         !!shiftTarget &&
@@ -479,9 +491,15 @@ function SlabConfigFormSheet({
           {/* Step 1: Select Machine */}
           {step === 1 && (
             <View>
-              <Text className="mb-3 font-inter text-base font-bold text-primary-950 dark:text-white">
-                Select Machine
+              <Text className="mb-1 font-inter text-base font-bold text-primary-950 dark:text-white">
+                Select Machines
               </Text>
+              {selectedMachineIds.size > 0 && (
+                <Text className="mb-3 font-inter text-xs text-primary-600">
+                  {selectedMachineIds.size} selected
+                </Text>
+              )}
+              {selectedMachineIds.size === 0 && <View style={{ height: 12 }} />}
               <TextInput
                 style={[
                   sheetStyles.searchInput,
@@ -496,55 +514,89 @@ function SlabConfigFormSheet({
                 value={machineSearch}
                 onChangeText={setMachineSearch}
               />
-              {filteredMachines.map((m) => (
-                <Pressable
-                  key={m.id}
-                  onPress={() => setMachineId(m.id)}
-                  style={[
-                    sheetStyles.optionCard,
-                    {
-                      backgroundColor: machineId === m.id
-                        ? isDark ? colors.primary[900] : colors.primary[50]
-                        : isDark ? '#1A1730' : colors.white,
-                      borderColor: machineId === m.id
-                        ? colors.primary[400]
-                        : isDark ? colors.neutral[700] : colors.neutral[200],
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                      {m.label}
-                    </Text>
-                    {m.sublabel ? (
-                      <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
-                        {m.sublabel}
+              <Pressable
+                onPress={() => {
+                  if (selectedMachineIds.size === filteredMachines.length && filteredMachines.length > 0) {
+                    setSelectedMachineIds(new Set());
+                  } else {
+                    setSelectedMachineIds(new Set(filteredMachines.map((m) => m.id)));
+                  }
+                }}
+                style={sheetStyles.selectAllBtn}
+              >
+                <Text className="font-inter text-xs font-bold text-primary-600">
+                  {selectedMachineIds.size === filteredMachines.length && filteredMachines.length > 0
+                    ? 'Deselect All'
+                    : 'Select All'}
+                </Text>
+              </Pressable>
+              {filteredMachines.map((m) => {
+                const isSelected = selectedMachineIds.has(m.id);
+                return (
+                  <Pressable
+                    key={m.id}
+                    onPress={() => {
+                      setSelectedMachineIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(m.id)) next.delete(m.id);
+                        else next.add(m.id);
+                        return next;
+                      });
+                    }}
+                    style={[
+                      sheetStyles.optionCard,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark ? colors.primary[900] : colors.primary[50]
+                          : isDark ? '#1A1730' : colors.white,
+                        borderColor: isSelected
+                          ? colors.primary[400]
+                          : isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
+                    ]}
+                  >
+                    <View style={[sheetStyles.checkbox, isSelected && sheetStyles.checkboxSelected]}>
+                      {isSelected && (
+                        <Svg width={12} height={12} viewBox="0 0 24 24">
+                          <Path
+                            d="M5 12l5 5L20 7"
+                            stroke={colors.white}
+                            strokeWidth="3"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </Svg>
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                        {m.label}
                       </Text>
-                    ) : null}
-                  </View>
-                  {machineId === m.id && (
-                    <Svg width={18} height={18} viewBox="0 0 24 24">
-                      <Path
-                        d="M5 12l5 5L20 7"
-                        stroke={colors.primary[600]}
-                        strokeWidth="2.5"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  )}
-                </Pressable>
-              ))}
+                      {m.sublabel ? (
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                          {m.sublabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
 
           {/* Step 2: Select Operation */}
           {step === 2 && (
             <View>
-              <Text className="mb-3 font-inter text-base font-bold text-primary-950 dark:text-white">
-                Select Operation
+              <Text className="mb-1 font-inter text-base font-bold text-primary-950 dark:text-white">
+                Select Operations
               </Text>
+              {selectedOperationIds.size > 0 && (
+                <Text className="mb-3 font-inter text-xs text-primary-600">
+                  {selectedOperationIds.size} selected
+                </Text>
+              )}
+              {selectedOperationIds.size === 0 && <View style={{ height: 12 }} />}
               <TextInput
                 style={[
                   sheetStyles.searchInput,
@@ -559,64 +611,98 @@ function SlabConfigFormSheet({
                 value={operationSearch}
                 onChangeText={setOperationSearch}
               />
-              {filteredOperations.map((o) => (
-                <Pressable
-                  key={o.id}
-                  onPress={() => setOperationId(o.id)}
-                  style={[
-                    sheetStyles.optionCard,
-                    {
-                      backgroundColor: operationId === o.id
-                        ? isDark ? colors.primary[900] : colors.primary[50]
-                        : isDark ? '#1A1730' : colors.white,
-                      borderColor: operationId === o.id
-                        ? colors.primary[400]
-                        : isDark ? colors.neutral[700] : colors.neutral[200],
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.info[900] : colors.info[50] }]}>
-                        <Text className="font-inter text-[10px] font-bold text-info-700">
-                          {o.sublabel}
-                        </Text>
-                      </View>
-                      <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>
-                        {o.label}
-                      </Text>
+              <Pressable
+                onPress={() => {
+                  if (selectedOperationIds.size === filteredOperations.length && filteredOperations.length > 0) {
+                    setSelectedOperationIds(new Set());
+                  } else {
+                    setSelectedOperationIds(new Set(filteredOperations.map((o) => o.id)));
+                  }
+                }}
+                style={sheetStyles.selectAllBtn}
+              >
+                <Text className="font-inter text-xs font-bold text-primary-600">
+                  {selectedOperationIds.size === filteredOperations.length && filteredOperations.length > 0
+                    ? 'Deselect All'
+                    : 'Select All'}
+                </Text>
+              </Pressable>
+              {filteredOperations.map((o) => {
+                const isSelected = selectedOperationIds.has(o.id);
+                return (
+                  <Pressable
+                    key={o.id}
+                    onPress={() => {
+                      setSelectedOperationIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(o.id)) next.delete(o.id);
+                        else next.add(o.id);
+                        return next;
+                      });
+                    }}
+                    style={[
+                      sheetStyles.optionCard,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark ? colors.primary[900] : colors.primary[50]
+                          : isDark ? '#1A1730' : colors.white,
+                        borderColor: isSelected
+                          ? colors.primary[400]
+                          : isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
+                    ]}
+                  >
+                    <View style={[sheetStyles.checkbox, isSelected && sheetStyles.checkboxSelected]}>
+                      {isSelected && (
+                        <Svg width={12} height={12} viewBox="0 0 24 24">
+                          <Path
+                            d="M5 12l5 5L20 7"
+                            stroke={colors.white}
+                            strokeWidth="3"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </Svg>
+                      )}
                     </View>
-                    {(o as OperationOption).processType ? (
-                      <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], alignSelf: 'flex-start' }]}>
-                        <Text className="font-inter text-[9px] font-bold text-primary-600">
-                          {(o as OperationOption).processType}
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                        <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.info[900] : colors.info[50] }]}>
+                          <Text className="font-inter text-[10px] font-bold text-info-700">
+                            {o.sublabel}
+                          </Text>
+                        </View>
+                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white" style={{ flex: 1 }}>
+                          {o.label}
                         </Text>
                       </View>
-                    ) : null}
-                  </View>
-                  {operationId === o.id && (
-                    <Svg width={18} height={18} viewBox="0 0 24 24">
-                      <Path
-                        d="M5 12l5 5L20 7"
-                        stroke={colors.primary[600]}
-                        strokeWidth="2.5"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  )}
-                </Pressable>
-              ))}
+                      {(o as OperationOption).processType ? (
+                        <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], alignSelf: 'flex-start' }]}>
+                          <Text className="font-inter text-[9px] font-bold text-primary-600">
+                            {(o as OperationOption).processType}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
 
           {/* Step 3: Select Part */}
           {step === 3 && (
             <View>
-              <Text className="mb-3 font-inter text-base font-bold text-primary-950 dark:text-white">
-                Select Part
+              <Text className="mb-1 font-inter text-base font-bold text-primary-950 dark:text-white">
+                Select Parts
               </Text>
+              {selectedPartIds.size > 0 && (
+                <Text className="mb-3 font-inter text-xs text-primary-600">
+                  {selectedPartIds.size} selected
+                </Text>
+              )}
+              {selectedPartIds.size === 0 && <View style={{ height: 12 }} />}
               <TextInput
                 style={[
                   sheetStyles.searchInput,
@@ -631,46 +717,74 @@ function SlabConfigFormSheet({
                 value={partSearch}
                 onChangeText={setPartSearch}
               />
-              {filteredParts.map((p) => (
-                <Pressable
-                  key={p.id}
-                  onPress={() => setPartId(p.id)}
-                  style={[
-                    sheetStyles.optionCard,
-                    {
-                      backgroundColor: partId === p.id
-                        ? isDark ? colors.primary[900] : colors.primary[50]
-                        : isDark ? '#1A1730' : colors.white,
-                      borderColor: partId === p.id
-                        ? colors.primary[400]
-                        : isDark ? colors.neutral[700] : colors.neutral[200],
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                      {p.label}
-                    </Text>
-                    {p.sublabel ? (
-                      <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
-                        {p.sublabel}
+              <Pressable
+                onPress={() => {
+                  if (selectedPartIds.size === filteredParts.length && filteredParts.length > 0) {
+                    setSelectedPartIds(new Set());
+                  } else {
+                    setSelectedPartIds(new Set(filteredParts.map((p) => p.id)));
+                  }
+                }}
+                style={sheetStyles.selectAllBtn}
+              >
+                <Text className="font-inter text-xs font-bold text-primary-600">
+                  {selectedPartIds.size === filteredParts.length && filteredParts.length > 0
+                    ? 'Deselect All'
+                    : 'Select All'}
+                </Text>
+              </Pressable>
+              {filteredParts.map((p) => {
+                const isSelected = selectedPartIds.has(p.id);
+                return (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => {
+                      setSelectedPartIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(p.id)) next.delete(p.id);
+                        else next.add(p.id);
+                        return next;
+                      });
+                    }}
+                    style={[
+                      sheetStyles.optionCard,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark ? colors.primary[900] : colors.primary[50]
+                          : isDark ? '#1A1730' : colors.white,
+                        borderColor: isSelected
+                          ? colors.primary[400]
+                          : isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
+                    ]}
+                  >
+                    <View style={[sheetStyles.checkbox, isSelected && sheetStyles.checkboxSelected]}>
+                      {isSelected && (
+                        <Svg width={12} height={12} viewBox="0 0 24 24">
+                          <Path
+                            d="M5 12l5 5L20 7"
+                            stroke={colors.white}
+                            strokeWidth="3"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </Svg>
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
+                        {p.label}
                       </Text>
-                    ) : null}
-                  </View>
-                  {partId === p.id && (
-                    <Svg width={18} height={18} viewBox="0 0 24 24">
-                      <Path
-                        d="M5 12l5 5L20 7"
-                        stroke={colors.primary[600]}
-                        strokeWidth="2.5"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  )}
-                </Pressable>
-              ))}
+                      {p.sublabel ? (
+                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                          {p.sublabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
 
@@ -678,22 +792,41 @@ function SlabConfigFormSheet({
           {step === 4 && (
             <View>
               {/* Summary of selected */}
-              {(selectedMachine || selectedOperation || selectedPart) && (
+              {(selectedMachineIds.size > 0 || selectedOperationIds.size > 0 || selectedPartIds.size > 0) && (
                 <View style={[sheetStyles.summaryCard, { backgroundColor: isDark ? '#1A1730' : colors.primary[50] }]}>
-                  {selectedMachine && (
-                    <Text className="font-inter text-xs text-primary-700">
-                      Machine: {selectedMachine.label}
-                    </Text>
-                  )}
-                  {selectedOperation && (
-                    <Text className="font-inter text-xs text-info-700">
-                      Operation: {selectedOperation.sublabel} — {selectedOperation.label}
-                    </Text>
-                  )}
-                  {selectedPart && (
-                    <Text className="font-inter text-xs text-accent-700">
-                      Part: {selectedPart.label}
-                    </Text>
+                  {isEdit ? (
+                    <>
+                      {machines.find((m) => selectedMachineIds.has(m.id)) && (
+                        <Text className="font-inter text-xs text-primary-700">
+                          Machine: {machines.find((m) => selectedMachineIds.has(m.id))?.label}
+                        </Text>
+                      )}
+                      {operations.find((o) => selectedOperationIds.has(o.id)) && (
+                        <Text className="font-inter text-xs text-info-700">
+                          Operation: {operations.find((o) => selectedOperationIds.has(o.id))?.sublabel} — {operations.find((o) => selectedOperationIds.has(o.id))?.label}
+                        </Text>
+                      )}
+                      {parts.find((p) => selectedPartIds.has(p.id)) && (
+                        <Text className="font-inter text-xs text-accent-700">
+                          Part: {parts.find((p) => selectedPartIds.has(p.id))?.label}
+                        </Text>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Text className="font-inter text-xs text-primary-700">
+                        Machines: {selectedMachineIds.size} selected
+                      </Text>
+                      <Text className="font-inter text-xs text-info-700">
+                        Operations: {selectedOperationIds.size} selected
+                      </Text>
+                      <Text className="font-inter text-xs text-accent-700">
+                        Parts: {selectedPartIds.size} selected
+                      </Text>
+                      <Text className="mt-1 font-inter text-xs font-bold text-neutral-500">
+                        Creating {selectedMachineIds.size} x {selectedOperationIds.size} x {selectedPartIds.size} = {bulkTotal} config{bulkTotal !== 1 ? 's' : ''}
+                      </Text>
+                    </>
                   )}
                 </View>
               )}
@@ -906,6 +1039,7 @@ export function PipSlabConfigScreen() {
 
   // Mutations
   const createSlab = useCreatePipSlabConfig();
+  const bulkCreateSlab = useBulkCreatePipSlabConfigs();
   const updateSlab = useUpdatePipSlabConfig();
   const deleteSlab = useDeletePipSlabConfig();
 
@@ -952,6 +1086,11 @@ export function PipSlabConfigScreen() {
         { id: editingItem.id, data },
         { onSuccess: () => setSheetVisible(false) },
       );
+    } else if (data.machineIds) {
+      // Bulk create (multi-select)
+      bulkCreateSlab.mutate(data, {
+        onSuccess: () => setSheetVisible(false),
+      });
     } else {
       createSlab.mutate(data, {
         onSuccess: () => setSheetVisible(false),
@@ -1090,7 +1229,7 @@ export function PipSlabConfigScreen() {
         operations={operationOptions}
         parts={partOptions}
         onSubmit={handleSubmit}
-        isSubmitting={createSlab.isPending || updateSlab.isPending}
+        isSubmitting={createSlab.isPending || bulkCreateSlab.isPending || updateSlab.isPending}
       />
 
       <ExportSheet ref={exportRef} onExport={handleExport} isDownloading={isDownloading} />
@@ -1305,6 +1444,26 @@ const sheetStyles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     marginTop: 4,
+  },
+  selectAllBtn: {
+    alignSelf: 'flex-end',
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[300],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary[600],
+    borderColor: colors.primary[600],
   },
   submitContainer: {
     paddingHorizontal: 20,

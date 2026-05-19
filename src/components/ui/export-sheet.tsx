@@ -15,7 +15,7 @@ interface ExportSheetProps {
 export const ExportSheet = forwardRef<BottomSheet, ExportSheetProps>(
   ({ onExport, isDownloading }, ref) => {
     const isDark = useIsDark();
-    const snapPoints = useMemo(() => [240], []);
+    const snapPoints = useMemo(() => [340], []);
     const styles = _createStyles(isDark);
 
     return (
@@ -74,7 +74,7 @@ export const ExportSheet = forwardRef<BottomSheet, ExportSheetProps>(
 );
 
 const _createStyles = (isDark: boolean) => StyleSheet.create({
-  content: { paddingHorizontal: 20, paddingBottom: 20 },
+  content: { paddingHorizontal: 20, paddingBottom: 28 },
   title: { color: isDark ? colors.white : colors.neutral[800], marginBottom: 16 },
   option: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 14 },
   iconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

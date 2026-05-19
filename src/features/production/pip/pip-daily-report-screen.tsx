@@ -300,8 +300,13 @@ export function PipDailyReportScreen() {
         fileName: `daily-production-${dateStr}.${ext}`,
         mimeType: mime,
       });
-    } catch {
-      showErrorMessage('Failed to export report');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || '';
+      if (msg === 'RATE_LIMIT_EXCEEDED' || msg.includes('rate limit')) {
+        showErrorMessage('You have reached the export limit (50/hour). Please wait and try again.');
+      } else {
+        showErrorMessage('Failed to export report');
+      }
     }
   }, [dateStr, download]);
 

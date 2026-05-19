@@ -148,21 +148,37 @@ function calcSampleIncentive(
   if (methodNumber === 1) {
     if (cumulativeRatio < 1) return 0;
     let totalIncentive = 0;
-    const sorted = [...inputs].sort(
-      (a, b) => a.qtyProduced / (a.shiftTargetQty || 1) - b.qtyProduced / (b.shiftTargetQty || 1),
-    );
+    // Process in entry order — no sorting (matches HTML prototype)
     let runningRatio = 0;
-    for (const p of sorted) {
+    for (const p of inputs) {
       const pctContrib = p.shiftTargetQty > 0 ? p.qtyProduced / p.shiftTargetQty : 0;
       const prev = runningRatio;
       runningRatio += pctContrib;
       let earningQty = 0;
-      if (prev >= 1) earningQty = Math.max(0, p.qtyProduced - p.shiftTargetQty);
-      else if (runningRatio > 1) earningQty = Math.max(0, p.qtyProduced - Math.ceil((1 - prev) * p.shiftTargetQty));
-      const excessAboveTarget = Math.max(0, p.qtyProduced - p.shiftTargetQty);
-      const slab1Earning = Math.max(0, earningQty - excessAboveTarget);
-      const slab1Rate = p.slabTiers.length > 0 ? p.slabTiers[0].ratePerPiece : 0;
-      totalIncentive += slab1Earning * slab1Rate + (excessAboveTarget > 0 ? getSlabRate(p.slabTiers, excessAboveTarget) : 0);
+      if (runningRatio <= 1) {
+        // Case A: below 100%
+        earningQty = 0;
+      } else if (prev >= 1) {
+        // Case B: already past 100% — full qty earns
+        earningQty = p.qtyProduced;
+        const excessAboveTarget = Math.max(0, p.qtyProduced - p.shiftTargetQty);
+        const belowTarget = p.qtyProduced - excessAboveTarget;
+        const slab1Rate = p.slabTiers.length > 0 ? p.slabTiers[0].ratePerPiece : 0;
+        totalIncentive += belowTarget * slab1Rate;
+        if (excessAboveTarget > 0) totalIncentive += getSlabRate(p.slabTiers, excessAboveTarget);
+      } else {
+        // Case C: crosses 100%
+        const neededToReach100 = Math.ceil((1 - prev) * p.shiftTargetQty);
+        earningQty = Math.max(0, p.qtyProduced - neededToReach100);
+        if (earningQty > 0) {
+          const excessAboveTarget = Math.max(0, p.qtyProduced - p.shiftTargetQty);
+          const earningBelowTarget = Math.max(0, earningQty - excessAboveTarget);
+          const earningAboveTarget = Math.max(0, earningQty - earningBelowTarget);
+          const slab1Rate = p.slabTiers.length > 0 ? p.slabTiers[0].ratePerPiece : 0;
+          totalIncentive += earningBelowTarget * slab1Rate;
+          if (earningAboveTarget > 0) totalIncentive += getSlabRate(p.slabTiers, earningAboveTarget);
+        }
+      }
     }
     return totalIncentive;
   }
@@ -174,19 +190,17 @@ function calcSampleIncentive(
     const partCalcs = inputs.map((p) => {
       const pct = p.shiftTargetQty > 0 ? (p.qtyProduced / p.shiftTargetQty) * 100 : 0;
       const milestone = milestones.find((m) => pct >= m) ?? 0;
-      const milestoneQty = Math.floor((milestone / 100) * p.shiftTargetQty);
+      const milestoneQty = Math.round((milestone / 100) * p.shiftTargetQty);
       const remainingQty = Math.max(0, p.qtyProduced - milestoneQty);
       totalMilestonePct += milestone;
       return { ...p, milestone, milestoneQty, remainingQty };
     });
     const milestoneEligible = totalMilestonePct >= 100;
     for (const p of partCalcs) {
-      if (milestoneEligible && p.remainingQty > 0) {
-        const excessAboveTarget = Math.max(0, p.qtyProduced - p.shiftTargetQty);
-        if (excessAboveTarget > 0) totalIncentive += getSlabRate(p.slabTiers, excessAboveTarget);
-        const slab1Earning = Math.max(0, p.remainingQty - excessAboveTarget);
+      // Method 2: ALL earning qty earns at Slab 1 rate only
+      if (milestoneEligible && p.milestone > 0 && p.remainingQty > 0) {
         const slab1Rate = p.slabTiers.length > 0 ? p.slabTiers[0].ratePerPiece : 0;
-        totalIncentive += slab1Earning * slab1Rate;
+        totalIncentive += p.remainingQty * slab1Rate;
       }
     }
     return totalIncentive;

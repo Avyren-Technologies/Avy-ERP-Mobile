@@ -484,7 +484,7 @@ function MachineFormSheet({
           <View style={sheetStyles.dropdown}>
             <ScrollView
               nestedScrollEnabled
-              style={{ maxHeight: 200 }}
+              style={{ maxHeight: 300 }}
               keyboardShouldPersistTaps="handled"
             >
               {(options as any[]).map((opt, idx) => {

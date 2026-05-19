@@ -417,7 +417,13 @@ function OperationFormSheet({
                 </Text>
               </Pressable>
             </View>
-            <View style={formStyles.chipRow}>
+            <ScrollView
+              horizontal={false}
+              nestedScrollEnabled
+              style={{ maxHeight: 140 }}
+              showsVerticalScrollIndicator={processCategories.length > 8}
+              contentContainerStyle={formStyles.chipRow}
+            >
               {processCategories.map((cat) => {
                 const selected = processCategoryId === cat.id;
                 return (
@@ -453,7 +459,7 @@ function OperationFormSheet({
                   No process categories. Tap Manage to add one.
                 </Text>
               )}
-            </View>
+            </ScrollView>
           </View>
 
           {/* Status (edit only) */}

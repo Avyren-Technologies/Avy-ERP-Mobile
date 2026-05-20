@@ -20,6 +20,7 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
@@ -1007,7 +1008,7 @@ export function PipSlabConfigScreen() {
   }, [response]);
 
   // Fetch machines, operations, and parts for the form
-  const { data: machinesRaw } = useMachines();
+  const { data: machinesRaw, refetch: refetchMachines } = useMachines();
   const machines: DropdownOption[] = React.useMemo(() => {
     const data = (machinesRaw as any)?.data ?? machinesRaw ?? [];
     const list = Array.isArray(data) ? data : [];
@@ -1018,7 +1019,7 @@ export function PipSlabConfigScreen() {
     }));
   }, [machinesRaw]);
 
-  const { data: operationsRaw } = useOperations({ status: 'ACTIVE' });
+  const { data: operationsRaw, refetch: refetchOperations } = useOperations({ status: 'ACTIVE' });
   const operationOptions: OperationOption[] = React.useMemo(() => {
     const data = (operationsRaw as any)?.data ?? operationsRaw ?? [];
     const list = Array.isArray(data) ? data : [];
@@ -1030,7 +1031,7 @@ export function PipSlabConfigScreen() {
     }));
   }, [operationsRaw]);
 
-  const { data: partsRaw } = useParts();
+  const { data: partsRaw, refetch: refetchParts } = useParts();
   const partOptions: DropdownOption[] = React.useMemo(() => {
     const data = (partsRaw as any)?.data ?? partsRaw ?? [];
     const list = Array.isArray(data) ? data : [];
@@ -1046,6 +1047,15 @@ export function PipSlabConfigScreen() {
   const bulkCreateSlab = useBulkCreatePipSlabConfigs();
   const updateSlab = useUpdatePipSlabConfig();
   const deleteSlab = useDeletePipSlabConfig();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+      refetchMachines();
+      refetchOperations();
+      refetchParts();
+    }, [refetch, refetchMachines, refetchOperations, refetchParts])
+  );
 
   const handleExport = React.useCallback(async (format: 'excel' | 'pdf') => {
     exportRef.current?.close();

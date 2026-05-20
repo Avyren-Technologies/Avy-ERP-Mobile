@@ -19,6 +19,7 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
@@ -523,7 +524,7 @@ export function PipOperationMasterScreen() {
   }, [response]);
 
   // Process categories
-  const { data: catResponse, isLoading: catLoading } = useProcessCategories();
+  const { data: catResponse, isLoading: catLoading, refetch: refetchCat } = useProcessCategories();
   const processCategoryList: ProcessCategoryOption[] = React.useMemo(() => {
     const raw = (catResponse as any)?.data ?? catResponse ?? [];
     if (!Array.isArray(raw)) return [];
@@ -542,6 +543,13 @@ export function PipOperationMasterScreen() {
   const createCat = useCreateProcessCategory();
   const updateCat = useUpdateProcessCategory();
   const deleteCat = useDeleteProcessCategory();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+      refetchCat();
+    }, [refetch, refetchCat])
+  );
 
   const handleAdd = () => {
     setEditingItem(null);

@@ -18,6 +18,7 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
@@ -162,19 +163,19 @@ export function PipDailyEntryScreen() {
   const [isSaving, setIsSaving] = React.useState(false);
 
   // Data fetching
-  const { data: configRaw } = usePipConfig();
+  const { data: configRaw, refetch: refetchConfig } = usePipConfig();
   const config: PipIncentiveConfig | null = React.useMemo(() => {
     const d = (configRaw as any)?.data ?? configRaw;
     return d as PipIncentiveConfig | null;
   }, [configRaw]);
 
-  const { data: slabsRaw, isLoading: slabsLoading } = usePipSlabConfigs();
+  const { data: slabsRaw, isLoading: slabsLoading, refetch: refetchSlabs } = usePipSlabConfigs();
   const slabConfigs: PipSlabConfig[] = React.useMemo(() => {
     const raw = (slabsRaw as any)?.data ?? slabsRaw ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [slabsRaw]);
 
-  const { data: employeesRaw, isLoading: employeesLoading } = useEmployees({
+  const { data: employeesRaw, isLoading: employeesLoading, refetch: refetchEmployees } = useEmployees({
     limit: 100,
   });
   const operators: OperatorOption[] = React.useMemo(() => {
@@ -193,7 +194,7 @@ export function PipDailyEntryScreen() {
   // Downtime reasons
   const [manageDowntimeVisible, setManageDowntimeVisible] = React.useState(false);
   const [downtimePickerPartKey, setDowntimePickerPartKey] = React.useState<{ machineId: string; partId: string } | null>(null);
-  const { data: downtimeReasonsRaw, isLoading: downtimeReasonsLoading } = useDowntimeReasons();
+  const { data: downtimeReasonsRaw, isLoading: downtimeReasonsLoading, refetch: refetchDowntime } = useDowntimeReasons();
   const downtimeReasonList: DowntimeReasonOption[] = React.useMemo(() => {
     const raw = (downtimeReasonsRaw as any)?.data ?? downtimeReasonsRaw ?? [];
     if (!Array.isArray(raw)) return [];
@@ -208,7 +209,7 @@ export function PipDailyEntryScreen() {
   const deleteDTR = useDeleteDowntimeReason();
 
   // Fetch company shifts and auto-select based on current time (PRD 17.8)
-  const { data: shiftsRaw } = useCompanyShifts();
+  const { data: shiftsRaw, refetch: refetchShifts } = useCompanyShifts();
   const shifts = React.useMemo(() => {
     const raw = (shiftsRaw as any)?.data ?? shiftsRaw ?? [];
     return Array.isArray(raw) ? raw : [];
@@ -223,7 +224,7 @@ export function PipDailyEntryScreen() {
     }),
     [selectedDate, selectedShift],
   );
-  const { data: todayEntriesRaw, isLoading: entriesLoading } = usePipDailyEntries(
+  const { data: todayEntriesRaw, isLoading: entriesLoading, refetch: refetchEntries } = usePipDailyEntries(
     dailyEntriesParams,
     { enabled: Boolean(selectedDate && selectedShift) },
   );
@@ -236,6 +237,19 @@ export function PipDailyEntryScreen() {
     const s = (shifts as any[]).find((x: any) => x.id === selectedShift);
     return s?.name as string | undefined;
   }, [shifts, selectedShift]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchConfig();
+      refetchSlabs();
+      refetchEmployees();
+      refetchDowntime();
+      refetchShifts();
+      if (selectedDate && selectedShift) {
+        refetchEntries();
+      }
+    }, [refetchConfig, refetchSlabs, refetchEmployees, refetchDowntime, refetchShifts, refetchEntries, selectedDate, selectedShift])
+  );
 
   React.useEffect(() => {
     if (shifts.length > 0 && !selectedShift) {

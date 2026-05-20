@@ -333,6 +333,7 @@ function SlabConfigFormSheet({
   const [machineSearch, setMachineSearch] = React.useState('');
   const [operationSearch, setOperationSearch] = React.useState('');
   const [partSearch, setPartSearch] = React.useState('');
+  const [partConfigs, setPartConfigs] = React.useState<Record<string, { shiftTarget: string; tiers: TierRow[] }>>({});
 
   React.useEffect(() => {
     if (visible) {
@@ -360,8 +361,23 @@ function SlabConfigFormSheet({
       setMachineSearch('');
       setOperationSearch('');
       setPartSearch('');
+      setPartConfigs({});
     }
   }, [visible, editItem]);
+
+  React.useEffect(() => {
+    if (step === 4 && !isEdit) {
+      setPartConfigs((prev) => {
+        const next = { ...prev };
+        Array.from(selectedPartIds).forEach((pid) => {
+          if (!next[pid]) {
+            next[pid] = { shiftTarget: '', tiers: [{ fromQty: '', toQty: '', ratePerPiece: '' }] };
+          }
+        });
+        return next;
+      });
+    }
+  }, [step, selectedPartIds, isEdit]);
 
   const filteredMachines = React.useMemo(() => {
     if (!machineSearch.trim()) return machines;
@@ -390,28 +406,53 @@ function SlabConfigFormSheet({
     );
   }, [parts, partSearch]);
 
-  const addTier = () => {
-    setTiers((prev) => [...prev, { fromQty: '', toQty: '', ratePerPiece: '' }]);
+  const addTier = (partId?: string) => {
+    if (isEdit || !partId) {
+      setTiers((prev) => [...prev, { fromQty: '', toQty: '', ratePerPiece: '' }]);
+    } else {
+      setPartConfigs((prev) => ({
+        ...prev,
+        [partId]: { ...prev[partId], tiers: [...prev[partId].tiers, { fromQty: '', toQty: '', ratePerPiece: '' }] },
+      }));
+    }
   };
 
-  const removeTier = (idx: number) => {
-    setTiers((prev) => prev.filter((_, i) => i !== idx));
+  const removeTier = (idx: number, partId?: string) => {
+    if (isEdit || !partId) {
+      setTiers((prev) => prev.filter((_, i) => i !== idx));
+    } else {
+      setPartConfigs((prev) => ({
+        ...prev,
+        [partId]: { ...prev[partId], tiers: prev[partId].tiers.filter((_, i) => i !== idx) },
+      }));
+    }
   };
 
-  const updateTier = (idx: number, field: keyof TierRow, value: string) => {
-    setTiers((prev) => prev.map((t, i) => (i === idx ? { ...t, [field]: value } : t)));
+  const updateTier = (idx: number, field: keyof TierRow, value: string, partId?: string) => {
+    if (isEdit || !partId) {
+      setTiers((prev) => prev.map((t, i) => (i === idx ? { ...t, [field]: value } : t)));
+    } else {
+      setPartConfigs((prev) => ({
+        ...prev,
+        [partId]: { ...prev[partId], tiers: prev[partId].tiers.map((t, i) => (i === idx ? { ...t, [field]: value } : t)) },
+      }));
+    }
+  };
+
+  const updatePartShiftTarget = (partId: string, value: string) => {
+    setPartConfigs((prev) => ({ ...prev, [partId]: { ...prev[partId], shiftTarget: value } }));
   };
 
   const handleSubmit = () => {
-    const parsedTiers = tiers
-      .filter((t) => t.fromQty && t.ratePerPiece)
-      .map((t) => ({
-        fromQty: Number(t.fromQty),
-        toQty: t.toQty ? Number(t.toQty) : null,
-        ratePerPiece: Number(t.ratePerPiece),
-      }));
-
     if (isEdit) {
+      const parsedTiers = tiers
+        .filter((t) => t.fromQty && t.ratePerPiece)
+        .map((t) => ({
+          fromQty: Number(t.fromQty),
+          toQty: t.toQty ? Number(t.toQty) : null,
+          ratePerPiece: Number(t.ratePerPiece),
+        }));
+
       // Edit mode: single config
       onSubmit({
         machineId: editItem!.machineId,
@@ -422,11 +463,21 @@ function SlabConfigFormSheet({
       });
     } else {
       // Create mode: bulk configs
-      const configs = Array.from(selectedPartIds).map((partId) => ({
-        partId,
-        shiftTargetQty: Number(shiftTarget),
-        slabTiers: parsedTiers,
-      }));
+      const configs = Array.from(selectedPartIds).map((partId) => {
+        const pcfg = partConfigs[partId];
+        const parsedTiers = pcfg.tiers
+          .filter((t) => t.fromQty && t.ratePerPiece)
+          .map((t) => ({
+            fromQty: Number(t.fromQty),
+            toQty: t.toQty ? Number(t.toQty) : null,
+            ratePerPiece: Number(t.ratePerPiece),
+          }));
+        return {
+          partId,
+          shiftTargetQty: Number(pcfg.shiftTarget),
+          slabTiers: parsedTiers,
+        };
+      });
 
       onSubmit({
         machineIds: Array.from(selectedMachineIds),
@@ -443,12 +494,24 @@ function SlabConfigFormSheet({
     if (step === 2) return selectedOperationIds.size > 0;
     if (step === 3) return selectedPartIds.size > 0;
     if (step === 4) {
-      return (
-        !!shiftTarget &&
-        Number(shiftTarget) > 0 &&
-        tiers.length > 0 &&
-        tiers.every((t) => t.fromQty && t.ratePerPiece)
-      );
+      if (isEdit) {
+        return (
+          !!shiftTarget &&
+          Number(shiftTarget) > 0 &&
+          tiers.length > 0 &&
+          tiers.every((t) => t.fromQty && t.ratePerPiece)
+        );
+      } else {
+        if (selectedPartIds.size === 0) return false;
+        for (const pid of Array.from(selectedPartIds)) {
+          const cfg = partConfigs[pid];
+          if (!cfg) return false;
+          if (!cfg.shiftTarget || Number(cfg.shiftTarget) <= 0) return false;
+          if (cfg.tiers.length === 0) return false;
+          if (!cfg.tiers.every((t) => t.fromQty && t.ratePerPiece)) return false;
+        }
+        return true;
+      }
     }
     return false;
   };
@@ -840,97 +903,216 @@ function SlabConfigFormSheet({
                 Shift Target &amp; Slab Tiers
               </Text>
 
-              {/* Shift Target */}
-              <View style={sheetStyles.field}>
-                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                  Shift Target Qty <Text className="text-danger-500">*</Text>
-                </Text>
-                <TextInput
-                  style={[
-                    sheetStyles.input,
-                    {
-                      backgroundColor: isDark ? '#1A1730' : colors.neutral[50],
-                      color: isDark ? colors.white : colors.primary[950],
-                      borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
-                    },
-                  ]}
-                  placeholder="e.g. 100"
-                  placeholderTextColor={colors.neutral[400]}
-                  value={shiftTarget}
-                  onChangeText={setShiftTarget}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              {/* Tier Rows */}
-              <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                Slab Tiers
-              </Text>
-              {tiers.map((tier, idx) => (
-                <View key={idx} style={[sheetStyles.tierRow, { backgroundColor: isDark ? '#1A1730' : colors.neutral[50] }]}>
-                  <View style={sheetStyles.tierHeader}>
-                    <Text className="font-inter text-[10px] font-bold text-primary-600">
-                      TIER {idx + 1}
+              {isEdit ? (
+                <View>
+                  {/* Shift Target */}
+                  <View style={sheetStyles.field}>
+                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                      Shift Target Qty <Text className="text-danger-500">*</Text>
                     </Text>
-                    {tiers.length > 1 && (
-                      <Pressable onPress={() => removeTier(idx)} hitSlop={8}>
-                        <Svg width={16} height={16} viewBox="0 0 24 24">
-                          <Path
-                            d="M18 6L6 18M6 6l12 12"
-                            stroke={colors.danger[500]}
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                        </Svg>
-                      </Pressable>
-                    )}
+                    <TextInput
+                      style={[
+                        sheetStyles.input,
+                        {
+                          backgroundColor: isDark ? '#1A1730' : colors.neutral[50],
+                          color: isDark ? colors.white : colors.primary[950],
+                          borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                        },
+                      ]}
+                      placeholder="e.g. 100"
+                      placeholderTextColor={colors.neutral[400]}
+                      value={shiftTarget}
+                      onChangeText={setShiftTarget}
+                      keyboardType="numeric"
+                    />
                   </View>
-                  <View style={sheetStyles.tierFields}>
-                    <View style={{ flex: 1 }}>
-                      <Text className="font-inter text-[10px] text-neutral-500">From</Text>
-                      <TextInput
-                        style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
-                        value={tier.fromQty}
-                        onChangeText={(v) => updateTier(idx, 'fromQty', v)}
-                        keyboardType="numeric"
-                        placeholder="0"
-                        placeholderTextColor={colors.neutral[400]}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text className="font-inter text-[10px] text-neutral-500">To</Text>
-                      <TextInput
-                        style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
-                        value={tier.toQty}
-                        onChangeText={(v) => updateTier(idx, 'toQty', v)}
-                        keyboardType="numeric"
-                        placeholder="Unlimited"
-                        placeholderTextColor={colors.neutral[400]}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text className="font-inter text-[10px] text-neutral-500">Rate/pc</Text>
-                      <TextInput
-                        style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
-                        value={tier.ratePerPiece}
-                        onChangeText={(v) => updateTier(idx, 'ratePerPiece', v)}
-                        keyboardType="numeric"
-                        placeholder="0.00"
-                        placeholderTextColor={colors.neutral[400]}
-                      />
-                    </View>
-                  </View>
-                </View>
-              ))}
 
-              <Pressable onPress={addTier} style={sheetStyles.addTierBtn}>
-                <Svg width={14} height={14} viewBox="0 0 24 24">
-                  <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" />
-                </Svg>
-                <Text className="ml-1 font-inter text-xs font-bold text-primary-600">
-                  Add Tier
-                </Text>
-              </Pressable>
+                  {/* Tier Rows */}
+                  <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                    Slab Tiers
+                  </Text>
+                  {tiers.map((tier, idx) => (
+                    <View key={idx} style={[sheetStyles.tierRow, { backgroundColor: isDark ? '#1A1730' : colors.neutral[50] }]}>
+                      <View style={sheetStyles.tierHeader}>
+                        <Text className="font-inter text-[10px] font-bold text-primary-600">
+                          TIER {idx + 1}
+                        </Text>
+                        {tiers.length > 1 && (
+                          <Pressable onPress={() => removeTier(idx)} hitSlop={8}>
+                            <Svg width={16} height={16} viewBox="0 0 24 24">
+                              <Path
+                                d="M18 6L6 18M6 6l12 12"
+                                stroke={colors.danger[500]}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+                            </Svg>
+                          </Pressable>
+                        )}
+                      </View>
+                      <View style={sheetStyles.tierFields}>
+                        <View style={{ flex: 1 }}>
+                          <Text className="font-inter text-[10px] text-neutral-500">From</Text>
+                          <TextInput
+                            style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                            value={tier.fromQty}
+                            onChangeText={(v) => updateTier(idx, 'fromQty', v)}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            placeholderTextColor={colors.neutral[400]}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text className="font-inter text-[10px] text-neutral-500">To</Text>
+                          <TextInput
+                            style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                            value={tier.toQty}
+                            onChangeText={(v) => updateTier(idx, 'toQty', v)}
+                            keyboardType="numeric"
+                            placeholder="Unlimited"
+                            placeholderTextColor={colors.neutral[400]}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text className="font-inter text-[10px] text-neutral-500">Rate/pc</Text>
+                          <TextInput
+                            style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                            value={tier.ratePerPiece}
+                            onChangeText={(v) => updateTier(idx, 'ratePerPiece', v)}
+                            keyboardType="numeric"
+                            placeholder="0.00"
+                            placeholderTextColor={colors.neutral[400]}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+
+                  <Pressable onPress={() => addTier()} style={sheetStyles.addTierBtn}>
+                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                      <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" />
+                    </Svg>
+                    <Text className="ml-1 font-inter text-xs font-bold text-primary-600">
+                      Add Tier
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View>
+                  {Array.from(selectedPartIds).map((pid) => {
+                    const partLabel = parts.find((p) => p.id === pid)?.label || '';
+                    const partSublabel = parts.find((p) => p.id === pid)?.sublabel || '';
+                    const pcfg = partConfigs[pid] || { shiftTarget: '', tiers: [{ fromQty: '', toQty: '', ratePerPiece: '' }] };
+
+                    return (
+                      <View key={pid} style={{ marginBottom: 24, padding: 16, backgroundColor: isDark ? '#1A1730' : colors.neutral[50], borderRadius: 12, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[200] }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+                          <View style={[cardStyles.badge, { backgroundColor: isDark ? colors.accent[900] : colors.accent[50] }]}>
+                            <Text className="font-inter text-[10px] font-bold text-accent-700">
+                              {partSublabel}
+                            </Text>
+                          </View>
+                          <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white flex-1">
+                            {partLabel}
+                          </Text>
+                        </View>
+
+                        {/* Shift Target */}
+                        <View style={sheetStyles.field}>
+                          <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                            Shift Target Qty <Text className="text-danger-500">*</Text>
+                          </Text>
+                          <TextInput
+                            style={[
+                              sheetStyles.input,
+                              {
+                                backgroundColor: isDark ? '#141225' : colors.white,
+                                color: isDark ? colors.white : colors.primary[950],
+                                borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                              },
+                            ]}
+                            placeholder="e.g. 100"
+                            placeholderTextColor={colors.neutral[400]}
+                            value={pcfg.shiftTarget}
+                            onChangeText={(v) => updatePartShiftTarget(pid, v)}
+                            keyboardType="numeric"
+                          />
+                        </View>
+
+                        {/* Tier Rows */}
+                        <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                          Slab Tiers
+                        </Text>
+                        {pcfg.tiers.map((tier, idx) => (
+                          <View key={idx} style={[sheetStyles.tierRow, { backgroundColor: isDark ? '#141225' : colors.white }]}>
+                            <View style={sheetStyles.tierHeader}>
+                              <Text className="font-inter text-[10px] font-bold text-primary-600">
+                                TIER {idx + 1}
+                              </Text>
+                              {pcfg.tiers.length > 1 && (
+                                <Pressable onPress={() => removeTier(idx, pid)} hitSlop={8}>
+                                  <Svg width={16} height={16} viewBox="0 0 24 24">
+                                    <Path
+                                      d="M18 6L6 18M6 6l12 12"
+                                      stroke={colors.danger[500]}
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                    />
+                                  </Svg>
+                                </Pressable>
+                              )}
+                            </View>
+                            <View style={sheetStyles.tierFields}>
+                              <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-[10px] text-neutral-500">From</Text>
+                                <TextInput
+                                  style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                                  value={tier.fromQty}
+                                  onChangeText={(v) => updateTier(idx, 'fromQty', v, pid)}
+                                  keyboardType="numeric"
+                                  placeholder="0"
+                                  placeholderTextColor={colors.neutral[400]}
+                                />
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-[10px] text-neutral-500">To</Text>
+                                <TextInput
+                                  style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                                  value={tier.toQty}
+                                  onChangeText={(v) => updateTier(idx, 'toQty', v, pid)}
+                                  keyboardType="numeric"
+                                  placeholder="Unlimited"
+                                  placeholderTextColor={colors.neutral[400]}
+                                />
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-[10px] text-neutral-500">Rate/pc</Text>
+                                <TextInput
+                                  style={[sheetStyles.tierInput, { color: isDark ? colors.white : colors.primary[950], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                                  value={tier.ratePerPiece}
+                                  onChangeText={(v) => updateTier(idx, 'ratePerPiece', v, pid)}
+                                  keyboardType="numeric"
+                                  placeholder="0.00"
+                                  placeholderTextColor={colors.neutral[400]}
+                                />
+                              </View>
+                            </View>
+                          </View>
+                        ))}
+
+                        <Pressable onPress={() => addTier(pid)} style={sheetStyles.addTierBtn}>
+                          <Svg width={14} height={14} viewBox="0 0 24 24">
+                            <Path d="M12 5v14M5 12h14" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" />
+                          </Svg>
+                          <Text className="ml-1 font-inter text-xs font-bold text-primary-600">
+                            Add Tier
+                          </Text>
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           )}
         </ScrollView>

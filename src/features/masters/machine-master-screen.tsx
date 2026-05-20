@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   Modal as RNModal,
@@ -11,6 +13,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  StatusBar,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Animated, {
@@ -440,7 +443,7 @@ function MachineFormSheet({
   ) => {
     const isOpen = openDropdown === dropdownName;
     return (
-      <View style={[sheetStyles.field, { zIndex: isOpen ? 100 : 1 }]}>
+      <View style={sheetStyles.field}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
             {label}
@@ -484,8 +487,9 @@ function MachineFormSheet({
           <View style={sheetStyles.dropdown}>
             <ScrollView
               nestedScrollEnabled
-              style={{ maxHeight: 300 }}
+              style={{ maxHeight: 220 }}
               keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
             >
               {(options as any[]).map((opt, idx) => {
                 const optId = typeof opt === 'string' ? opt : opt.id;
@@ -537,33 +541,39 @@ function MachineFormSheet({
   return (
     <RNModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType="fade"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={[sheetStyles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={sheetStyles.header}>
-          <Pressable onPress={onClose}>
-            <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-              Cancel
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={[sheetStyles.container, { paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 24) }]}>
+          {/* Header */}
+          <View style={sheetStyles.header}>
+            <Pressable onPress={onClose}>
+              <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+                Cancel
+              </Text>
+            </Pressable>
+            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
+              {isEdit ? 'Edit Machine' : 'Add Machine'}
             </Text>
-          </Pressable>
-          <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
-            {isEdit ? 'Edit Machine' : 'Add Machine'}
-          </Text>
-          <View style={{ width: 52 }} />
-        </View>
+            <View style={{ width: 52 }} />
+          </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[
-            sheetStyles.formContent,
-            { paddingBottom: insets.bottom + 100 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={[
+              sheetStyles.formContent,
+              { paddingBottom: insets.bottom + 32 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            keyboardDismissMode="interactive"
+          >
           {/* 1. Asset Name */}
           <View style={sheetStyles.field}>
             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
@@ -788,32 +798,32 @@ function MachineFormSheet({
               keyboardType="numeric"
             />
           </View>
-        </ScrollView>
+          </ScrollView>
 
-        {/* Submit Button */}
-        <View
-          style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16 }]}
-        >
-          <Pressable
-            style={({ pressed }) => [
-              sheetStyles.submitBtn,
-              pressed && { opacity: 0.85 },
-              isSubmitting && { opacity: 0.6 },
-            ]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
+          {/* Submit Button */}
+          <View
+            style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16 }]}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text className="font-inter text-base font-bold text-white">
-                {isEdit ? 'Update Machine' : 'Create Machine'}
-              </Text>
-            )}
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                sheetStyles.submitBtn,
+                pressed && { opacity: 0.85 },
+                isSubmitting && { opacity: 0.6 },
+              ]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text className="font-inter text-base font-bold text-white">
+                  {isEdit ? 'Update Machine' : 'Create Machine'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
-
+      </KeyboardAvoidingView>
     </RNModal>
   );
 }
@@ -1290,21 +1300,16 @@ const createSheetStyles = (isDark: boolean) =>
       borderWidth: 1.5,
     },
     dropdown: {
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      zIndex: 200,
       backgroundColor: isDark ? '#1A1730' : '#fff',
       borderRadius: 10,
       borderWidth: 1,
       borderColor: isDark ? colors.primary[800] : colors.primary[200],
       marginTop: 4,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 10,
-      elevation: 20,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.10,
+      shadowRadius: 6,
+      elevation: 4,
       overflow: 'hidden',
     },
     dropdownItem: {

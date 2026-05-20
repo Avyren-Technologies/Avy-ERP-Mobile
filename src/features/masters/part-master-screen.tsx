@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   Modal as RNModal,
@@ -12,6 +14,7 @@ import {
   Switch,
   TextInput,
   View,
+  StatusBar,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Animated, {
@@ -332,13 +335,8 @@ function PartFormSheet({
   const [isQcRequired, setIsQcRequired] = React.useState(false);
   const [isInventoryItem, setIsInventoryItem] = React.useState(true);
 
-  // Dropdown visibility
-  const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
-  const [showModelDropdown, setShowModelDropdown] = React.useState(false);
-  const [showUomDropdown, setShowUomDropdown] = React.useState(false);
-  const [showComponentTypeDropdown, setShowComponentTypeDropdown] = React.useState(false);
-  const [showTypeDropdown, setShowTypeDropdown] = React.useState(false);
-  const [showStatusDropdown, setShowStatusDropdown] = React.useState(false);
+  // Dropdown visibility — single state tracks which dropdown is open by name
+  const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   // ManageModal visibility
@@ -361,13 +359,12 @@ function PartFormSheet({
   const updateComponentTypeMutation = useUpdateComponentType();
   const deleteComponentTypeMutation = useDeleteComponentType();
 
+  const toggleDropdown = (name: string) => {
+    setOpenDropdown((prev) => (prev === name ? null : name));
+  };
+
   const closeAllDropdowns = () => {
-    setShowCategoryDropdown(false);
-    setShowModelDropdown(false);
-    setShowUomDropdown(false);
-    setShowComponentTypeDropdown(false);
-    setShowTypeDropdown(false);
-    setShowStatusDropdown(false);
+    setOpenDropdown(null);
   };
 
   React.useEffect(() => {
@@ -538,110 +535,112 @@ function PartFormSheet({
 
   const renderDropdownField = (
     label: string,
+    dropdownName: string,
     value: string | undefined,
     placeholder: string,
-    isOpen: boolean,
-    toggle: () => void,
     options: DropdownOption[] | string[],
     selectedId: string,
     onSelect: (val: string) => void,
-    onCloseDropdown: () => void,
     onCreateNew?: () => void,
-  ) => (
-    <View style={[sheetStyles.field, { zIndex: isOpen ? 100 : 1 }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-          {label}
-        </Text>
-        {onCreateNew ? (
-          <Pressable onPress={onCreateNew} hitSlop={8}>
-            <Text className="font-inter text-xs font-bold text-primary-600">
-              + New
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <Pressable
-        onPress={toggle}
-        style={[
-          sheetStyles.input,
-          {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          },
-          isOpen && { borderColor: colors.primary[400] },
-        ]}
-      >
-        <Text
-          className={`font-inter text-sm ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
-        >
-          {value || placeholder}
-        </Text>
-        <Svg width={14} height={14} viewBox="0 0 24 24">
-          <Path
-            d={isOpen ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
-            stroke={colors.neutral[400]}
-            strokeWidth="2"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-      </Pressable>
-
-      {isOpen && (
-        <View style={sheetStyles.dropdown}>
-          <ScrollView
-            nestedScrollEnabled
-            style={{ maxHeight: 300 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {(options as any[]).map((opt, idx) => {
-              const optId = typeof opt === 'string' ? opt : opt.id;
-              const optLabel = typeof opt === 'string' ? formatPartType(opt) : opt.name;
-              const isSelected = optId === selectedId;
-              return (
-                <Pressable
-                  key={optId}
-                  onPress={() => {
-                    onSelect(optId);
-                    onCloseDropdown();
-                  }}
-                  style={[
-                    sheetStyles.dropdownItem,
-                    isSelected && { backgroundColor: colors.primary[50] },
-                    idx > 0 && {
-                      borderTopWidth: 1,
-                      borderTopColor: colors.neutral[100],
-                    },
-                  ]}
-                >
-                  <Text
-                    className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}
-                  >
-                    {optLabel}
-                  </Text>
-                  {isSelected && (
-                    <Svg width={15} height={15} viewBox="0 0 24 24">
-                      <Path
-                        d="M5 12l5 5L20 7"
-                        stroke={colors.primary[600]}
-                        strokeWidth="2.5"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+  ) => {
+    const isOpen = openDropdown === dropdownName;
+    return (
+      <View style={sheetStyles.field}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+            {label}
+          </Text>
+          {onCreateNew ? (
+            <Pressable onPress={onCreateNew} hitSlop={8}>
+              <Text className="font-inter text-xs font-bold text-primary-600">
+                + New
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-      )}
-    </View>
-  );
+        <Pressable
+          onPress={() => toggleDropdown(dropdownName)}
+          style={[
+            sheetStyles.input,
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            },
+            isOpen && { borderColor: colors.primary[400] },
+          ]}
+        >
+          <Text
+            className={`font-inter text-sm ${value ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
+          >
+            {value || placeholder}
+          </Text>
+          <Svg width={14} height={14} viewBox="0 0 24 24">
+            <Path
+              d={isOpen ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+              stroke={colors.neutral[400]}
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
+
+        {isOpen && (
+          <View style={sheetStyles.dropdown}>
+            <ScrollView
+              nestedScrollEnabled
+              style={{ maxHeight: 220 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
+              {(options as any[]).map((opt, idx) => {
+                const optId = typeof opt === 'string' ? opt : opt.id;
+                const optLabel = typeof opt === 'string' ? formatPartType(opt) : opt.name;
+                const isSelected = optId === selectedId;
+                return (
+                  <Pressable
+                    key={optId}
+                    onPress={() => {
+                      onSelect(optId);
+                      setOpenDropdown(null);
+                    }}
+                    style={[
+                      sheetStyles.dropdownItem,
+                      isSelected && { backgroundColor: colors.primary[50] },
+                      idx > 0 && {
+                        borderTopWidth: 1,
+                        borderTopColor: colors.neutral[100],
+                      },
+                    ]}
+                  >
+                    <Text
+                      className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}
+                    >
+                      {optLabel}
+                    </Text>
+                    {isSelected && (
+                      <Svg width={15} height={15} viewBox="0 0 24 24">
+                        <Path
+                          d="M5 12l5 5L20 7"
+                          stroke={colors.primary[600]}
+                          strokeWidth="2.5"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderToggleRow = (
     label: string,
@@ -673,43 +672,45 @@ function PartFormSheet({
   return (
     <RNModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType="fade"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={[sheetStyles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={sheetStyles.header}>
-          <Pressable onPress={onClose}>
-            <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-              Cancel
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={[sheetStyles.container, { paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 24) }]}>
+          {/* Header */}
+          <View style={sheetStyles.header}>
+            <Pressable onPress={onClose}>
+              <Text className="font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+                Cancel
+              </Text>
+            </Pressable>
+            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
+              {isEdit ? 'Edit Part' : 'Add Part'}
             </Text>
-          </Pressable>
-          <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
-            {isEdit ? 'Edit Part' : 'Add Part'}
-          </Text>
-          <View style={{ width: 52 }} />
-        </View>
+            <View style={{ width: 52 }} />
+          </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[
-            sheetStyles.formContent,
-            { paddingBottom: insets.bottom + 100 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={[
+              sheetStyles.formContent,
+              { paddingBottom: insets.bottom + 32 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            keyboardDismissMode="interactive"
+          >
           {/* 1. Component Type dropdown */}
           {renderDropdownField(
             'Component / Part Type',
+            'componentType',
             selectedComponentType?.name,
             'Select component type',
-            showComponentTypeDropdown,
-            () => {
-              closeAllDropdowns();
-              setShowComponentTypeDropdown((v) => !v);
-            },
             componentTypes,
             componentTypeId,
             (val) => {
@@ -717,7 +718,6 @@ function PartFormSheet({
               const ct = componentTypes.find((c) => c.id === val);
               if (ct && !name.trim()) setName(ct.name);
             },
-            () => setShowComponentTypeDropdown(false),
             () => setShowManageComponentType(true),
           )}
 
@@ -747,17 +747,12 @@ function PartFormSheet({
           {/* 3. Product Model + Manage */}
           {renderDropdownField(
             'Product Model',
+            'model',
             selectedModel?.name,
             'Select product model',
-            showModelDropdown,
-            () => {
-              closeAllDropdowns();
-              setShowModelDropdown((v) => !v);
-            },
             productModels,
             productModelId,
             setProductModelId,
-            () => setShowModelDropdown(false),
             () => setShowManageModel(true),
           )}
 
@@ -778,17 +773,12 @@ function PartFormSheet({
           {/* 4. Status Dropdown */}
           {renderDropdownField(
             'Status',
+            'status',
             status,
             'Select status',
-            showStatusDropdown,
-            () => {
-              closeAllDropdowns();
-              setShowStatusDropdown((v) => !v);
-            },
             STATUS_OPTIONS,
             status,
             setStatus,
-            () => setShowStatusDropdown(false),
           )}
 
           {/* 5. Part Number (auto-generate hint) */}
@@ -809,51 +799,36 @@ function PartFormSheet({
           {/* 7. Category + Manage */}
           {renderDropdownField(
             'Category',
+            'category',
             selectedCategory?.name,
             'Select category',
-            showCategoryDropdown,
-            () => {
-              closeAllDropdowns();
-              setShowCategoryDropdown((v) => !v);
-            },
             categories,
             categoryId,
             setCategoryId,
-            () => setShowCategoryDropdown(false),
             () => setShowManageCategory(true),
           )}
 
           {/* 8. Unit of Measure + Manage */}
           {renderDropdownField(
             'Unit of Measure',
+            'uom',
             selectedUom?.name,
             'Select unit of measure',
-            showUomDropdown,
-            () => {
-              closeAllDropdowns();
-              setShowUomDropdown((v) => !v);
-            },
             uoms,
             uomId,
             setUomId,
-            () => setShowUomDropdown(false),
             () => setShowManageUom(true),
           )}
 
           {/* 8. Part Type Dropdown */}
           {renderDropdownField(
             'Part Type',
+            'partType',
             formatPartType(partType),
             'Select part type',
-            showTypeDropdown,
-            () => {
-              closeAllDropdowns();
-              setShowTypeDropdown((v) => !v);
-            },
             PART_TYPE_OPTIONS,
             partType,
             setPartType,
-            () => setShowTypeDropdown(false),
           )}
 
           {/* 9. HSN Code */}
@@ -940,31 +915,32 @@ function PartFormSheet({
           {renderToggleRow('BOM Enabled', 'Part has a Bill of Materials', isBomEnabled, setIsBomEnabled)}
           {renderToggleRow('QC Required', 'Quality check required', isQcRequired, setIsQcRequired)}
           {renderToggleRow('Inventory Item', 'Tracked in inventory', isInventoryItem, setIsInventoryItem)}
-        </ScrollView>
+          </ScrollView>
 
-        {/* Submit Button */}
-        <View
-          style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16 }]}
-        >
-          <Pressable
-            style={({ pressed }) => [
-              sheetStyles.submitBtn,
-              pressed && { opacity: 0.85 },
-              isSubmitting && { opacity: 0.6 },
-            ]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
+          {/* Submit Button */}
+          <View
+            style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16 }]}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text className="font-inter text-base font-bold text-white">
-                {isEdit ? 'Update Part' : 'Create Part'}
-              </Text>
-            )}
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                sheetStyles.submitBtn,
+                pressed && { opacity: 0.85 },
+                isSubmitting && { opacity: 0.6 },
+              ]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text className="font-inter text-base font-bold text-white">
+                  {isEdit ? 'Update Part' : 'Create Part'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
 
       {/* ManageModal — Product Model */}
       <ManageModal
@@ -1413,21 +1389,16 @@ const createSheetStyles = (isDark: boolean) =>
       borderWidth: 1.5,
     },
     dropdown: {
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      zIndex: 200,
       backgroundColor: isDark ? '#1A1730' : '#fff',
       borderRadius: 10,
       borderWidth: 1,
       borderColor: isDark ? colors.primary[800] : colors.primary[200],
       marginTop: 4,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 10,
-      elevation: 20,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.10,
+      shadowRadius: 6,
+      elevation: 4,
       overflow: 'hidden',
     },
     dropdownItem: {

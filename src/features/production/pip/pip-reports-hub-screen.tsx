@@ -138,40 +138,42 @@ export function PipReportsHubScreen() {
         end={{ x: 1, y: 1 }}
       />
 
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
+            <Svg width={22} height={22} viewBox="0 0 24 24">
+              <Path
+                d="M19 12H5M12 19l-7-7 7-7"
+                stroke={colors.white}
+                strokeWidth="2"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text className="font-inter text-lg font-bold text-white">
+              PIP Reports
+            </Text>
+            <Text className="font-inter text-xs text-white/70">
+              {PIP_REPORTS.length} reports available for download
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
       >
-        {/* Header */}
-        <LinearGradient
-          colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: insets.top + 12 }]}
-        >
-          <View style={styles.headerRow}>
-            <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
-              <Svg width={22} height={22} viewBox="0 0 24 24">
-                <Path
-                  d="M19 12H5M12 19l-7-7 7-7"
-                  stroke={colors.white}
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </Pressable>
-            <View style={{ flex: 1 }}>
-              <Text className="font-inter text-lg font-bold text-white">
-                PIP Reports
-              </Text>
-              <Text className="font-inter text-xs text-white/70">
-                {PIP_REPORTS.length} reports available for download
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
+
 
         {/* Report Cards */}
         <View style={styles.content}>

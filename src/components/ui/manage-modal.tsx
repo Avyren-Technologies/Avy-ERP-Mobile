@@ -1,4 +1,5 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
+import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -7,6 +8,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
   View,
@@ -236,26 +238,67 @@ export function ManageModal({
     <>
       <RNModal
         visible={visible}
-        transparent
-        animationType="slide"
+        animationType="fade"
+        presentationStyle="fullScreen"
         statusBarTranslucent
         onRequestClose={onClose}
       >
-        <View style={styles.backdrop}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <StatusBar
+            barStyle="light-content"
+            backgroundColor={colors.gradient.start}
+            translucent={false}
+          />
+          <View style={styles.fullPage}>
 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.sheetWrapper}
-          >
-            <View style={styles.sheet}>
-            {/* Handle */}
-            <View style={styles.handle} />
+            {/* Header — same style as AppTopHeader */}
+            <LinearGradient
+              colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end] as const}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.headerGradient, { paddingTop: insets.top + 40 }]}
+            >
+              {/* Decorative circles */}
+              <View style={styles.headerDecor1} />
+              <View style={styles.headerDecor2} />
 
-            {/* Title */}
-            <Text className="mb-4 font-inter text-lg font-bold text-primary-950 dark:text-white">
-              {title}
-            </Text>
+              <View style={styles.headerRow}>
+                {/* Left spacer to match hamburger width */}
+                <View style={styles.sideSlot} />
+
+                {/* Title centered */}
+                <View style={styles.titleWrap}>
+                  <Text
+                    className="font-inter text-base font-bold text-white"
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                    style={{ textAlign: 'center' }}
+                  >
+                    {title}
+                  </Text>
+                </View>
+
+                {/* Close button on right */}
+                <View style={styles.sideSlot}>
+                  <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={12}>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                      <Path
+                        d="M18 6L6 18M6 6l12 12"
+                        stroke="rgba(255,255,255,0.9)"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  </Pressable>
+                </View>
+              </View>
+            </LinearGradient>
 
             {/* Error message */}
             {errorMessage ? (
@@ -271,7 +314,8 @@ export function ManageModal({
               style={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 8 }}
+              keyboardDismissMode="interactive"
+              contentContainerStyle={{ paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}
             >
               {/* Loading state */}
               {isLoading ? (
@@ -404,7 +448,7 @@ export function ManageModal({
                 </>
               )}
 
-              {/* Add New Section — inside ScrollView so it scrolls with keyboard */}
+              {/* Add New Section */}
               {showCreateForm ? (
                 <View style={styles.createSection}>
                   <Text className="mb-3 font-inter text-sm font-semibold text-neutral-700 dark:text-neutral-300">
@@ -432,6 +476,7 @@ export function ManageModal({
                             [field.key]: text,
                           }))
                         }
+                        autoFocus
                       />
                     </View>
                   ))}
@@ -481,12 +526,8 @@ export function ManageModal({
                 </Pressable>
               )}
             </ScrollView>
-
-            {/* Bottom safe area */}
-            <View style={{ height: insets.bottom + 8 }} />
           </View>
-          </KeyboardAvoidingView>
-        </View>
+        </KeyboardAvoidingView>
       </RNModal>
 
       <ConfirmModal {...confirmModalProps} />
@@ -498,37 +539,66 @@ export function ManageModal({
 
 const createStyles = (isDark: boolean) =>
   StyleSheet.create({
-    backdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(8, 15, 40, 0.32)',
-      justifyContent: 'flex-end',
-    },
-    sheetWrapper: {
-      maxHeight: '85%',
-      minHeight: '50%',
-    },
-    sheet: {
+    fullPage: {
       flex: 1,
       backgroundColor: isDark ? '#1A1730' : colors.white,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      paddingHorizontal: 24,
-      paddingTop: 12,
     },
-    handle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.neutral[300],
-      alignSelf: 'center',
-      marginBottom: 16,
+    // ---- Header styles: exact copy of AppTopHeader ----
+    headerGradient: {
+      paddingHorizontal: 24,
+      paddingBottom: 32,
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+    },
+    headerDecor1: {
+      position: 'absolute',
+      top: -30,
+      right: -30,
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    headerDecor2: {
+      position: 'absolute',
+      bottom: -20,
+      left: -20,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    sideSlot: {
+      width: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    titleWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+    },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     errorContainer: {
       backgroundColor: isDark ? 'rgba(244,63,94,0.12)' : colors.danger[50],
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 10,
-      marginBottom: 12,
+      marginHorizontal: 24,
+      marginTop: 12,
     },
     loadingContainer: {
       flexDirection: 'row',
@@ -537,17 +607,17 @@ const createStyles = (isDark: boolean) =>
       paddingVertical: 32,
     },
     scrollContent: {
-      flexGrow: 1,
+      flex: 1,
     },
     emptyContainer: {
       alignItems: 'center',
-      paddingVertical: 24,
+      paddingVertical: 40,
     },
     itemRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: 10,
+      paddingVertical: 12,
       paddingHorizontal: 4,
       borderBottomWidth: 1,
       borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[200],
@@ -601,11 +671,11 @@ const createStyles = (isDark: boolean) =>
     createSection: {
       borderTopWidth: 1,
       borderTopColor: isDark ? colors.neutral[700] : colors.neutral[200],
-      paddingTop: 16,
-      marginTop: 4,
+      paddingTop: 20,
+      marginTop: 8,
     },
     fieldContainer: {
-      marginBottom: 10,
+      marginBottom: 12,
     },
     input: {
       backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
@@ -613,7 +683,7 @@ const createStyles = (isDark: boolean) =>
       borderWidth: 1,
       borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
       paddingHorizontal: 14,
-      height: 46,
+      height: 48,
       fontSize: 14,
       color: isDark ? colors.white : colors.neutral[900],
       fontFamily: 'Inter',
@@ -621,11 +691,11 @@ const createStyles = (isDark: boolean) =>
     createActions: {
       flexDirection: 'row',
       gap: 12,
-      marginTop: 12,
+      marginTop: 16,
     },
     actionBtn: {
       flex: 1,
-      height: 46,
+      height: 48,
       borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
@@ -644,10 +714,10 @@ const createStyles = (isDark: boolean) =>
       elevation: 4,
     },
     addNewBtn: {
-      paddingVertical: 14,
+      paddingVertical: 16,
       alignItems: 'center',
       borderTopWidth: 1,
       borderTopColor: isDark ? colors.neutral[700] : colors.neutral[200],
-      marginTop: 4,
+      marginTop: 8,
     },
   });

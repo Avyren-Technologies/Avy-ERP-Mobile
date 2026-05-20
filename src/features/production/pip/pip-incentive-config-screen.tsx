@@ -301,9 +301,17 @@ export function PipIncentiveConfigScreen() {
         end={{ x: 1, y: 1 }}
       />
 
+      <Animated.View entering={FadeInDown.duration(400)}>
+        <AppTopHeader
+          title="Incentive Configuration"
+          subtitle={getActiveMethodLabel(config)}
+          onMenuPress={toggle}
+        />
+      </Animated.View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}
@@ -313,13 +321,7 @@ export function PipIncentiveConfigScreen() {
           />
         }
       >
-        <Animated.View entering={FadeInDown.duration(400)}>
-          <AppTopHeader
-            title="Incentive Configuration"
-            subtitle={getActiveMethodLabel(config)}
-            onMenuPress={toggle}
-          />
-        </Animated.View>
+
 
         <View style={styles.content}>
           {/* Active Method Indicator */}

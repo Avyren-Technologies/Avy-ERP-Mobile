@@ -312,19 +312,6 @@ export function PipDailyReportScreen() {
 
   const renderHeader = () => (
     <>
-      <Animated.View entering={FadeInDown.duration(400)}>
-        <AppTopHeader
-          title="Daily Report"
-          subtitle={dateStr}
-          onMenuPress={toggle}
-          rightSlot={
-            <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
-              <DownloadIcon color={colors.white} />
-            </Pressable>
-          }
-        />
-      </Animated.View>
-
       <View style={styles.controlSection}>
         <DateNav
           date={dateStr}
@@ -392,6 +379,19 @@ export function PipDailyReportScreen() {
         end={{ x: 1, y: 1 }}
       />
 
+      <Animated.View entering={FadeInDown.duration(400)}>
+        <AppTopHeader
+          title="Daily Report"
+          subtitle={dateStr}
+          onMenuPress={toggle}
+          rightSlot={
+            <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
+              <DownloadIcon color={colors.white} />
+            </Pressable>
+          }
+        />
+      </Animated.View>
+
       <FlashList
         data={operators}
         renderItem={({ item, index }) => (
@@ -400,7 +400,7 @@ export function PipDailyReportScreen() {
         keyExtractor={(item) => item.operatorId}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

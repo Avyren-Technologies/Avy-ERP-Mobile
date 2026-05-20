@@ -421,12 +421,16 @@ function SlabConfigFormSheet({
       });
     } else {
       // Create mode: bulk configs
+      const configs = Array.from(selectedPartIds).map((partId) => ({
+        partId,
+        shiftTargetQty: Number(shiftTarget),
+        slabTiers: parsedTiers,
+      }));
+
       onSubmit({
         machineIds: Array.from(selectedMachineIds),
         operationIds: Array.from(selectedOperationIds),
-        partIds: Array.from(selectedPartIds),
-        shiftTargetQty: Number(shiftTarget),
-        slabTiers: parsedTiers,
+        configs,
       });
     }
   };
@@ -450,7 +454,7 @@ function SlabConfigFormSheet({
 
   return (
     <RNModal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[sheetStyles.container, { paddingTop: insets.top, backgroundColor: isDark ? '#0F0D1A' : colors.white }]}>
+      <View style={[sheetStyles.container, { paddingTop: insets.top + 24, backgroundColor: isDark ? '#0F0D1A' : colors.white }]}>
         {/* Header */}
         <View style={[sheetStyles.header, { borderBottomColor: isDark ? colors.neutral[800] : colors.neutral[100] }]}>
           <Pressable onPress={onClose}>

@@ -265,11 +265,10 @@ function ChipSelector<T extends string>({
               ]}
             >
               <Text
-                className={`font-inter text-xs font-semibold ${
-                  selected
+                className={`font-inter text-xs font-semibold ${selected
                     ? 'text-primary-700 dark:text-primary-300'
                     : 'text-neutral-500 dark:text-neutral-400'
-                }`}
+                  }`}
               >
                 {opt}
               </Text>
@@ -343,7 +342,7 @@ function OperationFormSheet({
 
   return (
     <RNModal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[formStyles.container, { paddingTop: insets.top, backgroundColor: isDark ? '#0F0D1A' : colors.white }]}>
+      <View style={[formStyles.container, { paddingTop: insets.top + 24, backgroundColor: isDark ? '#0F0D1A' : colors.white }]}>
         {/* Header */}
         <View style={[formStyles.header, { borderBottomColor: isDark ? colors.neutral[800] : colors.neutral[100] }]}>
           <Pressable onPress={onClose}>
@@ -443,11 +442,10 @@ function OperationFormSheet({
                     ]}
                   >
                     <Text
-                      className={`font-inter text-xs font-semibold ${
-                        selected
+                      className={`font-inter text-xs font-semibold ${selected
                           ? 'text-primary-700 dark:text-primary-300'
                           : 'text-neutral-500 dark:text-neutral-400'
-                      }`}
+                        }`}
                     >
                       {cat.name}
                     </Text>

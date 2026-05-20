@@ -279,9 +279,22 @@ export function PipIncentiveSummaryScreen() {
         end={{ x: 1, y: 1 }}
       />
 
+      <Animated.View entering={FadeInDown.duration(400)}>
+        <AppTopHeader
+          title="Incentive Summary"
+          subtitle={`${MONTHS[month - 1]} ${year}`}
+          onMenuPress={toggle}
+          rightSlot={
+            <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
+              <DownloadIcon color={colors.white} />
+            </Pressable>
+          }
+        />
+      </Animated.View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}
@@ -291,18 +304,7 @@ export function PipIncentiveSummaryScreen() {
           />
         }
       >
-        <Animated.View entering={FadeInDown.duration(400)}>
-          <AppTopHeader
-            title="Incentive Summary"
-            subtitle={`${MONTHS[month - 1]} ${year}`}
-            onMenuPress={toggle}
-            rightSlot={
-              <Pressable onPress={() => exportRef.current?.expand()} hitSlop={8}>
-                <DownloadIcon color={colors.white} />
-              </Pressable>
-            }
-          />
-        </Animated.View>
+
 
         <View style={styles.content}>
           {/* Month Navigation */}

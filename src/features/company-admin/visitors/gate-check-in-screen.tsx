@@ -39,10 +39,26 @@ import {
 import {
   useDashboardToday,
   useVisitorTypes,
+  useVMSConfig,
 } from '@/features/company-admin/api/use-visitor-queries';
 import { visitorsApi } from '@/lib/api/visitors';
+import Env from 'env';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
+import QRCode from 'react-native-qrcode-svg';
+
+/** Derive the web app base URL from the API URL for constructing public page links */
+function getWebBaseUrl(): string {
+  const apiUrl = Env.EXPO_PUBLIC_API_URL; // e.g. http://192.168.1.7:3030/api/v1
+  try {
+    const parsed = new URL(apiUrl);
+    // In dev, web app runs on port 5173; in prod, same origin
+    if (parsed.port === '3030') parsed.port = '5173';
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return 'https://app.avyerp.com';
+  }
+}
 
 // ============ WALK-IN FORM ============
 
@@ -270,6 +286,331 @@ function WalkInForm({
   );
 }
 
+// ============ ID TYPES ============
+
+const ID_TYPES = [
+  { id: 'AADHAAR', name: 'Aadhaar Card' },
+  { id: 'PAN', name: 'PAN Card' },
+  { id: 'PASSPORT', name: 'Passport' },
+  { id: 'DRIVING_LICENSE', name: 'Driving License' },
+  { id: 'VOTER_ID', name: 'Voter ID' },
+];
+
+// ============ REQUIREMENT HELPERS ============
+
+function getRequirements(config: any, visitorType: any) {
+  const photoRequired = config?.photoCapture === 'ALWAYS' || (config?.photoCapture === 'PER_VISITOR_TYPE' && visitorType?.requirePhoto);
+  const idRequired = config?.idVerification === 'ALWAYS' || (config?.idVerification === 'PER_VISITOR_TYPE' && visitorType?.requireIdVerification);
+  const preArrivalRequired = config?.preArrivalForm === 'ALWAYS' || (config?.preArrivalForm === 'PER_VISITOR_TYPE' && visitorType?.requirePreArrivalForm);
+  return { photoRequired: !!photoRequired, idRequired: !!idRequired, preArrivalRequired: !!preArrivalRequired };
+}
+
+// ============ PRE-CHECK-IN MODAL ============
+
+function PreCheckInModal({
+  visible,
+  visit,
+  config,
+  onCheckIn,
+  onCancel,
+  isPending,
+}: {
+  readonly visible: boolean;
+  readonly visit: any;
+  readonly config: any;
+  readonly onCheckIn: (data: Record<string, unknown>) => void;
+  readonly onCancel: () => void;
+  readonly isPending: boolean;
+}) {
+  const isDark = useIsDark();
+  const [photo, setPhoto] = React.useState<string | null>(null);
+  const [idType, setIdType] = React.useState('');
+  const [idNumber, setIdNumber] = React.useState('');
+  const [idPhoto, setIdPhoto] = React.useState<string | null>(null);
+  const insets = useSafeAreaInsets();
+
+  // Reset state when visit changes
+  React.useEffect(() => {
+    if (visible) {
+      setPhoto(null);
+      setIdType('');
+      setIdNumber('');
+      setIdPhoto(null);
+    }
+  }, [visible, visit?.id]);
+
+  const { photoRequired, idRequired, preArrivalRequired } = getRequirements(config, visit?.visitorType);
+
+  const approvalPending = visit?.approvalStatus === 'PENDING';
+  const approvalRejected = visit?.approvalStatus === 'REJECTED';
+  const preArrivalPending = preArrivalRequired && !visit?.preArrivalSubmittedAt;
+  const hasBlocker = approvalPending || approvalRejected || preArrivalPending;
+
+  const photoSatisfied = !!photo || !!visit?.visitorPhoto;
+  const idSatisfied = (!!idType && !!idNumber.trim()) || !!visit?.governmentIdType;
+  const canSubmit = !hasBlocker && (!photoRequired || photoSatisfied) && (!idRequired || idSatisfied);
+
+  const captureVisitorPhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { showWarning('Camera permission is required'); return; }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'], quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhoto(result.assets[0].base64 ? `data:image/jpeg;base64,${result.assets[0].base64}` : result.assets[0].uri);
+    }
+  };
+
+  const captureIdDocPhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { showWarning('Camera permission is required'); return; }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'], quality: 0.7, base64: true, allowsEditing: true, aspect: [4, 3],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setIdPhoto(result.assets[0].base64 ? `data:image/jpeg;base64,${result.assets[0].base64}` : result.assets[0].uri);
+    }
+  };
+
+  const handleSubmit = () => {
+    const data: Record<string, unknown> = {};
+    if (photo) data.visitorPhoto = photo;
+    if (idType) data.governmentIdType = idType;
+    if (idNumber.trim()) data.governmentIdNumber = idNumber.trim();
+    if (idPhoto) data.idDocumentPhoto = idPhoto;
+    if (visit?.gateId) data.checkInGateId = visit.gateId;
+    onCheckIn(data);
+  };
+
+  if (!visit) return null;
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onCancel}>
+      <View style={{ flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }}>
+        {/* Header */}
+        <View style={[preCheckInStyles.header, { paddingTop: insets.top + 8 }]}>
+          <View style={{ flex: 1 }}>
+            <Text className="font-inter text-lg font-bold text-white">Pre-Check-In</Text>
+            <Text className="font-inter text-xs text-white/70">Complete required steps before check-in</Text>
+          </View>
+          <Pressable onPress={onCancel} hitSlop={12} style={preCheckInStyles.closeBtn}>
+            <Svg width={18} height={18} viewBox="0 0 24 24">
+              <Path d="M18 6L6 18M6 6l12 12" stroke={colors.white} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }} keyboardShouldPersistTaps="handled">
+          {/* Visitor Info Card */}
+          <Animated.View entering={FadeInDown.duration(300)}>
+            <View style={preCheckInStyles.infoCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={preCheckInStyles.avatar}>
+                  <Text className="font-inter text-lg font-bold text-primary-600">{(visit.visitorName || '?')[0]?.toUpperCase()}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{visit.visitorName}</Text>
+                  {visit.visitorCompany ? <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{visit.visitorCompany}</Text> : null}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <View style={preCheckInStyles.codeBadge}>
+                      <Text className="font-inter text-[10px] font-bold text-primary-600">{visit.visitCode}</Text>
+                    </View>
+                    {visit.visitorType?.name ? (
+                      <View style={[preCheckInStyles.codeBadge, { backgroundColor: (visit.visitorType.badgeColour ?? colors.primary[600]) + '15' }]}>
+                        <Text className="font-inter text-[10px] font-bold" style={{ color: visit.visitorType.badgeColour ?? colors.primary[600] }}>{visit.visitorType.name}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Approval Blocker */}
+          {(approvalPending || approvalRejected) && (
+            <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+              <View style={[preCheckInStyles.sectionCard, { borderColor: approvalRejected ? colors.danger[300] : colors.warning[300], borderWidth: 1.5, backgroundColor: approvalRejected ? colors.danger[50] : colors.warning[50] }]}>
+                <Svg width={32} height={32} viewBox="0 0 24 24" style={{ alignSelf: 'center', marginBottom: 8 }}>
+                  <Path d={approvalRejected ? "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" : "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"} stroke={approvalRejected ? colors.danger[600] : colors.warning[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+                <Text className={`font-inter text-sm font-bold ${approvalRejected ? 'text-danger-700' : 'text-warning-700'} text-center`}>
+                  {approvalRejected ? 'Visit Rejected' : 'Awaiting Host Approval'}
+                </Text>
+                <Text className={`font-inter text-xs ${approvalRejected ? 'text-danger-600' : 'text-warning-600'} text-center mt-1`}>
+                  {approvalRejected
+                    ? 'This visit has been rejected by the host employee. The visitor cannot be checked in.'
+                    : 'The host employee has not yet approved this visit. Please ask the visitor to contact their host or wait for approval.'}
+                </Text>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Pre-Arrival Form Blocker */}
+          {preArrivalPending && !approvalPending && !approvalRejected && (
+            <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+              <View style={[preCheckInStyles.sectionCard, { borderColor: colors.warning[300], borderWidth: 1.5, backgroundColor: colors.warning[50] }]}>
+                <Svg width={32} height={32} viewBox="0 0 24 24" style={{ alignSelf: 'center', marginBottom: 8 }}>
+                  <Path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke={colors.warning[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+                <Text className="font-inter text-sm font-bold text-warning-700 text-center">Pre-Arrival Form Required</Text>
+                <Text className="font-inter text-xs text-warning-600 text-center mt-1 mb-4">
+                  This visitor must complete the pre-arrival form before check-in. Ask them to check their invitation email or scan the QR code below.
+                </Text>
+                <View style={{ alignItems: 'center', backgroundColor: colors.white, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral[200] }}>
+                  <QRCode value={`${getWebBaseUrl()}/visit/${visit.visitCode}`} size={150} />
+                  <Text className="font-inter text-[10px] text-neutral-500 mt-2 text-center">Scan to open Pre-Arrival Form</Text>
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Photo, ID sections — only show when no blockers */}
+          {!hasBlocker && (<>
+          <Animated.View entering={FadeInDown.duration(300).delay(100)}>
+            <View style={[preCheckInStyles.sectionCard, photoRequired && !photoSatisfied && preCheckInStyles.sectionRequired]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
+                  Visitor Photo {photoRequired ? '' : '(Optional)'}
+                </Text>
+                {photoRequired && (
+                  <View style={preCheckInStyles.requiredBadge}>
+                    <Text className="font-inter text-[10px] font-bold text-danger-600">Required</Text>
+                  </View>
+                )}
+              </View>
+              {photo ? (
+                <View style={{ alignItems: 'center', gap: 10 }}>
+                  <Image source={{ uri: photo }} style={preCheckInStyles.photoPreview} />
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <Pressable onPress={captureVisitorPhoto} style={formStyles.photoBtn}>
+                      <Text className="font-inter text-xs font-semibold text-primary-600">Retake</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setPhoto(null)} style={formStyles.photoBtn}>
+                      <Text className="font-inter text-xs font-semibold text-danger-500">Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : visit?.visitorPhoto ? (
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <View style={[preCheckInStyles.satisfiedBadge]}>
+                    <Text className="font-inter text-xs font-semibold text-success-700">Photo already on file</Text>
+                  </View>
+                  <Pressable onPress={captureVisitorPhoto} style={formStyles.photoBtn}>
+                    <Text className="font-inter text-xs font-semibold text-primary-600">Take New Photo</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={captureVisitorPhoto} style={formStyles.captureBtn}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24">
+                    <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                  </Svg>
+                  <Text className="font-inter text-sm font-semibold text-primary-600 ml-2">Capture Photo</Text>
+                </Pressable>
+              )}
+            </View>
+          </Animated.View>
+
+          {/* ID Verification Section */}
+          {(idRequired || config?.idVerification !== 'NEVER') && (
+            <Animated.View entering={FadeInDown.duration(300).delay(200)}>
+              <View style={[preCheckInStyles.sectionCard, idRequired && !idSatisfied && preCheckInStyles.sectionRequired]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
+                    ID Verification {idRequired ? '' : '(Optional)'}
+                  </Text>
+                  {idRequired && (
+                    <View style={preCheckInStyles.requiredBadge}>
+                      <Text className="font-inter text-[10px] font-bold text-danger-600">Required</Text>
+                    </View>
+                  )}
+                </View>
+                {visit?.governmentIdType ? (
+                  <View style={{ gap: 8 }}>
+                    <View style={preCheckInStyles.satisfiedBadge}>
+                      <Text className="font-inter text-xs font-semibold text-success-700">ID already verified: {visit.governmentIdType} — {visit.governmentIdNumber}</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ gap: 12 }}>
+                    <DropdownField label="ID Type" selected={idType} onSelect={setIdType} options={ID_TYPES} placeholder="Select ID type..." />
+                    <View style={formStyles.fieldWrap}>
+                      <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">ID Number</Text>
+                      <View style={formStyles.inputWrap}>
+                        <TextInput
+                          style={[formStyles.textInput, isDark && { color: colors.white }]}
+                          placeholder="Enter ID number"
+                          placeholderTextColor={colors.neutral[400]}
+                          value={idNumber}
+                          onChangeText={setIdNumber}
+                          autoCapitalize="characters"
+                        />
+                      </View>
+                    </View>
+                    {/* ID Document Photo */}
+                    <View style={formStyles.fieldWrap}>
+                      <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">ID Document Photo (Optional)</Text>
+                      {idPhoto ? (
+                        <View style={{ alignItems: 'center', gap: 8 }}>
+                          <Image source={{ uri: idPhoto }} style={{ width: 160, height: 120, borderRadius: 12, borderWidth: 1, borderColor: colors.neutral[200] }} />
+                          <Pressable onPress={() => setIdPhoto(null)} style={formStyles.photoBtn}>
+                            <Text className="font-inter text-xs font-semibold text-danger-500">Remove</Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable onPress={captureIdDocPhoto} style={formStyles.captureBtn}>
+                          <Svg width={18} height={18} viewBox="0 0 24 24">
+                            <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
+                          </Svg>
+                          <Text className="font-inter text-xs font-semibold text-primary-600 ml-2">Capture ID Photo</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Gate is auto-assigned from the QR code scanned at the gate */}
+          </>)}
+        </ScrollView>
+
+        {/* Footer */}
+        <View style={[preCheckInStyles.footer, { paddingBottom: insets.bottom + 16 }]}>
+          {!canSubmit && (
+            <Text className="font-inter text-xs text-danger-500 text-center mb-2">
+              {approvalPending ? 'Check-in blocked — awaiting host approval' : approvalRejected ? 'Check-in blocked — visit rejected' : preArrivalPending ? 'Check-in blocked — pre-arrival form not completed' : 'Please complete all required fields before check-in'}
+            </Text>
+          )}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable onPress={onCancel} style={preCheckInStyles.cancelBtn}>
+              <Text className="font-inter text-sm font-bold text-neutral-600">Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSubmit}
+              disabled={!canSubmit || isPending}
+              style={[preCheckInStyles.checkInBtn, (!canSubmit || isPending) && { opacity: 0.5 }]}
+            >
+              {isPending ? (
+                <Text className="font-inter text-sm font-bold text-white">Checking In...</Text>
+              ) : (
+                <>
+                  <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                  <Text className="font-inter text-sm font-bold text-white ml-2">Complete Check-In</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ============ EXPECTED VISITOR ROW ============
 
 function ExpectedVisitorRow({
@@ -327,34 +668,20 @@ export function GateCheckInScreen() {
 
   const [activeTab, setActiveTab] = React.useState<'code' | 'walkin'>('code');
   const [visitCode, setVisitCode] = React.useState('');
-  const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
   const [showScanner, setShowScanner] = React.useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scanProcessedRef = React.useRef(false);
+  const [pendingVisit, setPendingVisit] = React.useState<any>(null);
+  const [isLookingUp, setIsLookingUp] = React.useState(false);
 
-  const capturePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      showWarning('Camera permission is required to capture visitor photo');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      base64: true,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-    if (!result.canceled && result.assets[0]) {
-      setVisitorPhoto(result.assets[0].uri);
-    }
-  };
-
-  const { data: todayResponse, isLoading, refetch, isFetching } = useDashboardToday({ status: 'EXPECTED,ARRIVED' });
+  const { data: todayResponse, isLoading, refetch, isFetching } = useDashboardToday();
   const { data: typesResponse } = useVisitorTypes();
+  const { data: configResponse } = useVMSConfig();
 
   const checkInMutation = useCheckInVisit();
   const createMutation = useCreateVisit();
+
+  const vmsConfig = (configResponse as any)?.data ?? configResponse;
 
   const visitorTypes = React.useMemo(() => {
     const raw = (typesResponse as any)?.data ?? typesResponse ?? [];
@@ -363,39 +690,30 @@ export function GateCheckInScreen() {
   }, [typesResponse]);
 
   const expectedVisitors = React.useMemo(() => {
-    const raw = (todayResponse as any)?.data?.visits ?? (todayResponse as any)?.data ?? [];
+    const raw = (todayResponse as any)?.data?.visitors ?? [];
     if (!Array.isArray(raw)) return [];
     return raw.filter((v: any) => v.status === 'EXPECTED' || v.status === 'ARRIVED');
   }, [todayResponse]);
 
-  const [isLookingUp, setIsLookingUp] = React.useState(false);
-
-  const handleCodeCheckIn = async () => {
-    if (!visitCode.trim()) return;
+  // Look up visit by code and open pre-check-in modal
+  const lookupAndPrepareCheckIn = async (code: string) => {
     try {
       setIsLookingUp(true);
-      // First look up the visit by code to get the actual visit ID
-      const lookupResult = await visitorsApi.getVisitByCode(visitCode.trim());
+      const lookupResult = await visitorsApi.getVisitByCode(code);
       const visit = (lookupResult as any)?.data ?? lookupResult;
       if (!visit?.id) {
         showWarning('No visit found for this code');
         return;
       }
-      const data: Record<string, unknown> = {};
-      if (visitorPhoto) data.visitorPhoto = visitorPhoto;
-      if (visit.gateId) data.checkInGateId = visit.gateId;
-      else if (visit.checkInGateId) data.checkInGateId = visit.checkInGateId;
-      checkInMutation.mutate(
-        { id: visit.id, data: Object.keys(data).length > 0 ? data : undefined },
-        {
-          onSuccess: (result: any) => {
-            const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
-            showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
-            setVisitCode('');
-            setVisitorPhoto(null);
-          },
-        },
-      );
+      if (visit.status === 'CHECKED_IN') {
+        showWarning('This visitor is already checked in');
+        return;
+      }
+      if (!['EXPECTED', 'ARRIVED'].includes(visit.status)) {
+        showWarning(`Cannot check in — visit status is ${visit.status}`);
+        return;
+      }
+      setPendingVisit(visit);
     } catch {
       showWarning('Visit not found for this code');
     } finally {
@@ -403,19 +721,30 @@ export function GateCheckInScreen() {
     }
   };
 
+  const handleCodeCheckIn = () => {
+    if (!visitCode.trim()) return;
+    lookupAndPrepareCheckIn(visitCode.trim());
+  };
+
   const handleExpectedCheckIn = (visitId: string) => {
     const visit = expectedVisitors.find((v: any) => v.id === visitId);
-    const data: Record<string, unknown> = {};
-    if (visitorPhoto) data.visitorPhoto = visitorPhoto;
-    if (visit?.gateId) data.checkInGateId = visit.gateId;
-    else if (visit?.checkInGateId) data.checkInGateId = visit.checkInGateId;
+    if (visit) setPendingVisit(visit);
+  };
+
+  const handlePreCheckInSubmit = (data: Record<string, unknown>) => {
+    if (!pendingVisit?.id) return;
     checkInMutation.mutate(
-      { id: visitId, data: Object.keys(data).length > 0 ? data : undefined },
+      { id: pendingVisit.id, data: Object.keys(data).length > 0 ? data : undefined },
       {
         onSuccess: (result: any) => {
           const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
-          showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
-          setVisitorPhoto(null);
+          const warning = result?.data?.watchlistWarning ?? result?.watchlistWarning;
+          if (warning) showWarning(warning);
+          const checkInWarnings: string[] = result?.data?.warnings ?? result?.warnings ?? [];
+          if (checkInWarnings.length) checkInWarnings.forEach((w: string) => showWarning(w));
+          showSuccess(badgeNo ? `Checked in — Badge: ${badgeNo}` : 'Visitor checked in successfully');
+          setPendingVisit(null);
+          setVisitCode('');
         },
       },
     );
@@ -438,39 +767,13 @@ export function GateCheckInScreen() {
     setShowScanner(true);
   };
 
-  const handleBarcodeScanned = async (scanResult: { data: string }) => {
+  const handleBarcodeScanned = (scanResult: { data: string }) => {
     if (scanProcessedRef.current) return;
     scanProcessedRef.current = true;
     setShowScanner(false);
     const scannedCode = scanResult.data.trim();
     setVisitCode(scannedCode);
-    // Look up visit by code, then check in with the actual ID
-    try {
-      setIsLookingUp(true);
-      const lookupResult = await visitorsApi.getVisitByCode(scannedCode);
-      const visit = (lookupResult as any)?.data ?? lookupResult;
-      if (!visit?.id) {
-        showWarning('No visit found for scanned code');
-        return;
-      }
-      const data: Record<string, unknown> = {};
-      if (visit.gateId) data.checkInGateId = visit.gateId;
-      else if (visit.checkInGateId) data.checkInGateId = visit.checkInGateId;
-      checkInMutation.mutate(
-        { id: visit.id, data: Object.keys(data).length > 0 ? data : undefined },
-        {
-          onSuccess: (result: any) => {
-            const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
-            showSuccess(badgeNo ? `Checked in - Badge: ${badgeNo}` : 'Visitor checked in successfully');
-            setVisitCode('');
-          },
-        },
-      );
-    } catch {
-      showWarning('Visit not found for scanned code');
-    } finally {
-      setIsLookingUp(false);
-    }
+    lookupAndPrepareCheckIn(scannedCode);
   };
 
   return (
@@ -536,43 +839,8 @@ export function GateCheckInScreen() {
                 </View>
               </Animated.View>
 
-              {/* Visitor Photo Capture */}
-              <Animated.View entering={FadeInDown.duration(400).delay(100)} style={{ marginTop: 16 }}>
-                <View style={[s.codeCard, { padding: 16 }]}>
-                  <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white mb-3">Visitor Photo</Text>
-                  {visitorPhoto ? (
-                    <View style={{ alignItems: 'center', gap: 10 }}>
-                      <Image source={{ uri: visitorPhoto }} style={formStyles.photoPreview} />
-                      <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <Pressable onPress={capturePhoto} style={formStyles.photoBtn}>
-                          <Svg width={16} height={16} viewBox="0 0 24 24">
-                            <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                            <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
-                          </Svg>
-                          <Text className="font-inter text-xs font-semibold text-primary-600 ml-1.5">Retake</Text>
-                        </Pressable>
-                        <Pressable onPress={() => setVisitorPhoto(null)} style={formStyles.photoBtn}>
-                          <Svg width={16} height={16} viewBox="0 0 24 24">
-                            <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                          </Svg>
-                          <Text className="font-inter text-xs font-semibold text-danger-500 ml-1.5">Remove</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  ) : (
-                    <Pressable onPress={capturePhoto} style={formStyles.captureBtn}>
-                      <Svg width={20} height={20} viewBox="0 0 24 24">
-                        <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                        <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={colors.primary[600]} strokeWidth="2" fill="none" />
-                      </Svg>
-                      <Text className="font-inter text-sm font-semibold text-primary-600 ml-2">Take Photo</Text>
-                    </Pressable>
-                  )}
-                </View>
-              </Animated.View>
-
               {/* Expected Visitors */}
-              <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+              <Animated.View entering={FadeInDown.duration(400).delay(100)}>
                 <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3 mt-6">Expected Today</Text>
                 {isLoading ? (
                   <><SkeletonCard /><SkeletonCard /></>
@@ -643,6 +911,16 @@ export function GateCheckInScreen() {
         </View>
       </Modal>
 
+      {/* Pre-Check-In Modal */}
+      <PreCheckInModal
+        visible={!!pendingVisit}
+        visit={pendingVisit}
+        config={vmsConfig}
+        onCheckIn={handlePreCheckInSubmit}
+        onCancel={() => setPendingVisit(null)}
+        isPending={checkInMutation.isPending}
+      />
+
       <ConfirmModal {...confirmModalProps} />
     </View>
   );
@@ -678,6 +956,22 @@ const scannerStyles = StyleSheet.create({
   cornerBL: { bottom: 0, left: 0, borderTopWidth: 0, borderRightWidth: 0, borderBottomLeftRadius: 12 },
   cornerBR: { bottom: 0, right: 0, borderTopWidth: 0, borderLeftWidth: 0, borderBottomRightRadius: 12 },
   closeBtn: { position: 'absolute', right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+});
+
+const preCheckInStyles = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[600], paddingHorizontal: 20, paddingBottom: 16 },
+  closeBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  infoCard: { backgroundColor: colors.white, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: colors.primary[50], marginBottom: 16 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary[50], justifyContent: 'center', alignItems: 'center' },
+  codeBadge: { backgroundColor: colors.primary[50], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  sectionCard: { backgroundColor: colors.white, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: colors.primary[50], marginBottom: 16 },
+  sectionRequired: { borderColor: colors.danger[200], borderWidth: 1.5 },
+  requiredBadge: { backgroundColor: colors.danger[50], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  satisfiedBadge: { backgroundColor: colors.success[50], paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  photoPreview: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.primary[200] },
+  footer: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.neutral[100], paddingHorizontal: 20, paddingTop: 12 },
+  cancelBtn: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: colors.neutral[200], justifyContent: 'center', alignItems: 'center' },
+  checkInBtn: { flex: 2, height: 50, borderRadius: 14, backgroundColor: colors.success[600], flexDirection: 'row', justifyContent: 'center', alignItems: 'center', shadowColor: colors.success[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
 });
 
 const formStyles = StyleSheet.create({

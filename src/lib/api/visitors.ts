@@ -41,6 +41,10 @@ export const visitorsApi = {
   getVisitByCode: (code: string) =>
     client.get(`/visitors/visits/code/${code}`),
 
+  /** Unified gate lookup — resolves visit code, recurring pass, vehicle/material pass */
+  gateLookup: (code: string) =>
+    client.get(`/visitors/visits/gate-lookup/${code}`),
+
   // ── Visitor Types ───────────────────────────────────────────────────
   listVisitorTypes: (params?: Record<string, unknown>) =>
     client.get('/visitors/types', { params }),

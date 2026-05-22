@@ -33,6 +33,7 @@ import { showSuccess, showWarning } from '@/components/ui/utils';
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
+  useCheckInRecurringPass,
   useCheckInVisit,
   useCreateVisit,
 } from '@/features/company-admin/api/use-visitor-mutations';
@@ -672,6 +673,7 @@ export function GateCheckInScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const scanProcessedRef = React.useRef(false);
   const [pendingVisit, setPendingVisit] = React.useState<any>(null);
+  const [passInfo, setPassInfo] = React.useState<{ type: string; data: any } | null>(null);
   const [isLookingUp, setIsLookingUp] = React.useState(false);
 
   const { data: todayResponse, isLoading, refetch, isFetching } = useDashboardToday();
@@ -679,6 +681,7 @@ export function GateCheckInScreen() {
   const { data: configResponse } = useVMSConfig();
 
   const checkInMutation = useCheckInVisit();
+  const recurringPassCheckInMutation = useCheckInRecurringPass();
   const createMutation = useCreateVisit();
 
   const vmsConfig = (configResponse as any)?.data ?? configResponse;
@@ -695,27 +698,35 @@ export function GateCheckInScreen() {
     return raw.filter((v: any) => v.status === 'EXPECTED' || v.status === 'ARRIVED');
   }, [todayResponse]);
 
-  // Look up visit by code and open pre-check-in modal
+  // Unified lookup — resolves visit code, recurring pass, vehicle/material pass
   const lookupAndPrepareCheckIn = async (code: string) => {
     try {
       setIsLookingUp(true);
-      const lookupResult = await visitorsApi.getVisitByCode(code);
-      const visit = (lookupResult as any)?.data ?? lookupResult;
-      if (!visit?.id) {
-        showWarning('No visit found for this code');
+      const lookupResult = await visitorsApi.gateLookup(code);
+      const result = (lookupResult as any)?.data ?? lookupResult;
+      const entityType = result?.type;
+      const entity = result?.data;
+
+      if (!entity?.id) {
+        showWarning('No visit or pass found for this code');
         return;
       }
-      if (visit.status === 'CHECKED_IN') {
-        showWarning('This visitor is already checked in');
-        return;
+
+      if (entityType === 'visit') {
+        if (entity.status === 'CHECKED_IN') { showWarning('This visitor is already checked in'); return; }
+        if (!['EXPECTED', 'ARRIVED'].includes(entity.status)) { showWarning(`Cannot check in — visit status is ${entity.status}`); return; }
+        setPendingVisit(entity);
+      } else if (entityType === 'recurring_pass') {
+        if (entity.status === 'REVOKED') { showWarning('This recurring pass has been revoked'); return; }
+        if (entity.status === 'EXPIRED') { showWarning('This recurring pass has expired'); return; }
+        setPassInfo({ type: entityType, data: entity });
+      } else if (entityType === 'vehicle_pass' || entityType === 'material_pass') {
+        setPassInfo({ type: entityType, data: entity });
+      } else {
+        showWarning('Unrecognised code type');
       }
-      if (!['EXPECTED', 'ARRIVED'].includes(visit.status)) {
-        showWarning(`Cannot check in — visit status is ${visit.status}`);
-        return;
-      }
-      setPendingVisit(visit);
     } catch {
-      showWarning('Visit not found for this code');
+      showWarning('No visit or pass found for this code');
     } finally {
       setIsLookingUp(false);
     }
@@ -920,6 +931,95 @@ export function GateCheckInScreen() {
         onCancel={() => setPendingVisit(null)}
         isPending={checkInMutation.isPending}
       />
+
+      {/* Pass Info Modal — recurring, vehicle, material passes */}
+      <Modal visible={!!passInfo} animationType="slide" onRequestClose={() => setPassInfo(null)}>
+        {passInfo && (
+          <View style={{ flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }}>
+            <View style={[preCheckInStyles.header, { paddingTop: insets.top + 8 }]}>
+              <View style={{ flex: 1 }}>
+                <Text className="font-inter text-lg font-bold text-white">
+                  {passInfo.type === 'recurring_pass' ? 'Recurring Pass' : passInfo.type === 'vehicle_pass' ? 'Vehicle Pass' : 'Material Pass'}
+                </Text>
+                <Text className="font-inter text-xs text-white/70">{passInfo.data.passNumber}</Text>
+              </View>
+              <Pressable onPress={() => setPassInfo(null)} hitSlop={12} style={preCheckInStyles.closeBtn}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M18 6L6 18M6 6l12 12" stroke={colors.white} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }}>
+              <View style={preCheckInStyles.infoCard}>
+                {passInfo.type === 'recurring_pass' && (
+                  <>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{passInfo.data.visitorName}</Text>
+                    {passInfo.data.visitorCompany ? <Text className="font-inter text-xs text-neutral-500">{passInfo.data.visitorCompany}</Text> : null}
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                      <View style={preCheckInStyles.codeBadge}><Text className="font-inter text-[10px] font-bold text-primary-600">{passInfo.data.passType}</Text></View>
+                      <View style={[preCheckInStyles.codeBadge, { backgroundColor: passInfo.data.status === 'ACTIVE' ? colors.success[50] : colors.danger[50] }]}>
+                        <Text className={`font-inter text-[10px] font-bold ${passInfo.data.status === 'ACTIVE' ? 'text-success-700' : 'text-danger-700'}`}>{passInfo.data.status}</Text>
+                      </View>
+                    </View>
+                    {passInfo.data.validFrom && <Text className="font-inter text-xs text-neutral-500 mt-2">Valid: {fmt.date(passInfo.data.validFrom)} — {fmt.date(passInfo.data.validUntil)}</Text>}
+                  </>
+                )}
+                {passInfo.type === 'vehicle_pass' && (
+                  <>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{passInfo.data.vehicleRegNumber}</Text>
+                    <Text className="font-inter text-xs text-neutral-500">{passInfo.data.vehicleType} — Driver: {passInfo.data.driverName}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 mt-1">Pass: {passInfo.data.passNumber}</Text>
+                  </>
+                )}
+                {passInfo.type === 'material_pass' && (
+                  <>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{passInfo.data.description}</Text>
+                    <Text className="font-inter text-xs text-neutral-500">{passInfo.data.type} — Qty: {passInfo.data.quantityIssued}</Text>
+                    <Text className="font-inter text-xs text-neutral-500 mt-1">Pass: {passInfo.data.passNumber} — Status: {passInfo.data.returnStatus}</Text>
+                  </>
+                )}
+              </View>
+
+              {/* Recurring pass — check-in action */}
+              {passInfo.type === 'recurring_pass' && passInfo.data.status === 'ACTIVE' && (
+                <Pressable
+                  onPress={() => {
+                    recurringPassCheckInMutation.mutate(
+                      { id: passInfo.data.id, data: passInfo.data.gateId ? { gateId: passInfo.data.gateId } : {} },
+                      {
+                        onSuccess: (result: any) => {
+                          const badgeNo = result?.data?.badgeNumber ?? result?.badgeNumber;
+                          showSuccess(badgeNo ? `Checked in — Badge: ${badgeNo}` : 'Recurring pass visitor checked in');
+                          setPassInfo(null);
+                          setVisitCode('');
+                        },
+                      },
+                    );
+                  }}
+                  disabled={recurringPassCheckInMutation.isPending}
+                  style={[preCheckInStyles.checkInBtn, recurringPassCheckInMutation.isPending && { opacity: 0.5 }, { marginTop: 20 }]}
+                >
+                  <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                  <Text className="font-inter text-sm font-bold text-white ml-2">
+                    {recurringPassCheckInMutation.isPending ? 'Checking In...' : 'Check In via Recurring Pass'}
+                  </Text>
+                </Pressable>
+              )}
+
+              {/* Vehicle/Material — informational only */}
+              {(passInfo.type === 'vehicle_pass' || passInfo.type === 'material_pass') && (
+                <View style={[preCheckInStyles.sectionCard, { marginTop: 16, alignItems: 'center' as const }]}>
+                  <Text className="font-inter text-xs text-neutral-500 text-center">
+                    This is a {passInfo.type === 'vehicle_pass' ? 'vehicle' : 'material'} gate pass. No visitor check-in is needed.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        )}
+      </Modal>
 
       <ConfirmModal {...confirmModalProps} />
     </View>

@@ -37,7 +37,7 @@ const MODULES: ModuleInfo[] = [
     { key: 'security', name: 'Security', description: 'Gate management, Face scan, QR codes', price: '₹4,500/mo', deps: ['masters'], icon: 'security' },
     { key: 'hr', name: 'HR Management', description: 'Attendance, Leave, Payroll, Incentives', price: '₹8,500/mo', deps: ['security'], icon: 'hr' },
     { key: 'production', name: 'Production', description: 'Production slips, OEE, Scrap/NC tracking', price: '₹7,500/mo', deps: ['machine-maint', 'masters'], icon: 'production' },
-    { key: 'machine-maint', name: 'Machine Maintenance', description: 'PM scheduling, Breakdown tracking, Spares', price: '₹6,000/mo', deps: ['masters'], icon: 'maintenance' },
+    { key: 'machine-maint', name: 'Asset Maintenance', description: 'PM scheduling, Breakdown tracking, Spares', price: '₹6,000/mo', deps: ['masters'], icon: 'maintenance' },
     { key: 'inventory', name: 'Inventory', description: 'Stock management, Reorder, GRN', price: '₹5,500/mo', deps: ['masters'], icon: 'inventory' },
     { key: 'vendor', name: 'Vendor Management', description: 'POs, ASN, GRN, Vendor rating', price: '₹5,000/mo', deps: ['inventory', 'masters'], icon: 'vendor' },
     { key: 'sales', name: 'Sales & Invoicing', description: 'Invoices, Quotations, Sales orders', price: '₹6,500/mo', deps: ['finance', 'masters'], icon: 'sales' },

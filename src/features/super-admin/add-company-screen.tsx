@@ -45,7 +45,7 @@ const MODULES = [
     { key: 'security', name: 'Security', required: false, deps: ['masters'] },
     { key: 'hr', name: 'HR Management', required: false, deps: ['security'] },
     { key: 'production', name: 'Production', required: false, deps: ['machine-maint', 'masters'] },
-    { key: 'machine-maint', name: 'Machine Maintenance', required: false, deps: ['masters'] },
+    { key: 'machine-maint', name: 'Asset Maintenance', required: false, deps: ['masters'] },
     { key: 'inventory', name: 'Inventory', required: false, deps: ['masters'] },
     { key: 'vendor', name: 'Vendor Management', required: false, deps: ['inventory', 'masters'] },
     { key: 'sales', name: 'Sales & Invoicing', required: false, deps: ['finance', 'masters'] },

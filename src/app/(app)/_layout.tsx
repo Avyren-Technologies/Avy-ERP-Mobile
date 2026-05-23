@@ -114,6 +114,11 @@ function toMobileRoutePath(itemPath: string): string {
     // not inside /(app)/company/. Strip the /company prefix for these routes.
     mobilePath = mobilePath.replace(/^\/company\/masters\//, '/masters/');
     mobilePath = mobilePath.replace(/^\/company\/production\//, '/production/');
+    // Maintenance module: web uses nested paths that differ from mobile flat route files
+    if (mobilePath === '/maintenance/dashboard') return '/maintenance';
+    if (mobilePath === '/maintenance/assets/hierarchy') return '/maintenance/asset-hierarchy';
+    if (mobilePath === '/maintenance/work-orders/board') return '/maintenance/work-order-board';
+    if (mobilePath === '/maintenance/breakdowns/log') return '/maintenance/breakdown-log';
     return mobilePath;
 }
 
@@ -497,6 +502,16 @@ function TabLayoutInner() {
                 case 'Grievance':
                     router.push('/company/hr/my-grievances' as any);
                     break;
+                case 'WorkOrder':
+                case 'WorkRequest':
+                    router.push('/maintenance' as any);
+                    break;
+                case 'MaintenanceAsset':
+                    router.push('/maintenance/assets' as any);
+                    break;
+                case 'Breakdown':
+                    router.push('/maintenance' as any);
+                    break;
                 case 'SupportTicket':
                     // Support routes live at /support with /support/ticket/[id]
                     // — NOT under /company/support. When entityId is present
@@ -797,6 +812,7 @@ function TabLayoutInner() {
                     <Tabs.Screen name="company" options={{ href: null }} />
                     <Tabs.Screen name="masters" options={{ href: null }} />
                     <Tabs.Screen name="production" options={{ href: null }} />
+                    <Tabs.Screen name="maintenance" options={{ href: null }} />
                 </Tabs>
 
                 {/* Sidebar renders above everything */}

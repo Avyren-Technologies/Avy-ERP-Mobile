@@ -82,6 +82,7 @@ interface PermissionCatalogueResponse {
 const IMPLEMENTED_MODULES = new Set([
     'hr', 'visitors', 'ess', 'attendance', 'user', 'role', 'company',
     'analytics', 'reports', 'audit', 'billing', 'docdiff', 'production', 'masters',
+    'maintenance',
 ]);
 
 // ============ HELPERS ============

@@ -35,7 +35,8 @@ import { ManageModal } from '@/components/ui/manage-modal';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { showSuccess } from '@/components/ui/utils';
+import { DatePickerField } from '@/components/ui/date-picker';
+import { showSuccess, showWarning } from '@/components/ui/utils';
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import {
   useCreateAsset,
@@ -97,6 +98,27 @@ interface AssetData {
   model?: string;
   serialNumber?: string;
   description?: string;
+
+  // Detailed fields mapped for edit/view modes
+  ownership?: string;
+  isBottleneck?: boolean;
+  floorZone?: string;
+  manufacturer?: string;
+  brand?: string;
+  modelNumber?: string;
+  commissioningDate?: string;
+  condition?: string;
+  ratedCapacity?: string;
+  designLifeYears?: number;
+  permitRequired?: boolean;
+  ptwClass?: string;
+  warrantyExpiry?: string;
+  insuranceExpiry?: string;
+  registrationExpiry?: string;
+  fitnessExpiry?: string;
+  purchaseCost?: number;
+  currentBookValue?: number;
+  replacementValue?: number;
 }
 
 interface DropdownOption {
@@ -132,10 +154,31 @@ function mapApiAsset(item: any): AssetData {
     locationName: item.location?.name ?? '',
     parentAssetId: item.parentAssetId ?? undefined,
     linkedMachineId: item.linkedMachineId ?? undefined,
-    make: item.make ?? undefined,
-    model: item.model ?? undefined,
+    make: item.manufacturer ?? item.make ?? undefined,
+    model: item.modelNumber ?? item.model ?? undefined,
     serialNumber: item.serialNumber ?? undefined,
     description: item.description ?? undefined,
+
+    // Detailed mappings
+    ownership: item.ownership ?? 'OWNED',
+    isBottleneck: item.isBottleneck ?? false,
+    floorZone: item.floorZone ?? undefined,
+    manufacturer: item.manufacturer ?? undefined,
+    brand: item.brand ?? undefined,
+    modelNumber: item.modelNumber ?? undefined,
+    commissioningDate: item.commissioningDate ?? undefined,
+    condition: item.condition ?? undefined,
+    ratedCapacity: item.ratedCapacity ?? undefined,
+    designLifeYears: item.designLifeYears != null ? Number(item.designLifeYears) : undefined,
+    permitRequired: item.permitRequired ?? false,
+    ptwClass: item.ptwClass ?? undefined,
+    warrantyExpiry: item.warrantyExpiry ?? undefined,
+    insuranceExpiry: item.insuranceExpiry ?? undefined,
+    registrationExpiry: item.registrationExpiry ?? undefined,
+    fitnessExpiry: item.fitnessExpiry ?? undefined,
+    purchaseCost: item.purchaseCost != null ? Number(item.purchaseCost) : undefined,
+    currentBookValue: item.currentBookValue != null ? Number(item.currentBookValue) : undefined,
+    replacementValue: item.replacementValue != null ? Number(item.replacementValue) : undefined,
   };
 }
 
@@ -271,12 +314,15 @@ function AssetFormSheet({
   onManageCategory,
   onManageSubCategory,
   onManageType,
+  categoryId,
+  setCategoryId,
   assetClassOptions,
   ownershipOptions,
   ptwClassOptions,
   onManageAssetClass,
   onManageOwnership,
   onManagePTWClass,
+  children,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -290,12 +336,15 @@ function AssetFormSheet({
   onManageCategory: () => void;
   onManageSubCategory: () => void;
   onManageType: () => void;
+  categoryId: string;
+  setCategoryId: (id: string) => void;
   assetClassOptions?: DropdownOption[];
   ownershipOptions?: DropdownOption[];
   ptwClassOptions?: DropdownOption[];
   onManageAssetClass?: () => void;
   onManageOwnership?: () => void;
   onManagePTWClass?: () => void;
+  children?: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   const isDark = useIsDark();
@@ -308,7 +357,6 @@ function AssetFormSheet({
   const [serialNumber, setSerialNumber] = React.useState('');
 
   // Classification
-  const [categoryId, setCategoryId] = React.useState('');
   const [subCategoryId, setSubCategoryId] = React.useState('');
   const [typeId, setTypeId] = React.useState('');
   const [ownership, setOwnership] = React.useState('OWNED');
@@ -356,27 +404,27 @@ function AssetFormSheet({
         setCategoryId(asset.categoryId ?? '');
         setSubCategoryId(asset.subCategoryId ?? '');
         setTypeId(asset.typeId ?? '');
-        setOwnership((asset as any).ownership ?? 'OWNED');
+        setOwnership(asset.ownership ?? 'OWNED');
         setCriticality(asset.criticality ?? 'MEDIUM');
-        setIsBottleneck((asset as any).isBottleneck ?? false);
+        setIsBottleneck(asset.isBottleneck ?? false);
         setLocationId(asset.locationId ?? '');
-        setFloorZone((asset as any).floorZone ?? '');
-        setManufacturer((asset as any).manufacturer ?? asset.make ?? '');
-        setBrand((asset as any).brand ?? '');
-        setModelNumber((asset as any).modelNumber ?? asset.model ?? '');
-        setCommissioningDate((asset as any).commissioningDate ? String((asset as any).commissioningDate).split('T')[0] : '');
-        setCondition((asset as any).condition ?? '');
-        setRatedCapacity((asset as any).ratedCapacity ?? '');
-        setDesignLifeYears((asset as any).designLifeYears != null ? String((asset as any).designLifeYears) : '');
-        setPermitRequired((asset as any).permitRequired ?? false);
-        setPtwClass((asset as any).ptwClass ?? '');
-        setWarrantyExpiry((asset as any).warrantyExpiry ? String((asset as any).warrantyExpiry).split('T')[0] : '');
-        setInsuranceExpiry((asset as any).insuranceExpiry ? String((asset as any).insuranceExpiry).split('T')[0] : '');
-        setRegistrationExpiry((asset as any).registrationExpiry ? String((asset as any).registrationExpiry).split('T')[0] : '');
-        setFitnessExpiry((asset as any).fitnessExpiry ? String((asset as any).fitnessExpiry).split('T')[0] : '');
-        setPurchaseCost((asset as any).purchaseCost != null ? String(Number((asset as any).purchaseCost)) : '');
-        setCurrentBookValue((asset as any).currentBookValue != null ? String(Number((asset as any).currentBookValue)) : '');
-        setReplacementValue((asset as any).replacementValue != null ? String(Number((asset as any).replacementValue)) : '');
+        setFloorZone(asset.floorZone ?? '');
+        setManufacturer(asset.manufacturer ?? asset.make ?? '');
+        setBrand(asset.brand ?? '');
+        setModelNumber(asset.modelNumber ?? asset.model ?? '');
+        setCommissioningDate(asset.commissioningDate ? String(asset.commissioningDate).split('T')[0] : '');
+        setCondition(asset.condition ?? '');
+        setRatedCapacity(asset.ratedCapacity ?? '');
+        setDesignLifeYears(asset.designLifeYears != null ? String(asset.designLifeYears) : '');
+        setPermitRequired(asset.permitRequired ?? false);
+        setPtwClass(asset.ptwClass ?? '');
+        setWarrantyExpiry(asset.warrantyExpiry ? String(asset.warrantyExpiry).split('T')[0] : '');
+        setInsuranceExpiry(asset.insuranceExpiry ? String(asset.insuranceExpiry).split('T')[0] : '');
+        setRegistrationExpiry(asset.registrationExpiry ? String(asset.registrationExpiry).split('T')[0] : '');
+        setFitnessExpiry(asset.fitnessExpiry ? String(asset.fitnessExpiry).split('T')[0] : '');
+        setPurchaseCost(asset.purchaseCost != null ? String(Number(asset.purchaseCost)) : '');
+        setCurrentBookValue(asset.currentBookValue != null ? String(Number(asset.currentBookValue)) : '');
+        setReplacementValue(asset.replacementValue != null ? String(Number(asset.replacementValue)) : '');
         setDescription(asset.description ?? '');
       } else {
         setName('');
@@ -431,6 +479,7 @@ function AssetFormSheet({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) newErrors.name = 'Asset name is required';
+    if (!assetClass) newErrors.assetClass = 'Asset class is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -483,6 +532,8 @@ function AssetFormSheet({
     selectedId: string,
     onSelect: (val: string) => void,
     onAddNew?: () => void,
+    required?: boolean,
+    error?: string,
   ) => {
     const isOpen = openDropdown === dropdownName;
     return (
@@ -490,6 +541,7 @@ function AssetFormSheet({
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
             {label}
+            {required && <Text className="text-danger-500"> *</Text>}
           </Text>
           {onAddNew ? (
             <Pressable onPress={onAddNew} hitSlop={8}>
@@ -502,6 +554,7 @@ function AssetFormSheet({
           style={[
             sheetStyles.input,
             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+            error ? sheetStyles.inputError : undefined,
             isOpen && { borderColor: colors.primary[400] },
           ]}
         >
@@ -519,6 +572,7 @@ function AssetFormSheet({
             />
           </Svg>
         </Pressable>
+        {error ? <Text className="mt-1 font-inter text-[10px] text-danger-600">{error}</Text> : null}
         {isOpen && (
           <View style={sheetStyles.dropdown}>
             <ScrollView nestedScrollEnabled style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
@@ -598,7 +652,10 @@ function AssetFormSheet({
             </View>
 
             {/* Asset Class */}
-            {renderDropdownField('Asset Class', 'assetClass', assetClass.replace(/_/g, ' '), 'Select class', assetClassOptions && assetClassOptions.length > 0 ? assetClassOptions : ASSET_CLASS_OPTIONS, assetClass, setAssetClass, onManageAssetClass)}
+            {renderDropdownField('Asset Class', 'assetClass', assetClass.replace(/_/g, ' '), 'Select class', assetClassOptions && assetClassOptions.length > 0 ? assetClassOptions : ASSET_CLASS_OPTIONS, assetClass, (val) => {
+              setAssetClass(val);
+              clearError('assetClass');
+            }, onManageAssetClass, true, errors.assetClass)}
 
             {/* Serial Number */}
             <View style={sheetStyles.field}>
@@ -613,10 +670,19 @@ function AssetFormSheet({
             </Text>
 
             {/* Category */}
-            {renderDropdownField('Category', 'category', selectedCategory?.name, 'Select category', categories, categoryId, setCategoryId, onManageCategory)}
+            {renderDropdownField('Category', 'category', selectedCategory?.name, 'Select category', categories, categoryId, (val) => {
+              setCategoryId(val);
+              setSubCategoryId('');
+            }, onManageCategory)}
 
             {/* Sub-Category */}
-            {renderDropdownField('Sub-Category', 'subCategory', selectedSubCategory?.name, 'Select sub-category', subCategories, subCategoryId, setSubCategoryId, onManageSubCategory)}
+            {renderDropdownField('Sub-Category', 'subCategory', selectedSubCategory?.name, 'Select sub-category', subCategories, subCategoryId, setSubCategoryId, () => {
+              if (!categoryId) {
+                showWarning('Select Category', 'Please select a Category first to manage sub-categories.');
+              } else {
+                onManageSubCategory();
+              }
+            })}
 
             {/* Type */}
             {renderDropdownField('Type', 'type', selectedType?.name, 'Select type', types, typeId, setTypeId, onManageType)}
@@ -678,10 +744,11 @@ function AssetFormSheet({
             </View>
 
             {/* Commissioning Date */}
-            <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Commissioning Date</Text>
-              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={commissioningDate} onChangeText={setCommissioningDate} />
-            </View>
+            <DatePickerField
+              label="Commissioning Date"
+              value={commissioningDate}
+              onChange={setCommissioningDate}
+            />
 
             {/* Condition */}
             {renderDropdownField('Condition', 'condition', condition ? condition.replace(/_/g, ' ') : undefined, 'Select condition', CONDITION_OPTIONS, condition, setCondition)}
@@ -719,28 +786,32 @@ function AssetFormSheet({
             {renderDropdownField('PTW Class', 'ptwClass', ptwClass ? ptwClass.replace(/_/g, ' ') : undefined, 'Select PTW class', ptwClassOptions && ptwClassOptions.length > 0 ? ptwClassOptions : PTW_CLASS_OPTIONS, ptwClass, setPtwClass, onManagePTWClass)}
 
             {/* Warranty Expiry */}
-            <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Warranty Expiry</Text>
-              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={warrantyExpiry} onChangeText={setWarrantyExpiry} />
-            </View>
+            <DatePickerField
+              label="Warranty Expiry"
+              value={warrantyExpiry}
+              onChange={setWarrantyExpiry}
+            />
 
             {/* Insurance Expiry */}
-            <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Insurance Expiry</Text>
-              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={insuranceExpiry} onChangeText={setInsuranceExpiry} />
-            </View>
+            <DatePickerField
+              label="Insurance Expiry"
+              value={insuranceExpiry}
+              onChange={setInsuranceExpiry}
+            />
 
             {/* Registration Expiry */}
-            <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Registration Expiry</Text>
-              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={registrationExpiry} onChangeText={setRegistrationExpiry} />
-            </View>
+            <DatePickerField
+              label="Registration Expiry"
+              value={registrationExpiry}
+              onChange={setRegistrationExpiry}
+            />
 
             {/* Fitness Expiry */}
-            <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Fitness Expiry</Text>
-              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={fitnessExpiry} onChangeText={setFitnessExpiry} />
-            </View>
+            <DatePickerField
+              label="Fitness Expiry"
+              value={fitnessExpiry}
+              onChange={setFitnessExpiry}
+            />
 
             {/* ── FINANCIAL ── */}
             <View style={sheetStyles.sectionDivider} />
@@ -799,6 +870,7 @@ function AssetFormSheet({
           </View>
         </View>
       </KeyboardAvoidingView>
+      {children}
     </RNModal>
   );
 }
@@ -817,6 +889,9 @@ export function AssetRegisterScreen() {
   const [editingAsset, setEditingAsset] = React.useState<AssetData | null>(null);
   const confirmModal = useConfirmModal();
 
+  // Lifted category state to filter sub-categories and manage sub-category creation
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string>('');
+
   // Fetch locations
   const { data: locationsRaw } = useCompanyLocations();
   const locations: DropdownOption[] = React.useMemo(() => {
@@ -831,7 +906,7 @@ export function AssetRegisterScreen() {
     return Array.isArray(data) ? data.map((c: any) => ({ id: c.id ?? '', name: c.name ?? '' })) : [];
   }, [categoriesRaw]);
 
-  const { data: subCategoriesRaw } = useAssetSubCategories();
+  const { data: subCategoriesRaw } = useAssetSubCategories(selectedCategoryId ? { categoryId: selectedCategoryId } : undefined);
   const subCategories: DropdownOption[] = React.useMemo(() => {
     const data = (subCategoriesRaw as any)?.data ?? [];
     return Array.isArray(data) ? data.map((c: any) => ({ id: c.id ?? '', name: c.name ?? '' })) : [];
@@ -927,8 +1002,8 @@ export function AssetRegisterScreen() {
 
   const [manageModal, setManageModal] = React.useState<'category' | 'subCategory' | 'type' | 'assetClass' | 'ownership' | 'ptwClass' | null>(null);
 
-  const handleAdd = () => { setEditingAsset(null); setSheetVisible(true); };
-  const handleEdit = (a: AssetData) => { setEditingAsset(a); setSheetVisible(true); };
+  const handleAdd = () => { setSelectedCategoryId(''); setEditingAsset(null); setSheetVisible(true); };
+  const handleEdit = (a: AssetData) => { setSelectedCategoryId(a.categoryId ?? ''); setEditingAsset(a); setSheetVisible(true); };
   const handleView = (a: AssetData) => { router.push(`/maintenance/asset-detail?id=${a.id}`); };
 
   const handleDelete = (a: AssetData) => {
@@ -1018,109 +1093,116 @@ export function AssetRegisterScreen() {
         onManageCategory={() => setManageModal('category')}
         onManageSubCategory={() => setManageModal('subCategory')}
         onManageType={() => setManageModal('type')}
+        categoryId={selectedCategoryId}
+        setCategoryId={setSelectedCategoryId}
         assetClassOptions={assetClassOptions}
         ownershipOptions={ownershipOptions}
         ptwClassOptions={ptwClassOptions}
         onManageAssetClass={() => setManageModal('assetClass')}
         onManageOwnership={() => setManageModal('ownership')}
         onManagePTWClass={() => setManageModal('ptwClass')}
-      />
+      >
+        {/* Manage Category */}
+        <ManageModal
+          visible={manageModal === 'category'}
+          onClose={() => setManageModal(null)}
+          title="Manage Asset Categories"
+          items={categories}
+          isLoading={false}
+          createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Production Equipment', required: true }]}
+          onCreate={async (values) => { await createCat.mutateAsync(values); }}
+          onUpdate={async (id, values) => { await updateCat.mutateAsync({ id, data: values }); }}
+          onDelete={async (id) => { await deleteCat.mutateAsync(id); }}
+          isCreating={createCat.isPending}
+          isUpdating={updateCat.isPending}
+          isDeleting={deleteCat.isPending}
+        />
 
-      {/* Manage Category */}
-      <ManageModal
-        visible={manageModal === 'category'}
-        onClose={() => setManageModal(null)}
-        title="Manage Asset Categories"
-        items={categories}
-        isLoading={false}
-        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Production Equipment', required: true }]}
-        onCreate={async (values) => { await createCat.mutateAsync(values); }}
-        onUpdate={async (id, values) => { await updateCat.mutateAsync({ id, data: values }); }}
-        onDelete={async (id) => { await deleteCat.mutateAsync(id); }}
-        isCreating={createCat.isPending}
-        isUpdating={updateCat.isPending}
-        isDeleting={deleteCat.isPending}
-      />
+        {/* Manage SubCategory */}
+        <ManageModal
+          visible={manageModal === 'subCategory'}
+          onClose={() => setManageModal(null)}
+          title="Manage Asset Sub-Categories"
+          items={subCategories}
+          isLoading={false}
+          createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. CNC Machines', required: true }]}
+          onCreate={async (values) => {
+            await createSubCat.mutateAsync({
+              ...values,
+              categoryId: selectedCategoryId,
+            });
+          }}
+          onUpdate={async (id, values) => { await updateSubCat.mutateAsync({ id, data: values }); }}
+          onDelete={async (id) => { await deleteSubCat.mutateAsync(id); }}
+          isCreating={createSubCat.isPending}
+          isUpdating={updateSubCat.isPending}
+          isDeleting={deleteSubCat.isPending}
+        />
 
-      {/* Manage SubCategory */}
-      <ManageModal
-        visible={manageModal === 'subCategory'}
-        onClose={() => setManageModal(null)}
-        title="Manage Asset Sub-Categories"
-        items={subCategories}
-        isLoading={false}
-        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. CNC Machines', required: true }]}
-        onCreate={async (values) => { await createSubCat.mutateAsync(values); }}
-        onUpdate={async (id, values) => { await updateSubCat.mutateAsync({ id, data: values }); }}
-        onDelete={async (id) => { await deleteSubCat.mutateAsync(id); }}
-        isCreating={createSubCat.isPending}
-        isUpdating={updateSubCat.isPending}
-        isDeleting={deleteSubCat.isPending}
-      />
+        {/* Manage Type */}
+        <ManageModal
+          visible={manageModal === 'type'}
+          onClose={() => setManageModal(null)}
+          title="Manage Asset Types"
+          items={types}
+          isLoading={false}
+          createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Rotary', required: true }]}
+          onCreate={async (values) => { await createType.mutateAsync(values); }}
+          onUpdate={async (id, values) => { await updateType.mutateAsync({ id, data: values }); }}
+          onDelete={async (id) => { await deleteType.mutateAsync(id); }}
+          isCreating={createType.isPending}
+          isUpdating={updateType.isPending}
+          isDeleting={deleteType.isPending}
+        />
 
-      {/* Manage Type */}
-      <ManageModal
-        visible={manageModal === 'type'}
-        onClose={() => setManageModal(null)}
-        title="Manage Asset Types"
-        items={types}
-        isLoading={false}
-        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Rotary', required: true }]}
-        onCreate={async (values) => { await createType.mutateAsync(values); }}
-        onUpdate={async (id, values) => { await updateType.mutateAsync({ id, data: values }); }}
-        onDelete={async (id) => { await deleteType.mutateAsync(id); }}
-        isCreating={createType.isPending}
-        isUpdating={updateType.isPending}
-        isDeleting={deleteType.isPending}
-      />
+        {/* Manage Asset Classes */}
+        <ManageModal
+          visible={manageModal === 'assetClass'}
+          onClose={() => setManageModal(null)}
+          title="Manage Asset Classes"
+          items={(assetClassRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
+          isLoading={false}
+          createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Machine', required: true }]}
+          onCreate={async (values) => { await createAssetClassOpt.mutateAsync(values); }}
+          onUpdate={async (id, values) => { await updateAssetClassOpt.mutateAsync({ id, data: values }); }}
+          onDelete={async (id) => { await deleteAssetClassOpt.mutateAsync(id); }}
+          isCreating={createAssetClassOpt.isPending}
+          isUpdating={updateAssetClassOpt.isPending}
+          isDeleting={deleteAssetClassOpt.isPending}
+        />
 
-      {/* Manage Asset Classes */}
-      <ManageModal
-        visible={manageModal === 'assetClass'}
-        onClose={() => setManageModal(null)}
-        title="Manage Asset Classes"
-        items={(assetClassRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
-        isLoading={false}
-        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Machine', required: true }]}
-        onCreate={async (values) => { await createAssetClassOpt.mutateAsync(values); }}
-        onUpdate={async (id, values) => { await updateAssetClassOpt.mutateAsync({ id, data: values }); }}
-        onDelete={async (id) => { await deleteAssetClassOpt.mutateAsync(id); }}
-        isCreating={createAssetClassOpt.isPending}
-        isUpdating={updateAssetClassOpt.isPending}
-        isDeleting={deleteAssetClassOpt.isPending}
-      />
+        {/* Manage Ownership Types */}
+        <ManageModal
+          visible={manageModal === 'ownership'}
+          onClose={() => setManageModal(null)}
+          title="Manage Ownership Types"
+          items={(ownershipRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
+          isLoading={false}
+          createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Owned', required: true }]}
+          onCreate={async (values) => { await createOwnershipOpt.mutateAsync(values); }}
+          onUpdate={async (id, values) => { await updateOwnershipOpt.mutateAsync({ id, data: values }); }}
+          onDelete={async (id) => { await deleteOwnershipOpt.mutateAsync(id); }}
+          isCreating={createOwnershipOpt.isPending}
+          isUpdating={updateOwnershipOpt.isPending}
+          isDeleting={deleteOwnershipOpt.isPending}
+        />
 
-      {/* Manage Ownership Types */}
-      <ManageModal
-        visible={manageModal === 'ownership'}
-        onClose={() => setManageModal(null)}
-        title="Manage Ownership Types"
-        items={(ownershipRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
-        isLoading={false}
-        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Owned', required: true }]}
-        onCreate={async (values) => { await createOwnershipOpt.mutateAsync(values); }}
-        onUpdate={async (id, values) => { await updateOwnershipOpt.mutateAsync({ id, data: values }); }}
-        onDelete={async (id) => { await deleteOwnershipOpt.mutateAsync(id); }}
-        isCreating={createOwnershipOpt.isPending}
-        isUpdating={updateOwnershipOpt.isPending}
-        isDeleting={deleteOwnershipOpt.isPending}
-      />
-
-      {/* Manage PTW Classes */}
-      <ManageModal
-        visible={manageModal === 'ptwClass'}
-        onClose={() => setManageModal(null)}
-        title="Manage PTW Classes"
-        items={(ptwClassRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
-        isLoading={false}
-        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Hot Work', required: true }]}
-        onCreate={async (values) => { await createPTWClassOpt.mutateAsync(values); }}
-        onUpdate={async (id, values) => { await updatePTWClassOpt.mutateAsync({ id, data: values }); }}
-        onDelete={async (id) => { await deletePTWClassOpt.mutateAsync(id); }}
-        isCreating={createPTWClassOpt.isPending}
-        isUpdating={updatePTWClassOpt.isPending}
-        isDeleting={deletePTWClassOpt.isPending}
-      />
+        {/* Manage PTW Classes */}
+        <ManageModal
+          visible={manageModal === 'ptwClass'}
+          onClose={() => setManageModal(null)}
+          title="Manage PTW Classes"
+          items={(ptwClassRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
+          isLoading={false}
+          createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Hot Work', required: true }]}
+          onCreate={async (values) => { await createPTWClassOpt.mutateAsync(values); }}
+          onUpdate={async (id, values) => { await updatePTWClassOpt.mutateAsync({ id, data: values }); }}
+          onDelete={async (id) => { await deletePTWClassOpt.mutateAsync(id); }}
+          isCreating={createPTWClassOpt.isPending}
+          isUpdating={updatePTWClassOpt.isPending}
+          isDeleting={deletePTWClassOpt.isPending}
+        />
+      </AssetFormSheet>
 
       <ConfirmModal {...confirmModal.modalProps} />
     </View>

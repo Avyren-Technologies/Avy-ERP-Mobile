@@ -12,6 +12,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from 'react-native';
@@ -35,6 +36,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess } from '@/components/ui/utils';
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import {
   useCreateAsset,
   useUpdateAsset,
@@ -48,12 +50,24 @@ import {
   useCreateAssetType,
   useUpdateAssetType,
   useDeleteAssetType,
+  useCreateAssetClassOption,
+  useUpdateAssetClassOption,
+  useDeleteAssetClassOption,
+  useCreateOwnershipOption,
+  useUpdateOwnershipOption,
+  useDeleteOwnershipOption,
+  useCreatePTWClassOption,
+  useUpdatePTWClassOption,
+  useDeletePTWClassOption,
 } from '@/features/maintenance/api/use-maintenance-mutations';
 import {
   useAssets,
   useAssetCategories,
   useAssetSubCategories,
   useAssetTypes,
+  useAssetClassOptions,
+  useOwnershipOptions,
+  usePTWClassOptions,
 } from '@/features/maintenance/api/use-maintenance-queries';
 import { AssetStatusBadge } from '@/features/maintenance/shared/asset-status-badge';
 import { CriticalityBadge } from '@/features/maintenance/shared/criticality-badge';
@@ -95,6 +109,9 @@ interface DropdownOption {
 const ASSET_CLASS_OPTIONS = ['MACHINE', 'VEHICLE', 'BUILDING', 'TOOL', 'INSTRUMENT', 'UTILITY', 'IT_EQUIPMENT', 'FURNITURE', 'OTHER'];
 const CRITICALITY_OPTIONS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const OP_STATUS_OPTIONS = ['RUNNING', 'IDLE', 'BREAKDOWN', 'SHUTDOWN', 'INACTIVE', 'RETIRED'];
+const OWNERSHIP_OPTIONS = ['OWNED', 'LEASED', 'AMC_MANAGED', 'CUSTOMER_SITE'];
+const PTW_CLASS_OPTIONS = ['HOT_WORK', 'CONFINED_SPACE', 'ELECTRICAL_ISOLATION', 'PRESSURE_RELEASE', 'GENERAL_WORK'];
+const CONDITION_OPTIONS = ['NEW', 'GOOD', 'FAIR', 'POOR', 'CRITICAL'];
 
 function mapApiAsset(item: any): AssetData {
   return {
@@ -248,11 +265,18 @@ function AssetFormSheet({
   categories,
   subCategories,
   types,
+  locations,
   onSubmit,
   isSubmitting,
   onManageCategory,
   onManageSubCategory,
   onManageType,
+  assetClassOptions,
+  ownershipOptions,
+  ptwClassOptions,
+  onManageAssetClass,
+  onManageOwnership,
+  onManagePTWClass,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -260,28 +284,66 @@ function AssetFormSheet({
   categories: DropdownOption[];
   subCategories: DropdownOption[];
   types: DropdownOption[];
+  locations: DropdownOption[];
   onSubmit: (data: Record<string, unknown>) => void;
   isSubmitting: boolean;
   onManageCategory: () => void;
   onManageSubCategory: () => void;
   onManageType: () => void;
+  assetClassOptions?: DropdownOption[];
+  ownershipOptions?: DropdownOption[];
+  ptwClassOptions?: DropdownOption[];
+  onManageAssetClass?: () => void;
+  onManageOwnership?: () => void;
+  onManagePTWClass?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const isDark = useIsDark();
   const sheetStyles = createSheetStyles(isDark);
   const isEdit = !!asset;
 
+  // Identity
   const [name, setName] = React.useState('');
   const [assetClass, setAssetClass] = React.useState('MACHINE');
-  const [criticality, setCriticality] = React.useState('MEDIUM');
-  const [operationalStatus, setOperationalStatus] = React.useState('IDLE');
+  const [serialNumber, setSerialNumber] = React.useState('');
+
+  // Classification
   const [categoryId, setCategoryId] = React.useState('');
   const [subCategoryId, setSubCategoryId] = React.useState('');
   const [typeId, setTypeId] = React.useState('');
-  const [make, setMake] = React.useState('');
-  const [modelVal, setModelVal] = React.useState('');
-  const [serialNumber, setSerialNumber] = React.useState('');
+  const [ownership, setOwnership] = React.useState('OWNED');
+  const [criticality, setCriticality] = React.useState('MEDIUM');
+  const [isBottleneck, setIsBottleneck] = React.useState(false);
+
+  // Location
+  const [locationId, setLocationId] = React.useState('');
+  const [floorZone, setFloorZone] = React.useState('');
+
+  // Technical
+  const [manufacturer, setManufacturer] = React.useState('');
+  const [brand, setBrand] = React.useState('');
+  const [modelNumber, setModelNumber] = React.useState('');
+  const [commissioningDate, setCommissioningDate] = React.useState('');
+  const [condition, setCondition] = React.useState('');
+  const [ratedCapacity, setRatedCapacity] = React.useState('');
+  const [designLifeYears, setDesignLifeYears] = React.useState('');
+
+  // Compliance
+  const [permitRequired, setPermitRequired] = React.useState(false);
+  const [ptwClass, setPtwClass] = React.useState('');
+  const [warrantyExpiry, setWarrantyExpiry] = React.useState('');
+  const [insuranceExpiry, setInsuranceExpiry] = React.useState('');
+  const [registrationExpiry, setRegistrationExpiry] = React.useState('');
+  const [fitnessExpiry, setFitnessExpiry] = React.useState('');
+
+  // Financial
+  const [purchaseCost, setPurchaseCost] = React.useState('');
+  const [currentBookValue, setCurrentBookValue] = React.useState('');
+  const [replacementValue, setReplacementValue] = React.useState('');
+
+  // Description
   const [description, setDescription] = React.useState('');
+
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -290,26 +352,60 @@ function AssetFormSheet({
       if (asset) {
         setName(asset.name ?? '');
         setAssetClass(asset.assetClass ?? 'MACHINE');
-        setCriticality(asset.criticality ?? 'MEDIUM');
-        setOperationalStatus(asset.operationalStatus ?? 'IDLE');
+        setSerialNumber(asset.serialNumber ?? '');
         setCategoryId(asset.categoryId ?? '');
         setSubCategoryId(asset.subCategoryId ?? '');
         setTypeId(asset.typeId ?? '');
-        setMake(asset.make ?? '');
-        setModelVal(asset.model ?? '');
-        setSerialNumber(asset.serialNumber ?? '');
+        setOwnership((asset as any).ownership ?? 'OWNED');
+        setCriticality(asset.criticality ?? 'MEDIUM');
+        setIsBottleneck((asset as any).isBottleneck ?? false);
+        setLocationId(asset.locationId ?? '');
+        setFloorZone((asset as any).floorZone ?? '');
+        setManufacturer((asset as any).manufacturer ?? asset.make ?? '');
+        setBrand((asset as any).brand ?? '');
+        setModelNumber((asset as any).modelNumber ?? asset.model ?? '');
+        setCommissioningDate((asset as any).commissioningDate ? String((asset as any).commissioningDate).split('T')[0] : '');
+        setCondition((asset as any).condition ?? '');
+        setRatedCapacity((asset as any).ratedCapacity ?? '');
+        setDesignLifeYears((asset as any).designLifeYears != null ? String((asset as any).designLifeYears) : '');
+        setPermitRequired((asset as any).permitRequired ?? false);
+        setPtwClass((asset as any).ptwClass ?? '');
+        setWarrantyExpiry((asset as any).warrantyExpiry ? String((asset as any).warrantyExpiry).split('T')[0] : '');
+        setInsuranceExpiry((asset as any).insuranceExpiry ? String((asset as any).insuranceExpiry).split('T')[0] : '');
+        setRegistrationExpiry((asset as any).registrationExpiry ? String((asset as any).registrationExpiry).split('T')[0] : '');
+        setFitnessExpiry((asset as any).fitnessExpiry ? String((asset as any).fitnessExpiry).split('T')[0] : '');
+        setPurchaseCost((asset as any).purchaseCost != null ? String(Number((asset as any).purchaseCost)) : '');
+        setCurrentBookValue((asset as any).currentBookValue != null ? String(Number((asset as any).currentBookValue)) : '');
+        setReplacementValue((asset as any).replacementValue != null ? String(Number((asset as any).replacementValue)) : '');
         setDescription(asset.description ?? '');
       } else {
         setName('');
         setAssetClass('MACHINE');
-        setCriticality('MEDIUM');
-        setOperationalStatus('IDLE');
+        setSerialNumber('');
         setCategoryId('');
         setSubCategoryId('');
         setTypeId('');
-        setMake('');
-        setModelVal('');
-        setSerialNumber('');
+        setOwnership('OWNED');
+        setCriticality('MEDIUM');
+        setIsBottleneck(false);
+        setLocationId('');
+        setFloorZone('');
+        setManufacturer('');
+        setBrand('');
+        setModelNumber('');
+        setCommissioningDate('');
+        setCondition('');
+        setRatedCapacity('');
+        setDesignLifeYears('');
+        setPermitRequired(false);
+        setPtwClass('');
+        setWarrantyExpiry('');
+        setInsuranceExpiry('');
+        setRegistrationExpiry('');
+        setFitnessExpiry('');
+        setPurchaseCost('');
+        setCurrentBookValue('');
+        setReplacementValue('');
         setDescription('');
       }
       setErrors({});
@@ -320,6 +416,7 @@ function AssetFormSheet({
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const selectedSubCategory = subCategories.find((c) => c.id === subCategoryId);
   const selectedType = types.find((t) => t.id === typeId);
+  const selectedLocation = locations.find((l) => l.id === locationId);
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -344,14 +441,31 @@ function AssetFormSheet({
       name: name.trim(),
       assetClass,
       criticality,
-      operationalStatus,
+      ownership,
+      isBottleneck,
+      permitRequired,
     };
     if (categoryId) data.categoryId = categoryId;
     if (subCategoryId) data.subCategoryId = subCategoryId;
     if (typeId) data.typeId = typeId;
-    if (make.trim()) data.make = make.trim();
-    if (modelVal.trim()) data.model = modelVal.trim();
+    if (locationId) data.locationId = locationId;
+    if (floorZone.trim()) data.floorZone = floorZone.trim();
+    if (manufacturer.trim()) data.manufacturer = manufacturer.trim();
+    if (brand.trim()) data.brand = brand.trim();
+    if (modelNumber.trim()) data.modelNumber = modelNumber.trim();
     if (serialNumber.trim()) data.serialNumber = serialNumber.trim();
+    if (commissioningDate.trim()) data.commissioningDate = commissioningDate.trim();
+    if (condition.trim()) data.condition = condition.trim();
+    if (ratedCapacity.trim()) data.ratedCapacity = ratedCapacity.trim();
+    if (designLifeYears.trim()) data.designLifeYears = Number(designLifeYears);
+    if (ptwClass) data.ptwClass = ptwClass;
+    if (warrantyExpiry.trim()) data.warrantyExpiry = warrantyExpiry.trim();
+    if (insuranceExpiry.trim()) data.insuranceExpiry = insuranceExpiry.trim();
+    if (registrationExpiry.trim()) data.registrationExpiry = registrationExpiry.trim();
+    if (fitnessExpiry.trim()) data.fitnessExpiry = fitnessExpiry.trim();
+    if (purchaseCost.trim()) data.purchaseCost = Number(purchaseCost);
+    if (currentBookValue.trim()) data.currentBookValue = Number(currentBookValue);
+    if (replacementValue.trim()) data.replacementValue = Number(replacementValue);
     if (description.trim()) data.description = description.trim();
     onSubmit(data);
   };
@@ -462,6 +576,11 @@ function AssetFormSheet({
             showsVerticalScrollIndicator={false}
             keyboardDismissMode="interactive"
           >
+            {/* ── IDENTITY ── */}
+            <Text className="mb-3 font-inter text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Identity
+            </Text>
+
             {/* Name */}
             <View style={sheetStyles.field}>
               <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
@@ -479,13 +598,19 @@ function AssetFormSheet({
             </View>
 
             {/* Asset Class */}
-            {renderDropdownField('Asset Class', 'assetClass', assetClass.replace(/_/g, ' '), 'Select class', ASSET_CLASS_OPTIONS, assetClass, setAssetClass)}
+            {renderDropdownField('Asset Class', 'assetClass', assetClass.replace(/_/g, ' '), 'Select class', assetClassOptions && assetClassOptions.length > 0 ? assetClassOptions : ASSET_CLASS_OPTIONS, assetClass, setAssetClass, onManageAssetClass)}
 
-            {/* Criticality */}
-            {renderDropdownField('Criticality', 'criticality', criticality, 'Select criticality', CRITICALITY_OPTIONS, criticality, setCriticality)}
+            {/* Serial Number */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Serial Number</Text>
+              <TextInput style={sheetStyles.input} placeholder="Serial number" placeholderTextColor={colors.neutral[400]} value={serialNumber} onChangeText={setSerialNumber} />
+            </View>
 
-            {/* Operational Status */}
-            {renderDropdownField('Operational Status', 'operationalStatus', operationalStatus, 'Select status', OP_STATUS_OPTIONS, operationalStatus, setOperationalStatus)}
+            {/* ── CLASSIFICATION ── */}
+            <View style={sheetStyles.sectionDivider} />
+            <Text className="mb-3 font-inter text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Classification
+            </Text>
 
             {/* Category */}
             {renderDropdownField('Category', 'category', selectedCategory?.name, 'Select category', categories, categoryId, setCategoryId, onManageCategory)}
@@ -496,25 +621,153 @@ function AssetFormSheet({
             {/* Type */}
             {renderDropdownField('Type', 'type', selectedType?.name, 'Select type', types, typeId, setTypeId, onManageType)}
 
-            {/* Make */}
-            <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Make</Text>
-              <TextInput style={sheetStyles.input} placeholder="Manufacturer" placeholderTextColor={colors.neutral[400]} value={make} onChangeText={setMake} />
+            {/* Ownership */}
+            {renderDropdownField('Ownership', 'ownership', ownership.replace(/_/g, ' '), 'Select ownership', ownershipOptions && ownershipOptions.length > 0 ? ownershipOptions : OWNERSHIP_OPTIONS, ownership, setOwnership, onManageOwnership)}
+
+            {/* Criticality */}
+            {renderDropdownField('Criticality', 'criticality', criticality, 'Select criticality', CRITICALITY_OPTIONS, criticality, setCriticality)}
+
+            {/* Is Bottleneck */}
+            <View style={[sheetStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+              <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Is Bottleneck</Text>
+              <Switch
+                value={isBottleneck}
+                onValueChange={setIsBottleneck}
+                trackColor={{ false: colors.neutral[300], true: colors.primary[400] }}
+                thumbColor={isBottleneck ? colors.primary[600] : colors.neutral[100]}
+              />
             </View>
 
-            {/* Model */}
+            {/* ── LOCATION ── */}
+            <View style={sheetStyles.sectionDivider} />
+            <Text className="mb-3 font-inter text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Location
+            </Text>
+
+            {/* Location */}
+            {renderDropdownField('Location', 'location', selectedLocation?.name, 'Select location', locations, locationId, setLocationId)}
+
+            {/* Floor / Zone */}
             <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Model</Text>
-              <TextInput style={sheetStyles.input} placeholder="Model number" placeholderTextColor={colors.neutral[400]} value={modelVal} onChangeText={setModelVal} />
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Floor / Zone</Text>
+              <TextInput style={sheetStyles.input} placeholder="e.g. Floor 2, Zone A" placeholderTextColor={colors.neutral[400]} value={floorZone} onChangeText={setFloorZone} />
             </View>
 
-            {/* Serial Number */}
+            {/* ── TECHNICAL ── */}
+            <View style={sheetStyles.sectionDivider} />
+            <Text className="mb-3 font-inter text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Technical
+            </Text>
+
+            {/* Manufacturer */}
             <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Serial Number</Text>
-              <TextInput style={sheetStyles.input} placeholder="Serial number" placeholderTextColor={colors.neutral[400]} value={serialNumber} onChangeText={setSerialNumber} />
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Manufacturer</Text>
+              <TextInput style={sheetStyles.input} placeholder="Manufacturer" placeholderTextColor={colors.neutral[400]} value={manufacturer} onChangeText={setManufacturer} />
             </View>
 
-            {/* Description */}
+            {/* Brand */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Brand</Text>
+              <TextInput style={sheetStyles.input} placeholder="Brand" placeholderTextColor={colors.neutral[400]} value={brand} onChangeText={setBrand} />
+            </View>
+
+            {/* Model Number */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Model Number</Text>
+              <TextInput style={sheetStyles.input} placeholder="Model number" placeholderTextColor={colors.neutral[400]} value={modelNumber} onChangeText={setModelNumber} />
+            </View>
+
+            {/* Commissioning Date */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Commissioning Date</Text>
+              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={commissioningDate} onChangeText={setCommissioningDate} />
+            </View>
+
+            {/* Condition */}
+            {renderDropdownField('Condition', 'condition', condition ? condition.replace(/_/g, ' ') : undefined, 'Select condition', CONDITION_OPTIONS, condition, setCondition)}
+
+            {/* Rated Capacity */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Rated Capacity</Text>
+              <TextInput style={sheetStyles.input} placeholder="e.g. 500 kg/hr" placeholderTextColor={colors.neutral[400]} value={ratedCapacity} onChangeText={setRatedCapacity} />
+            </View>
+
+            {/* Design Life (Years) */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Design Life (Years)</Text>
+              <TextInput style={sheetStyles.input} placeholder="e.g. 10" placeholderTextColor={colors.neutral[400]} value={designLifeYears} onChangeText={setDesignLifeYears} keyboardType="numeric" />
+            </View>
+
+            {/* ── COMPLIANCE ── */}
+            <View style={sheetStyles.sectionDivider} />
+            <Text className="mb-3 font-inter text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Compliance
+            </Text>
+
+            {/* Permit Required */}
+            <View style={[sheetStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+              <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Permit Required</Text>
+              <Switch
+                value={permitRequired}
+                onValueChange={setPermitRequired}
+                trackColor={{ false: colors.neutral[300], true: colors.primary[400] }}
+                thumbColor={permitRequired ? colors.primary[600] : colors.neutral[100]}
+              />
+            </View>
+
+            {/* PTW Class */}
+            {renderDropdownField('PTW Class', 'ptwClass', ptwClass ? ptwClass.replace(/_/g, ' ') : undefined, 'Select PTW class', ptwClassOptions && ptwClassOptions.length > 0 ? ptwClassOptions : PTW_CLASS_OPTIONS, ptwClass, setPtwClass, onManagePTWClass)}
+
+            {/* Warranty Expiry */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Warranty Expiry</Text>
+              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={warrantyExpiry} onChangeText={setWarrantyExpiry} />
+            </View>
+
+            {/* Insurance Expiry */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Insurance Expiry</Text>
+              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={insuranceExpiry} onChangeText={setInsuranceExpiry} />
+            </View>
+
+            {/* Registration Expiry */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Registration Expiry</Text>
+              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={registrationExpiry} onChangeText={setRegistrationExpiry} />
+            </View>
+
+            {/* Fitness Expiry */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Fitness Expiry</Text>
+              <TextInput style={sheetStyles.input} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={fitnessExpiry} onChangeText={setFitnessExpiry} />
+            </View>
+
+            {/* ── FINANCIAL ── */}
+            <View style={sheetStyles.sectionDivider} />
+            <Text className="mb-3 font-inter text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Financial
+            </Text>
+
+            {/* Purchase Cost */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Purchase Cost</Text>
+              <TextInput style={sheetStyles.input} placeholder="0.00" placeholderTextColor={colors.neutral[400]} value={purchaseCost} onChangeText={setPurchaseCost} keyboardType="numeric" />
+            </View>
+
+            {/* Current Book Value */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Current Book Value</Text>
+              <TextInput style={sheetStyles.input} placeholder="0.00" placeholderTextColor={colors.neutral[400]} value={currentBookValue} onChangeText={setCurrentBookValue} keyboardType="numeric" />
+            </View>
+
+            {/* Replacement Value */}
+            <View style={sheetStyles.field}>
+              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Replacement Value</Text>
+              <TextInput style={sheetStyles.input} placeholder="0.00" placeholderTextColor={colors.neutral[400]} value={replacementValue} onChangeText={setReplacementValue} keyboardType="numeric" />
+            </View>
+
+            {/* ── DESCRIPTION ── */}
+            <View style={sheetStyles.sectionDivider} />
             <View style={sheetStyles.field}>
               <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
               <TextInput
@@ -564,6 +817,13 @@ export function AssetRegisterScreen() {
   const [editingAsset, setEditingAsset] = React.useState<AssetData | null>(null);
   const confirmModal = useConfirmModal();
 
+  // Fetch locations
+  const { data: locationsRaw } = useCompanyLocations();
+  const locations: DropdownOption[] = React.useMemo(() => {
+    const data = (locationsRaw as any)?.data ?? [];
+    return Array.isArray(data) ? data.map((l: any) => ({ id: l.id ?? '', name: l.name ?? '' })) : [];
+  }, [locationsRaw]);
+
   // Fetch dropdowns
   const { data: categoriesRaw } = useAssetCategories();
   const categories: DropdownOption[] = React.useMemo(() => {
@@ -582,6 +842,25 @@ export function AssetRegisterScreen() {
     const data = (typesRaw as any)?.data ?? [];
     return Array.isArray(data) ? data.map((t: any) => ({ id: t.id ?? '', name: t.name ?? '' })) : [];
   }, [typesRaw]);
+
+  // DB-driven option lists
+  const { data: assetClassRaw } = useAssetClassOptions();
+  const assetClassOptions: DropdownOption[] = React.useMemo(() => {
+    const data = (assetClassRaw as any)?.data ?? [];
+    return Array.isArray(data) ? data.map((o: any) => ({ id: o.name ?? '', name: o.name ?? '' })) : [];
+  }, [assetClassRaw]);
+
+  const { data: ownershipRaw } = useOwnershipOptions();
+  const ownershipOptions: DropdownOption[] = React.useMemo(() => {
+    const data = (ownershipRaw as any)?.data ?? [];
+    return Array.isArray(data) ? data.map((o: any) => ({ id: o.name ?? '', name: o.name ?? '' })) : [];
+  }, [ownershipRaw]);
+
+  const { data: ptwClassRaw } = usePTWClassOptions();
+  const ptwClassOptions: DropdownOption[] = React.useMemo(() => {
+    const data = (ptwClassRaw as any)?.data ?? [];
+    return Array.isArray(data) ? data.map((o: any) => ({ id: o.name ?? '', name: o.name ?? '' })) : [];
+  }, [ptwClassRaw]);
 
   // Fetch assets
   const classFilter = activeFilter === 'all' ? undefined : activeFilter;
@@ -631,7 +910,22 @@ export function AssetRegisterScreen() {
   const updateType = useUpdateAssetType();
   const deleteType = useDeleteAssetType();
 
-  const [manageModal, setManageModal] = React.useState<'category' | 'subCategory' | 'type' | null>(null);
+  // Asset Class Option mutations
+  const createAssetClassOpt = useCreateAssetClassOption();
+  const updateAssetClassOpt = useUpdateAssetClassOption();
+  const deleteAssetClassOpt = useDeleteAssetClassOption();
+
+  // Ownership Option mutations
+  const createOwnershipOpt = useCreateOwnershipOption();
+  const updateOwnershipOpt = useUpdateOwnershipOption();
+  const deleteOwnershipOpt = useDeleteOwnershipOption();
+
+  // PTW Class Option mutations
+  const createPTWClassOpt = useCreatePTWClassOption();
+  const updatePTWClassOpt = useUpdatePTWClassOption();
+  const deletePTWClassOpt = useDeletePTWClassOption();
+
+  const [manageModal, setManageModal] = React.useState<'category' | 'subCategory' | 'type' | 'assetClass' | 'ownership' | 'ptwClass' | null>(null);
 
   const handleAdd = () => { setEditingAsset(null); setSheetVisible(true); };
   const handleEdit = (a: AssetData) => { setEditingAsset(a); setSheetVisible(true); };
@@ -718,11 +1012,18 @@ export function AssetRegisterScreen() {
         categories={categories}
         subCategories={subCategories}
         types={types}
+        locations={locations}
         onSubmit={handleSubmit}
         isSubmitting={createAsset.isPending || updateAsset.isPending}
         onManageCategory={() => setManageModal('category')}
         onManageSubCategory={() => setManageModal('subCategory')}
         onManageType={() => setManageModal('type')}
+        assetClassOptions={assetClassOptions}
+        ownershipOptions={ownershipOptions}
+        ptwClassOptions={ptwClassOptions}
+        onManageAssetClass={() => setManageModal('assetClass')}
+        onManageOwnership={() => setManageModal('ownership')}
+        onManagePTWClass={() => setManageModal('ptwClass')}
       />
 
       {/* Manage Category */}
@@ -771,6 +1072,54 @@ export function AssetRegisterScreen() {
         isCreating={createType.isPending}
         isUpdating={updateType.isPending}
         isDeleting={deleteType.isPending}
+      />
+
+      {/* Manage Asset Classes */}
+      <ManageModal
+        visible={manageModal === 'assetClass'}
+        onClose={() => setManageModal(null)}
+        title="Manage Asset Classes"
+        items={(assetClassRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
+        isLoading={false}
+        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Machine', required: true }]}
+        onCreate={async (values) => { await createAssetClassOpt.mutateAsync(values); }}
+        onUpdate={async (id, values) => { await updateAssetClassOpt.mutateAsync({ id, data: values }); }}
+        onDelete={async (id) => { await deleteAssetClassOpt.mutateAsync(id); }}
+        isCreating={createAssetClassOpt.isPending}
+        isUpdating={updateAssetClassOpt.isPending}
+        isDeleting={deleteAssetClassOpt.isPending}
+      />
+
+      {/* Manage Ownership Types */}
+      <ManageModal
+        visible={manageModal === 'ownership'}
+        onClose={() => setManageModal(null)}
+        title="Manage Ownership Types"
+        items={(ownershipRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
+        isLoading={false}
+        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Owned', required: true }]}
+        onCreate={async (values) => { await createOwnershipOpt.mutateAsync(values); }}
+        onUpdate={async (id, values) => { await updateOwnershipOpt.mutateAsync({ id, data: values }); }}
+        onDelete={async (id) => { await deleteOwnershipOpt.mutateAsync(id); }}
+        isCreating={createOwnershipOpt.isPending}
+        isUpdating={updateOwnershipOpt.isPending}
+        isDeleting={deleteOwnershipOpt.isPending}
+      />
+
+      {/* Manage PTW Classes */}
+      <ManageModal
+        visible={manageModal === 'ptwClass'}
+        onClose={() => setManageModal(null)}
+        title="Manage PTW Classes"
+        items={(ptwClassRaw as any)?.data?.map((o: any) => ({ id: o.id, name: o.name })) ?? []}
+        isLoading={false}
+        createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. Hot Work', required: true }]}
+        onCreate={async (values) => { await createPTWClassOpt.mutateAsync(values); }}
+        onUpdate={async (id, values) => { await updatePTWClassOpt.mutateAsync({ id, data: values }); }}
+        onDelete={async (id) => { await deletePTWClassOpt.mutateAsync(id); }}
+        isCreating={createPTWClassOpt.isPending}
+        isUpdating={updatePTWClassOpt.isPending}
+        isDeleting={deletePTWClassOpt.isPending}
       />
 
       <ConfirmModal {...confirmModal.modalProps} />
@@ -827,6 +1176,7 @@ const createSheetStyles = (isDark: boolean) =>
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 6, elevation: 4, overflow: 'hidden',
     },
     dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11 },
+    sectionDivider: { height: 1, backgroundColor: isDark ? colors.neutral[700] : colors.neutral[200], marginVertical: 8 },
     submitContainer: {
       paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1,
       borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100],

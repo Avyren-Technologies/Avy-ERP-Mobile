@@ -416,6 +416,105 @@ export function useDeleteAssetType() {
     });
 }
 
+// ── Asset Class Options ──
+
+export function useCreateAssetClassOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: any) => maintenanceApi.createAssetClassOption(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.assetClassOptions() });
+        },
+    });
+}
+
+export function useUpdateAssetClassOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) =>
+            maintenanceApi.updateAssetClassOption(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.assetClassOptions() });
+        },
+    });
+}
+
+export function useDeleteAssetClassOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => maintenanceApi.deleteAssetClassOption(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.assetClassOptions() });
+        },
+    });
+}
+
+// ── Ownership Options ──
+
+export function useCreateOwnershipOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: any) => maintenanceApi.createOwnershipOption(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.ownershipOptions() });
+        },
+    });
+}
+
+export function useUpdateOwnershipOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) =>
+            maintenanceApi.updateOwnershipOption(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.ownershipOptions() });
+        },
+    });
+}
+
+export function useDeleteOwnershipOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => maintenanceApi.deleteOwnershipOption(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.ownershipOptions() });
+        },
+    });
+}
+
+// ── PTW Class Options ──
+
+export function useCreatePTWClassOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: any) => maintenanceApi.createPTWClassOption(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.ptwClassOptions() });
+        },
+    });
+}
+
+export function useUpdatePTWClassOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) =>
+            maintenanceApi.updatePTWClassOption(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.ptwClassOptions() });
+        },
+    });
+}
+
+export function useDeletePTWClassOption() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => maintenanceApi.deletePTWClassOption(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.ptwClassOptions() });
+        },
+    });
+}
+
 // ── Meters ──
 
 export function useAddMeter() {

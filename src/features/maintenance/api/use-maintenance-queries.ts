@@ -50,6 +50,9 @@ export const maintenanceKeys = {
         ? [...maintenanceKeys.all, 'asset-sub-categories', params] as const
         : [...maintenanceKeys.all, 'asset-sub-categories'] as const,
     assetTypes: () => [...maintenanceKeys.all, 'asset-types'] as const,
+    assetClassOptions: () => [...maintenanceKeys.all, 'asset-class-options'] as const,
+    ownershipOptions: () => [...maintenanceKeys.all, 'ownership-options'] as const,
+    ptwClassOptions: () => [...maintenanceKeys.all, 'ptw-class-options'] as const,
     assetMeters: (assetId: string) => [...maintenanceKeys.all, 'asset-meters', assetId] as const,
     meterReadings: (assetId: string, meterId: string) => [...maintenanceKeys.all, 'meter-readings', assetId, meterId] as const,
 
@@ -370,6 +373,29 @@ export function useAssetTypes() {
     return useQuery({
         queryKey: maintenanceKeys.assetTypes(),
         queryFn: () => maintenanceApi.listAssetTypes(),
+    });
+}
+
+// ── Asset Class / Ownership / PTW Class Options ──
+
+export function useAssetClassOptions() {
+    return useQuery({
+        queryKey: maintenanceKeys.assetClassOptions(),
+        queryFn: () => maintenanceApi.listAssetClassOptions(),
+    });
+}
+
+export function useOwnershipOptions() {
+    return useQuery({
+        queryKey: maintenanceKeys.ownershipOptions(),
+        queryFn: () => maintenanceApi.listOwnershipOptions(),
+    });
+}
+
+export function usePTWClassOptions() {
+    return useQuery({
+        queryKey: maintenanceKeys.ptwClassOptions(),
+        queryFn: () => maintenanceApi.listPTWClassOptions(),
     });
 }
 

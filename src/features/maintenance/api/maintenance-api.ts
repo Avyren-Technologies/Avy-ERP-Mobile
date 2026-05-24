@@ -78,6 +78,22 @@ export const maintenanceApi = {
     updateAssetType: (id: string, data: any) => client.patch(`/maintenance/assets/types/${id}`, data),
     deleteAssetType: (id: string) => client.delete(`/maintenance/assets/types/${id}`),
 
+    // ── Asset Class / Ownership / PTW Class Options ──
+    listAssetClassOptions: () => client.get('/maintenance/assets/asset-class-options/list'),
+    createAssetClassOption: (data: any) => client.post('/maintenance/assets/asset-class-options', data),
+    updateAssetClassOption: (id: string, data: any) => client.patch(`/maintenance/assets/asset-class-options/${id}`, data),
+    deleteAssetClassOption: (id: string) => client.delete(`/maintenance/assets/asset-class-options/${id}`),
+
+    listOwnershipOptions: () => client.get('/maintenance/assets/ownership-options/list'),
+    createOwnershipOption: (data: any) => client.post('/maintenance/assets/ownership-options', data),
+    updateOwnershipOption: (id: string, data: any) => client.patch(`/maintenance/assets/ownership-options/${id}`, data),
+    deleteOwnershipOption: (id: string) => client.delete(`/maintenance/assets/ownership-options/${id}`),
+
+    listPTWClassOptions: () => client.get('/maintenance/assets/ptw-class-options/list'),
+    createPTWClassOption: (data: any) => client.post('/maintenance/assets/ptw-class-options', data),
+    updatePTWClassOption: (id: string, data: any) => client.patch(`/maintenance/assets/ptw-class-options/${id}`, data),
+    deletePTWClassOption: (id: string) => client.delete(`/maintenance/assets/ptw-class-options/${id}`),
+
     // ── Meters & Readings ──
     listMeters: (assetId: string) => client.get(`/maintenance/assets/${assetId}/meters`),
     addMeter: (assetId: string, data: any) => client.post(`/maintenance/assets/${assetId}/meters`, data),

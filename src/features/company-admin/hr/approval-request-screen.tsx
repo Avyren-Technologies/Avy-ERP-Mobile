@@ -60,6 +60,7 @@ const ENTITY_COLORS: Record<string, { bg: string; text: string }> = {
     'Shift Swap': { bg: colors.accent[50], text: colors.accent[700] },
     'Expense Claim': { bg: colors.warning[50], text: colors.warning[700] },
     'IT Declaration': { bg: colors.neutral[100], text: colors.neutral[700] },
+    'Visitor Approval': { bg: colors.primary[50], text: colors.primary[700] },
 };
 
 /** Map raw entityType to human-readable label */
@@ -71,6 +72,7 @@ const ENTITY_LABELS: Record<string, string> = {
     ShiftSwapRequest: 'Shift Swap',
     ExpenseClaim: 'Expense Claim',
     ITDeclaration: 'IT Declaration',
+    Visit: 'Visitor Approval',
 };
 
 /** Capitalize status from UPPER_CASE to Title Case */
@@ -113,6 +115,8 @@ function buildSummary(entityType: string, data: any): string {
             return `Swap on ${data.swapDate ?? ''}${data.reason ? ` — ${data.reason}` : ''}`;
         case 'AttendanceOverride':
             return `${data.issueType ?? 'Correction'}${data.reason ? ` — ${data.reason}` : ''}`;
+        case 'Visit':
+            return `${data.visitorName ?? 'Visitor'}${data.visitorCompany ? ` (${data.visitorCompany})` : ''} — ${data.purpose ?? 'Visit'}${data.visitDate ? ` on ${data.visitDate}` : ''}`;
         default:
             return data.reason ?? data.description ?? '';
     }

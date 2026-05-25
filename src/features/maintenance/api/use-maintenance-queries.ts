@@ -366,6 +366,7 @@ export function useAssetSubCategories(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.assetSubCategories(params),
         queryFn: () => maintenanceApi.listAssetSubCategories(params),
+        enabled: !!params?.categoryId,
     });
 }
 
@@ -409,11 +410,11 @@ export function useAssetMeters(assetId: string) {
     });
 }
 
-export function useMeterReadings(assetId: string, meterId: string) {
+export function useMeterReadings(assetId: string, meterId: string, enabled = true) {
     return useQuery({
         queryKey: maintenanceKeys.meterReadings(assetId, meterId),
         queryFn: () => maintenanceApi.getReadingHistory(assetId, meterId),
-        enabled: !!assetId && !!meterId,
+        enabled: !!assetId && !!meterId && enabled,
     });
 }
 

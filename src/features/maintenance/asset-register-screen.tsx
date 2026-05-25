@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Switch,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -237,10 +238,36 @@ function AssetCard({
             </View>
           </View>
 
-          {/* Actions */}
+          {/* Actions: Eye (view detail), Edit, Delete */}
           <View style={cardStyles.cardActions}>
+            {/* Eye / View icon — navigates to asset detail with all tabs */}
             <Pressable
-              onPress={() => onEdit(asset)}
+              onPress={(e) => { (e as any).stopPropagation?.(); onPress(asset); }}
+              style={[cardStyles.actionBtn, { backgroundColor: isDark ? '#1E3A5F' : colors.info[50] }]}
+              hitSlop={8}
+            >
+              <Svg width={16} height={16} viewBox="0 0 24 24">
+                <Path
+                  d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                  stroke={colors.info[600]}
+                  strokeWidth="1.8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <Path
+                  d="M12 9a3 3 0 100 6 3 3 0 000-6z"
+                  stroke={colors.info[600]}
+                  strokeWidth="1.8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </Pressable>
+            {/* Edit icon */}
+            <Pressable
+              onPress={(e) => { (e as any).stopPropagation?.(); onEdit(asset); }}
               style={[cardStyles.actionBtn, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}
               hitSlop={8}
             >
@@ -263,8 +290,9 @@ function AssetCard({
                 />
               </Svg>
             </Pressable>
+            {/* Delete icon */}
             <Pressable
-              onPress={() => onDelete(asset)}
+              onPress={(e) => { (e as any).stopPropagation?.(); onDelete(asset); }}
               style={[cardStyles.actionBtn, { backgroundColor: isDark ? colors.danger[900] : colors.danger[50] }]}
               hitSlop={8}
             >
@@ -316,6 +344,8 @@ function AssetFormSheet({
   onManageType,
   categoryId,
   setCategoryId,
+  subCategoryId,
+  setSubCategoryId,
   assetClassOptions,
   ownershipOptions,
   ptwClassOptions,
@@ -338,6 +368,8 @@ function AssetFormSheet({
   onManageType: () => void;
   categoryId: string;
   setCategoryId: (id: string) => void;
+  subCategoryId: string;
+  setSubCategoryId: (id: string) => void;
   assetClassOptions?: DropdownOption[];
   ownershipOptions?: DropdownOption[];
   ptwClassOptions?: DropdownOption[];
@@ -357,7 +389,6 @@ function AssetFormSheet({
   const [serialNumber, setSerialNumber] = React.useState('');
 
   // Classification
-  const [subCategoryId, setSubCategoryId] = React.useState('');
   const [typeId, setTypeId] = React.useState('');
   const [ownership, setOwnership] = React.useState('OWNED');
   const [criticality, setCriticality] = React.useState('MEDIUM');
@@ -544,9 +575,9 @@ function AssetFormSheet({
             {required && <Text className="text-danger-500"> *</Text>}
           </Text>
           {onAddNew ? (
-            <Pressable onPress={onAddNew} hitSlop={8}>
+            <TouchableOpacity onPress={onAddNew} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.6}>
               <Text className="font-inter text-xs font-bold text-primary-600">+ New</Text>
-            </Pressable>
+            </TouchableOpacity>
           ) : null}
         </View>
         <Pressable
@@ -676,13 +707,7 @@ function AssetFormSheet({
             }, onManageCategory)}
 
             {/* Sub-Category */}
-            {renderDropdownField('Sub-Category', 'subCategory', selectedSubCategory?.name, 'Select sub-category', subCategories, subCategoryId, setSubCategoryId, () => {
-              if (!categoryId) {
-                showWarning('Select Category', 'Please select a Category first to manage sub-categories.');
-              } else {
-                onManageSubCategory();
-              }
-            })}
+            {renderDropdownField('Sub-Category', 'subCategory', selectedSubCategory?.name, 'Select sub-category', subCategories, subCategoryId, setSubCategoryId, onManageSubCategory)}
 
             {/* Type */}
             {renderDropdownField('Type', 'type', selectedType?.name, 'Select type', types, typeId, setTypeId, onManageType)}
@@ -855,14 +880,21 @@ function AssetFormSheet({
           {/* Submit */}
           <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16 }]}>
             <Pressable
-              style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, isSubmitting && { opacity: 0.6 }]}
+              style={({ pressed }) => [
+                sheetStyles.submitBtn,
+                (isSubmitting || !name.trim()) && sheetStyles.submitBtnDisabled,
+                pressed && !(isSubmitting || !name.trim()) && { opacity: 0.85 },
+              ]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !name.trim()}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text className="font-inter text-base font-bold text-white">
+                <Text
+                  style={{ color: (isSubmitting || !name.trim()) ? colors.neutral[400] : colors.white }}
+                  className="font-inter text-base font-bold"
+                >
                   {isEdit ? 'Update Asset' : 'Create Asset'}
                 </Text>
               )}
@@ -891,6 +923,7 @@ export function AssetRegisterScreen() {
 
   // Lifted category state to filter sub-categories and manage sub-category creation
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<string>('');
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = React.useState<string>('');
 
   // Fetch locations
   const { data: locationsRaw } = useCompanyLocations();
@@ -958,18 +991,31 @@ export function AssetRegisterScreen() {
 
   const totalCount = (response as any)?.meta?.total ?? assets.length;
 
-  const filterChips = React.useMemo(
-    () => [
-      { key: 'all', label: 'All', count: totalCount },
-      { key: 'MACHINE', label: 'Machine' },
-      { key: 'VEHICLE', label: 'Vehicle' },
-      { key: 'BUILDING', label: 'Building' },
-      { key: 'TOOL', label: 'Tool' },
-      { key: 'IT_EQUIPMENT', label: 'IT' },
-      { key: 'OTHER', label: 'Other' },
-    ],
-    [totalCount],
-  );
+  const filterChips = React.useMemo(() => {
+    const list = [
+      { key: 'all', label: 'All', count: activeFilter === 'all' ? totalCount : undefined }
+    ];
+
+    const classes = assetClassOptions.length > 0
+      ? assetClassOptions.map(o => ({
+          key: o.name,
+          label: o.name.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+          count: activeFilter === o.name ? totalCount : undefined
+        }))
+      : [
+          { key: 'MACHINE', label: 'Machine', count: activeFilter === 'MACHINE' ? totalCount : undefined },
+          { key: 'VEHICLE', label: 'Vehicle', count: activeFilter === 'VEHICLE' ? totalCount : undefined },
+          { key: 'BUILDING', label: 'Building', count: activeFilter === 'BUILDING' ? totalCount : undefined },
+          { key: 'TOOL', label: 'Tool', count: activeFilter === 'TOOL' ? totalCount : undefined },
+          { key: 'INSTRUMENT', label: 'Instrument', count: activeFilter === 'INSTRUMENT' ? totalCount : undefined },
+          { key: 'UTILITY', label: 'Utility', count: activeFilter === 'UTILITY' ? totalCount : undefined },
+          { key: 'IT_EQUIPMENT', label: 'IT', count: activeFilter === 'IT_EQUIPMENT' ? totalCount : undefined },
+          { key: 'FURNITURE', label: 'Furniture', count: activeFilter === 'FURNITURE' ? totalCount : undefined },
+          { key: 'OTHER', label: 'Other', count: activeFilter === 'OTHER' ? totalCount : undefined },
+        ];
+
+    return [...list, ...classes];
+  }, [assetClassOptions, totalCount, activeFilter]);
 
   // Mutations
   const createAsset = useCreateAsset();
@@ -1002,8 +1048,8 @@ export function AssetRegisterScreen() {
 
   const [manageModal, setManageModal] = React.useState<'category' | 'subCategory' | 'type' | 'assetClass' | 'ownership' | 'ptwClass' | null>(null);
 
-  const handleAdd = () => { setSelectedCategoryId(''); setEditingAsset(null); setSheetVisible(true); };
-  const handleEdit = (a: AssetData) => { setSelectedCategoryId(a.categoryId ?? ''); setEditingAsset(a); setSheetVisible(true); };
+  const handleAdd = () => { setSelectedCategoryId(''); setSelectedSubCategoryId(''); setEditingAsset(null); setSheetVisible(true); };
+  const handleEdit = (a: AssetData) => { setSelectedCategoryId(a.categoryId ?? ''); setSelectedSubCategoryId(a.subCategoryId ?? ''); setEditingAsset(a); setSheetVisible(true); };
   const handleView = (a: AssetData) => { router.push(`/maintenance/asset-detail?id=${a.id}`); };
 
   const handleDelete = (a: AssetData) => {
@@ -1091,10 +1137,18 @@ export function AssetRegisterScreen() {
         onSubmit={handleSubmit}
         isSubmitting={createAsset.isPending || updateAsset.isPending}
         onManageCategory={() => setManageModal('category')}
-        onManageSubCategory={() => setManageModal('subCategory')}
+        onManageSubCategory={() => {
+          if (!selectedCategoryId) {
+            showWarning('Select Category', 'Please select a Category first to manage sub-categories.');
+          } else {
+            setManageModal('subCategory');
+          }
+        }}
         onManageType={() => setManageModal('type')}
         categoryId={selectedCategoryId}
         setCategoryId={setSelectedCategoryId}
+        subCategoryId={selectedSubCategoryId}
+        setSubCategoryId={setSelectedSubCategoryId}
         assetClassOptions={assetClassOptions}
         ownershipOptions={ownershipOptions}
         ptwClassOptions={ptwClassOptions}
@@ -1127,10 +1181,13 @@ export function AssetRegisterScreen() {
           isLoading={false}
           createFields={[{ key: 'name', label: 'Name', placeholder: 'e.g. CNC Machines', required: true }]}
           onCreate={async (values) => {
-            await createSubCat.mutateAsync({
+            const result = await createSubCat.mutateAsync({
               ...values,
               categoryId: selectedCategoryId,
             });
+            if (result?.data?.id) {
+              setSelectedSubCategoryId(result.data.id);
+            }
           }}
           onUpdate={async (id, values) => { await updateSubCat.mutateAsync({ id, data: values }); }}
           onDelete={async (id) => { await deleteSubCat.mutateAsync(id); }}
@@ -1268,5 +1325,10 @@ const createSheetStyles = (isDark: boolean) =>
       backgroundColor: colors.primary[600], borderRadius: 14, height: 52,
       justifyContent: 'center', alignItems: 'center',
       shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    submitBtnDisabled: {
+      backgroundColor: isDark ? colors.neutral[800] : colors.neutral[200],
+      shadowOpacity: 0,
+      elevation: 0,
     },
   });

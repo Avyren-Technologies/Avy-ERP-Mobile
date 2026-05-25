@@ -708,7 +708,7 @@ export function ShiftRotationScreen() {
         setExecutingId(item.id);
         executeMutation.mutate(undefined as void, {
             onSuccess: (result: any) => {
-                const count = result?.data?.rotatedCount ?? result?.rotatedCount ?? 0;
+                const count = result?.data?.employeesRotated ?? result?.employeesRotated ?? 0;
                 setExecuteResult({ name: item.name, count });
                 setExecutingId(null);
             },

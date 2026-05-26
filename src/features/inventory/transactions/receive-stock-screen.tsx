@@ -3,9 +3,8 @@ import { View, Text, FlatList, TouchableOpacity, RefreshControl, StyleSheet, Act
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { ChevronLeft, Plus, X, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, X, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';

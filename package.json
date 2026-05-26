@@ -46,6 +46,8 @@
     "test:e2e:android": "detox test --configuration android.emu.debug",
     "test:e2e:ios:maintenance": "detox test --configuration ios.sim.debug -- --testPathPattern=e2e/modules/maintenance",
     "test:e2e:android:maintenance": "detox test --configuration android.emu.debug -- --testPathPattern=e2e/modules/maintenance",
+    "test:e2e:ios:inventory": "detox test --configuration ios.sim.debug -- --testPathPattern=e2e/modules/inventory",
+    "test:e2e:android:inventory": "detox test --configuration android.emu.debug -- --testPathPattern=e2e/modules/inventory",
     "check-all": "pnpm run lint && pnpm run type-check && pnpm run lint:translations && pnpm run test",
     "check-pnpm": "node -e \"if(process.env.npm_config_user_agent?.includes('pnpm')){console.log('✅ Using pnpm - good!')}else{console.error('❌ Please use pnpm instead of npm/yarn');process.exit(1)}\"",
     "verify-setup": "node scripts/verify-setup.js",

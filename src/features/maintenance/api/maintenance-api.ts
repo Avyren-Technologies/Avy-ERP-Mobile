@@ -125,6 +125,7 @@ export const maintenanceApi = {
     getWorkOrder: (id: string) => client.get(`/maintenance/work-orders/${id}`),
     createWorkOrder: (data: any) => client.post('/maintenance/work-orders', data),
     updateWorkOrder: (id: string, data: any) => client.patch(`/maintenance/work-orders/${id}`, data),
+    approveWorkOrder: (id: string, data?: any) => client.post(`/maintenance/work-orders/${id}/approve`, data),
     assignWorkOrder: (id: string, data: any) => client.post(`/maintenance/work-orders/${id}/assign`, data),
     acknowledgeWorkOrder: (id: string) => client.post(`/maintenance/work-orders/${id}/acknowledge`),
     declineWorkOrder: (id: string, data: any) => client.post(`/maintenance/work-orders/${id}/decline`, data),

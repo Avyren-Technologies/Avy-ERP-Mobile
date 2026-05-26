@@ -23,6 +23,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import {
     useAcknowledgeWorkOrder,
+    useApproveWorkOrder,
     useAssignWorkOrder,
     useCancelWO,
     useCloseWorkOrder,
@@ -32,11 +33,9 @@ import {
     useReopenWorkOrder,
     useResumeWorkOrder,
     useStartWorkOrder,
-    useUpdateWorkOrder,
 } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
-import { storage } from '@/lib/storage';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { WOStatusBadge } from '@/features/maintenance/shared/wo-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -441,6 +440,7 @@ export function WorkOrderDetailScreen() {
         }));
     }, [empData]);
 
+    const approveMut = useApproveWorkOrder();
     const assignMut = useAssignWorkOrder();
     const ackMut = useAcknowledgeWorkOrder();
     const declineMut = useDeclineWorkOrder();
@@ -451,28 +451,26 @@ export function WorkOrderDetailScreen() {
     const closeMut = useCloseWorkOrder();
     const cancelMut = useCancelWO();
     const reopenMut = useReopenWorkOrder();
-    const updateMut = useUpdateWorkOrder();
 
-    const [localStatus, setLocalStatus] = React.useState<string | null>(() => {
-        return id ? storage.getString(`wo_${id}_status`) || null : null;
-    });
-
-    const updateLocalStatus = (newStatus: string) => {
-        setLocalStatus(newStatus);
-        if (id) {
-            storage.set(`wo_${id}_status`, newStatus);
-        }
-    };
-
-    const rawStatus = wo?.status;
-    let status = localStatus || rawStatus;
-    if (status === 'DRAFT' && (wo?.leadTechnicianId || wo?.leadTechnician)) {
-        status = 'ASSIGNED';
-    }
+    const status = wo?.status ?? 'DRAFT';
 
     const handleAction = (action: string) => {
         if (!id) return;
         switch (action) {
+            case 'approve':
+                confirmModal.show({
+                    title: 'Approve Work Order',
+                    message: 'Approve this work order?',
+                    confirmText: 'Approve',
+                    variant: 'primary',
+                    onConfirm: () => {
+                        approveMut.mutate({ id }, {
+                            onSuccess: () => { showSuccess('Work order approved'); refetch(); },
+                            onError: () => showErrorMessage('Failed to approve'),
+                        });
+                    },
+                });
+                break;
             case 'acknowledge':
                 confirmModal.show({
                     title: 'Acknowledge Work Order',
@@ -480,19 +478,10 @@ export function WorkOrderDetailScreen() {
                     confirmText: 'Acknowledge',
                     variant: 'primary',
                     onConfirm: () => {
-                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-                            updateLocalStatus('ACKNOWLEDGED');
-                            showSuccess('Work order acknowledged');
-                        } else {
-                            ackMut.mutate(id, {
-                                onSuccess: () => {
-                                    updateLocalStatus('ACKNOWLEDGED');
-                                    showSuccess('Work order acknowledged');
-                                    refetch();
-                                },
-                                onError: () => showErrorMessage('Failed to acknowledge'),
-                            });
-                        }
+                        ackMut.mutate(id, {
+                            onSuccess: () => { showSuccess('Work order acknowledged'); refetch(); },
+                            onError: () => showErrorMessage('Failed to acknowledge'),
+                        });
                     },
                 });
                 break;
@@ -503,19 +492,10 @@ export function WorkOrderDetailScreen() {
                     confirmText: 'Start',
                     variant: 'primary',
                     onConfirm: () => {
-                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-                            updateLocalStatus('IN_PROGRESS');
-                            showSuccess('Work order started');
-                        } else {
-                            startMut.mutate(id, {
-                                onSuccess: () => {
-                                    updateLocalStatus('IN_PROGRESS');
-                                    showSuccess('Work order started');
-                                    refetch();
-                                },
-                                onError: () => showErrorMessage('Failed to start'),
-                            });
-                        }
+                        startMut.mutate(id, {
+                            onSuccess: () => { showSuccess('Work order started'); refetch(); },
+                            onError: () => showErrorMessage('Failed to start'),
+                        });
                     },
                 });
                 break;
@@ -526,19 +506,10 @@ export function WorkOrderDetailScreen() {
                     confirmText: 'Resume',
                     variant: 'primary',
                     onConfirm: () => {
-                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-                            updateLocalStatus('IN_PROGRESS');
-                            showSuccess('Work order resumed');
-                        } else {
-                            resumeMut.mutate(id, {
-                                onSuccess: () => {
-                                    updateLocalStatus('IN_PROGRESS');
-                                    showSuccess('Work order resumed');
-                                    refetch();
-                                },
-                                onError: () => showErrorMessage('Failed to resume'),
-                            });
-                        }
+                        resumeMut.mutate(id, {
+                            onSuccess: () => { showSuccess('Work order resumed'); refetch(); },
+                            onError: () => showErrorMessage('Failed to resume'),
+                        });
                     },
                 });
                 break;
@@ -552,19 +523,10 @@ export function WorkOrderDetailScreen() {
                     confirmText: 'Close',
                     variant: 'primary',
                     onConfirm: () => {
-                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-                            updateLocalStatus('CLOSED');
-                            showSuccess('Work order closed');
-                        } else {
-                            closeMut.mutate({ id, data: {} }, {
-                                onSuccess: () => {
-                                    updateLocalStatus('CLOSED');
-                                    showSuccess('Work order closed');
-                                    refetch();
-                                },
-                                onError: () => showErrorMessage('Failed to close'),
-                            });
-                        }
+                        closeMut.mutate({ id, data: {} }, {
+                            onSuccess: () => { showSuccess('Work order closed'); refetch(); },
+                            onError: () => showErrorMessage('Failed to close'),
+                        });
                     },
                 });
                 break;
@@ -575,19 +537,10 @@ export function WorkOrderDetailScreen() {
                     confirmText: 'Cancel WO',
                     variant: 'danger',
                     onConfirm: () => {
-                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-                            updateLocalStatus('CANCELLED');
-                            showSuccess('Work order cancelled');
-                        } else {
-                            cancelMut.mutate({ id, data: { reason: 'Cancelled from mobile' } }, {
-                                onSuccess: () => {
-                                    updateLocalStatus('CANCELLED');
-                                    showSuccess('Work order cancelled');
-                                    refetch();
-                                },
-                                onError: () => showErrorMessage('Failed to cancel'),
-                            });
-                        }
+                        cancelMut.mutate({ id, data: { reason: 'Cancelled from mobile' } }, {
+                            onSuccess: () => { showSuccess('Work order cancelled'); refetch(); },
+                            onError: () => showErrorMessage('Failed to cancel'),
+                        });
                     },
                 });
                 break;
@@ -603,65 +556,26 @@ export function WorkOrderDetailScreen() {
         if (!id) return;
         const data: any = { holdReason };
         if (holdNotes) data.holdNotes = holdNotes;
-        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-            updateLocalStatus('ON_HOLD');
-            setHoldVisible(false);
-            showSuccess('Work order on hold');
-        } else {
-            holdMut.mutate({ id, data }, {
-                onSuccess: () => {
-                    updateLocalStatus('ON_HOLD');
-                    setHoldVisible(false);
-                    showSuccess('Work order on hold');
-                    refetch();
-                },
-                onError: () => showErrorMessage('Failed to hold'),
-            });
-        }
+        holdMut.mutate({ id, data }, {
+            onSuccess: () => { setHoldVisible(false); showSuccess('Work order on hold'); refetch(); },
+            onError: () => showErrorMessage('Failed to hold'),
+        });
     };
 
     const handleAssign = (data: { leadTechnicianId: string }) => {
         if (!id) return;
-        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-            updateMut.mutate({ id, data }, {
-                onSuccess: () => {
-                    updateLocalStatus('ASSIGNED');
-                    setAssignVisible(false);
-                    showSuccess('Technician assigned persistently');
-                    refetch();
-                },
-                onError: () => showErrorMessage('Failed to assign'),
-            });
-        } else {
-            assignMut.mutate({ id, data }, {
-                onSuccess: () => {
-                    updateLocalStatus('ASSIGNED');
-                    setAssignVisible(false);
-                    showSuccess('Technician assigned');
-                    refetch();
-                },
-                onError: () => showErrorMessage('Failed to assign'),
-            });
-        }
+        assignMut.mutate({ id, data }, {
+            onSuccess: () => { setAssignVisible(false); showSuccess('Technician assigned'); refetch(); },
+            onError: () => showErrorMessage('Failed to assign'),
+        });
     };
 
     const handleReopen = (reason: string) => {
         if (!id) return;
-        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-            updateLocalStatus('IN_PROGRESS');
-            setReopenVisible(false);
-            showSuccess('Work order reopened');
-        } else {
-            reopenMut.mutate({ id, data: { reason } }, {
-                onSuccess: () => {
-                    updateLocalStatus('IN_PROGRESS');
-                    setReopenVisible(false);
-                    showSuccess('Work order reopened');
-                    refetch();
-                },
-                onError: () => showErrorMessage('Failed to reopen'),
-            });
-        }
+        reopenMut.mutate({ id, data: { reason } }, {
+            onSuccess: () => { setReopenVisible(false); showSuccess('Work order reopened'); refetch(); },
+            onError: () => showErrorMessage('Failed to reopen'),
+        });
     };
 
     const handleDecline = () => {
@@ -672,19 +586,10 @@ export function WorkOrderDetailScreen() {
             confirmText: 'Decline',
             variant: 'danger',
             onConfirm: () => {
-                if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
-                    updateLocalStatus('APPROVED');
-                    showSuccess('Work order declined');
-                } else {
-                    declineMut.mutate({ id, data: { reason: 'Declined from mobile' } }, {
-                        onSuccess: () => {
-                            updateLocalStatus('APPROVED');
-                            showSuccess('Work order declined');
-                            refetch();
-                        },
-                        onError: () => showErrorMessage('Failed to decline'),
-                    });
-                }
+                declineMut.mutate({ id, data: { reason: 'Declined from mobile' } }, {
+                    onSuccess: () => { showSuccess('Work order declined'); refetch(); },
+                    onError: () => showErrorMessage('Failed to decline'),
+                });
             },
         });
     };
@@ -902,10 +807,7 @@ export function WorkOrderDetailScreen() {
                     <Animated.View entering={FadeInUp.duration(350).delay(200)}>
                         <View style={actionStyles.section}>
                             {(status === 'DRAFT' || status === 'PLANNED') ? (
-                                <ActionButton label="Approve" color={colors.success[600]} onPress={() => {
-                                    updateLocalStatus('APPROVED');
-                                    showSuccess('Work order approved');
-                                }} />
+                                <ActionButton label="Approve" color={colors.success[600]} onPress={() => handleAction('approve')} disabled={approveMut.isPending} />
                             ) : null}
                             {status === 'APPROVED' ? (
                                 <ActionButton label="Assign" color={colors.primary[600]} onPress={() => setAssignVisible(true)} />

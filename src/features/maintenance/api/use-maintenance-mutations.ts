@@ -696,6 +696,19 @@ export function useUpdateWorkOrder() {
     });
 }
 
+export function useApproveWorkOrder() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data?: any }) =>
+            maintenanceApi.approveWorkOrder(id, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+        },
+    });
+}
+
 export function useAssignWorkOrder() {
     const queryClient = useQueryClient();
     return useMutation({

@@ -308,3 +308,79 @@ export function useActivitySummary(params?: Record<string, unknown>) {
     queryFn: () => inventoryApi.getActivitySummary(params),
   });
 }
+
+// ── Production ──
+
+export function useIssueToProduction(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.issueToProduction(params),
+    queryFn: () => inventoryApi.listIssueToProduction(params),
+  });
+}
+
+export function useIssueToProductionDetail(id: string) {
+  return useQuery({
+    queryKey: inventoryKeys.issueToProductionDetail(id),
+    queryFn: () => inventoryApi.getIssueToProduction(id),
+    enabled: !!id,
+  });
+}
+
+export function useIssuesByWorkOrder(workOrderId: string) {
+  return useQuery({
+    queryKey: inventoryKeys.issuesByWorkOrder(workOrderId),
+    queryFn: () => inventoryApi.getIssuesByWorkOrder(workOrderId),
+    enabled: !!workOrderId,
+  });
+}
+
+export function useFgReceipts(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.fgReceipts(params),
+    queryFn: () => inventoryApi.listFgReceipts(params),
+  });
+}
+
+export function useFgReceipt(id: string) {
+  return useQuery({
+    queryKey: inventoryKeys.fgReceipt(id),
+    queryFn: () => inventoryApi.getFgReceipt(id),
+    enabled: !!id,
+  });
+}
+
+export function useMaterialReturns(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.materialReturns(params),
+    queryFn: () => inventoryApi.listMaterialReturns(params),
+  });
+}
+
+export function useProductionScraps(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.productionScraps(params),
+    queryFn: () => inventoryApi.listProductionScraps(params),
+  });
+}
+
+export function useScrapCategories(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.scrapCategories(params),
+    queryFn: () => inventoryApi.listScrapCategories(params),
+  });
+}
+
+export function useWoReconciliation(workOrderId: string) {
+  return useQuery({
+    queryKey: inventoryKeys.woReconciliation(workOrderId),
+    queryFn: () => inventoryApi.getWoReconciliation(workOrderId),
+    enabled: !!workOrderId,
+  });
+}
+
+export function useWipStock(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.wipStock(params),
+    queryFn: () => inventoryApi.getWipStock(params),
+  });
+}

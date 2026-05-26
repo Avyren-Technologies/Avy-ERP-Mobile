@@ -131,4 +131,34 @@ export const inventoryKeys = {
     params
       ? ([...inventoryKeys.all, 'activity-summary', params] as const)
       : ([...inventoryKeys.all, 'activity-summary'] as const),
+
+  // Production
+  issueToProduction: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'issue-to-production', params] as const)
+      : ([...inventoryKeys.all, 'issue-to-production'] as const),
+  issueToProductionDetail: (id: string) => [...inventoryKeys.all, 'issue-to-production-detail', id] as const,
+  issuesByWorkOrder: (workOrderId: string) => [...inventoryKeys.all, 'issues-by-wo', workOrderId] as const,
+  fgReceipts: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'fg-receipts', params] as const)
+      : ([...inventoryKeys.all, 'fg-receipts'] as const),
+  fgReceipt: (id: string) => [...inventoryKeys.all, 'fg-receipt', id] as const,
+  materialReturns: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'material-returns', params] as const)
+      : ([...inventoryKeys.all, 'material-returns'] as const),
+  productionScraps: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'production-scraps', params] as const)
+      : ([...inventoryKeys.all, 'production-scraps'] as const),
+  scrapCategories: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'scrap-categories', params] as const)
+      : ([...inventoryKeys.all, 'scrap-categories'] as const),
+  woReconciliation: (workOrderId: string) => [...inventoryKeys.all, 'wo-reconciliation', workOrderId] as const,
+  wipStock: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'wip-stock', params] as const)
+      : ([...inventoryKeys.all, 'wip-stock'] as const),
 };

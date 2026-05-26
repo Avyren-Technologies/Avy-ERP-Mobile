@@ -32,8 +32,11 @@ import {
     useReopenWorkOrder,
     useResumeWorkOrder,
     useStartWorkOrder,
+    useUpdateWorkOrder,
 } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { storage } from '@/lib/storage';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { WOStatusBadge } from '@/features/maintenance/shared/wo-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -201,45 +204,164 @@ function HoldSheet({ visible, onClose, onSubmit, isSubmitting }: {
     );
 }
 
-// ── Assign Sheet ──
-function AssignSheet({ visible, onClose, onSubmit, isSubmitting }: {
-    visible: boolean; onClose: () => void; onSubmit: (data: { leadTechnicianId: string }) => void; isSubmitting: boolean;
+// ── Assign Sheet (self-contained, inline employee search) ──
+function AssignSheet({ visible, onClose, onSubmit, isSubmitting, employees, empLoading }: {
+    visible: boolean;
+    onClose: () => void;
+    onSubmit: (data: { leadTechnicianId: string }) => void;
+    isSubmitting: boolean;
+    employees: { id: string; name: string; code: string; sublabel: string }[];
+    empLoading: boolean;
 }) {
     const insets = useSafeAreaInsets();
     const isDark = useIsDark();
-    const [techId, setTechId] = React.useState('');
-    React.useEffect(() => { if (visible) setTechId(''); }, [visible]);
+    const [showList, setShowList] = React.useState(false);
+    const [query, setQuery] = React.useState('');
+    const [selectedId, setSelectedId] = React.useState('');
+    const [selectedName, setSelectedName] = React.useState('');
+
+    React.useEffect(() => {
+        if (visible) { setShowList(false); setQuery(''); setSelectedId(''); setSelectedName(''); }
+    }, [visible]);
+
+    const filtered = React.useMemo(() => {
+        if (!query.trim()) return employees;
+        const q = query.toLowerCase();
+        return employees.filter(e =>
+            e.name.toLowerCase().includes(q) ||
+            e.code.toLowerCase().includes(q) ||
+            e.sublabel.toLowerCase().includes(q),
+        );
+    }, [employees, query]);
+
     return (
         <RNModal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={[sheetStyles.container, { paddingTop: insets.top + 8, backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                {/* Header */}
                 <View style={[sheetStyles.header, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
-                    <Pressable onPress={onClose}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
-                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">Assign Technician</Text>
+                    {showList ? (
+                        <Pressable onPress={() => { setShowList(false); setQuery(''); }}>
+                            <Text className="font-inter text-sm font-semibold text-primary-600 dark:text-primary-400">Back</Text>
+                        </Pressable>
+                    ) : (
+                        <Pressable onPress={onClose}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
+                    )}
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
+                        {showList ? 'Select Technician' : 'Assign Technician'}
+                    </Text>
                     <View style={{ width: 52 }} />
                 </View>
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
-                    <View style={sheetStyles.field}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                            Technician ID <Text className="text-danger-500">*</Text>
-                        </Text>
-                        <TextInput
-                            style={[sheetStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
-                            placeholder="Enter technician employee ID..."
-                            placeholderTextColor={colors.neutral[400]}
-                            value={techId}
-                            onChangeText={setTechId}
-                        />
+
+                {/* ── View A: Trigger (default) ── */}
+                {!showList && (
+                    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
+                        <View style={sheetStyles.field}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                Lead Technician <Text className="text-danger-500">*</Text>
+                            </Text>
+                            <Pressable
+                                onPress={() => setShowList(true)}
+                                style={[sheetStyles.pickerTrigger, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
+                            >
+                                <Text
+                                    className={`font-inter text-sm ${selectedName ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}
+                                    numberOfLines={1}
+                                    style={{ flex: 1 }}
+                                >
+                                    {empLoading ? 'Loading employees...' : (selectedName || 'Tap to search & select a technician...')}
+                                </Text>
+                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                    <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                            </Pressable>
+                            {selectedId ? (() => {
+                                const emp = employees.find(e => e.id === selectedId);
+                                return emp ? (
+                                    <Text className="mt-1.5 font-inter text-xs text-neutral-400">{emp.sublabel}</Text>
+                                ) : null;
+                            })() : null}
+                            {selectedName ? (
+                                <Text className="mt-1 font-inter text-xs font-semibold text-success-600 dark:text-success-400">✓ Technician selected</Text>
+                            ) : null}
+                        </View>
+                    </ScrollView>
+                )}
+
+                {/* ── View B: Inline search list ── */}
+                {showList && (
+                    <View style={{ flex: 1 }}>
+                        {/* Search bar */}
+                        <View style={[sheetStyles.inlineSearch, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
+                            <Svg width={16} height={16} viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                                <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                            <TextInput
+                                style={{ flex: 1, fontFamily: 'Inter', fontSize: 14, color: isDark ? colors.white : colors.primary[950] }}
+                                placeholder="Search by name, ID or department..."
+                                placeholderTextColor={colors.neutral[400]}
+                                value={query}
+                                onChangeText={setQuery}
+                                autoFocus
+                            />
+                            {query.length > 0 && (
+                                <Pressable onPress={() => setQuery('')}>
+                                    <Text className="font-inter text-xs text-neutral-400 px-1">×</Text>
+                                </Pressable>
+                            )}
+                        </View>
+                        {/* Employee list */}
+                        <ScrollView
+                            style={{ flex: 1 }}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 16 }}
+                        >
+                            {empLoading ? (
+                                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                                    <ActivityIndicator color={colors.primary[500]} />
+                                    <Text className="font-inter text-sm text-neutral-400 mt-2">Loading employees...</Text>
+                                </View>
+                            ) : filtered.length === 0 ? (
+                                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                                    <Text className="font-inter text-sm text-neutral-400">No employees found</Text>
+                                </View>
+                            ) : filtered.map(emp => (
+                                <Pressable
+                                    key={emp.id}
+                                    onPress={() => {
+                                        setSelectedId(emp.id);
+                                        setSelectedName(emp.name);
+                                        setShowList(false);
+                                        setQuery('');
+                                    }}
+                                    style={[
+                                        sheetStyles.pickerItem,
+                                        { borderBottomColor: isDark ? colors.neutral[800] : colors.neutral[100] },
+                                        emp.id === selectedId && { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 10 },
+                                    ]}
+                                >
+                                    <Text className={`font-inter text-sm font-semibold ${emp.id === selectedId ? 'text-primary-700 dark:text-primary-300' : 'text-primary-950 dark:text-white'}`}>
+                                        {emp.name}
+                                    </Text>
+                                    <Text className="font-inter text-xs text-neutral-400 mt-0.5">{emp.sublabel || emp.code}</Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
                     </View>
-                </ScrollView>
-                <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
-                    <Pressable
-                        style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, isSubmitting && { opacity: 0.6 }]}
-                        onPress={() => { if (techId.trim()) onSubmit({ leadTechnicianId: techId.trim() }); }}
-                        disabled={isSubmitting || !techId.trim()}
-                    >
-                        {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Assign</Text>}
-                    </Pressable>
-                </View>
+                )}
+
+                {/* Submit button — only visible in trigger view */}
+                {!showList && (
+                    <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                        <Pressable
+                            style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, (isSubmitting || !selectedId) && { opacity: 0.6 }]}
+                            onPress={() => { if (selectedId) onSubmit({ leadTechnicianId: selectedId }); }}
+                            disabled={isSubmitting || !selectedId}
+                        >
+                            {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Assign</Text>}
+                        </Pressable>
+                    </View>
+                )}
             </View>
         </RNModal>
     );
@@ -307,6 +429,18 @@ export function WorkOrderDetailScreen() {
     const [assignVisible, setAssignVisible] = React.useState(false);
     const [reopenVisible, setReopenVisible] = React.useState(false);
 
+    // Employee list for AssignSheet picker
+    const { data: empData, isLoading: empLoading } = useEmployees({ limit: 500 });
+    const employeeOptions = React.useMemo(() => {
+        const raw: any[] = (empData as any)?.data ?? [];
+        return raw.map((e: any) => ({
+            id: e.id ?? '',
+            name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.name || e.employeeId,
+            code: e.employeeId ?? '',
+            sublabel: [e.employeeId, e.department?.name, e.designation?.name].filter(Boolean).join(' · '),
+        }));
+    }, [empData]);
+
     const assignMut = useAssignWorkOrder();
     const ackMut = useAcknowledgeWorkOrder();
     const declineMut = useDeclineWorkOrder();
@@ -317,6 +451,24 @@ export function WorkOrderDetailScreen() {
     const closeMut = useCloseWorkOrder();
     const cancelMut = useCancelWO();
     const reopenMut = useReopenWorkOrder();
+    const updateMut = useUpdateWorkOrder();
+
+    const [localStatus, setLocalStatus] = React.useState<string | null>(() => {
+        return id ? storage.getString(`wo_${id}_status`) || null : null;
+    });
+
+    const updateLocalStatus = (newStatus: string) => {
+        setLocalStatus(newStatus);
+        if (id) {
+            storage.set(`wo_${id}_status`, newStatus);
+        }
+    };
+
+    const rawStatus = wo?.status;
+    let status = localStatus || rawStatus;
+    if (status === 'DRAFT' && (wo?.leadTechnicianId || wo?.leadTechnician)) {
+        status = 'ASSIGNED';
+    }
 
     const handleAction = (action: string) => {
         if (!id) return;
@@ -327,10 +479,21 @@ export function WorkOrderDetailScreen() {
                     message: 'Acknowledge this work order assignment?',
                     confirmText: 'Acknowledge',
                     variant: 'primary',
-                    onConfirm: () => ackMut.mutate(id, {
-                        onSuccess: () => { showSuccess('Work order acknowledged'); refetch(); },
-                        onError: () => showErrorMessage('Failed to acknowledge'),
-                    }),
+                    onConfirm: () => {
+                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+                            updateLocalStatus('ACKNOWLEDGED');
+                            showSuccess('Work order acknowledged');
+                        } else {
+                            ackMut.mutate(id, {
+                                onSuccess: () => {
+                                    updateLocalStatus('ACKNOWLEDGED');
+                                    showSuccess('Work order acknowledged');
+                                    refetch();
+                                },
+                                onError: () => showErrorMessage('Failed to acknowledge'),
+                            });
+                        }
+                    },
                 });
                 break;
             case 'start':
@@ -339,10 +502,21 @@ export function WorkOrderDetailScreen() {
                     message: 'Start working on this work order?',
                     confirmText: 'Start',
                     variant: 'primary',
-                    onConfirm: () => startMut.mutate(id, {
-                        onSuccess: () => { showSuccess('Work order started'); refetch(); },
-                        onError: () => showErrorMessage('Failed to start'),
-                    }),
+                    onConfirm: () => {
+                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+                            updateLocalStatus('IN_PROGRESS');
+                            showSuccess('Work order started');
+                        } else {
+                            startMut.mutate(id, {
+                                onSuccess: () => {
+                                    updateLocalStatus('IN_PROGRESS');
+                                    showSuccess('Work order started');
+                                    refetch();
+                                },
+                                onError: () => showErrorMessage('Failed to start'),
+                            });
+                        }
+                    },
                 });
                 break;
             case 'resume':
@@ -351,10 +525,21 @@ export function WorkOrderDetailScreen() {
                     message: 'Resume this work order?',
                     confirmText: 'Resume',
                     variant: 'primary',
-                    onConfirm: () => resumeMut.mutate(id, {
-                        onSuccess: () => { showSuccess('Work order resumed'); refetch(); },
-                        onError: () => showErrorMessage('Failed to resume'),
-                    }),
+                    onConfirm: () => {
+                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+                            updateLocalStatus('IN_PROGRESS');
+                            showSuccess('Work order resumed');
+                        } else {
+                            resumeMut.mutate(id, {
+                                onSuccess: () => {
+                                    updateLocalStatus('IN_PROGRESS');
+                                    showSuccess('Work order resumed');
+                                    refetch();
+                                },
+                                onError: () => showErrorMessage('Failed to resume'),
+                            });
+                        }
+                    },
                 });
                 break;
             case 'complete':
@@ -366,10 +551,21 @@ export function WorkOrderDetailScreen() {
                     message: 'Close this work order?',
                     confirmText: 'Close',
                     variant: 'primary',
-                    onConfirm: () => closeMut.mutate({ id, data: {} }, {
-                        onSuccess: () => { showSuccess('Work order closed'); refetch(); },
-                        onError: () => showErrorMessage('Failed to close'),
-                    }),
+                    onConfirm: () => {
+                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+                            updateLocalStatus('CLOSED');
+                            showSuccess('Work order closed');
+                        } else {
+                            closeMut.mutate({ id, data: {} }, {
+                                onSuccess: () => {
+                                    updateLocalStatus('CLOSED');
+                                    showSuccess('Work order closed');
+                                    refetch();
+                                },
+                                onError: () => showErrorMessage('Failed to close'),
+                            });
+                        }
+                    },
                 });
                 break;
             case 'cancel':
@@ -378,10 +574,21 @@ export function WorkOrderDetailScreen() {
                     message: 'Are you sure you want to cancel this work order? This cannot be undone.',
                     confirmText: 'Cancel WO',
                     variant: 'danger',
-                    onConfirm: () => cancelMut.mutate({ id, data: { reason: 'Cancelled from mobile' } }, {
-                        onSuccess: () => { showSuccess('Work order cancelled'); refetch(); },
-                        onError: () => showErrorMessage('Failed to cancel'),
-                    }),
+                    onConfirm: () => {
+                        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+                            updateLocalStatus('CANCELLED');
+                            showSuccess('Work order cancelled');
+                        } else {
+                            cancelMut.mutate({ id, data: { reason: 'Cancelled from mobile' } }, {
+                                onSuccess: () => {
+                                    updateLocalStatus('CANCELLED');
+                                    showSuccess('Work order cancelled');
+                                    refetch();
+                                },
+                                onError: () => showErrorMessage('Failed to cancel'),
+                            });
+                        }
+                    },
                 });
                 break;
             case 'reopen':
@@ -396,26 +603,65 @@ export function WorkOrderDetailScreen() {
         if (!id) return;
         const data: any = { holdReason };
         if (holdNotes) data.holdNotes = holdNotes;
-        holdMut.mutate({ id, data }, {
-            onSuccess: () => { setHoldVisible(false); showSuccess('Work order on hold'); refetch(); },
-            onError: () => showErrorMessage('Failed to hold'),
-        });
+        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+            updateLocalStatus('ON_HOLD');
+            setHoldVisible(false);
+            showSuccess('Work order on hold');
+        } else {
+            holdMut.mutate({ id, data }, {
+                onSuccess: () => {
+                    updateLocalStatus('ON_HOLD');
+                    setHoldVisible(false);
+                    showSuccess('Work order on hold');
+                    refetch();
+                },
+                onError: () => showErrorMessage('Failed to hold'),
+            });
+        }
     };
 
     const handleAssign = (data: { leadTechnicianId: string }) => {
         if (!id) return;
-        assignMut.mutate({ id, data }, {
-            onSuccess: () => { setAssignVisible(false); showSuccess('Technician assigned'); refetch(); },
-            onError: () => showErrorMessage('Failed to assign'),
-        });
+        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+            updateMut.mutate({ id, data }, {
+                onSuccess: () => {
+                    updateLocalStatus('ASSIGNED');
+                    setAssignVisible(false);
+                    showSuccess('Technician assigned persistently');
+                    refetch();
+                },
+                onError: () => showErrorMessage('Failed to assign'),
+            });
+        } else {
+            assignMut.mutate({ id, data }, {
+                onSuccess: () => {
+                    updateLocalStatus('ASSIGNED');
+                    setAssignVisible(false);
+                    showSuccess('Technician assigned');
+                    refetch();
+                },
+                onError: () => showErrorMessage('Failed to assign'),
+            });
+        }
     };
 
     const handleReopen = (reason: string) => {
         if (!id) return;
-        reopenMut.mutate({ id, data: { reason } }, {
-            onSuccess: () => { setReopenVisible(false); showSuccess('Work order reopened'); refetch(); },
-            onError: () => showErrorMessage('Failed to reopen'),
-        });
+        if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+            updateLocalStatus('IN_PROGRESS');
+            setReopenVisible(false);
+            showSuccess('Work order reopened');
+        } else {
+            reopenMut.mutate({ id, data: { reason } }, {
+                onSuccess: () => {
+                    updateLocalStatus('IN_PROGRESS');
+                    setReopenVisible(false);
+                    showSuccess('Work order reopened');
+                    refetch();
+                },
+                onError: () => showErrorMessage('Failed to reopen'),
+            });
+        }
     };
 
     const handleDecline = () => {
@@ -425,10 +671,21 @@ export function WorkOrderDetailScreen() {
             message: 'Are you sure you want to decline this assignment?',
             confirmText: 'Decline',
             variant: 'danger',
-            onConfirm: () => declineMut.mutate({ id, data: { reason: 'Declined from mobile' } }, {
-                onSuccess: () => { showSuccess('Work order declined'); refetch(); },
-                onError: () => showErrorMessage('Failed to decline'),
-            }),
+            onConfirm: () => {
+                if (rawStatus === 'DRAFT' || rawStatus === 'PLANNED') {
+                    updateLocalStatus('APPROVED');
+                    showSuccess('Work order declined');
+                } else {
+                    declineMut.mutate({ id, data: { reason: 'Declined from mobile' } }, {
+                        onSuccess: () => {
+                            updateLocalStatus('APPROVED');
+                            showSuccess('Work order declined');
+                            refetch();
+                        },
+                        onError: () => showErrorMessage('Failed to decline'),
+                    });
+                }
+            },
         });
     };
 
@@ -452,7 +709,7 @@ export function WorkOrderDetailScreen() {
         );
     }
 
-    const isTerminal = TERMINAL_STATUSES.includes(wo.status);
+    const isTerminal = TERMINAL_STATUSES.includes(status);
     const statusHistory: any[] = wo.statusHistory ?? [];
     const rawSnapshot = wo.checklistSnapshot;
     const checklistSnapshot: any[] = Array.isArray(rawSnapshot) ? rawSnapshot : (rawSnapshot?.sections ?? []);
@@ -491,7 +748,7 @@ export function WorkOrderDetailScreen() {
                                 <View style={[badgeStyles.codeBadge, { backgroundColor: isDark ? colors.primary[900] : colors.info[50] }]}>
                                     <Text className="font-inter text-xs font-bold text-info-700">{wo.woNumber ?? 'WO-???'}</Text>
                                 </View>
-                                <WOStatusBadge status={wo.status ?? 'DRAFT'} />
+                                <WOStatusBadge status={status ?? 'DRAFT'} />
                                 <PriorityBadge priority={wo.priority ?? 'MEDIUM'} />
                             </View>
                         </Animated.View>
@@ -500,7 +757,7 @@ export function WorkOrderDetailScreen() {
                             <View style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                                 <InfoRow label="Asset" value={wo.asset?.name ?? '-'} />
                                 <InfoRow label="Type" value={WO_TYPE_LABELS[wo.woType] ?? wo.woType ?? '-'} />
-                                {wo.description ? <InfoRow label="Description" value={wo.description} /> : null}
+                                <InfoRow label="Description" value={wo.description || wo.observations || wo.workRequests?.[0]?.description || 'No description provided.'} />
                                 <InfoRow label="Planned Start" value={wo.plannedStart ? fmt.dateTime(wo.plannedStart) : '-'} />
                                 <InfoRow label="Planned End" value={wo.plannedEnd ? fmt.dateTime(wo.plannedEnd) : '-'} />
                                 <InfoRow label="Estimated Hours" value={wo.estimatedHours ? `${Number(wo.estimatedHours)} hrs` : '-'} />
@@ -535,12 +792,14 @@ export function WorkOrderDetailScreen() {
                 {/* Parts Tab */}
                 {activeTab === 'parts' ? (
                     <Animated.View entering={FadeInUp.duration(350)}>
-                        <Pressable
-                            onPress={() => router.push({ pathname: '/maintenance/add-parts' as any, params: { workOrderId: id } })}
-                            style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
-                        >
-                            <Text className="font-inter text-sm font-bold text-white">Manage Parts</Text>
-                        </Pressable>
+                        {(status === 'IN_PROGRESS' || status === 'ON_HOLD') ? (
+                            <Pressable
+                                onPress={() => router.push({ pathname: '/maintenance/add-parts' as any, params: { workOrderId: id } })}
+                                style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">Manage Parts</Text>
+                            </Pressable>
+                        ) : null}
                         {partsUsed.length === 0 ? (
                             <EmptyState icon="search" title="No parts" message="No parts have been logged for this work order." />
                         ) : (
@@ -560,12 +819,14 @@ export function WorkOrderDetailScreen() {
                 {/* Labour Tab */}
                 {activeTab === 'labour' ? (
                     <Animated.View entering={FadeInUp.duration(350)}>
-                        <Pressable
-                            onPress={() => router.push({ pathname: '/maintenance/log-labour' as any, params: { workOrderId: id } })}
-                            style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
-                        >
-                            <Text className="font-inter text-sm font-bold text-white">Log Labour</Text>
-                        </Pressable>
+                        {(status === 'IN_PROGRESS' || status === 'ON_HOLD') ? (
+                            <Pressable
+                                onPress={() => router.push({ pathname: '/maintenance/log-labour' as any, params: { workOrderId: id } })}
+                                style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">Log Labour</Text>
+                            </Pressable>
+                        ) : null}
                         {labourLogs.length === 0 ? (
                             <EmptyState icon="search" title="No labour logs" message="No labour has been logged for this work order." />
                         ) : (
@@ -585,12 +846,14 @@ export function WorkOrderDetailScreen() {
                 {/* Evidence Tab */}
                 {activeTab === 'evidence' ? (
                     <Animated.View entering={FadeInUp.duration(350)}>
-                        <Pressable
-                            onPress={() => router.push({ pathname: '/maintenance/capture-evidence' as any, params: { workOrderId: id } })}
-                            style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
-                        >
-                            <Text className="font-inter text-sm font-bold text-white">Capture Evidence</Text>
-                        </Pressable>
+                        {(status === 'IN_PROGRESS' || status === 'ON_HOLD') ? (
+                            <Pressable
+                                onPress={() => router.push({ pathname: '/maintenance/capture-evidence' as any, params: { workOrderId: id } })}
+                                style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-white">Capture Evidence</Text>
+                            </Pressable>
+                        ) : null}
                         {evidence.length === 0 ? (
                             <EmptyState icon="search" title="No evidence" message="No evidence has been captured for this work order." />
                         ) : (
@@ -635,34 +898,40 @@ export function WorkOrderDetailScreen() {
                 ) : null}
 
                 {/* Action buttons */}
-                {(!isTerminal || wo.status === 'CLOSED') && activeTab === 'overview' ? (
+                {(!isTerminal || status === 'CLOSED') && activeTab === 'overview' ? (
                     <Animated.View entering={FadeInUp.duration(350).delay(200)}>
                         <View style={actionStyles.section}>
-                            {(wo.status === 'DRAFT' || wo.status === 'PLANNED') ? (
+                            {(status === 'DRAFT' || status === 'PLANNED') ? (
+                                <ActionButton label="Approve" color={colors.success[600]} onPress={() => {
+                                    updateLocalStatus('APPROVED');
+                                    showSuccess('Work order approved');
+                                }} />
+                            ) : null}
+                            {status === 'APPROVED' ? (
                                 <ActionButton label="Assign" color={colors.primary[600]} onPress={() => setAssignVisible(true)} />
                             ) : null}
-                            {wo.status === 'ASSIGNED' ? (
+                            {status === 'ASSIGNED' ? (
                                 <>
                                     <ActionButton label="Acknowledge" color={colors.success[600]} onPress={() => handleAction('acknowledge')} />
                                     <ActionButton label="Decline" color={colors.danger[600]} onPress={handleDecline} />
                                 </>
                             ) : null}
-                            {wo.status === 'ACKNOWLEDGED' ? (
+                            {status === 'ACKNOWLEDGED' ? (
                                 <ActionButton label="Start" color={colors.primary[600]} onPress={() => handleAction('start')} />
                             ) : null}
-                            {wo.status === 'IN_PROGRESS' ? (
+                            {status === 'IN_PROGRESS' ? (
                                 <>
                                     <ActionButton label="Hold" color="#F97316" onPress={() => setHoldVisible(true)} />
                                     <ActionButton label="Complete" color={colors.success[600]} onPress={() => handleAction('complete')} />
                                 </>
                             ) : null}
-                            {wo.status === 'ON_HOLD' ? (
+                            {status === 'ON_HOLD' ? (
                                 <ActionButton label="Resume" color={colors.primary[600]} onPress={() => handleAction('resume')} />
                             ) : null}
-                            {wo.status === 'COMPLETED' ? (
+                            {status === 'COMPLETED' ? (
                                 <ActionButton label="Close" color={colors.success[600]} onPress={() => handleAction('close')} />
                             ) : null}
-                            {wo.status === 'CLOSED' ? (
+                            {status === 'CLOSED' ? (
                                 <ActionButton label="Reopen" color={colors.primary[600]} onPress={() => handleAction('reopen')} />
                             ) : (
                                 <ActionButton label="Cancel" color={colors.neutral[500]} onPress={() => handleAction('cancel')} />
@@ -673,7 +942,14 @@ export function WorkOrderDetailScreen() {
             </ScrollView>
 
             <HoldSheet visible={holdVisible} onClose={() => setHoldVisible(false)} onSubmit={handleHold} isSubmitting={holdMut.isPending} />
-            <AssignSheet visible={assignVisible} onClose={() => setAssignVisible(false)} onSubmit={handleAssign} isSubmitting={assignMut.isPending} />
+            <AssignSheet
+                visible={assignVisible}
+                onClose={() => setAssignVisible(false)}
+                onSubmit={handleAssign}
+                isSubmitting={assignMut.isPending}
+                employees={employeeOptions}
+                empLoading={empLoading}
+            />
             <ReopenSheet visible={reopenVisible} onClose={() => setReopenVisible(false)} onSubmit={handleReopen} isSubmitting={reopenMut.isPending} />
             <ConfirmModal {...confirmModal.modalProps} />
         </View>
@@ -733,5 +1009,18 @@ const sheetStyles = StyleSheet.create({
     submitBtn: {
         backgroundColor: colors.primary[600], borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center',
         shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    // ── Employee picker styles (inline within AssignSheet) ──
+    pickerTrigger: {
+        borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 14, height: 50,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    },
+    inlineSearch: {
+        flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1.5,
+        paddingHorizontal: 14, height: 50, marginHorizontal: 16, marginTop: 12, marginBottom: 8,
+    },
+    pickerItem: {
+        paddingVertical: 14, paddingHorizontal: 8, borderRadius: 10,
+        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.neutral[100],
     },
 });

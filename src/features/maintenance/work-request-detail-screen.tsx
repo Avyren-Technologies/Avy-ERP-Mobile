@@ -29,6 +29,7 @@ import {
     useTriageWorkRequest,
 } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkRequest } from '@/features/maintenance/api/use-maintenance-queries';
+import { useCompanyUsers } from '@/features/company-admin/api/use-company-admin-queries';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -255,6 +256,15 @@ export function WorkRequestDetailScreen() {
     const { data: response, isLoading, error, refetch } = useWorkRequest(id ?? '');
     const wr: any = (response as any)?.data ?? null;
 
+    const { data: usersData } = useCompanyUsers({ limit: 1000 });
+    const usersList = usersData?.data ?? [];
+    const userMap = new Map<string, string>(
+        usersList.map((u: any) => [
+            u.id,
+            [u.firstName, u.lastName].filter(Boolean).join(" ") || u.fullName || u.email || u.id,
+        ])
+    );
+
     const triageMutation = useTriageWorkRequest();
     const approveMutation = useApproveWorkRequest();
     const rejectMutation = useRejectWorkRequest();
@@ -266,7 +276,11 @@ export function WorkRequestDetailScreen() {
 
     const handleTriage = (data: { triageNotes?: string; assignedPriority: string }) => {
         if (!id) return;
-        triageMutation.mutate({ id, data }, {
+        const payload = {
+            triageNotes: data.triageNotes,
+            assignedPriority: data.assignedPriority || wr.priority,
+        };
+        triageMutation.mutate({ id, data: payload }, {
             onSuccess: () => { setTriageVisible(false); showSuccess('Triaged successfully'); refetch(); },
             onError: () => showErrorMessage('Failed to triage'),
         });
@@ -373,7 +387,7 @@ export function WorkRequestDetailScreen() {
 
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 32 }}
+                contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 80 }}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Title area */}
@@ -411,6 +425,7 @@ export function WorkRequestDetailScreen() {
                         {wr.locationDetail ? <InfoRow label="Location" value={wr.locationDetail} /> : null}
                         <InfoRow label="Requested By Date" value={wr.requestedByDate ? fmt.date(wr.requestedByDate) : '-'} />
                         <InfoRow label="Created" value={wr.createdAt ? fmt.dateTime(wr.createdAt) : '-'} />
+                        <InfoRow label="Requested By" value={wr.requestedByName || userMap.get(wr.requestedById) || wr.requestedById || '-'} />
                         {wr.triageNotes ? <InfoRow label="Triage Notes" value={wr.triageNotes} /> : null}
                         {wr.rejectionReason ? <InfoRow label="Rejection Reason" value={wr.rejectionReason} /> : null}
                     </View>
@@ -421,57 +436,76 @@ export function WorkRequestDetailScreen() {
                     <Animated.View entering={FadeInUp.duration(350).delay(250)}>
                         <View style={mainStyles.actionsSection}>
                             {wr.status === 'SUBMITTED' ? (
-                                <>
-                                    <ActionButton label="Triage" color={colors.primary[600]} onPress={() => setTriageVisible(true)} />
-                                    <ActionButton label="Approve" color={colors.success[600]} onPress={handleApprove} />
-                                    <ActionButton label="Reject" color={colors.danger[600]} onPress={() => setRejectVisible(true)} />
-                                </>
+                                <ActionButton label="Triage" color={colors.primary[600]} onPress={() => setTriageVisible(true)} />
                             ) : null}
 
                             {wr.status === 'UNDER_REVIEW' ? (
-                                <>
-                                    <ActionButton label="Approve" color={colors.success[600]} onPress={handleApprove} />
-                                    <ActionButton label="Reject" color={colors.danger[600]} onPress={() => setRejectVisible(true)} />
-                                </>
+                                <View style={mainStyles.actionRow}>
+                                    <ActionButton label="Approve" color={colors.success[600]} onPress={handleApprove} style={{ flex: 1 }} />
+                                    <ActionButton label="Reject" color={colors.danger[600]} onPress={() => setRejectVisible(true)} style={{ flex: 1 }} />
+                                </View>
                             ) : null}
 
                             {wr.status === 'APPROVED' ? (
                                 <ActionButton label="Convert to WO" color={colors.accent[600]} onPress={handleConvert} />
                             ) : null}
 
-                            <ActionButton label="Cancel" color={colors.neutral[500]} onPress={handleCancel} />
+                            <SecondaryButton label="Cancel" onPress={handleCancel} />
                         </View>
                     </Animated.View>
                 ) : null}
 
                 {/* Timeline */}
-                {statusHistory.length > 0 ? (
-                    <Animated.View entering={FadeInUp.duration(350).delay(350)}>
-                        <Text className="mb-3 mt-6 font-inter text-sm font-bold text-primary-950 dark:text-white">Timeline</Text>
-                        {statusHistory.map((entry: any, idx: number) => {
-                            const entryColor = getStatusColor(entry.status);
-                            return (
-                                <View key={idx} style={mainStyles.timelineItem}>
-                                    <View style={mainStyles.timelineLine}>
-                                        <View style={[mainStyles.timelineDot, { backgroundColor: entryColor.dot }]} />
-                                        {idx < statusHistory.length - 1 ? <View style={mainStyles.timelineBar} /> : null}
-                                    </View>
-                                    <View style={{ flex: 1, paddingBottom: 16 }}>
-                                        <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">
-                                            {(entry.status ?? '').replace(/_/g, ' ')}
-                                        </Text>
-                                        <Text className="font-inter text-[10px] text-neutral-400">
-                                            {(entry.changedAt ?? entry.createdAt) ? fmt.dateTime(entry.changedAt ?? entry.createdAt) : '-'}
-                                        </Text>
-                                        {entry.notes ? (
-                                            <Text className="mt-1 font-inter text-xs text-neutral-500">{entry.notes}</Text>
-                                        ) : null}
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </Animated.View>
-                ) : null}
+                <Animated.View entering={FadeInUp.duration(350).delay(350)}>
+                    <Text className="mb-3 mt-6 font-inter text-sm font-bold text-primary-950 dark:text-white">Timeline</Text>
+                    
+                    <TimelineItem 
+                        label="Created" 
+                        date={wr.requestedAt} 
+                        by={wr.requestedByName || userMap.get(wr.requestedById) || wr.requestedById} 
+                        isLast={!wr.triagedAt && !wr.approvedAt && !wr.rejectionReason && !wr.workOrderId} 
+                        fmt={fmt} 
+                    />
+                    
+                    {wr.triagedAt ? (
+                        <TimelineItem 
+                            label="Triaged" 
+                            date={wr.triagedAt} 
+                            by={wr.triagedByName || userMap.get(wr.triagedById) || wr.triagedById} 
+                            isLast={!wr.approvedAt && !wr.rejectionReason && !wr.workOrderId} 
+                            fmt={fmt} 
+                        />
+                    ) : null}
+                    
+                    {wr.approvedAt ? (
+                        <TimelineItem 
+                            label="Approved" 
+                            date={wr.approvedAt} 
+                            by={wr.approvedByName || userMap.get(wr.approvedById) || userMap.get(wr.reviewedById) || wr.approvedById || wr.reviewedById} 
+                            isLast={!wr.rejectionReason && !wr.workOrderId} 
+                            fmt={fmt} 
+                        />
+                    ) : null}
+                    
+                    {wr.rejectionReason ? (
+                        <TimelineItem 
+                            label="Rejected" 
+                            date={wr.updatedAt} 
+                            notes={wr.rejectionReason}
+                            isLast={!wr.workOrderId} 
+                            fmt={fmt} 
+                        />
+                    ) : null}
+                    
+                    {wr.workOrderId ? (
+                        <TimelineItem 
+                            label="Converted to WO" 
+                            date={wr.updatedAt} 
+                            isLast={true} 
+                            fmt={fmt} 
+                        />
+                    ) : null}
+                </Animated.View>
             </ScrollView>
 
             <TriageSheet
@@ -495,6 +529,43 @@ export function WorkRequestDetailScreen() {
 
 // ============ SUB-COMPONENTS ============
 
+function TimelineItem({
+    label,
+    date,
+    by,
+    notes,
+    isLast,
+    fmt,
+}: {
+    label: string;
+    date: string;
+    by?: string;
+    notes?: string;
+    isLast: boolean;
+    fmt: any;
+}) {
+    return (
+        <View style={mainStyles.timelineItem}>
+            <View style={mainStyles.timelineLine}>
+                <View style={[mainStyles.timelineDot, { backgroundColor: colors.primary[600] }]} />
+                {!isLast ? <View style={mainStyles.timelineBar} /> : null}
+            </View>
+            <View style={{ flex: 1, paddingBottom: 16 }}>
+                <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">
+                    {label}
+                </Text>
+                <Text className="font-inter text-[10px] text-neutral-400">
+                    {date ? fmt.dateTime(date) : '-'}
+                    {by ? ` by ${by}` : ''}
+                </Text>
+                {notes ? (
+                    <Text className="mt-1 font-inter text-xs text-neutral-500">{notes}</Text>
+                ) : null}
+            </View>
+        </View>
+    );
+}
+
 function HeaderBar({ onBack }: { onBack: () => void }) {
     const insets = useSafeAreaInsets();
     return (
@@ -515,13 +586,57 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
     );
 }
 
-function ActionButton({ label, color, onPress }: { label: string; color: string; onPress: () => void }) {
+function ActionButton({ 
+    label, 
+    color, 
+    onPress, 
+    style 
+}: { 
+    label: string; 
+    color: string; 
+    onPress: () => void; 
+    style?: any 
+}) {
     return (
         <Pressable
             onPress={onPress}
-            style={({ pressed }) => [mainStyles.actionBtn, { backgroundColor: color }, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [
+                mainStyles.actionBtn, 
+                { backgroundColor: color }, 
+                style,
+                pressed && { opacity: 0.85 }
+            ]}
         >
             <Text className="font-inter text-sm font-bold text-white">{label}</Text>
+        </Pressable>
+    );
+}
+
+function SecondaryButton({ 
+    label, 
+    onPress, 
+    style 
+}: { 
+    label: string; 
+    onPress: () => void; 
+    style?: any 
+}) {
+    const isDark = useIsDark();
+    return (
+        <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [
+                mainStyles.actionBtn, 
+                { 
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    borderColor: isDark ? colors.neutral[700] : colors.neutral[300],
+                }, 
+                style,
+                pressed && { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }
+            ]}
+        >
+            <Text className="font-inter text-sm font-bold text-neutral-600 dark:text-neutral-300">{label}</Text>
         </Pressable>
     );
 }
@@ -554,19 +669,19 @@ const mainStyles = StyleSheet.create({
         marginTop: 12,
     },
     actionsSection: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 10,
         marginTop: 20,
+        marginBottom: 24,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        gap: 10,
     },
     actionBtn: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
+        height: 48,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
-        flex: 1,
-        minWidth: 100,
     },
     timelineItem: {
         flexDirection: 'row',

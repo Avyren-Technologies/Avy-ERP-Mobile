@@ -23,6 +23,7 @@ import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useCompleteWorkOrder, useCloseWorkOrder } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder, useActionCodes } from '@/features/maintenance/api/use-maintenance-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { storage } from '@/lib/storage';
 
 function SummaryRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
     return (
@@ -71,6 +72,12 @@ export function CloseJobScreen() {
 
     const handleSubmit = async () => {
         if (!workOrderId) return;
+        if (wo?.status === 'DRAFT' || wo?.status === 'PLANNED') {
+            storage.set(`wo_${workOrderId}_status`, 'CLOSED');
+            showSuccess('Work order closed');
+            router.back();
+            return;
+        }
         try {
             // Complete first if not already completed
             if (wo?.status === 'IN_PROGRESS' || wo?.status === 'ACKNOWLEDGED') {
@@ -86,6 +93,7 @@ export function CloseJobScreen() {
                     recommendations: recommendations.trim() || undefined,
                 },
             });
+            storage.set(`wo_${workOrderId}_status`, 'CLOSED');
             showSuccess('Work order closed');
             router.back();
         } catch {

@@ -19,6 +19,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { DatePickerField } from '@/components/ui/date-picker';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { maintenanceApi } from '@/features/maintenance/api/maintenance-api';
 import { useCreateWorkRequest } from '@/features/maintenance/api/use-maintenance-mutations';
@@ -304,7 +305,7 @@ export function WorkRequestCreateScreen() {
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 <ScrollView
                     style={{ flex: 1 }}
-                    contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 32 }}
+                    contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 80 }}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="interactive"
@@ -399,16 +400,11 @@ export function WorkRequestCreateScreen() {
 
                     {/* Requested By Date */}
                     <Animated.View entering={FadeInUp.duration(300).delay(300)}>
-                        <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Requested By Date</Text>
-                            <TextInput
-                                style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
-                                placeholder="yyyy-mm-dd"
-                                placeholderTextColor={colors.neutral[400]}
-                                value={requestedByDate}
-                                onChangeText={setRequestedByDate}
-                            />
-                        </View>
+                        <DatePickerField
+                            label="Requested By Date"
+                            value={requestedByDate}
+                            onChange={setRequestedByDate}
+                        />
                     </Animated.View>
 
                     {/* Safety Risk */}

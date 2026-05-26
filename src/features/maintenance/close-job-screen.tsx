@@ -26,6 +26,7 @@ import {
     buildObservationsForComplete,
     getWorkOrderExecutionObservations,
 } from '@/features/maintenance/work-order-description';
+import { normalizeWorkOrderEvidence } from '@/features/maintenance/work-order-evidence';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 function SummaryRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
@@ -76,7 +77,7 @@ export function CloseJobScreen() {
     // Compute summary
     const partsUsed: any[] = wo?.partsUsed ?? [];
     const labourLogs: any[] = wo?.labourLogs ?? [];
-    const evidence: any[] = wo?.evidence ?? [];
+    const evidence = normalizeWorkOrderEvidence(wo);
     const checklistSnapshot: any[] = wo?.checklistSnapshot ?? [];
 
     const totalLabourHrs = labourLogs.reduce((sum: number, l: any) => sum + Number(l.hours ?? 0), 0);

@@ -46,6 +46,13 @@ import {
     getWorkOrderClosureHistory,
 } from '@/features/maintenance/work-order-description';
 import { formatMaintenanceWoType } from '@/features/maintenance/work-order-enums';
+import { canAddWorkOrderEvidence, normalizeWorkOrderEvidence } from '@/features/maintenance/work-order-evidence';
+import { WorkOrderEvidenceThumb } from '@/features/maintenance/work-order-evidence-thumb';
+import { SectionCard } from '@/features/maintenance/components/section-card';
+import {
+    resolveMaintenanceAssetName,
+    resolveMaintenanceAssetNumber,
+} from '@/features/maintenance/maintenance-asset-display';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { WOStatusBadge } from '@/features/maintenance/shared/wo-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -109,6 +116,25 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         <View style={infoStyles.row}>
             <Text className="font-inter text-xs font-semibold text-neutral-500">{label}</Text>
             <Text className="font-inter text-sm text-primary-950 dark:text-white" numberOfLines={3}>
+                {value}
+            </Text>
+        </View>
+    );
+}
+
+function StatBox({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
+    return (
+        <View
+            style={[
+                overviewStyles.statBox,
+                {
+                    backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+                    borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
+                },
+            ]}
+        >
+            <Text className="font-inter text-[10px] font-semibold text-neutral-500">{label}</Text>
+            <Text className="mt-1 font-inter text-xs font-bold text-primary-950 dark:text-white" numberOfLines={2}>
                 {value}
             </Text>
         </View>
@@ -693,7 +719,7 @@ export function WorkOrderDetailScreen() {
     const checklistSnapshot: any[] = Array.isArray(rawSnapshot) ? rawSnapshot : (rawSnapshot?.sections ?? []);
     const partsUsed: any[] = wo.partsUsed ?? [];
     const labourLogs: any[] = wo.labourLogs ?? [];
-    const evidence: any[] = wo.evidence ?? [];
+    const evidence = normalizeWorkOrderEvidence(wo);
     const closureHistory = getWorkOrderClosureHistory(wo);
 
     const labourCost = labourLogs.reduce((sum: number, l: any) => sum + computeLabourLineCost(l), 0);
@@ -742,23 +768,119 @@ export function WorkOrderDetailScreen() {
                         </Animated.View>
 
                         <Animated.View entering={FadeInUp.duration(350).delay(100)}>
-                            <View style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
-                                <InfoRow label="Asset" value={wo.asset?.name ?? '-'} />
-                                <InfoRow label="Type" value={formatMaintenanceWoType(wo.woType)} />
-                                <InfoRow label="Description" value={formatWorkOrderDescriptionDisplay(wo)} />
-                                {closureHistory.length > 0 ? (
-                                    <InfoRow label="Closure History" value={closureHistory.join('\n')} />
-                                ) : null}
-                                <InfoRow label="Planned Start" value={wo.plannedStart ? fmt.dateTime(wo.plannedStart) : '-'} />
-                                <InfoRow label="Planned End" value={wo.plannedEnd ? fmt.dateTime(wo.plannedEnd) : '-'} />
-                                {wo.actualStart ? <InfoRow label="Actual Start" value={fmt.dateTime(wo.actualStart)} /> : null}
-                                {wo.actualEnd ? <InfoRow label="Actual End" value={fmt.dateTime(wo.actualEnd)} /> : null}
-                                <InfoRow label="Estimated Hours" value={wo.estimatedHours ? `${Number(wo.estimatedHours)} hrs` : '-'} />
+                            <SectionCard title="Description" isDark={isDark}>
+                                <Text className="font-inter text-sm leading-5 text-primary-950 dark:text-white">
+                                    {formatWorkOrderDescriptionDisplay(wo)}
+                                </Text>
+                            </SectionCard>
+
+                            {closureHistory.length > 0 ? (
+                                <SectionCard title="Closure History" isDark={isDark}>
+                                    {closureHistory.map((note, idx) => (
+                                        <Text
+                                            key={`${idx}-${note.slice(0, 16)}`}
+                                            className="font-inter text-sm leading-5 text-neutral-700 dark:text-neutral-300"
+                                        >
+                                            {note}
+                                        </Text>
+                                    ))}
+                                </SectionCard>
+                            ) : null}
+
+                            <SectionCard title="Scheduling" isDark={isDark}>
+                                <View style={overviewStyles.statGrid}>
+                                    <StatBox
+                                        label="Planned Start"
+                                        value={wo.plannedStart ? fmt.dateTime(wo.plannedStart) : '—'}
+                                        isDark={isDark}
+                                    />
+                                    <StatBox
+                                        label="Planned End"
+                                        value={wo.plannedEnd ? fmt.dateTime(wo.plannedEnd) : '—'}
+                                        isDark={isDark}
+                                    />
+                                    <StatBox
+                                        label="Actual Start"
+                                        value={wo.actualStart ? fmt.dateTime(wo.actualStart) : '—'}
+                                        isDark={isDark}
+                                    />
+                                    <StatBox
+                                        label="Actual End"
+                                        value={wo.actualEnd ? fmt.dateTime(wo.actualEnd) : '—'}
+                                        isDark={isDark}
+                                    />
+                                </View>
+                            </SectionCard>
+
+                            {wo.findings ? (
+                                <SectionCard title="Findings" isDark={isDark}>
+                                    <Text className="font-inter text-sm leading-5 text-primary-950 dark:text-white">{wo.findings}</Text>
+                                </SectionCard>
+                            ) : null}
+
+                            {wo.completionNotes ? (
+                                <SectionCard title="Completion Notes" isDark={isDark}>
+                                    <Text className="font-inter text-sm leading-5 text-primary-950 dark:text-white">
+                                        {wo.completionNotes}
+                                    </Text>
+                                </SectionCard>
+                            ) : null}
+
+                            <SectionCard title="Asset" isDark={isDark}>
+                                {wo.asset ? (
+                                    <>
+                                        <Pressable
+                                            onPress={() =>
+                                                wo.asset?.id
+                                                    ? router.push({
+                                                          pathname: '/maintenance/asset-detail' as never,
+                                                          params: { id: wo.asset.id },
+                                                      })
+                                                    : undefined
+                                            }
+                                        >
+                                            <Text className="font-inter text-sm font-bold text-primary-600 dark:text-primary-400">
+                                                {resolveMaintenanceAssetName(wo.asset)}
+                                            </Text>
+                                        </Pressable>
+                                        <InfoRow label="Asset Number" value={resolveMaintenanceAssetNumber(wo.asset)} />
+                                        {wo.asset.location?.name ? (
+                                            <InfoRow label="Location" value={wo.asset.location.name} />
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <Text className="font-inter text-sm text-neutral-400">No asset linked.</Text>
+                                )}
+                            </SectionCard>
+
+                            <SectionCard title="Details" isDark={isDark}>
+                                <InfoRow label="WO Type" value={formatMaintenanceWoType(wo.woType)} />
+                                <InfoRow label="Priority" value={wo.priority ?? '—'} />
+                                <InfoRow
+                                    label="Estimated Hours"
+                                    value={wo.estimatedHours ? `${Number(wo.estimatedHours)} hrs` : '—'}
+                                />
                                 <InfoRow label="Lead Technician" value={resolvedTechName} />
-                                {wo.holdReason ? <InfoRow label="Hold Reason" value={wo.holdReason} /> : null}
-                                {wo.findings ? <InfoRow label="Findings" value={wo.findings} /> : null}
-                                <InfoRow label="Created" value={wo.createdAt ? fmt.dateTime(wo.createdAt) : '-'} />
-                            </View>
+                                {wo.jobPlan?.name ? <InfoRow label="Job Plan" value={wo.jobPlan.name} /> : null}
+                                {wo.pmSchedule?.name ? <InfoRow label="PM Schedule" value={wo.pmSchedule.name} /> : null}
+                                {wo.holdReason ? <InfoRow label="Hold Reason" value={String(wo.holdReason)} /> : null}
+                                <InfoRow label="Created" value={wo.createdAt ? fmt.dateTime(wo.createdAt) : '—'} />
+                                <InfoRow label="Updated" value={wo.updatedAt ? fmt.dateTime(wo.updatedAt) : '—'} />
+                            </SectionCard>
+
+                            {wo.workRequestId ? (
+                                <Pressable
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/maintenance/work-request-detail' as never,
+                                            params: { id: wo.workRequestId },
+                                        })
+                                    }
+                                    style={[mainStyles.actionLinkBtn, { backgroundColor: colors.accent[600], marginTop: 0 }]}
+                                >
+                                    <Text className="font-inter text-sm font-bold text-white">View Work Request</Text>
+                                </Pressable>
+                            ) : null}
                         </Animated.View>
                     </>
                 ) : null}
@@ -863,24 +985,20 @@ export function WorkOrderDetailScreen() {
                 {/* Evidence Tab */}
                 {activeTab === 'evidence' ? (
                     <Animated.View entering={FadeInUp.duration(350)}>
-                        {(status === 'IN_PROGRESS' || status === 'ON_HOLD') ? (
+                        {canAddWorkOrderEvidence(status) ? (
                             <Pressable
                                 onPress={() => router.push({ pathname: '/maintenance/capture-evidence' as any, params: { workOrderId: id } })}
                                 style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600], marginBottom: 16 }]}
                             >
-                                <Text className="font-inter text-sm font-bold text-white">Capture Evidence</Text>
+                                <Text className="font-inter text-sm font-bold text-white">Add Evidence</Text>
                             </Pressable>
                         ) : null}
                         {evidence.length === 0 ? (
-                            <EmptyState icon="search" title="No evidence" message="No evidence has been captured for this work order." />
+                            <EmptyState icon="search" title="No evidence" message="Upload photos or documents to document work performed." />
                         ) : (
-                            <View style={{ gap: 8 }}>
-                                {evidence.map((e: any, i: number) => (
-                                    <View key={i} style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
-                                        <InfoRow label="Caption" value={e.caption ?? 'Photo'} />
-                                        <InfoRow label="Type" value={e.fileType ?? 'image'} />
-                                        <InfoRow label="Uploaded" value={e.createdAt ? fmt.dateTime(e.createdAt) : '-'} />
-                                    </View>
+                            <View>
+                                {evidence.map((item) => (
+                                    <WorkOrderEvidenceThumb key={item.id} item={item} isDark={isDark} fmt={fmt} />
                                 ))}
                             </View>
                         )}
@@ -1027,6 +1145,22 @@ const badgeStyles = StyleSheet.create({
 
 const infoStyles = StyleSheet.create({
     row: { gap: 2 },
+});
+
+const overviewStyles = StyleSheet.create({
+    statGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    statBox: {
+        width: '47%',
+        flexGrow: 1,
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 12,
+        minHeight: 64,
+    },
 });
 
 const costStyles = StyleSheet.create({

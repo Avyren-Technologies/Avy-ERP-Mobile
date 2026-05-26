@@ -142,7 +142,8 @@ export const maintenanceApi = {
     addWOParts: (id: string, data: any) => client.post(`/maintenance/work-orders/${id}/parts`, data),
     returnWOPart: (id: string, partId: string, data: any) => client.post(`/maintenance/work-orders/${id}/parts/${partId}/return`, data),
     logWOLabour: (id: string, data: any) => client.post(`/maintenance/work-orders/${id}/labour`, data),
-    addWOEvidence: (id: string, data: any) => client.post(`/maintenance/work-orders/${id}/evidence`, data),
+    addWOEvidence: (id: string, evidence: unknown[]) =>
+        client.post(`/maintenance/work-orders/${id}/evidence`, { evidence }),
     getWOBoard: (params?: any) => client.get('/maintenance/work-orders/board', { params }),
 
     // ── PM Schedules ──

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { maintenanceApi } from '@/features/maintenance/api/maintenance-api';
+import { maintenanceLiveQueryOptions } from '@/features/maintenance/api/maintenance-query-sync';
 
 export const maintenanceKeys = {
     all: ['maintenance'] as const,
@@ -445,8 +446,7 @@ export function useWorkOrders(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.workOrders(params),
         queryFn: () => maintenanceApi.listWorkOrders(params),
-        staleTime: 0,
-        refetchOnMount: 'always',
+        ...maintenanceLiveQueryOptions,
     });
 }
 
@@ -455,8 +455,7 @@ export function useWorkOrder(id: string) {
         queryKey: maintenanceKeys.workOrder(id),
         queryFn: () => maintenanceApi.getWorkOrder(id),
         enabled: !!id,
-        staleTime: 0,
-        refetchOnMount: 'always',
+        ...maintenanceLiveQueryOptions,
     });
 }
 
@@ -464,8 +463,7 @@ export function useWOBoard(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.woBoard(params),
         queryFn: () => maintenanceApi.getWOBoard(params),
-        staleTime: 0,
-        refetchOnMount: 'always',
+        ...maintenanceLiveQueryOptions,
     });
 }
 
@@ -475,6 +473,7 @@ export function usePMSchedules(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.pmSchedules(params),
         queryFn: () => maintenanceApi.listPMSchedules(params),
+        ...maintenanceLiveQueryOptions,
     });
 }
 
@@ -483,6 +482,7 @@ export function usePMSchedule(id: string) {
         queryKey: maintenanceKeys.pmSchedule(id),
         queryFn: () => maintenanceApi.getPMSchedule(id),
         enabled: !!id,
+        ...maintenanceLiveQueryOptions,
     });
 }
 

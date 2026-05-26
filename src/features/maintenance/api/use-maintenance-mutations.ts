@@ -1,6 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { maintenanceApi } from '@/features/maintenance/api/maintenance-api';
+import {
+    invalidateMaintenancePMScheduleQueries,
+    invalidateMaintenanceWorkOrderQueries,
+} from '@/features/maintenance/api/maintenance-query-sync';
 import { maintenanceKeys } from '@/features/maintenance/api/use-maintenance-queries';
+import type { QueryClient } from '@tanstack/react-query';
+
+function syncWorkOrderQueries(queryClient: QueryClient, workOrderId: string) {
+    queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(workOrderId) });
+    invalidateMaintenanceWorkOrderQueries(queryClient);
+    invalidateMaintenancePMScheduleQueries(queryClient);
+}
 
 // ── Config ──
 
@@ -677,8 +688,8 @@ export function useCreateWorkOrder() {
     return useMutation({
         mutationFn: (data: any) => maintenanceApi.createWorkOrder(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            invalidateMaintenanceWorkOrderQueries(queryClient);
+            invalidateMaintenancePMScheduleQueries(queryClient);
         },
     });
 }
@@ -689,9 +700,7 @@ export function useUpdateWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.updateWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -702,9 +711,7 @@ export function useApproveWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data?: any }) =>
             maintenanceApi.approveWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -715,9 +722,7 @@ export function useAssignWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.assignWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -727,9 +732,7 @@ export function useAcknowledgeWorkOrder() {
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.acknowledgeWorkOrder(id),
         onSuccess: (_, id) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, id);
         },
     });
 }
@@ -740,9 +743,7 @@ export function useDeclineWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.declineWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -752,9 +753,7 @@ export function useStartWorkOrder() {
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.startWorkOrder(id),
         onSuccess: (_, id) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, id);
         },
     });
 }
@@ -765,9 +764,7 @@ export function useHoldWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.holdWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -777,9 +774,7 @@ export function useResumeWorkOrder() {
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.resumeWorkOrder(id),
         onSuccess: (_, id) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, id);
         },
     });
 }
@@ -790,9 +785,7 @@ export function useCompleteWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.completeWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -802,9 +795,7 @@ export function useQAReleaseWorkOrder() {
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.qaReleaseWorkOrder(id),
         onSuccess: (_, id) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, id);
         },
     });
 }
@@ -815,9 +806,7 @@ export function useCloseWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.closeWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -828,9 +817,7 @@ export function useRejectWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.rejectWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -841,9 +828,7 @@ export function useCancelWO() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.cancelWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -854,9 +839,7 @@ export function useReopenWorkOrder() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.reopenWorkOrder(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -867,7 +850,7 @@ export function useSubmitChecklist() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.submitChecklist(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -878,7 +861,7 @@ export function useAddWOParts() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.addWOParts(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -889,7 +872,7 @@ export function useReturnWOPart() {
         mutationFn: ({ id, partId, data }: { id: string; partId: string; data: any }) =>
             maintenanceApi.returnWOPart(id, partId, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -900,7 +883,7 @@ export function useLogWOLabour() {
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             maintenanceApi.logWOLabour(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -908,10 +891,10 @@ export function useLogWOLabour() {
 export function useAddWOEvidence() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) =>
-            maintenanceApi.addWOEvidence(id, data),
+        mutationFn: ({ id, evidence }: { id: string; evidence: unknown[] }) =>
+            maintenanceApi.addWOEvidence(id, evidence),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(variables.id) });
+            syncWorkOrderQueries(queryClient, variables.id);
         },
     });
 }
@@ -1139,10 +1122,9 @@ export function useGenerateWOFromPM() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.generateWOFromPM(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.pmSchedules() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
-            queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
+        onSuccess: (_, pmScheduleId) => {
+            invalidateMaintenancePMScheduleQueries(queryClient, pmScheduleId);
+            invalidateMaintenanceWorkOrderQueries(queryClient);
         },
     });
 }

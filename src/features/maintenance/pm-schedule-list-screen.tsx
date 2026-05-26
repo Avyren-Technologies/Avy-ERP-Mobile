@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     Pressable,
@@ -21,6 +21,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { usePMSchedules } from '@/features/maintenance/api/use-maintenance-queries';
+import { formatPMStrategyLabel } from '@/features/maintenance/pm-schedule-form';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -29,16 +30,8 @@ import type { CompanyFormatter } from '@/lib/format/company-formatter';
 const PM_FILTERS = [
     { key: 'all', label: 'All' },
     { key: 'ACTIVE', label: 'Active' },
-    { key: 'overdue', label: 'Overdue' },
+    { key: 'OVERDUE', label: 'Overdue' },
 ];
-
-const STRATEGY_LABELS: Record<string, string> = {
-    TIME_BASED: 'Time Based',
-    METER_BASED: 'Meter Based',
-    CONDITION_BASED: 'Condition',
-    CALENDAR_BASED: 'Calendar',
-    EVENT_BASED: 'Event',
-};
 
 function PMCard({ item, index, isDark, onPress, fmt }: {
     item: any; index: number; isDark: boolean; onPress: () => void; fmt: CompanyFormatter;
@@ -65,7 +58,7 @@ function PMCard({ item, index, isDark, onPress, fmt }: {
                 <View style={cardStyles.detailsRow}>
                     <View style={[cardStyles.typeBadge, { backgroundColor: isDark ? colors.accent[900] : colors.accent[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-accent-700">
-                            {STRATEGY_LABELS[item.strategyType] ?? item.strategyType}
+                            {formatPMStrategyLabel(item.strategyType)}
                         </Text>
                     </View>
                     {isOverdue ? (
@@ -93,9 +86,15 @@ export function PMScheduleListScreen() {
 
     const params: Record<string, unknown> = { search: search.trim() || undefined };
     if (activeFilter === 'ACTIVE') params.isActive = true;
-    if (activeFilter === 'overdue') params.overdue = true;
+    if (activeFilter === 'OVERDUE') params.isOverdue = true;
 
     const { data: response, isLoading, error, refetch, isFetching } = usePMSchedules(params);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch]),
+    );
 
     const items: any[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? [];
@@ -113,7 +112,7 @@ export function PMScheduleListScreen() {
             <Animated.View entering={FadeInDown.duration(400)}>
                 <AppTopHeader title="PM Schedules" subtitle={`${totalCount} schedule${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} />
             </Animated.View>
-            <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>
+            <Animated.View entering={FadeIn.duration(400).delay(150)}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search PM schedules..." filters={PM_FILTERS} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
             </Animated.View>
         </>
@@ -136,7 +135,6 @@ export function PMScheduleListScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    searchSection: { paddingHorizontal: 24, paddingVertical: 16 },
 });
 
 const cardStyles = StyleSheet.create({

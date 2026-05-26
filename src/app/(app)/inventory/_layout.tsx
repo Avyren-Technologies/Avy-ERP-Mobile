@@ -21,6 +21,7 @@ export default function InventoryLayout() {
       <Stack.Screen name="approvals" />
       <Stack.Screen name="reports" />
       <Stack.Screen name="config" />
+      <Stack.Screen name="production" />
     </Stack>
   );
 }

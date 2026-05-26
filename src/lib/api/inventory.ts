@@ -94,6 +94,35 @@ export const inventoryApi = {
   createVendorReturn: (data: Record<string, unknown>) => client.post('/inventory/transactions/vendor-return', data),
   listVendorReturns: (params?: Record<string, unknown>) => client.get('/inventory/transactions/vendor-return', { params }),
 
+  // ── Issue to Production ──
+  createIssueToProduction: (data: any) => client.post('/inventory/transactions/issue-to-production', data).then(r => r.data),
+  listIssueToProduction: (params?: any) => client.get('/inventory/transactions/issue-to-production', { params }).then(r => r.data),
+  getIssueToProduction: (id: string) => client.get(`/inventory/transactions/issue-to-production/${id}`).then(r => r.data),
+  getIssuesByWorkOrder: (workOrderId: string) => client.get(`/inventory/transactions/issue-to-production/wo/${workOrderId}`).then(r => r.data),
+
+  // ── FG Receipt ──
+  createFgReceipt: (data: any) => client.post('/inventory/transactions/fg-receipt', data).then(r => r.data),
+  listFgReceipts: (params?: any) => client.get('/inventory/transactions/fg-receipt', { params }).then(r => r.data),
+  getFgReceipt: (id: string) => client.get(`/inventory/transactions/fg-receipt/${id}`).then(r => r.data),
+
+  // ── Material Return ──
+  createMaterialReturn: (data: any) => client.post('/inventory/transactions/material-return', data).then(r => r.data),
+  listMaterialReturns: (params?: any) => client.get('/inventory/transactions/material-return', { params }).then(r => r.data),
+
+  // ── Production Scrap ──
+  createProductionScrap: (data: any) => client.post('/inventory/transactions/production-scrap', data).then(r => r.data),
+  listProductionScraps: (params?: any) => client.get('/inventory/transactions/production-scrap', { params }).then(r => r.data),
+
+  // ── Scrap Categories ──
+  listScrapCategories: (params?: any) => client.get('/inventory/scrap-categories', { params }).then(r => r.data),
+
+  // ── WO Reconciliation ──
+  getWoReconciliation: (workOrderId: string) => client.get(`/inventory/wo-reconciliation/${workOrderId}`).then(r => r.data),
+  generateWoReconciliation: (workOrderId: string) => client.post(`/inventory/wo-reconciliation/${workOrderId}/generate`).then(r => r.data),
+
+  // ── WIP Stock ──
+  getWipStock: (params?: any) => client.get('/inventory/stock/wip', { params }).then(r => r.data),
+
   // ── Stock Explorer ──
   getStockOnHand: (params?: Record<string, unknown>) => client.get('/inventory/stock/on-hand', { params }),
   getNetAvailable: (params?: Record<string, unknown>) => client.get('/inventory/stock/net-available', { params }),

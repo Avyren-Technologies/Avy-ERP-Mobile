@@ -557,3 +557,81 @@ export function useRejectTransaction() {
     onError: showError,
   });
 }
+
+// ── Production: Issue to Production ──
+
+export function useCreateIssueToProduction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => inventoryApi.createIssueToProduction(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.issueToProduction() });
+      invalidateStockQueries(qc);
+      qc.invalidateQueries({ queryKey: inventoryKeys.wipStock() });
+      showSuccess('Material issued to production');
+    },
+    onError: showError,
+  });
+}
+
+// ── Production: FG Receipt ──
+
+export function useCreateFgReceipt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => inventoryApi.createFgReceipt(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.fgReceipts() });
+      invalidateStockQueries(qc);
+      qc.invalidateQueries({ queryKey: inventoryKeys.wipStock() });
+      showSuccess('FG receipt recorded');
+    },
+    onError: showError,
+  });
+}
+
+// ── Production: Material Return ──
+
+export function useCreateMaterialReturn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => inventoryApi.createMaterialReturn(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.materialReturns() });
+      invalidateStockQueries(qc);
+      qc.invalidateQueries({ queryKey: inventoryKeys.wipStock() });
+      showSuccess('Material returned from production');
+    },
+    onError: showError,
+  });
+}
+
+// ── Production: Production Scrap ──
+
+export function useCreateProductionScrap() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => inventoryApi.createProductionScrap(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.productionScraps() });
+      invalidateStockQueries(qc);
+      qc.invalidateQueries({ queryKey: inventoryKeys.wipStock() });
+      showSuccess('Production scrap logged');
+    },
+    onError: showError,
+  });
+}
+
+// ── WO Reconciliation ──
+
+export function useGenerateWoReconciliation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (workOrderId: string) => inventoryApi.generateWoReconciliation(workOrderId),
+    onSuccess: (_: any, workOrderId: string) => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.woReconciliation(workOrderId) });
+      showSuccess('Reconciliation generated');
+    },
+    onError: showError,
+  });
+}

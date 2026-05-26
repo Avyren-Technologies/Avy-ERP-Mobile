@@ -1,0 +1,559 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { showError, showSuccess } from '@/components/ui/utils';
+import { inventoryApi } from '@/lib/api/inventory';
+import { inventoryKeys } from '@/features/inventory/api/inventory-keys';
+
+// ── Helper ──
+
+function invalidateStockQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: inventoryKeys.stockOnHand() });
+  qc.invalidateQueries({ queryKey: inventoryKeys.netAvailable() });
+  qc.invalidateQueries({ queryKey: inventoryKeys.stockByStatus() });
+  qc.invalidateQueries({ queryKey: inventoryKeys.dashboard() });
+}
+
+// ── Config ──
+
+export function useUpdateInventoryConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.updateConfig(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.config() });
+      showSuccess('Configuration updated');
+    },
+    onError: showError,
+  });
+}
+
+// ── Warehouses ──
+
+export function useCreateWarehouse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createWarehouse(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.warehouses() });
+      showSuccess('Warehouse created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateWarehouse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateWarehouse(id, data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.warehouse(variables.id) });
+      qc.invalidateQueries({ queryKey: inventoryKeys.warehouses() });
+      showSuccess('Warehouse updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteWarehouse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteWarehouse(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.warehouses() });
+      showSuccess('Warehouse deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Zones ──
+
+export function useCreateZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createZone(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.zones() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.warehouses() });
+      showSuccess('Zone created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateZone(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.zones() });
+      showSuccess('Zone updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteZone(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.zones() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.warehouses() });
+      showSuccess('Zone deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Bins ──
+
+export function useCreateBin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createBin(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.bins() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.zones() });
+      showSuccess('Bin created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateBin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateBin(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.bins() });
+      showSuccess('Bin updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteBin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteBin(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.bins() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.zones() });
+      showSuccess('Bin deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Item Policies ──
+
+export function useUpsertItemPolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.upsertItemPolicy(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.itemPolicies() });
+      showSuccess('Item policy saved');
+    },
+    onError: showError,
+  });
+}
+
+// ── Reason Codes ──
+
+export function useCreateReasonCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createReasonCode(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.reasonCodes() });
+      showSuccess('Reason code created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateReasonCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateReasonCode(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.reasonCodes() });
+      showSuccess('Reason code updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteReasonCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteReasonCode(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.reasonCodes() });
+      showSuccess('Reason code deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Approval Thresholds ──
+
+export function useCreateApprovalThreshold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createApprovalThreshold(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.approvalThresholds() });
+      showSuccess('Approval threshold created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateApprovalThreshold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateApprovalThreshold(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.approvalThresholds() });
+      showSuccess('Approval threshold updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteApprovalThreshold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteApprovalThreshold(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.approvalThresholds() });
+      showSuccess('Approval threshold deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Handling Units ──
+
+export function useCreateHandlingUnit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createHandlingUnit(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.handlingUnits() });
+      showSuccess('Handling unit created');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateHandlingUnit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateHandlingUnit(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.handlingUnits() });
+      showSuccess('Handling unit updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteHandlingUnit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteHandlingUnit(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.handlingUnits() });
+      showSuccess('Handling unit deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Receive Stock ──
+
+export function useCreateReceiveStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createReceiveStock(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.receiveStock() });
+      invalidateStockQueries(qc);
+      showSuccess('Stock received');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: GRN ──
+
+export function useCreateGrn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createGrn(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.grns() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingPutaway() });
+      invalidateStockQueries(qc);
+      showSuccess('GRN created');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Put-Away ──
+
+export function useConfirmPutaway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.confirmPutaway(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingPutaway() });
+      invalidateStockQueries(qc);
+      showSuccess('Put-away confirmed');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Move Stock ──
+
+export function useCreateMoveStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createMoveStock(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.moveStock() });
+      invalidateStockQueries(qc);
+      showSuccess('Stock move initiated');
+    },
+    onError: showError,
+  });
+}
+
+export function useConfirmMoveReceipt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.confirmMoveReceipt(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.moveStock() });
+      invalidateStockQueries(qc);
+      showSuccess('Move receipt confirmed');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Adjust Stock ──
+
+export function useCreateAdjustStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createAdjustStock(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.adjustments() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingApprovals() });
+      invalidateStockQueries(qc);
+      showSuccess('Stock adjustment created');
+    },
+    onError: showError,
+  });
+}
+
+export function useCreateOpeningBalance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createOpeningBalance(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.adjustments() });
+      invalidateStockQueries(qc);
+      showSuccess('Opening balance posted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Pick Items ──
+
+export function useCreatePickItems() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createPickItems(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.pickItems() });
+      invalidateStockQueries(qc);
+      showSuccess('Pick list created');
+    },
+    onError: showError,
+  });
+}
+
+export function useConfirmPick() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.confirmPick(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.pickItems() });
+      invalidateStockQueries(qc);
+      showSuccess('Pick confirmed');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Dispatch ──
+
+export function useCreateDispatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createDispatch(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.dispatches() });
+      invalidateStockQueries(qc);
+      showSuccess('Dispatch created');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Customer Return ──
+
+export function useCreateCustomerReturn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createCustomerReturn(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.customerReturns() });
+      invalidateStockQueries(qc);
+      showSuccess('Customer return logged');
+    },
+    onError: showError,
+  });
+}
+
+export function useInspectReturn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.inspectReturn(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.customerReturns() });
+      invalidateStockQueries(qc);
+      showSuccess('Return inspection completed');
+    },
+    onError: showError,
+  });
+}
+
+// ── Transactions: Vendor Return ──
+
+export function useCreateVendorReturn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createVendorReturn(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.vendorReturns() });
+      invalidateStockQueries(qc);
+      showSuccess('Vendor return created');
+    },
+    onError: showError,
+  });
+}
+
+// ── Counts ──
+
+export function useCreateCount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createCount(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.counts() });
+      showSuccess('Count created');
+    },
+    onError: showError,
+  });
+}
+
+export function useEnterCount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.enterCount(id, data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.count(variables.id) });
+      qc.invalidateQueries({ queryKey: inventoryKeys.counts() });
+      showSuccess('Count entries saved');
+    },
+    onError: showError,
+  });
+}
+
+export function useSubmitCount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.submitCount(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.counts() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingApprovals() });
+      showSuccess('Count submitted for approval');
+    },
+    onError: showError,
+  });
+}
+
+export function useApproveCount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      inventoryApi.approveCount(id, data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.count(variables.id) });
+      qc.invalidateQueries({ queryKey: inventoryKeys.counts() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingApprovals() });
+      invalidateStockQueries(qc);
+      showSuccess('Count approved');
+    },
+    onError: showError,
+  });
+}
+
+// ── Approvals ──
+
+export function useApproveTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.approveTransaction(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingApprovals() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.approvalHistory() });
+      invalidateStockQueries(qc);
+      showSuccess('Transaction approved');
+    },
+    onError: showError,
+  });
+}
+
+export function useRejectTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.rejectTransaction(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.pendingApprovals() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.approvalHistory() });
+      showSuccess('Transaction rejected');
+    },
+    onError: showError,
+  });
+}

@@ -25,6 +25,7 @@ import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { WOStatusBadge } from '@/features/maintenance/shared/wo-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { formatMaintenanceWoType } from '@/features/maintenance/work-order-enums';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 import type { CompanyFormatter } from '@/lib/format/company-formatter';
@@ -37,21 +38,8 @@ const WO_STATUS_FILTERS = [
     { key: 'IN_PROGRESS', label: 'In Progress' },
     { key: 'ON_HOLD', label: 'On Hold' },
     { key: 'COMPLETED', label: 'Completed' },
+    { key: 'CLOSED', label: 'Closed' },
 ];
-
-const WO_TYPE_LABELS: Record<string, string> = {
-    CORRECTIVE: 'Corrective',
-    PREVENTIVE: 'Preventive',
-    PREDICTIVE: 'Predictive',
-    CONDITION_BASED: 'Condition',
-    EMERGENCY: 'Emergency',
-    INSPECTION: 'Inspection',
-    CALIBRATION: 'Calibration',
-    MODIFICATION: 'Modification',
-    BREAKDOWN: 'Breakdown',
-    PM: 'PM',
-    OTHER: 'Other',
-};
 
 function WOCard({
     item,
@@ -123,7 +111,7 @@ function WOCard({
                 <View style={cardStyles.detailsRow}>
                     <View style={[cardStyles.typeBadge, { backgroundColor: isDark ? colors.accent[900] : colors.accent[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-accent-700">
-                            {WO_TYPE_LABELS[item.woType] ?? item.woType}
+                            {formatMaintenanceWoType(item.woType)}
                         </Text>
                     </View>
                     <PriorityBadge priority={item.priority ?? 'MEDIUM'} />

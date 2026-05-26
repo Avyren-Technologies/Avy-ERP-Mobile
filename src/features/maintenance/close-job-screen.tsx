@@ -22,6 +22,10 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useCompleteWorkOrder, useCloseWorkOrder } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder, useActionCodes } from '@/features/maintenance/api/use-maintenance-queries';
+import {
+    buildObservationsForComplete,
+    getWorkOrderExecutionObservations,
+} from '@/features/maintenance/work-order-description';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 function SummaryRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
@@ -53,9 +57,21 @@ export function CloseJobScreen() {
 
     const [rootCauseCode, setRootCauseCode] = React.useState('');
     const [actionTaken, setActionTaken] = React.useState('');
-    const [observations, setObservations] = React.useState('');
+    const [actionDescription, setActionDescription] = React.useState('');
+    const [closureReason, setClosureReason] = React.useState('');
+    const [jobObservations, setJobObservations] = React.useState('');
     const [recommendations, setRecommendations] = React.useState('');
     const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (!wo) return;
+        setRootCauseCode(wo.rootCauseCode ?? '');
+        setActionTaken(wo.actionTakenCode ?? '');
+        setActionDescription(wo.actionDescription ?? '');
+        setJobObservations(getWorkOrderExecutionObservations(wo));
+        setRecommendations(wo.recommendations ?? '');
+        setClosureReason('');
+    }, [wo?.id]);
 
     // Compute summary
     const partsUsed: any[] = wo?.partsUsed ?? [];
@@ -71,20 +87,27 @@ export function CloseJobScreen() {
 
     const handleSubmit = async () => {
         if (!workOrderId) return;
+        const reason = closureReason.trim();
+        if (!reason) {
+            showErrorMessage('Closure reason is required');
+            return;
+        }
         try {
-            // Complete first if not already completed
-            if (wo?.status === 'IN_PROGRESS' || wo?.status === 'ACKNOWLEDGED') {
-                await completeMut.mutateAsync({ id: workOrderId, data: { findings: observations.trim() || undefined } });
+            const completePayload = {
+                observations: buildObservationsForComplete(wo, {
+                    executionObservations: jobObservations,
+                }),
+                rootCauseCode: rootCauseCode || undefined,
+                actionTakenCode: actionTaken || undefined,
+                actionDescription: actionDescription.trim() || undefined,
+                recommendations: recommendations.trim() || undefined,
+            };
+            if (wo?.status === 'IN_PROGRESS' || wo?.status === 'ACKNOWLEDGED' || wo?.status === 'ON_HOLD') {
+                await completeMut.mutateAsync({ id: workOrderId, data: completePayload });
             }
-            // Then close
             await closeMut.mutateAsync({
                 id: workOrderId,
-                data: {
-                    rootCauseCode: rootCauseCode || undefined,
-                    actionTaken: actionTaken || undefined,
-                    observations: observations.trim() || undefined,
-                    recommendations: recommendations.trim() || undefined,
-                },
+                data: { reason },
             });
             showSuccess('Work order closed');
             router.back();
@@ -109,8 +132,16 @@ export function CloseJobScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <HeaderBar onBack={() => router.back()} />
 
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 32 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={[mainStyles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
+                    showsVerticalScrollIndicator
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                    nestedScrollEnabled
+                    alwaysBounceVertical
+                >
                     {/* Summary card */}
                     <Animated.View entering={FadeInUp.duration(300)}>
                         <View style={[styles.summaryCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
@@ -191,14 +222,51 @@ export function CloseJobScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* Observations */}
+                    {/* Closure reason */}
                     <Animated.View entering={FadeInUp.duration(300).delay(200)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Observations</Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                Closure Reason <Text className="text-danger-500">*</Text>
+                            </Text>
+                            <Text className="mb-2 font-inter text-[10px] text-neutral-500">Required to complete and close this work order</Text>
+                            <TextInput
+                                style={[formStyles.input, { height: 88, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
+                                placeholder="Why is this job complete and ready to close?"
+                                placeholderTextColor={colors.neutral[400]}
+                                value={closureReason}
+                                onChangeText={setClosureReason}
+                                multiline
+                            />
+                        </View>
+                    </Animated.View>
+
+                    {/* Action description */}
+                    <Animated.View entering={FadeInUp.duration(300).delay(215)}>
+                        <View style={formStyles.field}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Action Description</Text>
                             <TextInput
                                 style={[formStyles.input, { height: 80, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
-                                placeholder="Observations..." placeholderTextColor={colors.neutral[400]}
-                                value={observations} onChangeText={setObservations} multiline
+                                placeholder="Describe the action taken to resolve the issue..."
+                                placeholderTextColor={colors.neutral[400]}
+                                value={actionDescription}
+                                onChangeText={setActionDescription}
+                                multiline
+                            />
+                        </View>
+                    </Animated.View>
+
+                    {/* Job observations */}
+                    <Animated.View entering={FadeInUp.duration(300).delay(225)}>
+                        <View style={formStyles.field}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Observations</Text>
+                            <Text className="mb-2 font-inter text-[10px] text-neutral-500">Findings during the job (kept separate from closure reason)</Text>
+                            <TextInput
+                                style={[formStyles.input, { height: 80, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
+                                placeholder="Detailed observations about the failure/job..."
+                                placeholderTextColor={colors.neutral[400]}
+                                value={jobObservations}
+                                onChangeText={setJobObservations}
+                                multiline
                             />
                         </View>
                     </Animated.View>
@@ -215,11 +283,41 @@ export function CloseJobScreen() {
                         </View>
                     </Animated.View>
 
-                    {/* Submit */}
+                    {/* Actions */}
                     <Animated.View entering={FadeInUp.duration(300).delay(300)}>
-                        <Pressable style={({ pressed }) => [formStyles.submitBtn, pressed && { opacity: 0.85 }, isSubmitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={isSubmitting}>
-                            {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Complete &amp; Close</Text>}
-                        </Pressable>
+                        <View style={formStyles.actionsRow}>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    formStyles.cancelBtn,
+                                    {
+                                        backgroundColor: isDark ? colors.neutral[800] : colors.white,
+                                        borderColor: isDark ? colors.neutral[700] : colors.neutral[300],
+                                    },
+                                    pressed && { opacity: 0.85 },
+                                ]}
+                                onPress={() => router.back()}
+                                disabled={isSubmitting}
+                            >
+                                <Text className="font-inter text-sm font-semibold text-neutral-700 dark:text-neutral-200">Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    formStyles.submitBtn,
+                                    { flex: 1 },
+                                    pressed && { opacity: 0.85 },
+                                    isSubmitting && { opacity: 0.6 },
+                                ]}
+                                onPress={handleSubmit}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <Text className="font-inter text-base font-bold text-white">Complete &amp; Close</Text>
+                                )}
+                            </Pressable>
+                        </View>
+                        <View style={{ height: 24 }} />
                     </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -237,6 +335,13 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
         </LinearGradient>
     );
 }
+
+const mainStyles = StyleSheet.create({
+    scrollContent: {
+        flexGrow: 1,
+        padding: 24,
+    },
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
@@ -257,5 +362,26 @@ const formStyles = StyleSheet.create({
     input: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
     dropdown: { borderRadius: 10, borderWidth: 1, marginTop: 4, overflow: 'hidden' },
     dropdownItem: { paddingHorizontal: 14, paddingVertical: 11 },
-    submitBtn: { backgroundColor: colors.success[600], borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center', shadowColor: colors.success[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4, marginTop: 8 },
+    actionsRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
+    cancelBtn: {
+        minWidth: 110,
+        height: 52,
+        borderRadius: 14,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    submitBtn: {
+        backgroundColor: colors.success[600],
+        borderRadius: 14,
+        height: 52,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: colors.success[500],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
+    },
 });

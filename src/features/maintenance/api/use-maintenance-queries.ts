@@ -464,6 +464,8 @@ export function useWOBoard(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.woBoard(params),
         queryFn: () => maintenanceApi.getWOBoard(params),
+        staleTime: 0,
+        refetchOnMount: 'always',
     });
 }
 

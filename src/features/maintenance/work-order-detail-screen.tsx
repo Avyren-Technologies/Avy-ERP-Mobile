@@ -36,37 +36,73 @@ import {
 } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import {
+    computeLabourLineCost,
+    computePartLineCost,
+    resolveTechnicianName,
+} from '@/features/maintenance/work-order-parts-labour';
+import {
+    formatWorkOrderDescriptionDisplay,
+    getWorkOrderClosureHistory,
+} from '@/features/maintenance/work-order-description';
+import { formatMaintenanceWoType } from '@/features/maintenance/work-order-enums';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { WOStatusBadge } from '@/features/maintenance/shared/wo-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
-const WO_TYPE_LABELS: Record<string, string> = {
-    CORRECTIVE: 'Corrective',
-    PREVENTIVE: 'Preventive',
-    PREDICTIVE: 'Predictive',
-    CONDITION_BASED: 'Condition Based',
-    EMERGENCY: 'Emergency',
-    INSPECTION: 'Inspection',
-    CALIBRATION: 'Calibration',
-    MODIFICATION: 'Modification',
-    BREAKDOWN: 'Breakdown',
-    PM: 'PM',
-    OTHER: 'Other',
-};
-
 const TERMINAL_STATUSES = ['CLOSED', 'CANCELLED', 'REJECTED'];
 
-type TabKey = 'overview' | 'checklist' | 'parts' | 'labour' | 'evidence' | 'history';
+type TabKey = 'overview' | 'checklist' | 'parts' | 'labour' | 'cost' | 'evidence' | 'history';
 
 const TABS: { key: TabKey; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'checklist', label: 'Checklist' },
     { key: 'parts', label: 'Parts' },
     { key: 'labour', label: 'Labour' },
+    { key: 'cost', label: 'Cost' },
     { key: 'evidence', label: 'Evidence' },
     { key: 'history', label: 'History' },
 ];
+
+function CostRow({ label, value, bold, isDark }: { label: string; value: number; bold?: boolean; isDark: boolean }) {
+    return (
+        <View style={[costStyles.row, bold && costStyles.rowTotal, bold && { borderTopColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
+            <Text className={`font-inter text-sm ${bold ? 'font-bold text-primary-950 dark:text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                {label}
+            </Text>
+            <Text className={`font-inter text-sm ${bold ? 'font-bold text-primary-700 dark:text-primary-300' : 'font-semibold text-primary-950 dark:text-white'}`}>
+                {value.toFixed(2)}
+            </Text>
+        </View>
+    );
+}
+
+function CostTab({
+    labourCost,
+    partsCost,
+    vendorCost,
+    totalCost,
+    isDark,
+}: {
+    labourCost: number;
+    partsCost: number;
+    vendorCost: number;
+    totalCost: number;
+    isDark: boolean;
+}) {
+    return (
+        <Animated.View entering={FadeInUp.duration(350)}>
+            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-500">Cost Summary</Text>
+            <View style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
+                <CostRow label="Labour Cost" value={labourCost} isDark={isDark} />
+                <CostRow label="Parts Cost" value={partsCost} isDark={isDark} />
+                <CostRow label="Vendor Cost" value={vendorCost} isDark={isDark} />
+                <CostRow label="Total Cost" value={totalCost} bold isDark={isDark} />
+            </View>
+        </Animated.View>
+    );
+}
 
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
@@ -368,9 +404,25 @@ function AssignSheet({ visible, onClose, onSubmit, isSubmitting, employees, empL
     );
 }
 
-// ── Reopen Sheet ──
-function ReopenSheet({ visible, onClose, onSubmit, isSubmitting }: {
-    visible: boolean; onClose: () => void; onSubmit: (reason: string) => void; isSubmitting: boolean;
+// ── Reason Sheet (close / reopen) ──
+function ReasonSheet({
+    visible,
+    title,
+    placeholder,
+    submitLabel,
+    submitColor,
+    onClose,
+    onSubmit,
+    isSubmitting,
+}: {
+    visible: boolean;
+    title: string;
+    placeholder: string;
+    submitLabel: string;
+    submitColor: string;
+    onClose: () => void;
+    onSubmit: (reason: string) => void;
+    isSubmitting: boolean;
 }) {
     const insets = useSafeAreaInsets();
     const isDark = useIsDark();
@@ -381,7 +433,7 @@ function ReopenSheet({ visible, onClose, onSubmit, isSubmitting }: {
             <View style={[sheetStyles.container, { paddingTop: insets.top + 8, backgroundColor: isDark ? '#1A1730' : colors.white }]}>
                 <View style={[sheetStyles.header, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
                     <Pressable onPress={onClose}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
-                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">Reopen Work Order</Text>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{title}</Text>
                     <View style={{ width: 52 }} />
                 </View>
                 <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
@@ -390,8 +442,8 @@ function ReopenSheet({ visible, onClose, onSubmit, isSubmitting }: {
                             Reason <Text className="text-danger-500">*</Text>
                         </Text>
                         <TextInput
-                            style={[sheetStyles.input, { height: 100, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
-                            placeholder="Why are you reopening this work order?"
+                            style={[sheetStyles.input, { height: 120, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
+                            placeholder={placeholder}
                             placeholderTextColor={colors.neutral[400]}
                             value={reason}
                             onChangeText={setReason}
@@ -401,11 +453,11 @@ function ReopenSheet({ visible, onClose, onSubmit, isSubmitting }: {
                 </ScrollView>
                 <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
                     <Pressable
-                        style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, isSubmitting && { opacity: 0.6 }]}
+                        style={({ pressed }) => [sheetStyles.submitBtn, { backgroundColor: submitColor }, pressed && { opacity: 0.85 }, (isSubmitting || !reason.trim()) && { opacity: 0.6 }]}
                         onPress={() => { if (reason.trim()) onSubmit(reason.trim()); }}
                         disabled={isSubmitting || !reason.trim()}
                     >
-                        {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Reopen</Text>}
+                        {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">{submitLabel}</Text>}
                     </Pressable>
                 </View>
             </View>
@@ -434,6 +486,7 @@ export function WorkOrderDetailScreen() {
     const [activeTab, setActiveTab] = React.useState<TabKey>('overview');
     const [holdVisible, setHoldVisible] = React.useState(false);
     const [assignVisible, setAssignVisible] = React.useState(false);
+    const [closeVisible, setCloseVisible] = React.useState(false);
     const [reopenVisible, setReopenVisible] = React.useState(false);
 
     // Employee list for AssignSheet picker
@@ -540,18 +593,7 @@ export function WorkOrderDetailScreen() {
                 router.push({ pathname: '/maintenance/close-job' as any, params: { workOrderId: id } });
                 break;
             case 'close':
-                confirmModal.show({
-                    title: 'Close Work Order',
-                    message: 'Close this work order?',
-                    confirmText: 'Close',
-                    variant: 'primary',
-                    onConfirm: () => {
-                        closeMut.mutate({ id, data: {} }, {
-                            onSuccess: () => { showSuccess('Work order closed'); refetch(); },
-                            onError: () => showErrorMessage('Failed to close'),
-                        });
-                    },
-                });
+                setCloseVisible(true);
                 break;
             case 'cancel':
                 confirmModal.show({
@@ -590,6 +632,14 @@ export function WorkOrderDetailScreen() {
         assignMut.mutate({ id, data }, {
             onSuccess: () => { setAssignVisible(false); showSuccess('Technician assigned'); refetch(); },
             onError: () => showErrorMessage('Failed to assign'),
+        });
+    };
+
+    const handleClose = (reason: string) => {
+        if (!id) return;
+        closeMut.mutate({ id, data: { reason } }, {
+            onSuccess: () => { setCloseVisible(false); showSuccess('Work order closed'); refetch(); },
+            onError: () => showErrorMessage('Failed to close work order'),
         });
     };
 
@@ -644,6 +694,12 @@ export function WorkOrderDetailScreen() {
     const partsUsed: any[] = wo.partsUsed ?? [];
     const labourLogs: any[] = wo.labourLogs ?? [];
     const evidence: any[] = wo.evidence ?? [];
+    const closureHistory = getWorkOrderClosureHistory(wo);
+
+    const labourCost = labourLogs.reduce((sum: number, l: any) => sum + computeLabourLineCost(l), 0);
+    const partsCost = partsUsed.reduce((sum: number, p: any) => sum + computePartLineCost(p), 0);
+    const vendorCost = Number(wo.vendorCost ?? 0);
+    const totalCost = Number(wo.totalCost ?? 0) > 0 ? Number(wo.totalCost) : labourCost + partsCost + vendorCost;
 
     return (
         <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
@@ -688,8 +744,11 @@ export function WorkOrderDetailScreen() {
                         <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                             <View style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                                 <InfoRow label="Asset" value={wo.asset?.name ?? '-'} />
-                                <InfoRow label="Type" value={WO_TYPE_LABELS[wo.woType] ?? wo.woType ?? '-'} />
-                                <InfoRow label="Description" value={wo.description || wo.observations || wo.workRequests?.[0]?.description || 'No description provided.'} />
+                                <InfoRow label="Type" value={formatMaintenanceWoType(wo.woType)} />
+                                <InfoRow label="Description" value={formatWorkOrderDescriptionDisplay(wo)} />
+                                {closureHistory.length > 0 ? (
+                                    <InfoRow label="Closure History" value={closureHistory.join('\n')} />
+                                ) : null}
                                 <InfoRow label="Planned Start" value={wo.plannedStart ? fmt.dateTime(wo.plannedStart) : '-'} />
                                 <InfoRow label="Planned End" value={wo.plannedEnd ? fmt.dateTime(wo.plannedEnd) : '-'} />
                                 {wo.actualStart ? <InfoRow label="Actual Start" value={fmt.dateTime(wo.actualStart)} /> : null}
@@ -738,13 +797,19 @@ export function WorkOrderDetailScreen() {
                             <EmptyState icon="search" title="No parts" message="No parts have been logged for this work order." />
                         ) : (
                             <View style={{ gap: 8 }}>
-                                {partsUsed.map((p: any, i: number) => (
-                                    <View key={i} style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
-                                        <InfoRow label="Part" value={p.partName ?? p.partNumber ?? '-'} />
-                                        <InfoRow label="Qty" value={`${p.quantity ?? 0}`} />
-                                        {p.unitCost ? <InfoRow label="Unit Cost" value={`${Number(p.unitCost).toFixed(2)}`} /> : null}
-                                    </View>
-                                ))}
+                                {partsUsed.map((p: any) => {
+                                    const lineTotal = computePartLineCost(p);
+                                    return (
+                                        <View key={p.id} style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
+                                            <InfoRow label="Part" value={p.partName ?? '-'} />
+                                            {p.partNumber ? <InfoRow label="Part No." value={p.partNumber} /> : null}
+                                            <InfoRow label="Qty" value={`${p.quantity ?? 0}`} />
+                                            {p.unitCost != null ? <InfoRow label="Unit Cost" value={`${Number(p.unitCost).toFixed(2)}`} /> : null}
+                                            {lineTotal > 0 ? <InfoRow label="Total" value={`${lineTotal.toFixed(2)}`} /> : null}
+                                            <InfoRow label="Status" value={p.isReturned ? 'Returned' : 'Used'} />
+                                        </View>
+                                    );
+                                })}
                             </View>
                         )}
                     </Animated.View>
@@ -765,16 +830,34 @@ export function WorkOrderDetailScreen() {
                             <EmptyState icon="search" title="No labour logs" message="No labour has been logged for this work order." />
                         ) : (
                             <View style={{ gap: 8 }}>
-                                {labourLogs.map((l: any, i: number) => (
-                                    <View key={i} style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
-                                        <InfoRow label="Technician" value={l.technicianName ?? '-'} />
-                                        <InfoRow label="Hours" value={`${Number(l.hours ?? 0).toFixed(1)} hrs`} />
-                                        {l.notes ? <InfoRow label="Notes" value={l.notes} /> : null}
-                                    </View>
-                                ))}
+                                {labourLogs.map((l: any) => {
+                                    const lineTotal = computeLabourLineCost(l);
+                                    return (
+                                        <View key={l.id} style={[mainStyles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
+                                            <InfoRow label="Technician" value={resolveTechnicianName(l.technicianId, employeeOptions)} />
+                                            {l.startTime ? <InfoRow label="Start" value={fmt.dateTime(l.startTime)} /> : null}
+                                            {l.endTime ? <InfoRow label="End" value={fmt.dateTime(l.endTime)} /> : null}
+                                            <InfoRow label="Hours" value={`${Number(l.hours ?? 0).toFixed(1)} hrs`} />
+                                            {l.hourlyRate != null ? <InfoRow label="Rate/Hr" value={`${Number(l.hourlyRate).toFixed(2)}`} /> : null}
+                                            {lineTotal > 0 ? <InfoRow label="Total" value={`${lineTotal.toFixed(2)}`} /> : null}
+                                            {l.notes ? <InfoRow label="Notes" value={l.notes} /> : null}
+                                        </View>
+                                    );
+                                })}
                             </View>
                         )}
                     </Animated.View>
+                ) : null}
+
+                {/* Cost Tab */}
+                {activeTab === 'cost' ? (
+                    <CostTab
+                        labourCost={labourCost}
+                        partsCost={partsCost}
+                        vendorCost={vendorCost}
+                        totalCost={totalCost}
+                        isDark={isDark}
+                    />
                 ) : null}
 
                 {/* Evidence Tab */}
@@ -864,9 +947,10 @@ export function WorkOrderDetailScreen() {
                             ) : null}
                             {status === 'CLOSED' ? (
                                 <ActionButton label="Reopen" color={colors.primary[600]} onPress={() => handleAction('reopen')} />
-                            ) : (
+                            ) : null}
+                            {!['CLOSED', 'CANCELLED', 'REJECTED'].includes(status) ? (
                                 <ActionButton label="Cancel" color={colors.neutral[500]} onPress={() => handleAction('cancel')} />
-                            )}
+                            ) : null}
                         </View>
                     </Animated.View>
                 ) : null}
@@ -881,7 +965,26 @@ export function WorkOrderDetailScreen() {
                 employees={employeeOptions}
                 empLoading={empLoading}
             />
-            <ReopenSheet visible={reopenVisible} onClose={() => setReopenVisible(false)} onSubmit={handleReopen} isSubmitting={reopenMut.isPending} />
+            <ReasonSheet
+                visible={closeVisible}
+                title="Close Work Order"
+                placeholder="Why is this work order being closed?"
+                submitLabel="Close Work Order"
+                submitColor={colors.success[600]}
+                onClose={() => setCloseVisible(false)}
+                onSubmit={handleClose}
+                isSubmitting={closeMut.isPending}
+            />
+            <ReasonSheet
+                visible={reopenVisible}
+                title="Reopen Work Order"
+                placeholder="Why are you reopening this work order?"
+                submitLabel="Reopen Work Order"
+                submitColor={colors.primary[600]}
+                onClose={() => setReopenVisible(false)}
+                onSubmit={handleReopen}
+                isSubmitting={reopenMut.isPending}
+            />
             <ConfirmModal {...confirmModal.modalProps} />
         </View>
     );
@@ -924,6 +1027,20 @@ const badgeStyles = StyleSheet.create({
 
 const infoStyles = StyleSheet.create({
     row: { gap: 2 },
+});
+
+const costStyles = StyleSheet.create({
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    rowTotal: {
+        marginTop: 8,
+        paddingTop: 12,
+        borderTopWidth: 1,
+    },
 });
 
 const actionStyles = StyleSheet.create({

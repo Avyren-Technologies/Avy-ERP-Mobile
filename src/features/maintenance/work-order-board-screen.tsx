@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
     Pressable,
@@ -43,6 +43,12 @@ export function WorkOrderBoardScreen() {
     const columnScrollRef = React.useRef<ScrollView>(null);
 
     const { data: response, isLoading, error, refetch, isFetching } = useWOBoard();
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch]),
+    );
     const boardData: Record<string, any[]> = React.useMemo(() => {
         const raw = (response as any)?.data ?? {};
         if (typeof raw !== 'object') return {};

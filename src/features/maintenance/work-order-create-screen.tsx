@@ -18,29 +18,19 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { DatePickerField } from '@/components/ui/date-picker';
+import { TimePickerField } from '@/components/ui/time-picker';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
+import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCreateWorkOrder } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useAssets, useJobPlans } from '@/features/maintenance/api/use-maintenance-queries';
+import { combineDateTimeToIsoWithDefault } from '@/features/maintenance/work-order-parts-labour';
 import { useIsDark } from '@/hooks/use-is-dark';
-
-const WO_TYPES = [
-    { value: 'CORRECTIVE', label: 'Corrective' },
-    { value: 'PREVENTIVE', label: 'Preventive' },
-    { value: 'PREDICTIVE', label: 'Predictive' },
-    { value: 'CONDITION_BASED', label: 'Condition Based' },
-    { value: 'EMERGENCY', label: 'Emergency' },
-    { value: 'INSPECTION', label: 'Inspection' },
-    { value: 'CALIBRATION', label: 'Calibration' },
-    { value: 'MODIFICATION', label: 'Modification' },
-    { value: 'OTHER', label: 'Other' },
-];
-
-const PRIORITIES = [
-    { value: 'EMERGENCY', label: 'Emergency' },
-    { value: 'HIGH', label: 'High' },
-    { value: 'MEDIUM', label: 'Medium' },
-    { value: 'LOW', label: 'Low' },
-];
+import { DEFAULT_FORMAT_SETTINGS } from '@/lib/format/company-formatter';
+import {
+    MAINTENANCE_WO_PRIORITY_OPTIONS,
+    MAINTENANCE_WO_TYPE_OPTIONS,
+} from '@/features/maintenance/work-order-enums';
 
 function AssetSelector({ selectedAssetId, selectedAssetName, onSelect, isDark }: {
     selectedAssetId: string; selectedAssetName: string; onSelect: (id: string, name: string) => void; isDark: boolean;
@@ -96,13 +86,20 @@ export function WorkOrderCreateScreen() {
     const router = useRouter();
     const createMutation = useCreateWorkOrder();
 
+    const { data: settingsData } = useCompanySettings();
+    const timezone =
+        (settingsData as { data?: { timezone?: string } } | undefined)?.data?.timezone ??
+        DEFAULT_FORMAT_SETTINGS.timezone;
+
     const [assetId, setAssetId] = React.useState('');
     const [assetName, setAssetName] = React.useState('');
     const [woType, setWoType] = React.useState('');
     const [priority, setPriority] = React.useState('MEDIUM');
     const [jobPlanId, setJobPlanId] = React.useState('');
-    const [plannedStart, setPlannedStart] = React.useState('');
-    const [plannedEnd, setPlannedEnd] = React.useState('');
+    const [plannedStartDate, setPlannedStartDate] = React.useState('');
+    const [plannedStartTime, setPlannedStartTime] = React.useState('');
+    const [plannedEndDate, setPlannedEndDate] = React.useState('');
+    const [plannedEndTime, setPlannedEndTime] = React.useState('');
     const [estimatedHours, setEstimatedHours] = React.useState('');
     const [notes, setNotes] = React.useState('');
     const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -114,6 +111,8 @@ export function WorkOrderCreateScreen() {
         return Array.isArray(raw) ? raw : [];
     }, [jobPlansRaw]);
 
+    const scrollBottomPadding = insets.bottom + 120;
+
     const clearError = (field: string) => {
         if (errors[field]) setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
     };
@@ -122,16 +121,42 @@ export function WorkOrderCreateScreen() {
         const e: Record<string, string> = {};
         if (!assetId) e.assetId = 'Asset is required';
         if (!woType) e.woType = 'Work order type is required';
+        if (plannedStartDate && plannedEndDate && plannedStartDate > plannedEndDate) {
+            e.plannedEndDate = 'Planned end must be on or after planned start';
+        }
         setErrors(e);
         return Object.keys(e).length === 0;
     };
 
     const handleSubmit = () => {
         if (!validate()) return;
+
+        const plannedStartIso = combineDateTimeToIsoWithDefault(
+            plannedStartDate,
+            plannedStartTime,
+            timezone,
+            '09:00',
+        );
+        const plannedEndIso = combineDateTimeToIsoWithDefault(
+            plannedEndDate,
+            plannedEndTime,
+            timezone,
+            '17:00',
+        );
+
+        if (plannedStartDate && !plannedStartIso) {
+            showErrorMessage('Invalid planned start date or time');
+            return;
+        }
+        if (plannedEndDate && !plannedEndIso) {
+            showErrorMessage('Invalid planned end date or time');
+            return;
+        }
+
         const data: Record<string, unknown> = { assetId, woType, priority };
         if (jobPlanId) data.jobPlanId = jobPlanId;
-        if (plannedStart.trim()) data.plannedStart = plannedStart.trim();
-        if (plannedEnd.trim()) data.plannedEnd = plannedEnd.trim();
+        if (plannedStartIso) data.plannedStart = plannedStartIso;
+        if (plannedEndIso) data.plannedEnd = plannedEndIso;
         if (estimatedHours.trim()) data.estimatedHours = Number(estimatedHours);
         if (notes.trim()) data.description = notes.trim();
 
@@ -193,8 +218,20 @@ export function WorkOrderCreateScreen() {
                 <View style={{ width: 44 }} />
             </LinearGradient>
 
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 32 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+            <KeyboardAvoidingView
+                style={mainStyles.flex}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+            >
+                <ScrollView
+                    style={mainStyles.flex}
+                    contentContainerStyle={[mainStyles.scrollContent, { paddingBottom: scrollBottomPadding }]}
+                    showsVerticalScrollIndicator
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                    nestedScrollEnabled
+                    alwaysBounceVertical
+                >
                     <Animated.View entering={FadeInUp.duration(300).delay(50)}>
                         <View style={formStyles.field}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Asset <Text className="text-danger-500">*</Text></Text>
@@ -204,11 +241,11 @@ export function WorkOrderCreateScreen() {
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(100)}>
-                        {renderPickerField('Work Order Type', 'woType', woType, 'Select type', WO_TYPES, setWoType, true, 'woType')}
+                        {renderPickerField('Work Order Type', 'woType', woType, 'Select type', MAINTENANCE_WO_TYPE_OPTIONS, setWoType, true, 'woType')}
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(150)}>
-                        {renderPickerField('Priority', 'priority', priority, 'Select priority', PRIORITIES, setPriority)}
+                        {renderPickerField('Priority', 'priority', priority, 'Select priority', MAINTENANCE_WO_PRIORITY_OPTIONS, setPriority)}
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(200)}>
@@ -217,15 +254,42 @@ export function WorkOrderCreateScreen() {
 
                     <Animated.View entering={FadeInUp.duration(300).delay(250)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Planned Start</Text>
-                            <TextInput style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="yyyy-mm-dd" placeholderTextColor={colors.neutral[400]} value={plannedStart} onChangeText={setPlannedStart} />
-                        </View>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeInUp.duration(300).delay(300)}>
-                        <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Planned End</Text>
-                            <TextInput style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="yyyy-mm-dd" placeholderTextColor={colors.neutral[400]} value={plannedEnd} onChangeText={setPlannedEnd} />
+                            <Text className="mb-3 font-inter text-xs font-bold uppercase tracking-wider text-neutral-500">Scheduling</Text>
+                            <View style={formStyles.scheduleRow}>
+                                <View style={formStyles.scheduleDate}>
+                                    <DatePickerField
+                                        label="Planned Start"
+                                        value={plannedStartDate}
+                                        onChange={(v) => { setPlannedStartDate(v); clearError('plannedEndDate'); }}
+                                    />
+                                </View>
+                                <View style={formStyles.scheduleTime}>
+                                    <TimePickerField
+                                        label="Start Time"
+                                        value={plannedStartTime}
+                                        onChange={setPlannedStartTime}
+                                        hint="Default 9:00 AM if empty"
+                                    />
+                                </View>
+                            </View>
+                            <View style={[formStyles.scheduleRow, { marginTop: 12 }]}>
+                                <View style={formStyles.scheduleDate}>
+                                    <DatePickerField
+                                        label="Planned End"
+                                        value={plannedEndDate}
+                                        onChange={(v) => { setPlannedEndDate(v); clearError('plannedEndDate'); }}
+                                        error={errors.plannedEndDate}
+                                    />
+                                </View>
+                                <View style={formStyles.scheduleTime}>
+                                    <TimePickerField
+                                        label="End Time"
+                                        value={plannedEndTime}
+                                        onChange={setPlannedEndTime}
+                                        hint="Default 5:00 PM if empty"
+                                    />
+                                </View>
+                            </View>
                         </View>
                     </Animated.View>
 
@@ -238,15 +302,45 @@ export function WorkOrderCreateScreen() {
 
                     <Animated.View entering={FadeInUp.duration(300).delay(400)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Notes</Text>
-                            <TextInput style={[formStyles.input, { height: 80, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="Additional notes..." placeholderTextColor={colors.neutral[400]} value={notes} onChangeText={setNotes} multiline />
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Description</Text>
+                            <TextInput style={[formStyles.input, { height: 88, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="Describe the work to be done..." placeholderTextColor={colors.neutral[400]} value={notes} onChangeText={setNotes} multiline />
                         </View>
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(450)}>
-                        <Pressable style={({ pressed }) => [formStyles.submitBtn, pressed && { opacity: 0.85 }, createMutation.isPending && { opacity: 0.6 }]} onPress={handleSubmit} disabled={createMutation.isPending}>
-                            {createMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Create Work Order</Text>}
-                        </Pressable>
+                        <View style={formStyles.actionsRow}>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    formStyles.cancelBtn,
+                                    {
+                                        backgroundColor: isDark ? colors.neutral[800] : colors.white,
+                                        borderColor: isDark ? colors.neutral[700] : colors.neutral[300],
+                                    },
+                                    pressed && { opacity: 0.85 },
+                                ]}
+                                onPress={() => router.back()}
+                                disabled={createMutation.isPending}
+                            >
+                                <Text className="font-inter text-sm font-semibold text-neutral-700 dark:text-neutral-200">Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    formStyles.submitBtn,
+                                    { flex: 1 },
+                                    pressed && { opacity: 0.85 },
+                                    createMutation.isPending && { opacity: 0.6 },
+                                ]}
+                                onPress={handleSubmit}
+                                disabled={createMutation.isPending}
+                            >
+                                {createMutation.isPending ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <Text className="font-inter text-base font-bold text-white">Create Work Order</Text>
+                                )}
+                            </Pressable>
+                        </View>
+                        <View style={{ height: 24 }} />
                     </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -254,7 +348,14 @@ export function WorkOrderCreateScreen() {
     );
 }
 
-const mainStyles = StyleSheet.create({ container: { flex: 1 } });
+const mainStyles = StyleSheet.create({
+    container: { flex: 1 },
+    flex: { flex: 1 },
+    scrollContent: {
+        flexGrow: 1,
+        padding: 24,
+    },
+});
 
 const headerStyles = StyleSheet.create({
     gradient: { paddingHorizontal: 24, paddingBottom: 20, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' },
@@ -267,5 +368,29 @@ const formStyles = StyleSheet.create({
     dropdown: { borderRadius: 10, borderWidth: 1, marginTop: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4, overflow: 'hidden' },
     dropdownSearch: { fontSize: 13, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, margin: 8 },
     dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11 },
-    submitBtn: { backgroundColor: colors.primary[600], borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4, marginTop: 8 },
+    scheduleRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+    scheduleDate: { flex: 1.15 },
+    scheduleTime: { flex: 0.85 },
+    actionsRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 8 },
+    cancelBtn: {
+        minWidth: 110,
+        height: 52,
+        borderRadius: 14,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    submitBtn: {
+        backgroundColor: colors.primary[600],
+        borderRadius: 14,
+        height: 52,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: colors.primary[500],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
+    },
 });

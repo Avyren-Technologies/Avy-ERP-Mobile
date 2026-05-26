@@ -5,6 +5,7 @@ import * as React from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
+    Modal as RNModal,
     Platform,
     Pressable,
     ScrollView,
@@ -18,12 +19,12 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
-import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useAddWOParts, useReturnWOPart } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
+import { computePartLineCost, validateAddPartForm } from '@/features/maintenance/work-order-parts-labour';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 export function AddPartsScreen() {
@@ -31,8 +32,6 @@ export function AddPartsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { workOrderId } = useLocalSearchParams<{ workOrderId: string }>();
-    const confirmModal = useConfirmModal();
-
     const { data: response, isLoading, error, refetch } = useWorkOrder(workOrderId ?? '');
     const wo: any = (response as any)?.data ?? null;
     const partsUsed: any[] = wo?.partsUsed ?? [];
@@ -45,17 +44,15 @@ export function AddPartsScreen() {
     const [quantity, setQuantity] = React.useState('');
     const [unitCost, setUnitCost] = React.useState('');
     const [errors, setErrors] = React.useState<Record<string, string>>({});
-
-    const validate = (): boolean => {
-        const e: Record<string, string> = {};
-        if (!partName.trim()) e.partName = 'Part name is required';
-        if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0) e.quantity = 'Valid quantity is required';
-        setErrors(e);
-        return Object.keys(e).length === 0;
-    };
+    const [returnTarget, setReturnTarget] = React.useState<{ id: string; name: string; maxQty: number } | null>(null);
+    const [returnQty, setReturnQty] = React.useState('1');
+    const [returnCondition, setReturnCondition] = React.useState('');
+    const [returnError, setReturnError] = React.useState('');
 
     const handleAdd = () => {
-        if (!validate() || !workOrderId) return;
+        const e = validateAddPartForm(partName, quantity);
+        setErrors(e);
+        if (Object.keys(e).length > 0 || !workOrderId) return;
         const data: Record<string, unknown> = {
             partName: partName.trim(),
             quantity: Number(quantity),
@@ -73,18 +70,38 @@ export function AddPartsScreen() {
         });
     };
 
-    const handleReturn = (partId: string, name: string) => {
-        if (!workOrderId) return;
-        confirmModal.show({
-            title: 'Return Part',
-            message: `Return "${name}"?`,
-            confirmText: 'Return',
-            variant: 'danger',
-            onConfirm: () => returnPartMut.mutate({ id: workOrderId, partId, data: {} }, {
-                onSuccess: () => { showSuccess('Part returned'); refetch(); },
+    const handleReturn = (partId: string, name: string, maxQty: number) => {
+        setReturnTarget({ id: partId, name, maxQty });
+        setReturnQty(String(maxQty));
+        setReturnCondition('');
+        setReturnError('');
+    };
+
+    const confirmReturn = () => {
+        if (!workOrderId || !returnTarget) return;
+        const qty = Number(returnQty);
+        if (!qty || qty <= 0 || qty > returnTarget.maxQty) {
+            setReturnError(`Return quantity must be between 1 and ${returnTarget.maxQty}`);
+            return;
+        }
+        returnPartMut.mutate(
+            {
+                id: workOrderId,
+                partId: returnTarget.id,
+                data: {
+                    returnQty: qty,
+                    returnCondition: returnCondition.trim() || undefined,
+                },
+            },
+            {
+                onSuccess: () => {
+                    showSuccess('Part returned');
+                    setReturnTarget(null);
+                    refetch();
+                },
                 onError: () => showErrorMessage('Failed to return part'),
-            }),
-        });
+            },
+        );
     };
 
     if (isLoading) {
@@ -107,19 +124,31 @@ export function AddPartsScreen() {
                     {partsUsed.length > 0 ? (
                         <Animated.View entering={FadeInUp.duration(300)}>
                             <Text className="mb-3 font-inter text-sm font-bold text-primary-950 dark:text-white">Parts Used ({partsUsed.length})</Text>
-                            {partsUsed.map((p: any, i: number) => (
-                                <View key={i} style={[styles.partCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{p.partName ?? '-'}</Text>
-                                        <Text className="font-inter text-[10px] text-neutral-400">
-                                            {p.partNumber ?? ''} | Qty: {p.quantity ?? 0}{p.unitCost ? ` | Cost: ${Number(p.unitCost).toFixed(2)}` : ''}
-                                        </Text>
+                            {partsUsed.map((p: any) => {
+                                const lineTotal = computePartLineCost(p);
+                                const isReturned = Boolean(p.isReturned);
+                                return (
+                                    <View key={p.id} style={[styles.partCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{p.partName ?? '-'}</Text>
+                                            <Text className="font-inter text-[10px] text-neutral-400">
+                                                {p.partNumber ? `${p.partNumber} · ` : ''}Qty: {p.quantity ?? 0}
+                                                {lineTotal > 0 ? ` · Total: ${lineTotal.toFixed(2)}` : ''}
+                                                {isReturned ? ' · Returned' : ''}
+                                            </Text>
+                                        </View>
+                                        {!isReturned ? (
+                                            <Pressable
+                                                onPress={() => handleReturn(p.id, p.partName ?? 'Part', Number(p.quantity) || 1)}
+                                                style={styles.returnBtn}
+                                                hitSlop={8}
+                                            >
+                                                <Text className="font-inter text-[10px] font-bold text-danger-600">Return</Text>
+                                            </Pressable>
+                                        ) : null}
                                     </View>
-                                    <Pressable onPress={() => handleReturn(p.id, p.partName ?? '')} style={styles.returnBtn} hitSlop={8}>
-                                        <Text className="font-inter text-[10px] font-bold text-danger-600">Return</Text>
-                                    </Pressable>
-                                </View>
-                            ))}
+                                );
+                            })}
                         </Animated.View>
                     ) : null}
 
@@ -159,7 +188,42 @@ export function AddPartsScreen() {
                     </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>
-            <ConfirmModal {...confirmModal.modalProps} />
+            <RNModal visible={!!returnTarget} animationType="slide" transparent onRequestClose={() => setReturnTarget(null)}>
+                <View style={styles.returnOverlay}>
+                    <View style={[styles.returnSheet, { backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-1">
+                            Return Part
+                        </Text>
+                        <Text className="font-inter text-xs text-neutral-500 mb-4">{returnTarget?.name}</Text>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Return Quantity *</Text>
+                        <TextInput
+                            style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: returnError ? colors.danger[400] : isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
+                            value={returnQty}
+                            onChangeText={(v) => { setReturnQty(v); if (returnError) setReturnError(''); }}
+                            keyboardType="numeric"
+                            placeholder="Qty"
+                            placeholderTextColor={colors.neutral[400]}
+                        />
+                        {returnError ? <Text className="mt-1 font-inter text-[10px] text-danger-600">{returnError}</Text> : null}
+                        <Text className="mb-1.5 mt-3 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Return Condition</Text>
+                        <TextInput
+                            style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
+                            value={returnCondition}
+                            onChangeText={setReturnCondition}
+                            placeholder="e.g. Good, Damaged"
+                            placeholderTextColor={colors.neutral[400]}
+                        />
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                            <Pressable onPress={() => setReturnTarget(null)} style={[styles.returnAction, { backgroundColor: colors.neutral[100] }]}>
+                                <Text className="font-inter text-sm font-bold text-neutral-600">Cancel</Text>
+                            </Pressable>
+                            <Pressable onPress={confirmReturn} style={[styles.returnAction, { backgroundColor: colors.warning[600] }]}>
+                                <Text className="font-inter text-sm font-bold text-white">Confirm</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </RNModal>
         </View>
     );
 }
@@ -179,6 +243,9 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     partCard: { borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
     returnBtn: { backgroundColor: colors.danger[50], paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+    returnOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+    returnSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 },
+    returnAction: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
 });
 
 const headerStyles = StyleSheet.create({

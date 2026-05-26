@@ -12,6 +12,7 @@ const WO_STATUS_CONFIG: Record<string, { label: string; bgColor: string; textCol
     ON_HOLD: { label: 'On Hold', bgColor: '#FFF7ED', textColor: '#C2410C', dotColor: '#F97316' },
     PENDING_REVIEW: { label: 'Pending Review', bgColor: colors.accent[50], textColor: colors.accent[700], dotColor: colors.accent[500] },
     COMPLETED: { label: 'Completed', bgColor: colors.success[50], textColor: colors.success[700], dotColor: colors.success[500] },
+    AWAITING_QA: { label: 'Awaiting QA', bgColor: '#F5F3FF', textColor: '#6D28D9', dotColor: '#8B5CF6' },
     QA_REVIEW: { label: 'QA Review', bgColor: '#F5F3FF', textColor: '#6D28D9', dotColor: '#8B5CF6' },
     CLOSED: { label: 'Closed', bgColor: colors.neutral[100], textColor: colors.neutral[600], dotColor: colors.neutral[500] },
     CANCELLED: { label: 'Cancelled', bgColor: colors.danger[50], textColor: colors.danger[700], dotColor: colors.danger[500] },

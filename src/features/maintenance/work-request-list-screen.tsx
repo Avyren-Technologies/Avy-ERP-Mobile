@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
     Pressable,
@@ -54,6 +54,7 @@ const TYPE_LABELS: Record<string, string> = {
     INSPECTION: 'Inspection',
     REPLACEMENT: 'Replacement',
     SAFETY: 'Safety',
+    CORRECTIVE: 'Corrective',
     OTHER: 'Other',
 };
 
@@ -165,6 +166,12 @@ export function WorkRequestListScreen() {
         search: search.trim() || undefined,
         status: statusParam,
     });
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     const items: any[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? [];

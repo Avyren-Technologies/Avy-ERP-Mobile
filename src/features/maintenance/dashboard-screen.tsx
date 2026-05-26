@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
   Pressable,
@@ -187,6 +187,13 @@ export function MaintenanceDashboardScreen() {
   // Fetch summary data
   const { data: assetsRes, isLoading: assetsLoading, refetch: refetchAssets, isFetching: assetsFetching } = useAssets({ limit: 1 });
   const { data: wrRes, isLoading: wrLoading, refetch: refetchWR, isFetching: wrFetching } = useWorkRequests({ limit: 5 });
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchAssets();
+      refetchWR();
+    }, [refetchAssets, refetchWR])
+  );
 
   const totalAssets = (assetsRes as any)?.meta?.total ?? 0;
   const recentWRs: any[] = (wrRes as any)?.data ?? [];

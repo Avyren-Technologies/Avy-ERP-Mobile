@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -52,6 +52,7 @@ const TYPE_LABELS: Record<string, string> = {
     INSPECTION: 'Inspection',
     REPLACEMENT: 'Replacement',
     SAFETY: 'Safety',
+    CORRECTIVE: 'Corrective',
     OTHER: 'Other',
 };
 
@@ -255,6 +256,12 @@ export function WorkRequestDetailScreen() {
 
     const { data: response, isLoading, error, refetch } = useWorkRequest(id ?? '');
     const wr: any = (response as any)?.data ?? null;
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     const { data: usersData } = useCompanyUsers({ limit: 1000 });
     const usersList = usersData?.data ?? [];

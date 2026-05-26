@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
     Pressable,
@@ -21,6 +21,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useWorkOrders } from '@/features/maintenance/api/use-maintenance-queries';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { PriorityBadge } from '@/features/maintenance/shared/priority-badge';
 import { WOStatusBadge } from '@/features/maintenance/shared/wo-status-badge';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -47,6 +48,8 @@ const WO_TYPE_LABELS: Record<string, string> = {
     INSPECTION: 'Inspection',
     CALIBRATION: 'Calibration',
     MODIFICATION: 'Modification',
+    BREAKDOWN: 'Breakdown',
+    PM: 'PM',
     OTHER: 'Other',
 };
 
@@ -56,13 +59,28 @@ function WOCard({
     isDark,
     onPress,
     fmt,
+    employeeMap,
 }: {
     item: any;
     index: number;
     isDark: boolean;
     onPress: () => void;
     fmt: CompanyFormatter;
+    employeeMap: Map<string, string>;
 }) {
+    const resolvedTechName = React.useMemo(() => {
+        if (item.leadTechnician) {
+            const t = item.leadTechnician;
+            const full = `${t.firstName ?? ''} ${t.lastName ?? ''}`.trim();
+            if (full || t.name) return full || t.name;
+        }
+        if (item.leadTechnicianName) return item.leadTechnicianName;
+        if (item.leadTechnicianId) {
+            return employeeMap.get(item.leadTechnicianId) || item.leadTechnicianId;
+        }
+        return null;
+    }, [item, employeeMap]);
+
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 50)}>
             <Pressable
@@ -83,7 +101,7 @@ function WOCard({
                     </View>
                     <WOStatusBadge status={item.status ?? 'DRAFT'} />
                 </View>
-
+ 
                 <Text
                     className="font-inter text-sm font-bold text-primary-950 dark:text-white"
                     numberOfLines={1}
@@ -91,7 +109,7 @@ function WOCard({
                 >
                     {item.asset?.name ?? 'Unknown Asset'}
                 </Text>
-
+ 
                 {item.description ? (
                     <Text
                         className="font-inter text-xs text-neutral-500 dark:text-neutral-400"
@@ -101,7 +119,7 @@ function WOCard({
                         {item.description}
                     </Text>
                 ) : null}
-
+ 
                 <View style={cardStyles.detailsRow}>
                     <View style={[cardStyles.typeBadge, { backgroundColor: isDark ? colors.accent[900] : colors.accent[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-accent-700">
@@ -109,9 +127,9 @@ function WOCard({
                         </Text>
                     </View>
                     <PriorityBadge priority={item.priority ?? 'MEDIUM'} />
-                    {item.leadTechnician ? (
+                    {resolvedTechName ? (
                         <Text className="font-inter text-[10px] text-neutral-400" numberOfLines={1}>
-                            {item.leadTechnician.firstName ?? ''} {item.leadTechnician.lastName ?? ''}
+                            {resolvedTechName}
                         </Text>
                     ) : null}
                     <Text
@@ -141,6 +159,21 @@ export function WorkOrderListScreen() {
         status: statusParam,
     });
 
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+
+    const { data: empData } = useEmployees({ limit: 500 });
+    const employeeMap = React.useMemo(() => {
+        const raw: any[] = (empData as any)?.data ?? [];
+        return new Map<string, string>(raw.map((e: any) => [
+            e.id ?? '',
+            `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.name || e.employeeId,
+        ]));
+    }, [empData]);
+
     const items: any[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? [];
         return Array.isArray(raw) ? raw : [];
@@ -154,6 +187,7 @@ export function WorkOrderListScreen() {
             index={index}
             isDark={isDark}
             fmt={fmt}
+            employeeMap={employeeMap}
             onPress={() => router.push({ pathname: '/maintenance/work-order-detail' as any, params: { id: item.id } })}
         />
     );

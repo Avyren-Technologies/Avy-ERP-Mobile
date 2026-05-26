@@ -726,7 +726,8 @@ export function useAcknowledgeWorkOrder() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.acknowledgeWorkOrder(id),
-        onSuccess: () => {
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
         },
@@ -750,7 +751,8 @@ export function useStartWorkOrder() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.startWorkOrder(id),
-        onSuccess: () => {
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
         },
@@ -774,7 +776,8 @@ export function useResumeWorkOrder() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.resumeWorkOrder(id),
-        onSuccess: () => {
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
         },
@@ -798,7 +801,8 @@ export function useQAReleaseWorkOrder() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => maintenanceApi.qaReleaseWorkOrder(id),
-        onSuccess: () => {
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrder(id) });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.workOrders() });
             queryClient.invalidateQueries({ queryKey: maintenanceKeys.woBoard() });
         },

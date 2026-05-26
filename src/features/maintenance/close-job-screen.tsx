@@ -64,8 +64,8 @@ export function CloseJobScreen() {
     const checklistSnapshot: any[] = wo?.checklistSnapshot ?? [];
 
     const totalLabourHrs = labourLogs.reduce((sum: number, l: any) => sum + Number(l.hours ?? 0), 0);
-    const partsCost = partsUsed.reduce((sum: number, p: any) => sum + (Number(p.quantity ?? 0) * Number(p.unitCost ?? 0)), 0);
-    const labourCost = totalLabourHrs * 50; // placeholder rate
+    const partsCost = partsUsed.reduce((sum: number, p: any) => sum + Number(p.totalCost ?? (Number(p.quantity ?? 0) * Number(p.unitCost ?? 0))), 0);
+    const labourCost = labourLogs.reduce((sum: number, l: any) => sum + Number(l.totalCost ?? (Number(l.hours ?? 0) * Number(l.hourlyRate ?? 0))), 0);
     const totalCost = partsCost + labourCost;
     const totalChecklistFields = checklistSnapshot.reduce((sum: number, s: any) => sum + (s.fields?.length ?? 0), 0);
 
@@ -116,12 +116,28 @@ export function CloseJobScreen() {
                         <View style={[styles.summaryCard, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                             <Text className="mb-3 font-inter text-sm font-bold text-primary-950 dark:text-white">Closure Summary</Text>
                             <SummaryRow label="Total Labour Time" value={`${totalLabourHrs.toFixed(1)} hrs`} />
-                            <SummaryRow label="Parts Used" value={`${partsUsed.length}`} />
-                            <SummaryRow label="Parts Cost" value={`${partsCost.toFixed(2)}`} />
                             <SummaryRow label="Labour Cost" value={`${labourCost.toFixed(2)}`} />
+                            <SummaryRow label="Parts Used" value={`${partsUsed.length}`} />
+                            {partsUsed.length > 0 ? (
+                                <View style={{ marginVertical: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 10, gap: 6 }}>
+                                    <Text className="font-inter text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Parts Details</Text>
+                                    {partsUsed.map((p: any, idx: number) => (
+                                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Text className="font-inter text-xs text-primary-900 dark:text-neutral-300" numberOfLines={1} style={{ flex: 1 }}>
+                                                {p.partName ?? p.partNumber ?? `Part #${idx + 1}`}
+                                            </Text>
+                                            <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white ml-2">
+                                                {p.quantity} x {Number(p.unitCost ?? 0).toFixed(2)} = {Number(p.totalCost ?? (Number(p.quantity ?? 0) * Number(p.unitCost ?? 0))).toFixed(2)}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            ) : null}
+                            <SummaryRow label="Parts Cost" value={`${partsCost.toFixed(2)}`} />
                             <SummaryRow label="Total Cost" value={`${totalCost.toFixed(2)}`} highlight />
                             <SummaryRow label="Checklist Fields" value={`${totalChecklistFields}`} />
                             <SummaryRow label="Evidence Items" value={`${evidence.length}`} />
+                            <SummaryRow label="Actual End Time" value={new Date().toLocaleString()} />
                         </View>
                     </Animated.View>
 

@@ -1,6 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
     ActivityIndicator,
@@ -50,6 +50,8 @@ const WO_TYPE_LABELS: Record<string, string> = {
     INSPECTION: 'Inspection',
     CALIBRATION: 'Calibration',
     MODIFICATION: 'Modification',
+    BREAKDOWN: 'Breakdown',
+    PM: 'PM',
     OTHER: 'Other',
 };
 
@@ -423,6 +425,12 @@ export function WorkOrderDetailScreen() {
     const { data: response, isLoading, error, refetch } = useWorkOrder(id ?? '');
     const wo: any = (response as any)?.data ?? null;
 
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+
     const [activeTab, setActiveTab] = React.useState<TabKey>('overview');
     const [holdVisible, setHoldVisible] = React.useState(false);
     const [assignVisible, setAssignVisible] = React.useState(false);
@@ -453,6 +461,21 @@ export function WorkOrderDetailScreen() {
     const reopenMut = useReopenWorkOrder();
 
     const status = wo?.status ?? 'DRAFT';
+
+    const resolvedTechName = React.useMemo(() => {
+        if (wo?.leadTechnician) {
+            const t = wo.leadTechnician;
+            const full = `${t.firstName ?? ''} ${t.lastName ?? ''}`.trim();
+            if (full || t.name) return full || t.name;
+        }
+        if (wo?.leadTechnicianName) return wo.leadTechnicianName;
+        if (wo?.leadTechnicianId) {
+            const emp = employeeOptions.find(e => e.id === wo.leadTechnicianId);
+            if (emp) return emp.name;
+            return wo.leadTechnicianId;
+        }
+        return '-';
+    }, [wo, employeeOptions]);
 
     const handleAction = (action: string) => {
         if (!id) return;
@@ -644,7 +667,11 @@ export function WorkOrderDetailScreen() {
                 </ScrollView>
             </View>
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 32 }} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 120 }}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Overview Tab */}
                 {activeTab === 'overview' ? (
                     <>
@@ -665,8 +692,10 @@ export function WorkOrderDetailScreen() {
                                 <InfoRow label="Description" value={wo.description || wo.observations || wo.workRequests?.[0]?.description || 'No description provided.'} />
                                 <InfoRow label="Planned Start" value={wo.plannedStart ? fmt.dateTime(wo.plannedStart) : '-'} />
                                 <InfoRow label="Planned End" value={wo.plannedEnd ? fmt.dateTime(wo.plannedEnd) : '-'} />
+                                {wo.actualStart ? <InfoRow label="Actual Start" value={fmt.dateTime(wo.actualStart)} /> : null}
+                                {wo.actualEnd ? <InfoRow label="Actual End" value={fmt.dateTime(wo.actualEnd)} /> : null}
                                 <InfoRow label="Estimated Hours" value={wo.estimatedHours ? `${Number(wo.estimatedHours)} hrs` : '-'} />
-                                <InfoRow label="Lead Technician" value={wo.leadTechnician ? `${wo.leadTechnician.firstName ?? ''} ${wo.leadTechnician.lastName ?? ''}`.trim() : '-'} />
+                                <InfoRow label="Lead Technician" value={resolvedTechName} />
                                 {wo.holdReason ? <InfoRow label="Hold Reason" value={wo.holdReason} /> : null}
                                 {wo.findings ? <InfoRow label="Findings" value={wo.findings} /> : null}
                                 <InfoRow label="Created" value={wo.createdAt ? fmt.dateTime(wo.createdAt) : '-'} />
@@ -813,19 +842,19 @@ export function WorkOrderDetailScreen() {
                                 <ActionButton label="Assign" color={colors.primary[600]} onPress={() => setAssignVisible(true)} />
                             ) : null}
                             {status === 'ASSIGNED' ? (
-                                <>
+                                <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
                                     <ActionButton label="Acknowledge" color={colors.success[600]} onPress={() => handleAction('acknowledge')} />
                                     <ActionButton label="Decline" color={colors.danger[600]} onPress={handleDecline} />
-                                </>
+                                </View>
                             ) : null}
                             {status === 'ACKNOWLEDGED' ? (
                                 <ActionButton label="Start" color={colors.primary[600]} onPress={() => handleAction('start')} />
                             ) : null}
                             {status === 'IN_PROGRESS' ? (
-                                <>
+                                <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
                                     <ActionButton label="Hold" color="#F97316" onPress={() => setHoldVisible(true)} />
                                     <ActionButton label="Complete" color={colors.success[600]} onPress={() => handleAction('complete')} />
-                                </>
+                                </View>
                             ) : null}
                             {status === 'ON_HOLD' ? (
                                 <ActionButton label="Resume" color={colors.primary[600]} onPress={() => handleAction('resume')} />

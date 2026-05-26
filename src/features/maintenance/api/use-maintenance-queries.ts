@@ -424,6 +424,8 @@ export function useWorkRequests(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.workRequests(params),
         queryFn: () => maintenanceApi.listWorkRequests(params),
+        staleTime: 0,
+        refetchOnMount: 'always',
     });
 }
 
@@ -432,6 +434,8 @@ export function useWorkRequest(id: string) {
         queryKey: maintenanceKeys.workRequest(id),
         queryFn: () => maintenanceApi.getWorkRequest(id),
         enabled: !!id,
+        staleTime: 0,
+        refetchOnMount: 'always',
     });
 }
 
@@ -441,6 +445,8 @@ export function useWorkOrders(params?: Record<string, unknown>) {
     return useQuery({
         queryKey: maintenanceKeys.workOrders(params),
         queryFn: () => maintenanceApi.listWorkOrders(params),
+        staleTime: 0,
+        refetchOnMount: 'always',
     });
 }
 
@@ -449,6 +455,8 @@ export function useWorkOrder(id: string) {
         queryKey: maintenanceKeys.workOrder(id),
         queryFn: () => maintenanceApi.getWorkOrder(id),
         enabled: !!id,
+        staleTime: 0,
+        refetchOnMount: 'always',
     });
 }
 

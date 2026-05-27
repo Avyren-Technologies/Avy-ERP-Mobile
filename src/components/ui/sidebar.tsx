@@ -274,6 +274,8 @@ export function Sidebar({
     collapsible = false,
 }: SidebarProps) {
     const insets = useSafeAreaInsets();
+    const isDark = useIsDark();
+    const darkStyles = React.useMemo(() => createStyles(isDark), [isDark]);
     const { isOpen, close, progress } = useSidebar();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
     const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
@@ -296,7 +298,26 @@ export function Sidebar({
         return initial;
     });
     // Module-level collapse (HRMS, Operations, etc.)
-    const [collapsedModules, setCollapsedModules] = React.useState<Record<string, boolean>>({});
+    const [collapsedModules, setCollapsedModules] = React.useState<Record<string, boolean>>(() => {
+        const initial: Record<string, boolean> = {};
+        // Find which module separator contains the active item
+        let activeModuleSep: string | null = null;
+        let currentSep = '';
+        for (const section of sections) {
+            if (section.moduleSeparator) currentSep = section.moduleSeparator;
+            if (currentSep) {
+                const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
+                if (hasActive && !activeModuleSep) activeModuleSep = currentSep;
+            }
+        }
+        // Collapse all module separators except the active one
+        for (const section of sections) {
+            if (section.moduleSeparator) {
+                initial[section.moduleSeparator] = section.moduleSeparator !== activeModuleSep;
+            }
+        }
+        return initial;
+    });
 
     // Build module→section mapping
     const sectionModuleMap: Record<string, string> = {};
@@ -653,25 +674,55 @@ export function Sidebar({
                                     <Pressable
                                         onPress={() => {
                                             LayoutAnimation.configureNext(LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
-                                            setCollapsedModules(prev => ({ ...prev, [section.moduleSeparator!]: !prev[section.moduleSeparator!] }));
+                                            setCollapsedModules(prev => {
+                                                const isCurrentlyCollapsed = !!prev[section.moduleSeparator!];
+                                                if (!isCurrentlyCollapsed) {
+                                                    return { ...prev, [section.moduleSeparator!]: true };
+                                                }
+                                                const next: Record<string, boolean> = {};
+                                                for (const key of Object.keys(prev)) {
+                                                    next[key] = key !== section.moduleSeparator!;
+                                                }
+                                                return next;
+                                            });
                                         }}
-                                        style={styles.moduleSeparator}
+                                        style={isModuleCollapsed ? darkStyles.moduleSeparatorCollapsed : styles.moduleSeparator}
                                     >
-                                        <View style={styles.moduleSeparatorLine} />
-                                        <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
-                                            {section.moduleSeparator}
-                                        </Text>
-                                        <Svg width={11} height={11} viewBox="0 0 24 24">
-                                            <Path
-                                                d={isModuleCollapsed ? 'M9 18l6-6-6-6' : 'M18 15l-6-6-6 6'}
-                                                stroke={colors.primary[400]}
-                                                strokeWidth="2.4"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                fill="none"
-                                            />
-                                        </Svg>
-                                        <View style={styles.moduleSeparatorLine} />
+                                        {isModuleCollapsed ? (
+                                            <>
+                                                <Text className="font-inter text-[11px] font-bold uppercase tracking-[1.5px] text-neutral-600 dark:text-neutral-300" style={{ flex: 1 }}>
+                                                    {section.moduleSeparator}
+                                                </Text>
+                                                <Svg width={14} height={14} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d="M9 18l6-6-6-6"
+                                                        stroke={isDark ? colors.neutral[400] : colors.neutral[500]}
+                                                        strokeWidth="2.4"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        fill="none"
+                                                    />
+                                                </Svg>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <View style={styles.moduleSeparatorLine} />
+                                                <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
+                                                    {section.moduleSeparator}
+                                                </Text>
+                                                <Svg width={11} height={11} viewBox="0 0 24 24">
+                                                    <Path
+                                                        d="M18 15l-6-6-6 6"
+                                                        stroke={colors.primary[400]}
+                                                        strokeWidth="2.4"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        fill="none"
+                                                    />
+                                                </Svg>
+                                                <View style={styles.moduleSeparatorLine} />
+                                            </>
+                                        )}
                                     </Pressable>
                                 )}
 
@@ -1158,6 +1209,20 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 4,
+        gap: 8,
+    },
+    moduleSeparatorCollapsed: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 10,
+        marginTop: 12,
+        marginBottom: 4,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: isDark ? 'rgba(79, 70, 229, 0.08)' : colors.neutral[50],
+        borderWidth: 1,
+        borderColor: isDark ? 'rgba(79, 70, 229, 0.15)' : colors.neutral[100],
         gap: 8,
     },
     moduleSeparatorLine: {

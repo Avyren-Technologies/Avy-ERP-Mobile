@@ -227,4 +227,18 @@ export const inventoryKeys = {
     params
       ? ([...inventoryKeys.all, 'tool-breakage-report', params] as const)
       : ([...inventoryKeys.all, 'tool-breakage-report'] as const),
+
+  // Industry Templates
+  industryTemplates: () => [...inventoryKeys.all, 'industry-templates'] as const,
+  industryTemplate: (id: string) => [...inventoryKeys.all, 'industry-template', id] as const,
+  activeFieldConfig: () => [...inventoryKeys.all, 'active-field-config'] as const,
+
+  // Compliance Documents
+  complianceDocuments: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'compliance-documents', params] as const)
+      : ([...inventoryKeys.all, 'compliance-documents'] as const),
+  complianceDocument: (id: string) => [...inventoryKeys.all, 'compliance-document', id] as const,
+  complianceByLot: (lotId: string) => [...inventoryKeys.all, 'compliance-by-lot', lotId] as const,
+  complianceByPart: (partId: string) => [...inventoryKeys.all, 'compliance-by-part', partId] as const,
 };

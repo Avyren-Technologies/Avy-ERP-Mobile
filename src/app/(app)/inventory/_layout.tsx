@@ -24,6 +24,7 @@ export default function InventoryLayout() {
       <Stack.Screen name="production" />
       <Stack.Screen name="warehouse" />
       <Stack.Screen name="tool-room" />
+      <Stack.Screen name="industry" />
     </Stack>
   );
 }

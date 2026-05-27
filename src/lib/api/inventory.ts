@@ -200,4 +200,22 @@ export const inventoryApi = {
   getCountVariance: (params?: Record<string, unknown>) => client.get('/inventory/reports/count-variance', { params }),
   getAdjustmentRegister: (params?: Record<string, unknown>) => client.get('/inventory/reports/adjustment-register', { params }),
   getTransferLog: (params?: Record<string, unknown>) => client.get('/inventory/reports/transfer-log', { params }),
+
+  // ── Industry Templates ──
+  listIndustryTemplates: () => client.get('/inventory/industry/templates'),
+  getIndustryTemplate: (id: string) => client.get(`/inventory/industry/templates/${id}`),
+  activateIndustryTemplate: (id: string) => client.post(`/inventory/industry/templates/${id}/activate`),
+  cloneIndustryTemplate: (id: string, data: Record<string, unknown>) => client.post(`/inventory/industry/templates/${id}/clone`, data),
+  updateFieldConfig: (templateId: string, fieldId: string, data: Record<string, unknown>) => client.patch(`/inventory/industry/templates/${templateId}/fields/${fieldId}`, data),
+  getActiveFieldConfig: () => client.get('/inventory/industry/field-config'),
+  seedIndustryTemplates: () => client.post('/inventory/industry/seed'),
+
+  // ── Compliance Documents ──
+  listComplianceDocuments: (params?: Record<string, unknown>) => client.get('/inventory/compliance-documents', { params }),
+  getComplianceDocument: (id: string) => client.get(`/inventory/compliance-documents/${id}`),
+  createComplianceDocument: (data: Record<string, unknown>) => client.post('/inventory/compliance-documents', data),
+  updateComplianceDocument: (id: string, data: Record<string, unknown>) => client.patch(`/inventory/compliance-documents/${id}`, data),
+  deleteComplianceDocument: (id: string) => client.delete(`/inventory/compliance-documents/${id}`),
+  getComplianceByLot: (lotId: string) => client.get(`/inventory/compliance-documents/by-lot/${lotId}`),
+  getComplianceByPart: (partId: string) => client.get(`/inventory/compliance-documents/by-part/${partId}`),
 };

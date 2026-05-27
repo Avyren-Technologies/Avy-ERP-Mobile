@@ -803,3 +803,97 @@ export function useCompleteReconditioning() {
     onError: showError,
   });
 }
+
+// ── Industry Templates ──
+
+export function useActivateIndustryTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.activateIndustryTemplate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.industryTemplates() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.activeFieldConfig() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.config() });
+      showSuccess('Industry template activated');
+    },
+    onError: showError,
+  });
+}
+
+export function useCloneIndustryTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.cloneIndustryTemplate(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.industryTemplates() });
+      showSuccess('Template cloned');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateFieldConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ templateId, fieldId, data }: { templateId: string; fieldId: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateFieldConfig(templateId, fieldId, data),
+    onSuccess: (_: any, variables: { templateId: string; fieldId: string; data: Record<string, unknown> }) => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.industryTemplate(variables.templateId) });
+      qc.invalidateQueries({ queryKey: inventoryKeys.activeFieldConfig() });
+      showSuccess('Field configuration updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useSeedIndustryTemplates() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => inventoryApi.seedIndustryTemplates(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.industryTemplates() });
+      showSuccess('System templates seeded');
+    },
+    onError: showError,
+  });
+}
+
+// ── Compliance Documents ──
+
+export function useCreateComplianceDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.createComplianceDocument(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.complianceDocuments() });
+      showSuccess('Compliance document uploaded');
+    },
+    onError: showError,
+  });
+}
+
+export function useUpdateComplianceDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.updateComplianceDocument(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.complianceDocuments() });
+      showSuccess('Compliance document updated');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteComplianceDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryApi.deleteComplianceDocument(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.complianceDocuments() });
+      showSuccess('Compliance document deleted');
+    },
+    onError: showError,
+  });
+}

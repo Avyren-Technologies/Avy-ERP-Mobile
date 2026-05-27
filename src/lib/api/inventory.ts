@@ -218,4 +218,32 @@ export const inventoryApi = {
   deleteComplianceDocument: (id: string) => client.delete(`/inventory/compliance-documents/${id}`),
   getComplianceByLot: (lotId: string) => client.get(`/inventory/compliance-documents/by-lot/${lotId}`),
   getComplianceByPart: (partId: string) => client.get(`/inventory/compliance-documents/by-part/${partId}`),
+
+  // ── Analytics ──
+  getDailyAnalytics: (params?: Record<string, unknown>) => client.get('/inventory/analytics/daily', { params }),
+  getKpiSnapshots: (params?: Record<string, unknown>) => client.get('/inventory/analytics/kpis', { params }),
+  getCurrentKpis: () => client.get('/inventory/analytics/current-kpis'),
+  getStockValueByWarehouse: () => client.get('/inventory/analytics/stock-value'),
+  getTrendData: (params?: Record<string, unknown>) => client.get('/inventory/analytics/trend', { params }),
+
+  // ── Search ──
+  globalSearch: (params?: Record<string, unknown>) => client.get('/inventory/search', { params }),
+  searchByEntity: (entityType: string, params?: Record<string, unknown>) => client.get(`/inventory/search/${entityType}`, { params }),
+
+  // ── Import ──
+  previewImport: (data: Record<string, unknown>) => client.post('/inventory/import/preview', data),
+  commitImport: (jobId: string) => client.post(`/inventory/import/${jobId}/commit`),
+  listImportJobs: (params?: Record<string, unknown>) => client.get('/inventory/import/jobs', { params }),
+  getImportJob: (jobId: string) => client.get(`/inventory/import/jobs/${jobId}`),
+
+  // ── Export ──
+  exportData: (data: Record<string, unknown>) => client.post('/inventory/export', data),
+  getExportTemplates: () => client.get('/inventory/export/templates'),
+
+  // ── Saved Filters ──
+  listSavedFilters: (params?: Record<string, unknown>) => client.get('/inventory/saved-filters', { params }),
+  createSavedFilter: (data: Record<string, unknown>) => client.post('/inventory/saved-filters', data),
+  updateSavedFilter: (id: string, data: Record<string, unknown>) => client.patch(`/inventory/saved-filters/${id}`, data),
+  deleteSavedFilter: (id: string) => client.delete(`/inventory/saved-filters/${id}`),
+  setDefaultFilter: (id: string) => client.patch(`/inventory/saved-filters/${id}/default`),
 };

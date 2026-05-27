@@ -25,6 +25,10 @@ export default function InventoryLayout() {
       <Stack.Screen name="warehouse" />
       <Stack.Screen name="tool-room" />
       <Stack.Screen name="industry" />
+      <Stack.Screen name="analytics" />
+      <Stack.Screen name="analytics-stock-value" />
+      <Stack.Screen name="search" />
+      <Stack.Screen name="import" />
     </Stack>
   );
 }

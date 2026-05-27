@@ -241,4 +241,42 @@ export const inventoryKeys = {
   complianceDocument: (id: string) => [...inventoryKeys.all, 'compliance-document', id] as const,
   complianceByLot: (lotId: string) => [...inventoryKeys.all, 'compliance-by-lot', lotId] as const,
   complianceByPart: (partId: string) => [...inventoryKeys.all, 'compliance-by-part', partId] as const,
+
+  // Analytics
+  dailyAnalytics: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'daily-analytics', params] as const)
+      : ([...inventoryKeys.all, 'daily-analytics'] as const),
+  kpiSnapshots: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'kpi-snapshots', params] as const)
+      : ([...inventoryKeys.all, 'kpi-snapshots'] as const),
+  currentKpis: () => [...inventoryKeys.all, 'current-kpis'] as const,
+  stockValueByWarehouse: () => [...inventoryKeys.all, 'stock-value-by-warehouse'] as const,
+  trendData: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'trend-data', params] as const)
+      : ([...inventoryKeys.all, 'trend-data'] as const),
+
+  // Search
+  globalSearch: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'global-search', params] as const)
+      : ([...inventoryKeys.all, 'global-search'] as const),
+
+  // Import
+  importJobs: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'import-jobs', params] as const)
+      : ([...inventoryKeys.all, 'import-jobs'] as const),
+  importJob: (jobId: string) => [...inventoryKeys.all, 'import-job', jobId] as const,
+
+  // Export
+  exportTemplates: () => [...inventoryKeys.all, 'export-templates'] as const,
+
+  // Saved Filters
+  savedFilters: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'saved-filters', params] as const)
+      : ([...inventoryKeys.all, 'saved-filters'] as const),
 };

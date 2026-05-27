@@ -562,3 +562,85 @@ export function useComplianceByPart(partId: string) {
     enabled: !!partId,
   });
 }
+
+// ── Analytics ──
+
+export function useDailyAnalytics(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.dailyAnalytics(params),
+    queryFn: () => inventoryApi.getDailyAnalytics(params),
+  });
+}
+
+export function useKpiSnapshots(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.kpiSnapshots(params),
+    queryFn: () => inventoryApi.getKpiSnapshots(params),
+  });
+}
+
+export function useCurrentKpis() {
+  return useQuery({
+    queryKey: inventoryKeys.currentKpis(),
+    queryFn: () => inventoryApi.getCurrentKpis(),
+  });
+}
+
+export function useStockValueByWarehouse() {
+  return useQuery({
+    queryKey: inventoryKeys.stockValueByWarehouse(),
+    queryFn: () => inventoryApi.getStockValueByWarehouse(),
+  });
+}
+
+export function useTrendData(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.trendData(params),
+    queryFn: () => inventoryApi.getTrendData(params),
+  });
+}
+
+// ── Search ──
+
+export function useGlobalSearch(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.globalSearch(params),
+    queryFn: () => inventoryApi.globalSearch(params),
+    enabled: !!(params as any)?.q && (params as any).q.length >= 2,
+  });
+}
+
+// ── Import ──
+
+export function useImportJobs(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.importJobs(params),
+    queryFn: () => inventoryApi.listImportJobs(params),
+  });
+}
+
+export function useImportJob(jobId: string) {
+  return useQuery({
+    queryKey: inventoryKeys.importJob(jobId),
+    queryFn: () => inventoryApi.getImportJob(jobId),
+    enabled: !!jobId,
+  });
+}
+
+// ── Export ──
+
+export function useExportTemplates() {
+  return useQuery({
+    queryKey: inventoryKeys.exportTemplates(),
+    queryFn: () => inventoryApi.getExportTemplates(),
+  });
+}
+
+// ── Saved Filters ──
+
+export function useSavedFilters(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.savedFilters(params),
+    queryFn: () => inventoryApi.listSavedFilters(params),
+  });
+}

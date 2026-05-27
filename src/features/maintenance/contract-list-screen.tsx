@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, View, Modal as RNModal, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,11 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useContracts } from '@/features/maintenance/api/use-maintenance-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { useCanPerform } from '@/hooks/use-can-perform';
+import { useCreateContract } from '@/features/maintenance/api/use-maintenance-mutations';
+import { Input } from '@/components/ui/input';
+import { DropdownField } from '@/components/ui/dropdown-field';
+import { DatePickerField } from '@/components/ui/date-picker';
 
 import type { CompanyFormatter } from '@/lib/format/company-formatter';
 
@@ -29,6 +34,14 @@ const TYPE_CONFIG: Record<string, { label: string; bgColor: string; textColor: s
     RENTAL: { label: 'Rental', bgColor: colors.warning[50], textColor: colors.warning[700] },
     SERVICE: { label: 'Service', bgColor: '#ECFDF5', textColor: '#047857' },
 };
+
+const CONTRACT_TYPES = [
+    { id: 'WARRANTY', name: 'Warranty' },
+    { id: 'AMC', name: 'AMC' },
+    { id: 'CAMC', name: 'CAMC' },
+    { id: 'RENTAL', name: 'Rental' },
+    { id: 'SERVICE', name: 'Service' },
+];
 
 function ContractTypeBadge({ type }: { type: string }) {
     const cfg = TYPE_CONFIG[type] ?? { label: type, bgColor: colors.neutral[100], textColor: colors.neutral[600] };
@@ -85,6 +98,7 @@ function ContractCard({
     onPress: () => void;
     fmt: CompanyFormatter;
 }) {
+    const callsExceeded = item.callLimit != null && (item.callsUsed ?? 0) > item.callLimit;
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(80 + index * 50)}>
             <Pressable
@@ -93,17 +107,27 @@ function ContractCard({
                     cardStyles.card,
                     {
                         backgroundColor: isDark ? '#1A1730' : colors.white,
-                        borderColor: isDark ? colors.primary[900] : colors.primary[50],
+                        borderColor: callsExceeded
+                            ? colors.danger[300]
+                            : (isDark ? colors.primary[900] : colors.primary[50]),
+                        borderWidth: callsExceeded ? 1.5 : 1,
                     },
                 ]}
             >
                 <View style={cardStyles.headerRow}>
                     <View style={[cardStyles.codeBadge, { backgroundColor: isDark ? colors.primary[900] : colors.info[50] }]}>
                         <Text className="font-inter text-[10px] font-bold text-info-700">
-                            {item.code ?? 'CTR'}
+                            {item.contractCode ?? 'CTR'}
                         </Text>
                     </View>
-                    <ExpiryBadge endDate={item.endDate} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {callsExceeded && (
+                            <View style={{ paddingHorizontal: 6, paddingVertical: 3, borderRadius: 100, backgroundColor: colors.danger[50], borderWidth: 1, borderColor: colors.danger[200] }}>
+                                <Text style={{ fontSize: 9, fontWeight: '800', color: colors.danger[700] }}>⚠ Exceeded</Text>
+                            </View>
+                        )}
+                        <ExpiryBadge endDate={item.endDate} />
+                    </View>
                 </View>
 
                 <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1} style={{ marginTop: 8 }}>
@@ -116,8 +140,8 @@ function ContractCard({
 
                 <View style={cardStyles.detailsRow}>
                     <ContractTypeBadge type={item.contractType ?? 'AMC'} />
-                    <Text className="font-inter text-[10px] text-neutral-400">
-                        {item.callsUsed ?? 0}/{item.callLimit ?? 'Unlimited'} calls
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: callsExceeded ? colors.danger[600] : colors.neutral[400] }}>
+                        {item.callsUsed ?? 0}/{item.callLimit ?? '∞'} calls
                     </Text>
                     <Text className="font-inter text-[10px] text-neutral-400" style={{ marginLeft: 'auto' }}>
                         {item.startDate ? fmt.date(item.startDate) : ''} - {item.endDate ? fmt.date(item.endDate) : ''}
@@ -138,6 +162,21 @@ export function ContractListScreen() {
     const router = useRouter();
     const [search, setSearch] = React.useState('');
     const [activeFilter, setActiveFilter] = React.useState('all');
+
+    const canCreate = useCanPerform('maintenance:create');
+    const createMutation = useCreateContract();
+    const [showModal, setShowModal] = React.useState(false);
+    const [form, setForm] = React.useState({
+        name: '',
+        contractType: 'AMC',
+        vendorName: '',
+        startDate: '',
+        endDate: '',
+        callLimit: '',
+        contractValue: '',
+        coverageScope: '',
+    });
+    const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
 
     const typeParam = activeFilter === 'all' ? undefined : activeFilter;
     const { data: response, isLoading, error, refetch, isFetching } = useContracts({
@@ -209,6 +248,50 @@ export function ContractListScreen() {
         return <EmptyState icon="search" title="No contracts found" message="Add a maintenance contract to get started." />;
     };
 
+    const handleSave = async () => {
+        const errors: Record<string, string> = {};
+        if (!form.name.trim()) errors.name = 'Contract name is required';
+        if (!form.startDate) errors.startDate = 'Start date is required';
+        if (!form.endDate) errors.endDate = 'End date is required';
+        
+        if (form.startDate && form.endDate && new Date(form.endDate) <= new Date(form.startDate)) {
+            errors.endDate = 'End date must be after start date';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            return;
+        }
+
+        setFormErrors({});
+        try {
+            await createMutation.mutateAsync({
+                name: form.name.trim(),
+                contractType: form.contractType,
+                vendorName: form.vendorName.trim() || undefined,
+                startDate: form.startDate,
+                endDate: form.endDate,
+                callLimit: form.callLimit ? Number(form.callLimit) : undefined,
+                contractValue: form.contractValue ? Number(form.contractValue) : undefined,
+                coverageScope: form.coverageScope.trim() || undefined,
+            });
+            setShowModal(false);
+            setForm({
+                name: '',
+                contractType: 'AMC',
+                vendorName: '',
+                startDate: '',
+                endDate: '',
+                callLimit: '',
+                contractValue: '',
+                coverageScope: '',
+            });
+            refetch();
+        } catch (err: any) {
+            Alert.alert('Error', err?.message || 'Failed to create contract');
+        }
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient
@@ -235,6 +318,102 @@ export function ContractListScreen() {
                     />
                 }
             />
+
+            {canCreate && (
+                <FAB onPress={() => { setFormErrors({}); setShowModal(true); }} />
+            )}
+
+            <RNModal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                    <View style={[sheetStyles.container, { paddingTop: insets.top + 8, backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                        <View style={[sheetStyles.header, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
+                            <Pressable onPress={() => setShowModal(false)}>
+                                <Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text>
+                            </Pressable>
+                            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">Add Contract</Text>
+                            <View style={{ width: 52 }} />
+                        </View>
+
+                        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                            <Input
+                                label="Name"
+                                placeholder="E.g. Acme Compressor AMC"
+                                value={form.name}
+                                onChangeText={(v) => setForm({ ...form, name: v })}
+                                error={formErrors.name}
+                            />
+                            
+                            <DropdownField
+                                label="Contract Type"
+                                options={CONTRACT_TYPES}
+                                selected={form.contractType}
+                                onSelect={(v) => setForm({ ...form, contractType: v })}
+                            />
+                            
+                            <Input
+                                label="Vendor Name"
+                                placeholder="E.g. Acme Corp"
+                                value={form.vendorName}
+                                onChangeText={(v) => setForm({ ...form, vendorName: v })}
+                            />
+                            
+                            <DatePickerField
+                                label="Start Date"
+                                required
+                                value={form.startDate}
+                                onChange={(v) => setForm({ ...form, startDate: v })}
+                                error={formErrors.startDate}
+                            />
+                            
+                            <DatePickerField
+                                label="End Date"
+                                required
+                                value={form.endDate}
+                                onChange={(v) => setForm({ ...form, endDate: v })}
+                                error={formErrors.endDate}
+                            />
+                            
+                            <Input
+                                label="Call Limit"
+                                placeholder="E.g. 10 (leave empty for unlimited)"
+                                keyboardType="numeric"
+                                value={form.callLimit}
+                                onChangeText={(v) => setForm({ ...form, callLimit: v })}
+                            />
+                            
+                            <Input
+                                label="Contract Value"
+                                placeholder="E.g. 50000"
+                                keyboardType="numeric"
+                                value={form.contractValue}
+                                onChangeText={(v) => setForm({ ...form, contractValue: v })}
+                            />
+                            
+                            <Input
+                                label="Coverage Scope"
+                                placeholder="Describe inclusions, safety terms, etc."
+                                multiline
+                                numberOfLines={3}
+                                style={{ height: 80, textAlignVertical: 'top' }}
+                                value={form.coverageScope}
+                                onChangeText={(v) => setForm({ ...form, coverageScope: v })}
+                            />
+                        </ScrollView>
+
+                        <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                            <Pressable
+                                style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, createMutation.isPending && { opacity: 0.6 }]}
+                                onPress={handleSave}
+                                disabled={createMutation.isPending}
+                            >
+                                {createMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : (
+                                    <Text className="font-inter text-base font-bold text-white">Create Contract</Text>
+                                )}
+                            </Pressable>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </RNModal>
         </View>
     );
 }
@@ -272,5 +451,34 @@ const cardStyles = StyleSheet.create({
         borderTopColor: colors.neutral[100],
         gap: 8,
         flexWrap: 'wrap',
+    },
+});
+
+const sheetStyles = StyleSheet.create({
+    container: { flex: 1 },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+    },
+    submitContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        borderTopWidth: 1,
+    },
+    submitBtn: {
+        backgroundColor: colors.primary[600],
+        borderRadius: 14,
+        height: 52,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: colors.primary[500],
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
     },
 });

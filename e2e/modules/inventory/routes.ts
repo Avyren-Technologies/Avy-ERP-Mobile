@@ -147,6 +147,63 @@ export const INV_TEST_IDS = {
     root: 'inv-wo-recon-root',
     generateBtn: 'inv-wo-recon-generate-btn',
   },
+
+  // Phase 3 — Warehouse Advanced
+  putawayRules: {
+    root: 'inv-putaway-rules-root',
+    addButton: 'inv-putaway-rules-add-btn',
+    list: 'inv-putaway-rules-list',
+  },
+  pallets: {
+    root: 'inv-pallets-root',
+    addButton: 'inv-pallets-add-btn',
+    list: 'inv-pallets-list',
+  },
+  staging: {
+    root: 'inv-staging-root',
+    tabInbound: 'inv-staging-tab-inbound',
+    tabOutbound: 'inv-staging-tab-outbound',
+  },
+  warehouseScan: {
+    root: 'inv-scan-root',
+    putawayScan: 'inv-scan-putaway',
+    pickScan: 'inv-scan-pick',
+    countScan: 'inv-scan-count',
+    dispatchScan: 'inv-scan-dispatch',
+    barcodeInput: 'inv-scan-barcode-input',
+    scanButton: 'inv-scan-btn',
+  },
+
+  // Phase 3 — Tool Room
+  toolLifePolicies: {
+    root: 'inv-tool-policies-root',
+    list: 'inv-tool-policies-list',
+    upsertBtn: 'inv-tool-policies-upsert-btn',
+  },
+  toolIssue: {
+    root: 'inv-tool-issue-root',
+    addButton: 'inv-tool-issue-add-btn',
+    machineSelect: 'inv-tool-issue-machine',
+  },
+  toolReturn: {
+    root: 'inv-tool-return-root',
+    addButton: 'inv-tool-return-add-btn',
+    outcomeSelect: 'inv-tool-return-outcome',
+  },
+  reconditioning: {
+    root: 'inv-reconditioning-root',
+    list: 'inv-reconditioning-list',
+    initiateBtn: 'inv-reconditioning-initiate-btn',
+    completeBtn: 'inv-reconditioning-complete-btn',
+  },
+  toolReports: {
+    root: 'inv-tool-reports-root',
+    tabStatus: 'inv-tool-reports-tab-status',
+    tabAtMachine: 'inv-tool-reports-tab-at-machine',
+    tabConsumption: 'inv-tool-reports-tab-consumption',
+    tabReconditioning: 'inv-tool-reports-tab-reconditioning',
+    tabBreakage: 'inv-tool-reports-tab-breakage',
+  },
 };
 
 /**
@@ -175,4 +232,19 @@ export const INV_ROUTES = {
   materialReturn: '/inventory/production/material-return',
   productionScrap: '/inventory/production/scrap',
   woReconciliation: '/inventory/production/reconciliation',
+  // Phase 3 — Warehouse Advanced
+  putawayRules: '/inventory/warehouse/putaway-rules',
+  pallets: '/inventory/warehouse/pallets',
+  staging: '/inventory/warehouse/staging',
+  putawayScan: '/inventory/warehouse/scan/putaway',
+  pickScan: '/inventory/warehouse/scan/pick',
+  countScan: '/inventory/warehouse/scan/count',
+  dispatchScan: '/inventory/warehouse/scan/dispatch',
+  // Phase 3 — Tool Room
+  toolLifePolicies: '/inventory/tool-room/policies',
+  toolIssue: '/inventory/tool-room/issue',
+  toolReturn: '/inventory/tool-room/return',
+  reconditioning: '/inventory/tool-room/reconditioning',
+  toolReports: '/inventory/tool-room/reports',
+  toolReportsAtMachine: '/inventory/tool-room/reports/at-machine',
 };

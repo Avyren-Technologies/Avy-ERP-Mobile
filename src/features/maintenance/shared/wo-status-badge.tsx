@@ -6,6 +6,7 @@ import colors from '@/components/ui/colors';
 const WO_STATUS_CONFIG: Record<string, { label: string; bgColor: string; textColor: string; dotColor: string }> = {
     DRAFT: { label: 'Draft', bgColor: colors.neutral[100], textColor: colors.neutral[600], dotColor: colors.neutral[400] },
     PLANNED: { label: 'Planned', bgColor: colors.info[50], textColor: colors.info[700], dotColor: colors.info[500] },
+    APPROVED: { label: 'Approved', bgColor: '#ECFDF5', textColor: '#047857', dotColor: '#10B981' },
     ASSIGNED: { label: 'Assigned', bgColor: '#EFF6FF', textColor: '#1D4ED8', dotColor: '#3B82F6' },
     ACKNOWLEDGED: { label: 'Acknowledged', bgColor: '#F0FDF4', textColor: '#15803D', dotColor: '#22C55E' },
     IN_PROGRESS: { label: 'In Progress', bgColor: colors.warning[50], textColor: colors.warning[700], dotColor: colors.warning[500] },

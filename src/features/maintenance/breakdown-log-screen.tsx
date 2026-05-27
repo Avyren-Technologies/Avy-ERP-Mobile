@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, TextInput } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -38,7 +38,7 @@ export function BreakdownLogScreen() {
     const logMutation = useLogBreakdown();
 
     const handleSubmit = async () => {
-        if (!assetId) return;
+        if (!assetId || !description.trim()) return;
         try {
             const result = await logMutation.mutateAsync({ assetId, description, priority, safetyRisk });
             showSuccess('Breakdown Logged');
@@ -100,33 +100,65 @@ export function BreakdownLogScreen() {
                     </Pressable>
                     {showAssetPicker && (
                         <View style={[styles.dropdown, { backgroundColor: isDark ? '#1A1730' : colors.white }]}>
-                            <View style={[styles.input, { backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50], marginBottom: 8 }]}>
-                                <Text className="font-inter text-xs text-neutral-400">Search:</Text>
-                            </View>
-                            {assets.map((a: any) => (
-                                <Pressable
-                                    key={a.id}
-                                    onPress={() => {
-                                        setAssetId(a.id);
-                                        setAssetName(`${a.name} (${a.assetNumber})`);
-                                        setShowAssetPicker(false);
-                                    }}
-                                    style={styles.dropdownItem}
-                                >
-                                    <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{a.name}</Text>
-                                    <Text className="font-inter text-[10px] text-neutral-400">{a.assetNumber}</Text>
-                                </Pressable>
-                            ))}
+                            <TextInput
+                                value={assetSearch}
+                                onChangeText={setAssetSearch}
+                                placeholder="Search assets..."
+                                placeholderTextColor={colors.neutral[400]}
+                                style={[
+                                    styles.dropdownSearchInput,
+                                    {
+                                        backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                                        color: isDark ? colors.white : colors.primary[950],
+                                        marginBottom: 8,
+                                        borderColor: isDark ? colors.neutral[800] : colors.neutral[200],
+                                    },
+                                ]}
+                            />
+                            <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                {assets.map((a: any) => (
+                                    <Pressable
+                                        key={a.id}
+                                        onPress={() => {
+                                            setAssetId(a.id);
+                                            setAssetName(`${a.name} (${a.assetNumber})`);
+                                            setShowAssetPicker(false);
+                                        }}
+                                        style={styles.dropdownItem}
+                                    >
+                                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{a.name}</Text>
+                                        <Text className="font-inter text-[10px] text-neutral-400">{a.assetNumber}</Text>
+                                    </Pressable>
+                                ))}
+                                {assets.length === 0 && (
+                                    <Text className="font-inter text-xs text-neutral-400 text-center py-4">No assets found</Text>
+                                )}
+                            </ScrollView>
                         </View>
                     )}
                 </Animated.View>
 
                 {/* Description */}
                 <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.section}>
-                    <Text className="font-inter text-sm font-bold text-neutral-700 dark:text-neutral-300">Description</Text>
-                    <View style={[styles.input, { backgroundColor: isDark ? '#1A1730' : colors.neutral[50], height: 80 }]}>
-                        <Text className="font-inter text-xs text-neutral-400">What happened?</Text>
-                    </View>
+                    <Text className="font-inter text-sm font-bold text-neutral-700 dark:text-neutral-300">Description *</Text>
+                    <TextInput
+                        value={description}
+                        onChangeText={setDescription}
+                        placeholder="What happened?"
+                        placeholderTextColor={colors.neutral[400]}
+                        multiline
+                        numberOfLines={4}
+                        style={[
+                            styles.input,
+                            {
+                                backgroundColor: isDark ? '#1A1730' : colors.neutral[50],
+                                height: 100,
+                                textAlignVertical: 'top',
+                                color: isDark ? colors.white : colors.primary[950],
+                                borderColor: isDark ? colors.neutral[800] : colors.neutral[200],
+                            },
+                        ]}
+                    />
                 </Animated.View>
 
                 {/* Priority */}
@@ -171,8 +203,8 @@ export function BreakdownLogScreen() {
                 <Animated.View entering={FadeInUp.duration(400).delay(350)}>
                     <Pressable
                         onPress={handleSubmit}
-                        disabled={!assetId || logMutation.isPending}
-                        style={[styles.submitBtn, { opacity: !assetId || logMutation.isPending ? 0.5 : 1 }]}
+                        disabled={!assetId || !description.trim() || logMutation.isPending}
+                        style={[styles.submitBtn, { opacity: !assetId || !description.trim() || logMutation.isPending ? 0.5 : 1 }]}
                     >
                         <LinearGradient
                             colors={[colors.danger[600], colors.danger[700]]}
@@ -207,7 +239,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.neutral[200],
         padding: 8,
-        maxHeight: 200,
+        maxHeight: 220,
+    },
+    dropdownSearchInput: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        borderWidth: 1,
+        fontSize: 14,
     },
     dropdownItem: {
         padding: 12,

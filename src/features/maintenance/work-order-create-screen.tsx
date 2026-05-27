@@ -166,7 +166,7 @@ export function WorkOrderCreateScreen() {
         });
     };
 
-    const renderPickerField = (label: string, dropdownName: string, selectedValue: string, placeholder: string, options: { value: string; label: string }[], onSelect: (v: string) => void, required?: boolean, errorKey?: string) => {
+    const renderPickerField = (label: string, dropdownName: string, selectedValue: string, placeholder: string, options: readonly { value: string; label: string }[], onSelect: (v: string) => void, required?: boolean, errorKey?: string) => {
         const isOpen = openDropdown === dropdownName;
         const selectedLabel = options.find((o) => o.value === selectedValue)?.label;
         return (

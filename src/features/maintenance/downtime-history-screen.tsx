@@ -112,9 +112,9 @@ function DowntimeCard({
                     </View>
                 </View>
 
-                {item.rootCause ? (
+                {item.workOrder?.rootCauseCode || item.rootCauseCode || item.notes ? (
                     <Text className="font-inter text-[10px] text-neutral-400" numberOfLines={1} style={{ marginTop: 8 }}>
-                        Cause: {item.rootCause}
+                        Cause: {item.workOrder?.rootCauseCode || item.rootCauseCode || item.notes}
                     </Text>
                 ) : null}
             </View>

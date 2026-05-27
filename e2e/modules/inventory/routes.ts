@@ -204,6 +204,21 @@ export const INV_TEST_IDS = {
     tabReconditioning: 'inv-tool-reports-tab-reconditioning',
     tabBreakage: 'inv-tool-reports-tab-breakage',
   },
+
+  // Phase 4 — Industry Templates & Compliance
+  industryTemplates: {
+    root: 'inv-industry-templates-root',
+    list: 'inv-industry-templates-list',
+    templateCard: 'inv-industry-template-card',
+    activateBtn: 'inv-industry-template-activate-btn',
+    cloneBtn: 'inv-industry-template-clone-btn',
+  },
+  complianceDocs: {
+    root: 'inv-compliance-docs-root',
+    list: 'inv-compliance-docs-list',
+    addButton: 'inv-compliance-docs-add-btn',
+    deleteBtn: 'inv-compliance-docs-delete-btn',
+  },
 };
 
 /**
@@ -247,4 +262,6 @@ export const INV_ROUTES = {
   reconditioning: '/inventory/tool-room/reconditioning',
   toolReports: '/inventory/tool-room/reports',
   toolReportsAtMachine: '/inventory/tool-room/reports/at-machine',
+  // Phase 4 — Industry Templates & Compliance
+  industry: '/inventory/industry',
 };

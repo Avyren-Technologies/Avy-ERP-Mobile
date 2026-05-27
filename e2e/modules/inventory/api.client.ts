@@ -78,6 +78,27 @@ export class InventoryMobileApiClient extends BaseApiClient {
     return this.get('/inventory/saved-filters', params);
   }
 
+  // ── Phase 6: Offline Sync ─────────────
+  async uploadSyncActions(data: Record<string, unknown>) {
+    return this.post('/inventory/sync/upload', data);
+  }
+
+  async getSyncConflicts() {
+    return this.get('/inventory/sync/conflicts');
+  }
+
+  async resolveSyncConflict(id: string, data: Record<string, unknown>) {
+    return this.patch(`/inventory/sync/conflicts/${id}/resolve`, data);
+  }
+
+  async retrySyncFailed() {
+    return this.post('/inventory/sync/retry');
+  }
+
+  async getSyncStats() {
+    return this.get('/inventory/sync/stats');
+  }
+
   // ── Seed Data ─────────────────────────
   async seedInventoryData() {
     const screens = [

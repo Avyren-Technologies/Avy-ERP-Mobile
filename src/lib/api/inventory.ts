@@ -123,6 +123,50 @@ export const inventoryApi = {
   // ── WIP Stock ──
   getWipStock: (params?: any) => client.get('/inventory/stock/wip', { params }).then(r => r.data),
 
+  // ── Putaway Rules ──
+  listPutawayRules: (params?: Record<string, unknown>) => client.get('/inventory/putaway-rules', { params }),
+  createPutawayRule: (data: Record<string, unknown>) => client.post('/inventory/putaway-rules', data),
+  updatePutawayRule: (id: string, data: Record<string, unknown>) => client.patch(`/inventory/putaway-rules/${id}`, data),
+  deletePutawayRule: (id: string) => client.delete(`/inventory/putaway-rules/${id}`),
+  suggestBin: (data: Record<string, unknown>) => client.post('/inventory/putaway-rules/suggest', data),
+
+  // ── Pallets ──
+  listPallets: (params?: Record<string, unknown>) => client.get('/inventory/pallets', { params }),
+  getPallet: (id: string) => client.get(`/inventory/pallets/${id}`),
+  createPallet: (data: Record<string, unknown>) => client.post('/inventory/pallets', data),
+  addPalletItems: (id: string, data: Record<string, unknown>) => client.post(`/inventory/pallets/${id}/items`, data),
+  closePallet: (id: string) => client.patch(`/inventory/pallets/${id}/close`),
+
+  // ── Staging ──
+  getStagingInbound: (params?: Record<string, unknown>) => client.get('/inventory/staging/inbound', { params }),
+  getStagingOutbound: (params?: Record<string, unknown>) => client.get('/inventory/staging/outbound', { params }),
+  getStagingArea: (warehouseId: string) => client.get(`/inventory/staging/${warehouseId}`),
+
+  // ── Tool Life Policies ──
+  listToolLifePolicies: (params?: Record<string, unknown>) => client.get('/inventory/tool-life-policies', { params }),
+  getToolLifePolicy: (partId: string) => client.get(`/inventory/tool-life-policies/${partId}`),
+  upsertToolLifePolicy: (data: Record<string, unknown>) => client.post('/inventory/tool-life-policies', data),
+
+  // ── Tool Issue ──
+  createToolIssue: (data: Record<string, unknown>) => client.post('/inventory/transactions/tool-issue', data),
+  getToolsAtMachine: (params?: Record<string, unknown>) => client.get('/inventory/stock/tools-at-machine', { params }),
+
+  // ── Tool Return ──
+  createToolReturn: (data: Record<string, unknown>) => client.post('/inventory/transactions/tool-return', data),
+
+  // ── Reconditioning ──
+  listReconditioning: (params?: Record<string, unknown>) => client.get('/inventory/transactions/reconditioning', { params }),
+  initiateReconditioning: (data: Record<string, unknown>) => client.post('/inventory/transactions/reconditioning', data),
+  completeReconditioning: (id: string, data: Record<string, unknown>) => client.patch(`/inventory/transactions/reconditioning/${id}/complete`, data),
+  getOverdueReconditioning: () => client.get('/inventory/transactions/reconditioning/overdue'),
+
+  // ── Tool Reports ──
+  getToolStatusReport: (params?: Record<string, unknown>) => client.get('/inventory/reports/tool-status', { params }),
+  getToolsAtMachineReport: (params?: Record<string, unknown>) => client.get('/inventory/reports/tool-at-machine', { params }),
+  getToolConsumptionReport: (params?: Record<string, unknown>) => client.get('/inventory/reports/tool-consumption', { params }),
+  getReconditioningRegister: (params?: Record<string, unknown>) => client.get('/inventory/reports/reconditioning-register', { params }),
+  getToolBreakageReport: (params?: Record<string, unknown>) => client.get('/inventory/reports/tool-breakage', { params }),
+
   // ── Stock Explorer ──
   getStockOnHand: (params?: Record<string, unknown>) => client.get('/inventory/stock/on-hand', { params }),
   getNetAvailable: (params?: Record<string, unknown>) => client.get('/inventory/stock/net-available', { params }),

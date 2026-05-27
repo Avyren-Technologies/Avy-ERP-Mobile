@@ -384,3 +384,124 @@ export function useWipStock(params?: Record<string, unknown>) {
     queryFn: () => inventoryApi.getWipStock(params),
   });
 }
+
+// ── Putaway Rules ──
+
+export function usePutawayRules(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.putawayRules(params),
+    queryFn: () => inventoryApi.listPutawayRules(params),
+  });
+}
+
+// ── Pallets ──
+
+export function usePallets(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.pallets(params),
+    queryFn: () => inventoryApi.listPallets(params),
+  });
+}
+
+export function usePallet(id: string) {
+  return useQuery({
+    queryKey: inventoryKeys.pallet(id),
+    queryFn: () => inventoryApi.getPallet(id),
+    enabled: !!id,
+  });
+}
+
+// ── Staging ──
+
+export function useStagingInbound(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.stagingInbound(params),
+    queryFn: () => inventoryApi.getStagingInbound(params),
+  });
+}
+
+export function useStagingOutbound(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.stagingOutbound(params),
+    queryFn: () => inventoryApi.getStagingOutbound(params),
+  });
+}
+
+// ── Tool Life Policies ──
+
+export function useToolLifePolicies(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.toolLifePolicies(params),
+    queryFn: () => inventoryApi.listToolLifePolicies(params),
+  });
+}
+
+export function useToolLifePolicy(partId: string) {
+  return useQuery({
+    queryKey: inventoryKeys.toolLifePolicy(partId),
+    queryFn: () => inventoryApi.getToolLifePolicy(partId),
+    enabled: !!partId,
+  });
+}
+
+// ── Tools at Machine ──
+
+export function useToolsAtMachine(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.toolsAtMachine(params),
+    queryFn: () => inventoryApi.getToolsAtMachine(params),
+  });
+}
+
+// ── Reconditioning ──
+
+export function useReconditioning(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.reconditioning(params),
+    queryFn: () => inventoryApi.listReconditioning(params),
+  });
+}
+
+export function useOverdueReconditioning() {
+  return useQuery({
+    queryKey: inventoryKeys.overdueReconditioning(),
+    queryFn: () => inventoryApi.getOverdueReconditioning(),
+  });
+}
+
+// ── Tool Reports ──
+
+export function useToolStatusReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.toolStatusReport(params),
+    queryFn: () => inventoryApi.getToolStatusReport(params),
+  });
+}
+
+export function useToolsAtMachineReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.toolsAtMachineReport(params),
+    queryFn: () => inventoryApi.getToolsAtMachineReport(params),
+  });
+}
+
+export function useToolConsumptionReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.toolConsumptionReport(params),
+    queryFn: () => inventoryApi.getToolConsumptionReport(params),
+  });
+}
+
+export function useReconditioningRegister(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.reconditioningRegister(params),
+    queryFn: () => inventoryApi.getReconditioningRegister(params),
+  });
+}
+
+export function useToolBreakageReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.toolBreakageReport(params),
+    queryFn: () => inventoryApi.getToolBreakageReport(params),
+  });
+}

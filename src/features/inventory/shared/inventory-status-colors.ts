@@ -33,3 +33,31 @@ export const COUNT_STATUS_CONFIG: Record<string, { bg: string; text: string; bor
   CLOSED: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Closed' },
   CANCELLED: { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-300', label: 'Cancelled' },
 };
+
+export const TOOL_LIFE_COLORS = {
+  HEALTHY: { bg: 'bg-emerald-50', text: 'text-emerald-700', progressColor: '#10b981' },
+  WARNING: { bg: 'bg-amber-50', text: 'text-amber-700', progressColor: '#f59e0b' },
+  CRITICAL: { bg: 'bg-red-50', text: 'text-red-700', progressColor: '#ef4444' },
+  EXHAUSTED: { bg: 'bg-gray-100', text: 'text-gray-500', progressColor: '#9ca3af' },
+};
+
+export const RECONDITIONING_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  INITIATED: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Initiated' },
+  IN_PROGRESS: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'In Progress' },
+  COMPLETED: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Completed' },
+  OVERDUE: { bg: 'bg-red-50', text: 'text-red-700', label: 'Overdue' },
+};
+
+export const PALLET_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  OPEN: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Open' },
+  CLOSED: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Closed' },
+  IN_TRANSIT: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'In Transit' },
+  DISPATCHED: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Dispatched' },
+};
+
+export function getToolLifeLevel(pct: number) {
+  if (pct <= 0) return TOOL_LIFE_COLORS.EXHAUSTED;
+  if (pct < 20) return TOOL_LIFE_COLORS.CRITICAL;
+  if (pct < 50) return TOOL_LIFE_COLORS.WARNING;
+  return TOOL_LIFE_COLORS.HEALTHY;
+}

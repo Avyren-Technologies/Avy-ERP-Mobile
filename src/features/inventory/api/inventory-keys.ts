@@ -161,4 +161,70 @@ export const inventoryKeys = {
     params
       ? ([...inventoryKeys.all, 'wip-stock', params] as const)
       : ([...inventoryKeys.all, 'wip-stock'] as const),
+
+  // Putaway Rules
+  putawayRules: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'putaway-rules', params] as const)
+      : ([...inventoryKeys.all, 'putaway-rules'] as const),
+
+  // Pallets
+  pallets: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'pallets', params] as const)
+      : ([...inventoryKeys.all, 'pallets'] as const),
+  pallet: (id: string) => [...inventoryKeys.all, 'pallet', id] as const,
+
+  // Staging
+  stagingInbound: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'staging-inbound', params] as const)
+      : ([...inventoryKeys.all, 'staging-inbound'] as const),
+  stagingOutbound: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'staging-outbound', params] as const)
+      : ([...inventoryKeys.all, 'staging-outbound'] as const),
+  stagingArea: (warehouseId: string) => [...inventoryKeys.all, 'staging-area', warehouseId] as const,
+
+  // Tool Life Policies
+  toolLifePolicies: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'tool-life-policies', params] as const)
+      : ([...inventoryKeys.all, 'tool-life-policies'] as const),
+  toolLifePolicy: (partId: string) => [...inventoryKeys.all, 'tool-life-policy', partId] as const,
+
+  // Tool at Machine
+  toolsAtMachine: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'tools-at-machine', params] as const)
+      : ([...inventoryKeys.all, 'tools-at-machine'] as const),
+
+  // Reconditioning
+  reconditioning: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'reconditioning', params] as const)
+      : ([...inventoryKeys.all, 'reconditioning'] as const),
+  overdueReconditioning: () => [...inventoryKeys.all, 'reconditioning-overdue'] as const,
+
+  // Tool Reports
+  toolStatusReport: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'tool-status-report', params] as const)
+      : ([...inventoryKeys.all, 'tool-status-report'] as const),
+  toolsAtMachineReport: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'tools-at-machine-report', params] as const)
+      : ([...inventoryKeys.all, 'tools-at-machine-report'] as const),
+  toolConsumptionReport: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'tool-consumption-report', params] as const)
+      : ([...inventoryKeys.all, 'tool-consumption-report'] as const),
+  reconditioningRegister: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'reconditioning-register', params] as const)
+      : ([...inventoryKeys.all, 'reconditioning-register'] as const),
+  toolBreakageReport: (params?: Record<string, unknown>) =>
+    params
+      ? ([...inventoryKeys.all, 'tool-breakage-report', params] as const)
+      : ([...inventoryKeys.all, 'tool-breakage-report'] as const),
 };

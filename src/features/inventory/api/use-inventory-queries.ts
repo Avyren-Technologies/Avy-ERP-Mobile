@@ -25,6 +25,7 @@ export function useWarehouses(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.warehouses(params),
     queryFn: () => inventoryApi.listWarehouses(params),
+    staleTime: Infinity,
   });
 }
 
@@ -42,6 +43,7 @@ export function useZones(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.zones(params),
     queryFn: () => inventoryApi.listZones(params),
+    staleTime: Infinity,
   });
 }
 
@@ -51,6 +53,7 @@ export function useBins(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.bins(params),
     queryFn: () => inventoryApi.listBins(params),
+    staleTime: Infinity,
   });
 }
 
@@ -77,6 +80,7 @@ export function useReasonCodes(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.reasonCodes(params),
     queryFn: () => inventoryApi.listReasonCodes(params),
+    staleTime: Infinity,
   });
 }
 
@@ -86,6 +90,7 @@ export function useApprovalThresholds() {
   return useQuery({
     queryKey: inventoryKeys.approvalThresholds(),
     queryFn: () => inventoryApi.listApprovalThresholds(),
+    staleTime: Infinity,
   });
 }
 
@@ -95,6 +100,7 @@ export function useHandlingUnits() {
   return useQuery({
     queryKey: inventoryKeys.handlingUnits(),
     queryFn: () => inventoryApi.listHandlingUnits(),
+    staleTime: Infinity,
   });
 }
 
@@ -104,6 +110,7 @@ export function useStockOnHand(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.stockOnHand(params),
     queryFn: () => inventoryApi.getStockOnHand(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -111,6 +118,7 @@ export function useNetAvailable(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.netAvailable(params),
     queryFn: () => inventoryApi.getNetAvailable(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -118,6 +126,7 @@ export function useStockByStatus(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.stockByStatus(params),
     queryFn: () => inventoryApi.getStockByStatus(params),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -299,6 +308,7 @@ export function useInventoryDashboard() {
   return useQuery({
     queryKey: inventoryKeys.dashboard(),
     queryFn: () => inventoryApi.getDashboard(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -433,6 +443,7 @@ export function useToolLifePolicies(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.toolLifePolicies(params),
     queryFn: () => inventoryApi.listToolLifePolicies(params),
+    staleTime: Infinity,
   });
 }
 
@@ -512,6 +523,7 @@ export function useIndustryTemplates() {
   return useQuery({
     queryKey: inventoryKeys.industryTemplates(),
     queryFn: () => inventoryApi.listIndustryTemplates(),
+    staleTime: Infinity,
   });
 }
 
@@ -633,6 +645,7 @@ export function useExportTemplates() {
   return useQuery({
     queryKey: inventoryKeys.exportTemplates(),
     queryFn: () => inventoryApi.getExportTemplates(),
+    staleTime: Infinity,
   });
 }
 
@@ -642,5 +655,21 @@ export function useSavedFilters(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: inventoryKeys.savedFilters(params),
     queryFn: () => inventoryApi.listSavedFilters(params),
+  });
+}
+
+// ── Sync ──
+
+export function useSyncConflicts() {
+  return useQuery({
+    queryKey: inventoryKeys.syncConflicts(),
+    queryFn: () => inventoryApi.getSyncConflicts(),
+  });
+}
+
+export function useSyncStats() {
+  return useQuery({
+    queryKey: inventoryKeys.syncStats(),
+    queryFn: () => inventoryApi.getSyncStats(),
   });
 }

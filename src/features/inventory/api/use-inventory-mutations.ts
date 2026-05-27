@@ -897,3 +897,46 @@ export function useDeleteComplianceDocument() {
     onError: showError,
   });
 }
+
+// ── Sync ──
+
+export function useUploadSyncActions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => inventoryApi.uploadSyncActions(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.syncConflicts() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.syncStats() });
+      invalidateStockQueries(qc);
+    },
+    onError: showError,
+  });
+}
+
+export function useResolveSyncConflict() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      inventoryApi.resolveSyncConflict(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.syncConflicts() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.syncStats() });
+      invalidateStockQueries(qc);
+      showSuccess('Conflict resolved');
+    },
+    onError: showError,
+  });
+}
+
+export function useRetrySyncFailed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => inventoryApi.retrySyncFailed(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: inventoryKeys.syncConflicts() });
+      qc.invalidateQueries({ queryKey: inventoryKeys.syncStats() });
+      showSuccess('Retrying failed sync actions');
+    },
+    onError: showError,
+  });
+}

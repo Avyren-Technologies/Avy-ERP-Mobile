@@ -505,3 +505,60 @@ export function useToolBreakageReport(params?: Record<string, unknown>) {
     queryFn: () => inventoryApi.getToolBreakageReport(params),
   });
 }
+
+// ── Industry Templates ──
+
+export function useIndustryTemplates() {
+  return useQuery({
+    queryKey: inventoryKeys.industryTemplates(),
+    queryFn: () => inventoryApi.listIndustryTemplates(),
+  });
+}
+
+export function useIndustryTemplate(id: string) {
+  return useQuery({
+    queryKey: inventoryKeys.industryTemplate(id),
+    queryFn: () => inventoryApi.getIndustryTemplate(id),
+    enabled: !!id,
+  });
+}
+
+export function useActiveFieldConfig() {
+  return useQuery({
+    queryKey: inventoryKeys.activeFieldConfig(),
+    queryFn: () => inventoryApi.getActiveFieldConfig(),
+  });
+}
+
+// ── Compliance Documents ──
+
+export function useComplianceDocuments(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: inventoryKeys.complianceDocuments(params),
+    queryFn: () => inventoryApi.listComplianceDocuments(params),
+  });
+}
+
+export function useComplianceDocument(id: string) {
+  return useQuery({
+    queryKey: inventoryKeys.complianceDocument(id),
+    queryFn: () => inventoryApi.getComplianceDocument(id),
+    enabled: !!id,
+  });
+}
+
+export function useComplianceByLot(lotId: string) {
+  return useQuery({
+    queryKey: inventoryKeys.complianceByLot(lotId),
+    queryFn: () => inventoryApi.getComplianceByLot(lotId),
+    enabled: !!lotId,
+  });
+}
+
+export function useComplianceByPart(partId: string) {
+  return useQuery({
+    queryKey: inventoryKeys.complianceByPart(partId),
+    queryFn: () => inventoryApi.getComplianceByPart(partId),
+    enabled: !!partId,
+  });
+}

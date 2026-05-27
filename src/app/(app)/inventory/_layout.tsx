@@ -29,6 +29,7 @@ export default function InventoryLayout() {
       <Stack.Screen name="analytics-stock-value" />
       <Stack.Screen name="search" />
       <Stack.Screen name="import" />
+      <Stack.Screen name="sync-conflicts" />
     </Stack>
   );
 }

@@ -279,4 +279,8 @@ export const inventoryKeys = {
     params
       ? ([...inventoryKeys.all, 'saved-filters', params] as const)
       : ([...inventoryKeys.all, 'saved-filters'] as const),
+
+  // Sync
+  syncConflicts: () => [...inventoryKeys.all, 'sync-conflicts'] as const,
+  syncStats: () => [...inventoryKeys.all, 'sync-stats'] as const,
 };

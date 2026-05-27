@@ -46,6 +46,38 @@ export class InventoryMobileApiClient extends BaseApiClient {
     return this.get('/inventory/scrap-categories');
   }
 
+  // ── Phase 5: Analytics ────────────────
+  async getCurrentKpis() {
+    return this.get('/inventory/analytics/current-kpis');
+  }
+
+  async getStockValueByWarehouse() {
+    return this.get('/inventory/analytics/stock-value');
+  }
+
+  async getTrendData(params?: Record<string, string>) {
+    return this.get('/inventory/analytics/trend', params);
+  }
+
+  // ── Phase 5: Search ─────────────────
+  async globalSearch(params?: Record<string, string>) {
+    return this.get('/inventory/search', params);
+  }
+
+  // ── Phase 5: Import/Export ──────────
+  async listImportJobs() {
+    return this.get('/inventory/import/jobs');
+  }
+
+  async getExportTemplates() {
+    return this.get('/inventory/export/templates');
+  }
+
+  // ── Phase 5: Saved Filters ─────────
+  async listSavedFilters(params?: Record<string, string>) {
+    return this.get('/inventory/saved-filters', params);
+  }
+
   // ── Seed Data ─────────────────────────
   async seedInventoryData() {
     const screens = [

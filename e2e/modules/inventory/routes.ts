@@ -219,6 +219,44 @@ export const INV_TEST_IDS = {
     addButton: 'inv-compliance-docs-add-btn',
     deleteBtn: 'inv-compliance-docs-delete-btn',
   },
+
+  // Phase 5 — Analytics, Search, Import/Export
+  analytics: {
+    root: 'inv-analytics-root',
+    kpiTurnover: 'inv-analytics-kpi-turnover',
+    kpiFillRate: 'inv-analytics-kpi-fill-rate',
+    kpiAccuracy: 'inv-analytics-kpi-accuracy',
+    trendChart: 'inv-analytics-trend-chart',
+  },
+  stockValue: {
+    root: 'inv-stock-value-root',
+    warehouseList: 'inv-stock-value-warehouse-list',
+    totalValue: 'inv-stock-value-total',
+  },
+  search: {
+    root: 'inv-search-root',
+    searchInput: 'inv-search-input',
+    entityFilter: 'inv-search-entity-filter',
+    resultsList: 'inv-search-results-list',
+  },
+  importData: {
+    root: 'inv-import-root',
+    uploadBtn: 'inv-import-upload-btn',
+    previewTable: 'inv-import-preview-table',
+    commitBtn: 'inv-import-commit-btn',
+    jobsList: 'inv-import-jobs-list',
+  },
+  exportData: {
+    root: 'inv-export-root',
+    templateSelect: 'inv-export-template-select',
+    exportBtn: 'inv-export-btn',
+  },
+  savedFilters: {
+    root: 'inv-saved-filters-root',
+    list: 'inv-saved-filters-list',
+    saveBtn: 'inv-saved-filters-save-btn',
+    deleteBtn: 'inv-saved-filters-delete-btn',
+  },
 };
 
 /**
@@ -264,4 +302,10 @@ export const INV_ROUTES = {
   toolReportsAtMachine: '/inventory/tool-room/reports/at-machine',
   // Phase 4 — Industry Templates & Compliance
   industry: '/inventory/industry',
+  // Phase 5 — Analytics, Search, Import/Export
+  analytics: '/inventory/analytics',
+  analyticsStockValue: '/inventory/analytics-stock-value',
+  search: '/inventory/search',
+  importData: '/inventory/import',
+  exportData: '/inventory/export',
 };

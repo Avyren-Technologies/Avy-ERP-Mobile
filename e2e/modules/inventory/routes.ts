@@ -220,6 +220,16 @@ export const INV_TEST_IDS = {
     deleteBtn: 'inv-compliance-docs-delete-btn',
   },
 
+  // Phase 6 — Offline Sync
+  sync: {
+    statusIndicator: 'inv-sync-status',
+    conflictsScreen: 'inv-sync-conflicts-root',
+    conflictCard: 'inv-sync-conflict-card',
+    resolveServerBtn: 'inv-sync-resolve-server',
+    resolveOfflineBtn: 'inv-sync-resolve-offline',
+    backBtn: 'inv-sync-back-btn',
+  },
+
   // Phase 5 — Analytics, Search, Import/Export
   analytics: {
     root: 'inv-analytics-root',
@@ -308,4 +318,6 @@ export const INV_ROUTES = {
   search: '/inventory/search',
   importData: '/inventory/import',
   exportData: '/inventory/export',
+  // Phase 6 — Offline Sync
+  syncConflicts: '/inventory/sync-conflicts',
 };

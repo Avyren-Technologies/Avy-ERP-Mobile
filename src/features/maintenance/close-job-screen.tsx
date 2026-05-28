@@ -78,7 +78,20 @@ export function CloseJobScreen() {
     const partsUsed: any[] = wo?.partsUsed ?? [];
     const labourLogs: any[] = wo?.labourLogs ?? [];
     const evidence = normalizeWorkOrderEvidence(wo);
-    const checklistSnapshot: any[] = wo?.checklistSnapshot ?? [];
+    const checklistSnapshotRaw = React.useMemo(() => {
+        const snapshot = wo?.checklistSnapshot;
+        if (typeof snapshot === 'string') {
+            try {
+                return JSON.parse(snapshot);
+            } catch {
+                return null;
+            }
+        }
+        return snapshot ?? null;
+    }, [wo?.checklistSnapshot]);
+    const checklistSnapshot: any[] = Array.isArray(checklistSnapshotRaw)
+        ? checklistSnapshotRaw
+        : (Array.isArray(checklistSnapshotRaw?.sections) ? checklistSnapshotRaw.sections : []);
 
     const totalLabourHrs = labourLogs.reduce((sum: number, l: any) => sum + Number(l.hours ?? 0), 0);
     const partsCost = partsUsed.reduce((sum: number, p: any) => sum + Number(p.totalCost ?? (Number(p.quantity ?? 0) * Number(p.unitCost ?? 0))), 0);

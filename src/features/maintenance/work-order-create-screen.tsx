@@ -201,7 +201,12 @@ export function WorkOrderCreateScreen() {
         );
     };
 
-    const jobPlanOptions = jobPlans.map((jp: any) => ({ value: jp.id, label: jp.name ?? jp.code ?? jp.id }));
+    const jobPlanOptions = jobPlans.map((jp: any) => {
+        const code = typeof jp.code === 'string' ? jp.code.trim() : '';
+        const name = typeof jp.name === 'string' ? jp.name.trim() : '';
+        const label = code && name ? `${code} - ${name}` : (name || code || jp.id);
+        return { value: jp.id, label };
+    });
 
     return (
         <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>

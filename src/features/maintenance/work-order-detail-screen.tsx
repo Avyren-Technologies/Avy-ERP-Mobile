@@ -715,8 +715,19 @@ export function WorkOrderDetailScreen() {
 
     const isTerminal = TERMINAL_STATUSES.includes(status);
     const statusHistory: any[] = wo.statusHistory ?? [];
-    const rawSnapshot = wo.checklistSnapshot;
+    const rawSnapshot = (() => {
+        const snapshotSource = wo?.checklistSnapshot;
+        if (typeof snapshotSource === 'string') {
+            try {
+                return JSON.parse(snapshotSource);
+            } catch {
+                return null;
+            }
+        }
+        return snapshotSource ?? null;
+    })();
     const checklistSnapshot: any[] = Array.isArray(rawSnapshot) ? rawSnapshot : (rawSnapshot?.sections ?? []);
+    const checklistName = rawSnapshot?.name || (wo.checklistTemplateId ? 'Checklist Linked' : '-');
     const partsUsed: any[] = wo.partsUsed ?? [];
     const labourLogs: any[] = wo.labourLogs ?? [];
     const evidence = normalizeWorkOrderEvidence(wo);
@@ -862,6 +873,11 @@ export function WorkOrderDetailScreen() {
                                 />
                                 <InfoRow label="Lead Technician" value={resolvedTechName} />
                                 {wo.jobPlan?.name ? <InfoRow label="Job Plan" value={wo.jobPlan.name} /> : null}
+                                {checklistSnapshot.length > 0 ? (
+                                    <InfoRow label="Checklist" value={`${checklistName} (${checklistSnapshot.length} sections)`} />
+                                ) : wo.checklistTemplateId ? (
+                                    <InfoRow label="Checklist" value={checklistName} />
+                                ) : null}
                                 {wo.pmSchedule?.name ? <InfoRow label="PM Schedule" value={wo.pmSchedule.name} /> : null}
                                 {wo.holdReason ? <InfoRow label="Hold Reason" value={String(wo.holdReason)} /> : null}
                                 <InfoRow label="Created" value={wo.createdAt ? fmt.dateTime(wo.createdAt) : '—'} />
@@ -894,11 +910,18 @@ export function WorkOrderDetailScreen() {
                             <View style={{ gap: 12 }}>
                                 <Pressable
                                     onPress={() => router.push({ pathname: '/maintenance/execute-checklist' as any, params: { workOrderId: id } })}
-                                    style={[mainStyles.actionLinkBtn, { backgroundColor: colors.primary[600] }]}
+                                    style={[mainStyles.actionLinkBtn, { backgroundColor: status === 'IN_PROGRESS' ? colors.primary[600] : colors.neutral[500] }]}
                                 >
-                                    <Text className="font-inter text-sm font-bold text-white">Execute Checklist</Text>
+                                    <Text className="font-inter text-sm font-bold text-white">
+                                        {status === 'IN_PROGRESS' ? 'Execute Checklist' : 'View Checklist'}
+                                    </Text>
                                 </Pressable>
                                 <Text className="font-inter text-xs text-neutral-500">{checklistSnapshot.length} section(s) in checklist</Text>
+                                {status !== 'IN_PROGRESS' ? (
+                                    <Text className="font-inter text-xs text-neutral-400">
+                                        Checklist is view-only until work order is started.
+                                    </Text>
+                                ) : null}
                             </View>
                         )}
                     </Animated.View>

@@ -7,8 +7,10 @@ import {
     Platform,
     Pressable,
     RefreshControl,
+    Switch,
     Modal as RNModal,
     ScrollView,
+    Text as RNText,
     StyleSheet,
     TextInput,
     View,
@@ -22,6 +24,7 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { DropdownField } from '@/components/ui/dropdown-field';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -53,6 +56,30 @@ import { useIsDark } from '@/hooks/use-is-dark';
 // ============ TYPES ============
 
 type DrillLevel = 'sets' | 'modes' | 'causes' | 'actions';
+type FormValue = string | boolean;
+type FormFieldConfig = {
+    key: string;
+    label: string;
+    placeholder?: string;
+    required?: boolean;
+    multiline?: boolean;
+    type?: 'text' | 'select' | 'toggle';
+    options?: { label: string; value: string }[];
+};
+
+const ASSET_CLASS_OPTIONS: { label: string; value: string }[] = [
+    { value: '', label: 'All Asset Classes' },
+    { value: 'MACHINE', label: 'Machine' },
+    { value: 'VEHICLE', label: 'Vehicle' },
+    { value: 'BUILDING', label: 'Building' },
+    { value: 'GARDEN', label: 'Garden' },
+    { value: 'LAB_EQUIPMENT', label: 'Lab Equipment' },
+    { value: 'TOOLING', label: 'Tooling' },
+    { value: 'UTILITY', label: 'Utility' },
+    { value: 'INFRASTRUCTURE', label: 'Infrastructure' },
+    { value: 'PROJECT_SITE', label: 'Project Site' },
+    { value: 'WAREHOUSE_EQUIPMENT', label: 'Warehouse Equipment' },
+];
 
 // ============ SIMPLE FORM SHEET ============
 
@@ -68,20 +95,26 @@ function SimpleFormSheet({
     visible: boolean;
     onClose: () => void;
     title: string;
-    fields: { key: string; label: string; placeholder: string; required?: boolean; multiline?: boolean }[];
-    initialValues?: Record<string, string>;
-    onSubmit: (values: Record<string, string>) => void;
+    fields: FormFieldConfig[];
+    initialValues?: Record<string, FormValue>;
+    onSubmit: (values: Record<string, FormValue>) => void;
     isSubmitting: boolean;
 }) {
     const insets = useSafeAreaInsets();
     const isDark = useIsDark();
-    const [values, setValues] = React.useState<Record<string, string>>({});
+    const [values, setValues] = React.useState<Record<string, FormValue>>({});
     const [errors, setErrors] = React.useState<Record<string, string>>({});
 
     React.useEffect(() => {
         if (visible) {
-            const init: Record<string, string> = {};
-            fields.forEach((f) => { init[f.key] = initialValues?.[f.key] ?? ''; });
+            const init: Record<string, FormValue> = {};
+            fields.forEach((f) => {
+                if (f.type === 'toggle') {
+                    init[f.key] = typeof initialValues?.[f.key] === 'boolean' ? initialValues[f.key] : true;
+                    return;
+                }
+                init[f.key] = typeof initialValues?.[f.key] === 'string' ? initialValues[f.key] : '';
+            });
             setValues(init);
             setErrors({});
         }
@@ -89,15 +122,25 @@ function SimpleFormSheet({
 
     const validate = () => {
         const e: Record<string, string> = {};
-        fields.forEach((f) => { if (f.required && !values[f.key]?.trim()) e[f.key] = `${f.label} is required`; });
+        fields.forEach((f) => {
+            if (!f.required) return;
+            const value = values[f.key];
+            if (typeof value !== 'string' || !value.trim()) e[f.key] = `${f.label} is required`;
+        });
         setErrors(e);
         return Object.keys(e).length === 0;
     };
 
     const handleSubmit = () => {
         if (!validate()) return;
-        const trimmed: Record<string, string> = {};
-        Object.entries(values).forEach(([k, v]) => { if (v.trim()) trimmed[k] = v.trim(); });
+        const trimmed: Record<string, FormValue> = {};
+        Object.entries(values).forEach(([k, v]) => {
+            if (typeof v === 'boolean') {
+                trimmed[k] = v;
+                return;
+            }
+            if (v.trim()) trimmed[k] = v.trim();
+        });
         onSubmit(trimmed);
     };
 
@@ -115,26 +158,54 @@ function SimpleFormSheet({
                     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
                         {fields.map((f) => (
                             <View key={f.key} style={sheetStyles.field}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                                    {f.label} {f.required ? <Text className="text-danger-500">*</Text> : null}
-                                </Text>
-                                <TextInput
-                                    style={[
-                                        sheetStyles.input,
-                                        {
-                                            backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
-                                            borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
-                                            color: isDark ? colors.white : colors.primary[950],
-                                        },
-                                        f.multiline ? { height: 80, textAlignVertical: 'top' } : undefined,
-                                        errors[f.key] ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined,
-                                    ]}
-                                    placeholder={f.placeholder}
-                                    placeholderTextColor={colors.neutral[400]}
-                                    value={values[f.key] ?? ''}
-                                    onChangeText={(v) => { setValues((p) => ({ ...p, [f.key]: v })); if (errors[f.key]) setErrors((p) => { const n = { ...p }; delete n[f.key]; return n; }); }}
-                                    multiline={f.multiline}
-                                />
+                                {f.type === 'select' ? (
+                                    <DropdownField
+                                        label={f.label}
+                                        required={f.required}
+                                        options={(f.options ?? []).map((o) => ({ id: o.value, name: o.label }))}
+                                        selected={typeof values[f.key] === 'string' ? values[f.key] : ''}
+                                        onSelect={(id) => setValues((p) => ({ ...p, [f.key]: id }))}
+                                        placeholder={f.placeholder ?? 'Select...'}
+                                        error={errors[f.key]}
+                                    />
+                                ) : (
+                                    <>
+                                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                            {f.label} {f.required ? <Text className="text-danger-500">*</Text> : null}
+                                        </Text>
+                                        {f.type === 'toggle' ? (
+                                    <View style={[sheetStyles.toggleRow, { borderColor: isDark ? colors.neutral[700] : colors.neutral[200], backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50] }]}>
+                                        <RNText style={{ color: isDark ? colors.white : colors.primary[950], fontSize: 13, fontWeight: '600' }}>
+                                            {typeof values[f.key] === 'boolean' && values[f.key] ? 'Active' : 'Inactive'}
+                                        </RNText>
+                                        <Switch
+                                            value={Boolean(values[f.key])}
+                                            onValueChange={(v) => setValues((p) => ({ ...p, [f.key]: v }))}
+                                            trackColor={{ false: colors.neutral[300], true: colors.primary[400] }}
+                                            thumbColor={colors.white}
+                                        />
+                                    </View>
+                                ) : (
+                                    <TextInput
+                                        style={[
+                                            sheetStyles.input,
+                                            {
+                                                backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+                                                borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                                                color: isDark ? colors.white : colors.primary[950],
+                                            },
+                                            f.multiline ? { height: 80, textAlignVertical: 'top' } : undefined,
+                                            errors[f.key] ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined,
+                                        ]}
+                                        placeholder={f.placeholder}
+                                        placeholderTextColor={colors.neutral[400]}
+                                        value={typeof values[f.key] === 'string' ? values[f.key] : ''}
+                                        onChangeText={(v) => { setValues((p) => ({ ...p, [f.key]: v })); if (errors[f.key]) setErrors((p) => { const n = { ...p }; delete n[f.key]; return n; }); }}
+                                        multiline={f.multiline}
+                                    />
+                                )}
+                                    </>
+                                )}
                                 {errors[f.key] ? <Text className="mt-1 font-inter text-[10px] text-danger-600">{errors[f.key]}</Text> : null}
                             </View>
                         ))}
@@ -300,27 +371,42 @@ export function FailureCodesScreen() {
     // Form fields config
     const getFormFields = () => {
         if (activeTab === 'action') {
-            return [
+            const fields: FormFieldConfig[] = [
                 { key: 'code', label: 'Code', placeholder: 'e.g. ACT-001', required: true },
                 { key: 'name', label: 'Name', placeholder: 'Action name', required: true },
                 { key: 'description', label: 'Description', placeholder: 'Description', multiline: true },
             ];
+            if (editingItem) fields.push({ key: 'isActive', label: 'Active', type: 'toggle' });
+            return fields;
         }
         switch (level) {
-            case 'sets': return [
-                { key: 'name', label: 'Name', placeholder: 'e.g. Electrical Failures', required: true },
-                { key: 'description', label: 'Description', placeholder: 'Description', multiline: true },
-            ];
-            case 'modes': return [
-                { key: 'code', label: 'Code', placeholder: 'e.g. FM-001', required: true },
-                { key: 'name', label: 'Name', placeholder: 'Failure mode name', required: true },
-                { key: 'description', label: 'Description', placeholder: 'Description', multiline: true },
-            ];
-            case 'causes': return [
-                { key: 'code', label: 'Code', placeholder: 'e.g. FC-001', required: true },
-                { key: 'name', label: 'Name', placeholder: 'Cause name', required: true },
-                { key: 'mechanism', label: 'Mechanism', placeholder: 'Failure mechanism', multiline: true },
-            ];
+            case 'sets': {
+                const fields: FormFieldConfig[] = [
+                    { key: 'name', label: 'Name', placeholder: 'e.g. Electrical Failures', required: true },
+                    { key: 'description', label: 'Description', placeholder: 'Description', multiline: true },
+                    { key: 'assetClass', label: 'Asset Class', type: 'select', options: ASSET_CLASS_OPTIONS },
+                ];
+                if (editingItem) fields.push({ key: 'isActive', label: 'Active', type: 'toggle' });
+                return fields;
+            }
+            case 'modes': {
+                const fields: FormFieldConfig[] = [
+                    { key: 'code', label: 'Code', placeholder: 'e.g. FM-001', required: true },
+                    { key: 'name', label: 'Name', placeholder: 'Failure mode name', required: true },
+                    { key: 'description', label: 'Description', placeholder: 'Description', multiline: true },
+                ];
+                if (editingItem) fields.push({ key: 'isActive', label: 'Active', type: 'toggle' });
+                return fields;
+            }
+            case 'causes': {
+                const fields: FormFieldConfig[] = [
+                    { key: 'code', label: 'Code', placeholder: 'e.g. FC-001', required: true },
+                    { key: 'name', label: 'Name', placeholder: 'Cause name', required: true },
+                    { key: 'mechanism', label: 'Mechanism', placeholder: 'Failure mechanism', multiline: true },
+                ];
+                if (editingItem) fields.push({ key: 'isActive', label: 'Active', type: 'toggle' });
+                return fields;
+            }
             default: return [];
         }
     };
@@ -367,33 +453,35 @@ export function FailureCodesScreen() {
         });
     };
 
-    const handleFormSubmit = (values: Record<string, string>) => {
+    const handleFormSubmit = (values: Record<string, FormValue>) => {
+        const payload = { ...values } as Record<string, FormValue>;
+        if (payload.assetClass === '') delete payload.assetClass;
         const onSuccess = () => { setFormVisible(false); showSuccess(editingItem ? 'Updated' : 'Created'); };
         const onError = () => showErrorMessage('Failed to save');
 
         if (activeTab === 'action') {
             if (editingItem) {
-                updateAction.mutate({ id: editingItem.id, data: values }, { onSuccess: () => { onSuccess(); refetchActions(); }, onError });
+                updateAction.mutate({ id: editingItem.id, data: payload }, { onSuccess: () => { onSuccess(); refetchActions(); }, onError });
             } else {
-                createAction.mutate(values, { onSuccess: () => { onSuccess(); refetchActions(); }, onError });
+                createAction.mutate(payload, { onSuccess: () => { onSuccess(); refetchActions(); }, onError });
             }
         } else if (level === 'sets') {
             if (editingItem) {
-                updateSet.mutate({ id: editingItem.id, data: values }, { onSuccess: () => { onSuccess(); refetchSets(); }, onError });
+                updateSet.mutate({ id: editingItem.id, data: payload }, { onSuccess: () => { onSuccess(); refetchSets(); }, onError });
             } else {
-                createSet.mutate(values, { onSuccess: () => { onSuccess(); refetchSets(); }, onError });
+                createSet.mutate(payload, { onSuccess: () => { onSuccess(); refetchSets(); }, onError });
             }
         } else if (level === 'modes') {
             if (editingItem) {
-                updateMode.mutate({ setId: selectedSetId, id: editingItem.id, data: values }, { onSuccess: () => { onSuccess(); refetchModes(); }, onError });
+                updateMode.mutate({ setId: selectedSetId, id: editingItem.id, data: payload }, { onSuccess: () => { onSuccess(); refetchModes(); }, onError });
             } else {
-                createMode.mutate({ setId: selectedSetId, data: { ...values, failureCodeSetId: selectedSetId } }, { onSuccess: () => { onSuccess(); refetchModes(); }, onError });
+                createMode.mutate({ setId: selectedSetId, data: { ...payload, failureCodeSetId: selectedSetId } }, { onSuccess: () => { onSuccess(); refetchModes(); }, onError });
             }
         } else if (level === 'causes') {
             if (editingItem) {
-                updateCause.mutate({ modeId: selectedModeId, id: editingItem.id, data: values }, { onSuccess: () => { onSuccess(); refetchCauses(); }, onError });
+                updateCause.mutate({ modeId: selectedModeId, id: editingItem.id, data: payload }, { onSuccess: () => { onSuccess(); refetchCauses(); }, onError });
             } else {
-                createCause.mutate({ modeId: selectedModeId, data: { ...values, failureModeId: selectedModeId } }, { onSuccess: () => { onSuccess(); refetchCauses(); }, onError });
+                createCause.mutate({ modeId: selectedModeId, data: { ...payload, failureModeId: selectedModeId } }, { onSuccess: () => { onSuccess(); refetchCauses(); }, onError });
             }
         }
     };
@@ -425,6 +513,25 @@ export function FailureCodesScreen() {
         if (level === 'modes') return `${selectedSetName} / Modes`;
         if (level === 'causes') return `${selectedModeName} / Causes`;
         return '';
+    }, [activeTab, level, selectedSetName, selectedModeName]);
+
+    const drilldownAction = React.useMemo(() => {
+        if (activeTab !== 'failure') return null;
+        if (level === 'modes') {
+            return {
+                title: selectedSetName ? `${selectedSetName} Modes` : 'Failure Modes',
+                subtitle: 'Add and manage failure modes for this set',
+                buttonLabel: 'Add Mode',
+            };
+        }
+        if (level === 'causes') {
+            return {
+                title: selectedModeName ? `${selectedModeName} Causes` : 'Failure Causes',
+                subtitle: 'Add and manage causes for this mode',
+                buttonLabel: 'Add Cause',
+            };
+        }
+        return null;
     }, [activeTab, level, selectedSetName, selectedModeName]);
 
     const renderItem = ({ item, index }: { item: any; index: number }) => (
@@ -485,6 +592,48 @@ export function FailureCodesScreen() {
                     <SearchBar value={search} onChangeText={setSearch} placeholder="Search..." />
                 </Animated.View>
             ) : null}
+
+            {drilldownAction ? (
+                <Animated.View entering={FadeIn.duration(300).delay(120)} style={{ paddingHorizontal: 24, paddingBottom: 10 }}>
+                    <View
+                        style={{
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: isDark ? colors.primary[900] : colors.primary[100],
+                            backgroundColor: isDark ? '#1A1730' : colors.white,
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                        }}
+                    >
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                {drilldownAction.title}
+                            </Text>
+                            <Text className="mt-0.5 font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
+                                {drilldownAction.subtitle}
+                            </Text>
+                        </View>
+                        <Pressable
+                            onPress={handleAdd}
+                            style={({ pressed }) => [
+                                {
+                                    backgroundColor: colors.primary[600],
+                                    borderRadius: 10,
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 8,
+                                    opacity: pressed ? 0.85 : 1,
+                                },
+                            ]}
+                        >
+                            <Text className="font-inter text-xs font-bold text-white">{drilldownAction.buttonLabel}</Text>
+                        </Pressable>
+                    </View>
+                </Animated.View>
+            ) : null}
         </>
     );
 
@@ -519,7 +668,9 @@ export function FailureCodesScreen() {
                 }
             />
 
-            <FAB onPress={handleAdd} />
+            {(activeTab === 'action' || (activeTab === 'failure' && level === 'sets')) ? (
+                <FAB onPress={handleAdd} />
+            ) : null}
 
             <SimpleFormSheet
                 visible={formVisible}
@@ -607,6 +758,15 @@ const sheetStyles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 14,
+    },
+    toggleRow: {
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     submitContainer: {
         paddingHorizontal: 20,

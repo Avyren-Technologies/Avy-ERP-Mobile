@@ -253,22 +253,23 @@ function JobPlanFormSheet({
     const handleSubmit = () => {
         if (!validate()) return;
         const skills = requiredSkills.split(',').map((s) => s.trim()).filter(Boolean);
+        const emptyValue = isEdit ? null : undefined;
         const data: Record<string, unknown> = {
             code: code.trim(),
             name: name.trim(),
-            assetClass: assetClass || null,
-            woType: woType || null,
-            description: description.trim() || null,
+            assetClass: assetClass || emptyValue,
+            woType: woType || emptyValue,
+            description: description.trim() || emptyValue,
             requiredSkills: skills.length > 0 ? skills : [],
-            estimatedHours: estimatedHours.trim() ? parseFloat(estimatedHours) : null,
-            crewSize: crewSize.trim() ? parseInt(crewSize, 10) : null,
+            estimatedHours: estimatedHours.trim() ? parseFloat(estimatedHours) : emptyValue,
+            crewSize: crewSize.trim() ? parseInt(crewSize, 10) : emptyValue,
             permitRequired,
-            ptwClass: permitRequired && ptwClass ? ptwClass : null,
+            ptwClass: permitRequired && ptwClass ? ptwClass : emptyValue,
             isolationRequired,
             qaReleaseRequired,
             photoRequired,
             signatureRequired,
-            checklistTemplateId: checklistTemplateId || null,
+            checklistTemplateId: checklistTemplateId || emptyValue,
         };
         if (isEdit) {
             data.isActive = isActive;

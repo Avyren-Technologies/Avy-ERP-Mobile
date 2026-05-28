@@ -10,6 +10,7 @@ import {
     Modal as RNModal,
     ScrollView,
     StyleSheet,
+    Switch,
     TextInput,
     View,
 } from 'react-native';
@@ -67,6 +68,19 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
 function getTypeLabel(type: string): string {
     return STRATEGY_TYPES.find((t) => t.value === type)?.label ?? type.replace(/_/g, ' ');
 }
+
+const STRATEGY_TEMPLATES: Record<string, string> = {
+    PREVENTIVE_CALENDAR: JSON.stringify({ intervalDays: 30, nonWorkingDayRule: "MOVE_LATER" }, null, 2),
+    PREVENTIVE_METER: JSON.stringify({ meterType: "RUNTIME_HOURS", intervalValue: 250, limitValue: 5000 }, null, 2),
+    CORRECTIVE: JSON.stringify({ triggerOnFailure: true }, null, 2),
+    CONDITION_BASED: JSON.stringify({ metric: "TEMPERATURE", operator: "GREATER_THAN", threshold: 80 }, null, 2),
+    PREDICTIVE: JSON.stringify({ anomalyThreshold: 0.85, windowDays: 7 }, null, 2),
+    SEASONAL: JSON.stringify({ season: "SUMMER", startMonth: 5, endMonth: 8 }, null, 2),
+    STATUTORY: JSON.stringify({ regulatoryBody: "OSHA", inspectionIntervalMonths: 12 }, null, 2),
+    AMC_MANAGED: JSON.stringify({ contractId: "AMC-100", visitFrequency: "QUARTERLY" }, null, 2),
+    RUN_TO_FAILURE: JSON.stringify({ allowBreakdown: true }, null, 2),
+    SHUTDOWN_OVERHAUL: JSON.stringify({ shutdownEventId: "MAJOR_SHUTDOWN", requireOverhaul: true }, null, 2),
+};
 
 // ============ STRATEGY CARD ============
 
@@ -163,6 +177,8 @@ function StrategyFormSheet({
     const [name, setName] = React.useState('');
     const [strategyType, setStrategyType] = React.useState('');
     const [description, setDescription] = React.useState('');
+    const [triggerConfig, setTriggerConfig] = React.useState('');
+    const [isActive, setIsActive] = React.useState(true);
     const [openDropdown, setOpenDropdown] = React.useState(false);
     const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -171,15 +187,32 @@ function StrategyFormSheet({
             setName(strategy?.name ?? '');
             setStrategyType(strategy?.strategyType ?? '');
             setDescription(strategy?.description ?? '');
+            setTriggerConfig(strategy?.triggerConfig ? JSON.stringify(strategy.triggerConfig, null, 2) : '');
+            setIsActive(strategy?.isActive !== false);
             setOpenDropdown(false);
             setErrors({});
         }
     }, [visible, strategy]);
 
+    const handleTypeChange = (type: string) => {
+        setStrategyType(type);
+        const isCurrentTemplateOrEmpty = !triggerConfig.trim() || Object.values(STRATEGY_TEMPLATES).includes(triggerConfig);
+        if (isCurrentTemplateOrEmpty) {
+            setTriggerConfig(STRATEGY_TEMPLATES[type] ?? '');
+        }
+    };
+
     const validate = (): boolean => {
         const e: Record<string, string> = {};
         if (!name.trim()) e.name = 'Name is required';
         if (!strategyType) e.strategyType = 'Strategy type is required';
+        if (triggerConfig.trim()) {
+            try {
+                JSON.parse(triggerConfig);
+            } catch {
+                e.triggerConfig = 'Invalid JSON in trigger config';
+            }
+        }
         setErrors(e);
         return Object.keys(e).length === 0;
     };
@@ -187,7 +220,23 @@ function StrategyFormSheet({
     const handleSubmit = () => {
         if (!validate()) return;
         const data: Record<string, unknown> = { name: name.trim(), strategyType };
-        if (description.trim()) data.description = description.trim();
+        if (description.trim()) {
+            data.description = description.trim();
+        } else {
+            data.description = null;
+        }
+        if (triggerConfig.trim()) {
+            try {
+                data.triggerConfig = JSON.parse(triggerConfig);
+            } catch {
+                // already verified by validate()
+            }
+        } else {
+            data.triggerConfig = null;
+        }
+        if (isEdit) {
+            data.isActive = isActive;
+        }
         onSubmit(data);
     };
 
@@ -198,13 +247,12 @@ function StrategyFormSheet({
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 <View style={[formStyles.container, { paddingTop: Math.max(insets.top, 24), backgroundColor: isDark ? '#1A1730' : colors.white }]}>
                     <View style={[formStyles.header, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
-                        <Pressable onPress={onClose}>
+                        <Pressable onPress={onClose} style={{ position: 'absolute', left: 20, height: '100%', justifyContent: 'center' }}>
                             <Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text>
                         </Pressable>
-                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white" numberOfLines={1} style={{ textAlign: 'center', paddingHorizontal: 75 }}>
                             {isEdit ? 'Edit Strategy' : 'Add Strategy'}
                         </Text>
-                        <View style={{ width: 52 }} />
                     </View>
 
                     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
@@ -259,7 +307,7 @@ function StrategyFormSheet({
                                             return (
                                                 <Pressable
                                                     key={opt.value}
-                                                    onPress={() => { setStrategyType(opt.value); setOpenDropdown(false); if (errors.strategyType) setErrors((p) => { const n = { ...p }; delete n.strategyType; return n; }); }}
+                                                    onPress={() => { handleTypeChange(opt.value); setOpenDropdown(false); if (errors.strategyType) setErrors((p) => { const n = { ...p }; delete n.strategyType; return n; }); }}
                                                     style={[formStyles.dropdownItem, isSelected && { backgroundColor: colors.primary[50] }, idx > 0 && { borderTopWidth: 1, borderTopColor: colors.neutral[100] }]}
                                                 >
                                                     <Text className={`flex-1 font-inter text-sm ${isSelected ? 'font-semibold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
@@ -285,6 +333,53 @@ function StrategyFormSheet({
                                 multiline
                             />
                         </View>
+
+                        {/* Trigger Config (JSON) */}
+                        <View style={formStyles.field}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                    Trigger Config (JSON)
+                                </Text>
+                                <Pressable onPress={() => setTriggerConfig(STRATEGY_TEMPLATES[strategyType] ?? '')} hitSlop={8}>
+                                    <Text className="font-inter text-xs font-bold text-primary-600 dark:text-primary-400">
+                                        Load Template
+                                    </Text>
+                                </Pressable>
+                            </View>
+                            <TextInput
+                                style={[
+                                    formStyles.input,
+                                    {
+                                        height: 100,
+                                        textAlignVertical: 'top',
+                                        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                                        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+                                        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                                        color: isDark ? colors.white : colors.primary[950]
+                                    },
+                                    errors.triggerConfig ? { borderColor: colors.danger[400], borderWidth: 1.5 } : undefined
+                                ]}
+                                placeholder='{"intervalDays": 30}'
+                                placeholderTextColor={colors.neutral[400]}
+                                value={triggerConfig}
+                                onChangeText={(v) => { setTriggerConfig(v); if (errors.triggerConfig) setErrors((p) => { const n = { ...p }; delete n.triggerConfig; return n; }); }}
+                                multiline
+                            />
+                            {errors.triggerConfig ? <Text className="mt-1 font-inter text-[10px] text-danger-600">{errors.triggerConfig}</Text> : null}
+                        </View>
+
+                        {/* Active Switch (Edit mode only) */}
+                        {isEdit && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 20 }}>
+                                <Switch
+                                    value={isActive}
+                                    onValueChange={setIsActive}
+                                    trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
+                                    thumbColor={isActive ? colors.primary[600] : colors.neutral[300]}
+                                />
+                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">Active</Text>
+                            </View>
+                        )}
                     </ScrollView>
 
                     <View style={[formStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
@@ -478,10 +573,12 @@ const formStyles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
+        minHeight: 56,
+        position: 'relative',
     },
     field: { marginBottom: 20 },
     input: {

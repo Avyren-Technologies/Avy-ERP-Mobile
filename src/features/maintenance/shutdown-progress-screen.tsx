@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -38,11 +38,18 @@ export function ShutdownProgressScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
 
-    const { data, isLoading } = useShutdown(id ?? '');
+    const { data, isLoading, refetch: refetchShutdown } = useShutdown(id ?? '');
     const shutdown: any = (data as any)?.data ?? {};
 
-    const { data: progressData, isLoading: progressLoading } = useShutdownProgress(id ?? '');
+    const { data: progressData, isLoading: progressLoading, refetch: refetchProgress } = useShutdownProgress(id ?? '');
     const progress: any = (progressData as any)?.data ?? {};
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetchShutdown();
+            refetchProgress();
+        }, [refetchShutdown, refetchProgress]),
+    );
 
     const shutdownWOs: any[] = shutdown.workOrders ?? shutdown.shutdownWorkOrders ?? [];
 
@@ -56,7 +63,7 @@ export function ShutdownProgressScreen() {
     const total = shutdownWOs.length || 1;
     const completedCount = (statusCounts['COMPLETED'] ?? 0) + (statusCounts['CLOSED'] ?? 0);
     const completionPct = progress.completionPct ?? Math.round((completedCount / total) * 100);
-    const budget = shutdown.estimatedBudget ? Number(shutdown.estimatedBudget) : 0;
+    const budget = shutdown.estimatedCost ? Number(shutdown.estimatedCost) : 0;
     const actual = shutdown.actualCost ? Number(shutdown.actualCost) : progress.actualCost ? Number(progress.actualCost) : 0;
     const budgetPct = budget > 0 ? Math.min(100, Math.round((actual / budget) * 100)) : 0;
 

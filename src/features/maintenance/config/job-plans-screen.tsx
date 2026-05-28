@@ -34,7 +34,7 @@ import {
     useDeleteJobPlan,
     useUpdateJobPlan,
 } from '@/features/maintenance/api/use-maintenance-mutations';
-import { useJobPlans } from '@/features/maintenance/api/use-maintenance-queries';
+import { useJobPlans, useChecklistTemplates } from '@/features/maintenance/api/use-maintenance-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ CONSTANTS ============
@@ -61,6 +61,14 @@ const WO_TYPES = [
     { value: 'SHUTDOWN', label: 'Shutdown' },
     { value: 'VENDOR_SERVICE', label: 'Vendor Service' },
     { value: 'CALIBRATION', label: 'Calibration' },
+];
+
+const PTW_CLASSES = [
+    { value: 'HOT_WORK', label: 'Hot Work' },
+    { value: 'CONFINED_SPACE', label: 'Confined Space' },
+    { value: 'ELECTRICAL_ISOLATION', label: 'Electrical Isolation' },
+    { value: 'PRESSURE_RELEASE', label: 'Pressure Release' },
+    { value: 'GENERAL_WORK', label: 'General Work' },
 ];
 
 // ============ JOB PLAN CARD ============
@@ -134,6 +142,31 @@ function JobPlanCard({
                             <Text className="font-inter text-[10px] font-bold text-danger-700">Permit</Text>
                         </View>
                     ) : null}
+                    {item.isolationRequired ? (
+                        <View style={[cardStyles.tagBadge, { backgroundColor: colors.danger[50] }]}>
+                            <Text className="font-inter text-[10px] font-bold text-danger-700">Isolation</Text>
+                        </View>
+                    ) : null}
+                    {item.qaReleaseRequired ? (
+                        <View style={[cardStyles.tagBadge, { backgroundColor: colors.info[50] }]}>
+                            <Text className="font-inter text-[10px] font-bold text-info-700">QA</Text>
+                        </View>
+                    ) : null}
+                    {item.photoRequired ? (
+                        <View style={[cardStyles.tagBadge, { backgroundColor: colors.primary[50] }]}>
+                            <Text className="font-inter text-[10px] font-bold text-primary-700">Photo</Text>
+                        </View>
+                    ) : null}
+                    {item.signatureRequired ? (
+                        <View style={[cardStyles.tagBadge, { backgroundColor: colors.warning[50] }]}>
+                            <Text className="font-inter text-[10px] font-bold text-warning-700">Sign</Text>
+                        </View>
+                    ) : null}
+                    {item.checklistTemplateId ? (
+                        <View style={[cardStyles.tagBadge, { backgroundColor: colors.success[50] }]}>
+                            <Text className="font-inter text-[10px] font-bold text-success-700">Checklist</Text>
+                        </View>
+                    ) : null}
                     <View style={[cardStyles.statusBadge, { backgroundColor: isActive ? colors.success[50] : colors.neutral[100] }]}>
                         <View style={[cardStyles.statusDot, { backgroundColor: isActive ? colors.success[500] : colors.neutral[400] }]} />
                         <Text className={`font-inter text-[10px] font-bold ${isActive ? 'text-success-700' : 'text-neutral-500'}`}>
@@ -152,12 +185,14 @@ function JobPlanFormSheet({
     visible,
     onClose,
     jobPlan,
+    checklists,
     onSubmit,
     isSubmitting,
 }: {
     visible: boolean;
     onClose: () => void;
     jobPlan?: any;
+    checklists: any[];
     onSubmit: (data: Record<string, unknown>) => void;
     isSubmitting: boolean;
 }) {
@@ -170,10 +205,17 @@ function JobPlanFormSheet({
     const [assetClass, setAssetClass] = React.useState('');
     const [woType, setWoType] = React.useState('');
     const [description, setDescription] = React.useState('');
+    const [requiredSkills, setRequiredSkills] = React.useState('');
     const [estimatedHours, setEstimatedHours] = React.useState('');
     const [crewSize, setCrewSize] = React.useState('');
     const [permitRequired, setPermitRequired] = React.useState(false);
+    const [ptwClass, setPtwClass] = React.useState('');
     const [isolationRequired, setIsolationRequired] = React.useState(false);
+    const [qaReleaseRequired, setQaReleaseRequired] = React.useState(false);
+    const [photoRequired, setPhotoRequired] = React.useState(false);
+    const [signatureRequired, setSignatureRequired] = React.useState(false);
+    const [checklistTemplateId, setChecklistTemplateId] = React.useState('');
+    const [isActive, setIsActive] = React.useState(true);
     const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
     const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -184,10 +226,17 @@ function JobPlanFormSheet({
             setAssetClass(jobPlan?.assetClass ?? '');
             setWoType(jobPlan?.woType ?? '');
             setDescription(jobPlan?.description ?? '');
+            setRequiredSkills((jobPlan?.requiredSkills ?? []).join(', '));
             setEstimatedHours(jobPlan?.estimatedHours ? String(Number(jobPlan.estimatedHours)) : '');
             setCrewSize(jobPlan?.crewSize ? String(jobPlan.crewSize) : '');
             setPermitRequired(jobPlan?.permitRequired ?? false);
+            setPtwClass(jobPlan?.ptwClass ?? '');
             setIsolationRequired(jobPlan?.isolationRequired ?? false);
+            setQaReleaseRequired(jobPlan?.qaReleaseRequired ?? false);
+            setPhotoRequired(jobPlan?.photoRequired ?? false);
+            setSignatureRequired(jobPlan?.signatureRequired ?? false);
+            setChecklistTemplateId(jobPlan?.checklistTemplateId ?? '');
+            setIsActive(jobPlan?.isActive !== false);
             setOpenDropdown(null);
             setErrors({});
         }
@@ -203,17 +252,27 @@ function JobPlanFormSheet({
 
     const handleSubmit = () => {
         if (!validate()) return;
+        const skills = requiredSkills.split(',').map((s) => s.trim()).filter(Boolean);
         const data: Record<string, unknown> = {
             code: code.trim(),
             name: name.trim(),
+            assetClass: assetClass || null,
+            woType: woType || null,
+            description: description.trim() || null,
+            requiredSkills: skills.length > 0 ? skills : [],
+            estimatedHours: estimatedHours.trim() ? parseFloat(estimatedHours) : null,
+            crewSize: crewSize.trim() ? parseInt(crewSize, 10) : null,
+            permitRequired,
+            ptwClass: permitRequired && ptwClass ? ptwClass : null,
+            isolationRequired,
+            qaReleaseRequired,
+            photoRequired,
+            signatureRequired,
+            checklistTemplateId: checklistTemplateId || null,
         };
-        if (assetClass) data.assetClass = assetClass;
-        if (woType) data.woType = woType;
-        if (description.trim()) data.description = description.trim();
-        if (estimatedHours.trim()) data.estimatedHours = parseFloat(estimatedHours);
-        if (crewSize.trim()) data.crewSize = parseInt(crewSize, 10);
-        data.permitRequired = permitRequired;
-        data.isolationRequired = isolationRequired;
+        if (isEdit) {
+            data.isActive = isActive;
+        }
         onSubmit(data);
     };
 
@@ -258,14 +317,21 @@ function JobPlanFormSheet({
         );
     };
 
+    const checklistOptions = React.useMemo(() => {
+        return Array.isArray(checklists) ? checklists.map((c) => ({ value: c.id, label: c.name })) : [];
+    }, [checklists]);
+
     return (
         <RNModal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={onClose}>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 <View style={[formStyles.container, { paddingTop: Math.max(insets.top, 24), backgroundColor: isDark ? '#1A1730' : colors.white }]}>
                     <View style={[formStyles.header, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
-                        <Pressable onPress={onClose}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
-                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{isEdit ? 'Edit Job Plan' : 'Add Job Plan'}</Text>
-                        <View style={{ width: 52 }} />
+                        <Pressable onPress={onClose} style={{ position: 'absolute', left: 20, height: '100%', justifyContent: 'center' }}>
+                            <Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text>
+                        </Pressable>
+                        <Text className="font-inter text-base font-bold text-primary-950 dark:text-white" numberOfLines={1} style={{ textAlign: 'center', paddingHorizontal: 75 }}>
+                            {isEdit ? 'Edit Job Plan' : 'Add Job Plan'}
+                        </Text>
                     </View>
 
                     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
@@ -292,6 +358,12 @@ function JobPlanFormSheet({
                             <TextInput style={[formStyles.input, { height: 80, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="Description" placeholderTextColor={colors.neutral[400]} value={description} onChangeText={setDescription} multiline />
                         </View>
 
+                        {/* Required Skills */}
+                        <View style={formStyles.field}>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Required Skills (comma-separated)</Text>
+                            <TextInput style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="e.g. Electrical, Welding" placeholderTextColor={colors.neutral[400]} value={requiredSkills} onChangeText={setRequiredSkills} />
+                        </View>
+
                         {/* Estimated Hours */}
                         <View style={formStyles.field}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Estimated Hours</Text>
@@ -310,10 +382,42 @@ function JobPlanFormSheet({
                             <Switch value={permitRequired} onValueChange={setPermitRequired} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={permitRequired ? colors.primary[600] : colors.neutral[100]} />
                         </View>
 
+                        {permitRequired ? renderDropdown('PTW Class', 'ptwClass', ptwClass, 'Select PTW class', PTW_CLASSES, setPtwClass) : null}
+
                         <View style={[formStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
                             <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Isolation Required</Text>
                             <Switch value={isolationRequired} onValueChange={setIsolationRequired} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={isolationRequired ? colors.primary[600] : colors.neutral[100]} />
                         </View>
+
+                        <View style={[formStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">QA Release Required</Text>
+                            <Switch value={qaReleaseRequired} onValueChange={setQaReleaseRequired} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={qaReleaseRequired ? colors.primary[600] : colors.neutral[100]} />
+                        </View>
+
+                        <View style={[formStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Photo Required</Text>
+                            <Switch value={photoRequired} onValueChange={setPhotoRequired} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={photoRequired ? colors.primary[600] : colors.neutral[100]} />
+                        </View>
+
+                        <View style={[formStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Signature Required</Text>
+                            <Switch value={signatureRequired} onValueChange={setSignatureRequired} trackColor={{ false: colors.neutral[200], true: colors.primary[400] }} thumbColor={signatureRequired ? colors.primary[600] : colors.neutral[100]} />
+                        </View>
+
+                        {renderDropdown('Checklist Template', 'checklistTemplateId', checklistTemplateId, 'Select checklist template', checklistOptions, setChecklistTemplateId)}
+
+                        {/* Active Switch (Edit mode only) */}
+                        {isEdit && (
+                            <View style={[formStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, borderTopWidth: 1, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], paddingTop: 16 }]}>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Active</Text>
+                                <Switch
+                                    value={isActive}
+                                    onValueChange={setIsActive}
+                                    trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
+                                    thumbColor={isActive ? colors.primary[600] : colors.neutral[100]}
+                                />
+                            </View>
+                        )}
                     </ScrollView>
 
                     <View style={[formStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
@@ -345,6 +449,8 @@ export function JobPlansScreen() {
         search: search.trim() || undefined,
         assetClass: assetClassParam,
     });
+    const { data: checklistData } = useChecklistTemplates();
+    const checklists = checklistData?.data ?? [];
 
     const items: any[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? [];
@@ -430,7 +536,7 @@ export function JobPlansScreen() {
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
             <FAB onPress={handleAdd} />
-            <JobPlanFormSheet visible={formVisible} onClose={() => setFormVisible(false)} jobPlan={editingItem} onSubmit={handleSubmit} isSubmitting={createMutation.isPending || updateMutation.isPending} />
+            <JobPlanFormSheet visible={formVisible} onClose={() => setFormVisible(false)} jobPlan={editingItem} checklists={checklists} onSubmit={handleSubmit} isSubmitting={createMutation.isPending || updateMutation.isPending} />
             <ConfirmModal {...confirmModal.modalProps} />
         </View>
     );
@@ -505,10 +611,12 @@ const formStyles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
+        minHeight: 56,
+        position: 'relative',
     },
     field: { marginBottom: 20 },
     input: {

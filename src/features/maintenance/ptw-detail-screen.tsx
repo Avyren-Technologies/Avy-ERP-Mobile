@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal as RNModal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
@@ -54,7 +55,14 @@ export function PTWDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
 
-    const { data, isLoading } = usePTW(id ?? '');
+    const { data, isLoading, refetch, isRefetching } = usePTW(id ?? '');
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch]),
+    );
+
     const permit: any = (data as any)?.data ?? {};
 
     const reviewMutation = useReviewPTW();
@@ -104,13 +112,38 @@ export function PTWDetailScreen() {
     return (
         <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+            
+            {/* Safe Top Header Bar */}
+            <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
+                <Pressable onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 }} hitSlop={12}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24">
+                        <Path
+                            d="M19 12H5M12 19l-7-7 7-7"
+                            stroke={colors.primary[600]}
+                            strokeWidth="2.5"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </Svg>
+                    <Text className="font-inter text-sm font-bold text-primary-600">Back</Text>
+                </Pressable>
+            </View>
+
+            <ScrollView
+                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 120 }}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefetching}
+                        onRefresh={refetch}
+                        tintColor={colors.primary[600]}
+                    />
+                }
+            >
                 {/* Header */}
                 <Animated.View entering={FadeInDown.duration(400)}>
-                    <Pressable onPress={() => router.back()} style={{ paddingVertical: 8 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-600">Back</Text>
-                    </Pressable>
-                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white" style={{ marginTop: 8 }}>
+                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
                         {permit.permitNumber ?? `PTW-${(id ?? '').slice(0, 6)}`}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
@@ -133,7 +166,7 @@ export function PTWDetailScreen() {
                     ].map((c) => (
                         <View key={c.label} style={[styles.infoCard, { backgroundColor: isDark ? '#1A1730' : colors.white }]}>
                             <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-400">{c.label}</Text>
-                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1} style={{ marginTop: 4 }}>{c.value}</Text>
+                            <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={2} style={{ marginTop: 4 }}>{c.value}</Text>
                         </View>
                     ))}
                 </Animated.View>
@@ -234,39 +267,113 @@ export function PTWDetailScreen() {
                 </Animated.View>
             </ScrollView>
 
-            {/* Revoke Input (shown inline before modal) */}
-            {showRevokeModal && (
-                <Animated.View entering={FadeInUp.duration(300)} style={[styles.section, { backgroundColor: isDark ? '#1A1730' : colors.white, marginTop: 16 }]}>
-                    <Text className="font-inter text-sm font-bold text-danger-700" style={{ marginBottom: 8 }}>Revoke Permit</Text>
-                    <Text className="font-inter text-xs text-neutral-500" style={{ marginBottom: 10 }}>This will immediately revoke the permit. Please provide a reason.</Text>
-                    <TextInput
-                        value={revokeReason}
-                        onChangeText={setRevokeReason}
-                        placeholder="Reason for revoking..."
-                        placeholderTextColor={colors.neutral[400]}
-                        multiline
-                        numberOfLines={3}
-                        style={{
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
-                            borderRadius: 12,
-                            padding: 12,
-                            fontSize: 14,
-                            color: isDark ? colors.white : colors.neutral[900],
-                            backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
-                            textAlignVertical: 'top',
-                        }}
-                    />
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                        <Pressable onPress={() => { setShowRevokeModal(false); setRevokeReason(''); }} style={[styles.actionBtn, { flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: colors.neutral[200] }]}>
-                            <Text className="font-inter text-sm font-bold text-neutral-600">Cancel</Text>
-                        </Pressable>
-                        <Pressable onPress={handleRevoke} disabled={!revokeReason.trim() || revokeMutation.isPending} style={[styles.actionBtn, { flex: 1, backgroundColor: colors.danger[600], opacity: !revokeReason.trim() ? 0.5 : 1 }]}>
-                            <Text className="font-inter text-sm font-bold text-white">Revoke</Text>
-                        </Pressable>
+            {/* ── Revoke Reason Modal Sheet ── */}
+            <RNModal
+                visible={showRevokeModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => { setShowRevokeModal(false); setRevokeReason(''); }}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <View style={[
+                        revokeStyles.sheetContainer,
+                        { backgroundColor: isDark ? '#1A1730' : colors.white, paddingTop: insets.top + 8 },
+                    ]}>
+                        {/* Sheet Header */}
+                        <View style={[revokeStyles.sheetHeader, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
+                            <Pressable
+                                onPress={() => { setShowRevokeModal(false); setRevokeReason(''); }}
+                                hitSlop={12}
+                            >
+                                <Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text>
+                            </Pressable>
+                            <Text className="font-inter text-base font-bold text-danger-700">Revoke Permit</Text>
+                            <View style={{ width: 52 }} />
+                        </View>
+
+                        {/* Sheet Body */}
+                        <ScrollView
+                            style={{ flex: 1 }}
+                            contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            {/* Warning banner */}
+                            <View style={[revokeStyles.warningBanner, { backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : colors.danger[50], borderColor: isDark ? colors.danger[800] : colors.danger[200] }]}>
+                                <Svg width={18} height={18} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                                    <Path
+                                        d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"
+                                        stroke={colors.danger[600]}
+                                        strokeWidth="2"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </Svg>
+                                <Text className="font-inter text-xs text-danger-700" style={{ flex: 1, lineHeight: 18 }}>
+                                    This action is <Text className="font-inter text-xs font-bold text-danger-700">irreversible</Text>. Revoking will immediately invalidate this permit and notify all parties.
+                                </Text>
+                            </View>
+
+                            {/* Reason input */}
+                            <View style={{ marginTop: 20 }}>
+                                <Text className="mb-2 font-inter text-xs font-bold uppercase tracking-wider text-neutral-500">Reason for Revocation *</Text>
+                                <TextInput
+                                    value={revokeReason}
+                                    onChangeText={setRevokeReason}
+                                    placeholder="Describe why this permit is being revoked..."
+                                    placeholderTextColor={colors.neutral[400]}
+                                    multiline
+                                    numberOfLines={5}
+                                    autoFocus
+                                    style={[
+                                        revokeStyles.reasonInput,
+                                        {
+                                            borderColor: revokeReason.trim()
+                                                ? (isDark ? colors.danger[700] : colors.danger[400])
+                                                : (isDark ? colors.neutral[700] : colors.neutral[200]),
+                                            backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                                            color: isDark ? colors.white : colors.neutral[900],
+                                        },
+                                    ]}
+                                />
+                                {!revokeReason.trim() && (
+                                    <Text className="font-inter text-[10px] text-neutral-400" style={{ marginTop: 6 }}>
+                                        A reason is required to proceed.
+                                    </Text>
+                                )}
+                            </View>
+                        </ScrollView>
+
+                        {/* Sheet Footer */}
+                        <View style={[revokeStyles.sheetFooter, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                            <Pressable
+                                onPress={() => { setShowRevokeModal(false); setRevokeReason(''); }}
+                                style={[revokeStyles.footerBtn, { backgroundColor: isDark ? '#252040' : colors.neutral[100] }]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-neutral-600">Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleRevoke}
+                                disabled={!revokeReason.trim() || revokeMutation.isPending}
+                                style={[
+                                    revokeStyles.footerBtn,
+                                    { flex: 1.5, backgroundColor: colors.danger[600] },
+                                    (!revokeReason.trim() || revokeMutation.isPending) && { opacity: 0.5 },
+                                ]}
+                            >
+                                {revokeMutation.isPending ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <Text className="font-inter text-sm font-bold text-white">Confirm Revocation</Text>
+                                )}
+                            </Pressable>
+                        </View>
                     </View>
-                </Animated.View>
-            )}
+                </KeyboardAvoidingView>
+            </RNModal>
         </View>
     );
 }
@@ -279,4 +386,47 @@ const styles = StyleSheet.create({
     infoCard: { flex: 1, minWidth: '45%', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
     section: { borderRadius: 16, padding: 16, marginTop: 16, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
     actionBtn: { paddingVertical: 14, borderRadius: 14, alignItems: 'center', opacity: 1 },
+});
+
+const revokeStyles = StyleSheet.create({
+    sheetContainer: { flex: 1 },
+    sheetHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+    },
+    warningBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 14,
+    },
+    reasonInput: {
+        borderWidth: 1.5,
+        borderRadius: 14,
+        padding: 14,
+        fontSize: 14,
+        minHeight: 130,
+        textAlignVertical: 'top',
+        lineHeight: 22,
+    },
+    sheetFooter: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingHorizontal: 20,
+        paddingTop: 14,
+        borderTopWidth: 1,
+    },
+    footerBtn: {
+        flex: 1,
+        paddingVertical: 15,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });

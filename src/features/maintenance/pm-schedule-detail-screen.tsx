@@ -545,6 +545,28 @@ export function PMScheduleDetailScreen() {
                 <Animated.View entering={FadeInUp.duration(350).delay(200)}>
                     <SectionCard title="Schedule Info" isDark={isDark}>
                         <InfoRow label="Strategy" value={formatPMStrategyLabel(strategyType)} />
+                        {strategyType === 'AMC_MANAGED' ? (
+                            <View style={infoStyles.row}>
+                                <Text className="font-inter text-xs font-semibold text-neutral-500">Service Contract</Text>
+                                {pm.contract ? (
+                                    <Pressable
+                                        onPress={() => {
+                                            const contract = pm.contract as { id: string };
+                                            router.push({
+                                                pathname: '/maintenance/contract-detail' as any,
+                                                params: { id: contract.id },
+                                            });
+                                        }}
+                                    >
+                                        <Text className="font-inter text-sm font-bold text-primary-600 dark:text-primary-400">
+                                            {String((pm.contract as { name?: string }).name ?? '—')} { (pm.contract as { contractCode?: string }).contractCode ? `(${(pm.contract as { contractCode?: string }).contractCode})` : '' }
+                                        </Text>
+                                    </Pressable>
+                                ) : (
+                                    <Text className="font-inter text-sm text-neutral-400">—</Text>
+                                )}
+                            </View>
+                        ) : null}
                         {(pm.frequency || pm.meterInterval) ? (
                             <InfoRow label="Frequency" value={formatPMFrequencyDisplay(pm)} />
                         ) : null}

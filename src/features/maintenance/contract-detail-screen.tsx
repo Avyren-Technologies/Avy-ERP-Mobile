@@ -13,10 +13,12 @@ import { useContract, useContractUtilisation, useAssets } from '@/features/maint
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 import { useCanPerform } from '@/hooks/use-can-perform';
-import { useUpdateContract, useAddContractAsset, useRemoveContractAsset, useLogContractVisit } from '@/features/maintenance/api/use-maintenance-mutations';
+import { useUpdateContract, useAddContractAsset, useRemoveContractAsset, useLogContractVisit, useDeleteContract } from '@/features/maintenance/api/use-maintenance-mutations';
 import { Input } from '@/components/ui/input';
 import { DropdownField } from '@/components/ui/dropdown-field';
 import { DatePickerField } from '@/components/ui/date-picker';
+import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { showSuccess } from '@/components/ui/utils';
 
 const CONTRACT_TYPES = [
     { id: 'WARRANTY', name: 'Warranty' },
@@ -35,6 +37,9 @@ export function ContractDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const canManage = useCanPerform('maintenance:create');
+    const canDelete = useCanPerform('maintenance:delete');
+    const deleteMutation = useDeleteContract();
+    const confirmModal = useConfirmModal();
 
     const { data, isLoading, refetch } = useContract(id ?? '');
     const contract: any = (data as any)?.data ?? {};
@@ -165,6 +170,26 @@ export function ContractDetailScreen() {
         }
     };
 
+    const handleDelete = () => {
+        confirmModal.show({
+            title: 'Delete Contract',
+            message: `Are you sure you want to delete "${contract.name ?? 'Unnamed Contract'}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            variant: 'danger',
+            onConfirm: () => {
+                deleteMutation.mutate(id ?? '', {
+                    onSuccess: () => {
+                        showSuccess('Contract Deleted');
+                        router.back();
+                    },
+                    onError: (err: any) => {
+                        Alert.alert('Error', err?.message || 'Failed to delete contract');
+                    },
+                });
+            },
+        });
+    };
+
     const handleAddAsset = async (assetId: string) => {
         if (!id) return;
         try {
@@ -249,7 +274,7 @@ export function ContractDetailScreen() {
                 end={{ x: 1, y: 1 }}
             />
             <ScrollView
-                contentContainerStyle={{ padding: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }}
+                contentContainerStyle={{ padding: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Header */}
@@ -386,6 +411,25 @@ export function ContractDetailScreen() {
                                 <Text className="font-inter text-sm text-neutral-600 dark:text-neutral-400" style={{ marginTop: 3, lineHeight: 20 }}>{contract.coverageScope ?? '---'}</Text>
                             </View>
                         </View>
+
+                        {canDelete && (
+                            <Pressable
+                                onPress={handleDelete}
+                                style={({ pressed }) => [
+                                    styles.deleteBtn,
+                                    pressed && { opacity: 0.8 },
+                                    {
+                                        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : colors.danger[50],
+                                        borderColor: isDark ? colors.danger[900] : colors.danger[200],
+                                        marginTop: 24,
+                                    }
+                                ]}
+                            >
+                                <Text className="font-inter text-sm font-bold text-center" style={{ color: colors.danger[600] }}>
+                                    Delete Contract
+                                </Text>
+                            </Pressable>
+                        )}
                     </Animated.View>
                 )}
 
@@ -693,6 +737,7 @@ export function ContractDetailScreen() {
                     </View>
                 </KeyboardAvoidingView>
             </RNModal>
+            <ConfirmModal {...confirmModal.modalProps} />
         </View>
     );
 }
@@ -752,6 +797,13 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: colors.neutral[100],
+    },
+    deleteBtn: {
+        height: 48,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
     },
     addAssetBtn: {
         paddingHorizontal: 10,

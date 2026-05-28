@@ -22,7 +22,7 @@ import colors from '@/components/ui/colors';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useCreatePMSchedule, useUpdatePMSchedule } from '@/features/maintenance/api/use-maintenance-mutations';
-import { useAssets, useJobPlans, usePMSchedule } from '@/features/maintenance/api/use-maintenance-queries';
+import { useAssets, useJobPlans, usePMSchedule, useContracts } from '@/features/maintenance/api/use-maintenance-queries';
 import {
     PM_STRATEGY_OPTIONS,
     PM_FREQUENCY_OPTIONS,
@@ -178,6 +178,12 @@ export function PMScheduleCreateScreen() {
         return Array.isArray(raw) ? raw : [];
     }, [jobPlansRaw]);
 
+    const { data: contractsRaw } = useContracts({ limit: 200 });
+    const contracts: { id: string; name?: string; contractCode?: string }[] = React.useMemo(() => {
+        const raw = (contractsRaw as { data?: typeof contracts })?.data ?? [];
+        return Array.isArray(raw) ? raw : [];
+    }, [contractsRaw]);
+
     const setField = <K extends keyof PMScheduleFormState>(key: K, value: PMScheduleFormState[K]) => {
         setForm((prev) => ({ ...prev, [key]: value }));
         setFormError(null);
@@ -288,6 +294,11 @@ export function PMScheduleCreateScreen() {
     const jobPlanOptions: PickerOption[] = [
         { value: '', label: 'No job plan' },
         ...jobPlans.map((jp) => ({ value: jp.id, label: jp.name ?? jp.code ?? jp.id })),
+    ];
+
+    const contractOptions: PickerOption[] = [
+        { value: '', label: 'Select Service Contract' },
+        ...contracts.map((c) => ({ value: c.id, label: c.name ? `${c.name} (${c.contractCode ?? 'CTR'})` : c.contractCode ?? c.id })),
     ];
 
     const handleSubmit = () => {
@@ -564,6 +575,21 @@ export function PMScheduleCreateScreen() {
                                 value={form.statutoryDueDate}
                                 onChange={(v) => setField('statutoryDueDate', v)}
                             />
+                        </Animated.View>
+                    ) : null}
+
+                    {strategy === 'AMC_MANAGED' ? (
+                        <Animated.View entering={FadeInUp.duration(300).delay(200)}>
+                            <SectionTitle>Service Contract settings</SectionTitle>
+                            {renderPickerField(
+                                'Service Contract',
+                                'contractId',
+                                form.contractId,
+                                'Select Service Contract',
+                                contractOptions,
+                                (v) => setField('contractId', v),
+                                true,
+                            )}
                         </Animated.View>
                     ) : null}
 

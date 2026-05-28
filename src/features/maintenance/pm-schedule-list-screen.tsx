@@ -108,14 +108,14 @@ export function PMScheduleListScreen() {
     );
 
     const renderHeader = () => (
-        <>
+        <View style={{ gap: 16, marginBottom: 20 }}>
             <Animated.View entering={FadeInDown.duration(400)}>
                 <AppTopHeader title="PM Schedules" subtitle={`${totalCount} schedule${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} />
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search PM schedules..." filters={PM_FILTERS} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
             </Animated.View>
-        </>
+        </View>
     );
 
     const renderEmpty = () => {
@@ -127,7 +127,7 @@ export function PMScheduleListScreen() {
     return (
         <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <FlashList data={items} renderItem={renderItem} keyExtractor={(item) => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />} />
+            <FlashList data={items} renderItem={renderItem} keyExtractor={(item) => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />} />
             <FAB onPress={() => router.push('/maintenance/pm-schedule-create' as any)} />
         </View>
     );

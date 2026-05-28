@@ -145,6 +145,7 @@ export interface PMScheduleFormState {
     nextDueDate: string;
     autoAssignRule: string;
     autoAssignTo: string;
+    contractId: string;
 }
 
 export function defaultPMScheduleFormState(): PMScheduleFormState {
@@ -166,6 +167,7 @@ export function defaultPMScheduleFormState(): PMScheduleFormState {
         nextDueDate: "",
         autoAssignRule: "",
         autoAssignTo: "",
+        contractId: "",
     };
 }
 
@@ -207,6 +209,7 @@ export function pmScheduleToFormState(pm: Record<string, unknown>): PMScheduleFo
         nextDueDate: toDateInputValue(pm.nextDueDate as string | Date | null | undefined),
         autoAssignRule: autoRule,
         autoAssignTo: String(pm.autoAssignTo ?? ""),
+        contractId: String(pm.contractId ?? pm.serviceContractId ?? ""),
     };
 }
 
@@ -247,6 +250,10 @@ export function buildCreatePMSchedulePayload(form: PMScheduleFormState): Record<
     if (form.autoAssignRule) {
         payload.autoAssignRule = form.autoAssignRule;
         if (form.autoAssignTo.trim()) payload.autoAssignTo = form.autoAssignTo.trim();
+    }
+
+    if (form.strategyKey === "AMC_MANAGED" && form.contractId) {
+        payload.contractId = form.contractId;
     }
 
     return payload;
@@ -292,6 +299,9 @@ export function validatePMScheduleForm(form: PMScheduleFormState): string | null
     }
     if (form.strategyKey === "STATUTORY" && !form.statutoryDueDate) {
         return "Statutory due date is required";
+    }
+    if (form.strategyKey === "AMC_MANAGED" && !form.contractId) {
+        return "Service Contract is required for AMC-managed schedules";
     }
     return null;
 }

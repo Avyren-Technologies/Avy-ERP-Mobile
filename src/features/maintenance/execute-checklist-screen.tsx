@@ -17,27 +17,21 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
-<<<<<<< HEAD
 import { DatePickerField } from '@/components/ui/date-picker';
-=======
 import { HelpDrawer } from '@/components/ui/help-drawer';
->>>>>>> 34bd028 (chore: update package version to 1.5.4 and remove deprecated CLI files)
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TimePickerField } from '@/components/ui/time-picker';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useSubmitChecklist } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
-<<<<<<< HEAD
 import {
     MAX_EVIDENCE_UPLOAD_BYTES,
     prepareEvidenceImageForUpload,
     WORK_ORDER_EVIDENCE_CAMERA_OPTIONS,
 } from '@/features/maintenance/work-order-evidence';
 import { useFileUpload } from '@/hooks/use-file-upload';
-=======
 import { executeChecklistHelp } from '@/features/maintenance/help';
->>>>>>> 34bd028 (chore: update package version to 1.5.4 and remove deprecated CLI files)
 import { useIsDark } from '@/hooks/use-is-dark';
 
 type FieldValue = string | boolean | number | null;

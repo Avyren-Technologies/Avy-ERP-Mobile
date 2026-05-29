@@ -683,15 +683,7 @@ export function ChecklistTemplatesScreen() {
     const renderHeader = () => (
         <>
             <Animated.View entering={FadeInDown.duration(400)}>
-<<<<<<< HEAD
-                <AppTopHeader
-                    title="Checklists"
-                    subtitle={`${totalCount} template${totalCount !== 1 ? 's' : ''}`}
-                    onMenuPress={toggle}
-                />
-=======
                 <AppTopHeader title="Checklists" subtitle={`${totalCount} template${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} rightSlot={<HelpDrawer help={checklistTemplatesHelp} />} />
->>>>>>> 34bd028 (chore: update package version to 1.5.4 and remove deprecated CLI files)
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search checklists..." />

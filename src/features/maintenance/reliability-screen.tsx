@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { reliabilityHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -166,7 +168,7 @@ export function ReliabilityScreen() {
             />
 
             <Animated.View entering={FadeInDown.duration(400)}>
-                <AppTopHeader title="Reliability" subtitle="Asset MTBF, MTTR & Availability" onMenuPress={toggle} />
+                <AppTopHeader title="Reliability" subtitle="Asset MTBF, MTTR & Availability" onMenuPress={toggle} rightSlot={<HelpDrawer help={reliabilityHelp} />} />
             </Animated.View>
 
             {isLoading ? (

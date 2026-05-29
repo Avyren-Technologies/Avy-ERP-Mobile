@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { reportsHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -237,7 +239,7 @@ export function ReportsScreen() {
                 contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
             >
                 <Animated.View entering={FadeInDown.duration(400)}>
-                    <AppTopHeader title="Reports" subtitle="Generate & Export Reports" onMenuPress={toggle} />
+                    <AppTopHeader title="Reports" subtitle="Generate & Export Reports" onMenuPress={toggle} rightSlot={<HelpDrawer help={reportsHelp} />} />
                 </Animated.View>
 
                 <View style={{ paddingHorizontal: 24, paddingTop: 20, gap: 16 }}>

@@ -21,6 +21,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { shutdownListHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -262,7 +264,7 @@ export function ShutdownListScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
             <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
-                <AppTopHeader title="Shutdown Events" onMenuPress={toggle} />
+                <AppTopHeader title="Shutdown Events" onMenuPress={toggle} rightSlot={<HelpDrawer help={shutdownListHelp} />} />
 
                 <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
                     <SearchBar value={search} onChangeText={setSearch} placeholder="Search shutdowns..." />

@@ -28,6 +28,9 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { assetRegisterHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -720,7 +723,10 @@ function AssetFormSheet({
 
             {/* Is Bottleneck */}
             <View style={[sheetStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-              <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Is Bottleneck</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Is Bottleneck</Text>
+                <InfoTooltip content={assetRegisterHelp.fields!.isBottleneck} />
+              </View>
               <Switch
                 value={isBottleneck}
                 onValueChange={setIsBottleneck}
@@ -780,13 +786,19 @@ function AssetFormSheet({
 
             {/* Rated Capacity */}
             <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Rated Capacity</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Rated Capacity</Text>
+                <InfoTooltip content={assetRegisterHelp.fields!.ratedCapacity} />
+              </View>
               <TextInput style={sheetStyles.input} placeholder="e.g. 500 kg/hr" placeholderTextColor={colors.neutral[400]} value={ratedCapacity} onChangeText={setRatedCapacity} />
             </View>
 
             {/* Design Life (Years) */}
             <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Design Life (Years)</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Design Life (Years)</Text>
+                <InfoTooltip content={assetRegisterHelp.fields!.designLifeYears} />
+              </View>
               <TextInput style={sheetStyles.input} placeholder="e.g. 10" placeholderTextColor={colors.neutral[400]} value={designLifeYears} onChangeText={setDesignLifeYears} keyboardType="numeric" />
             </View>
 
@@ -846,7 +858,10 @@ function AssetFormSheet({
 
             {/* Purchase Cost */}
             <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Purchase Cost</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Purchase Cost</Text>
+                <InfoTooltip content={assetRegisterHelp.fields!.purchaseCost} />
+              </View>
               <TextInput style={sheetStyles.input} placeholder="0.00" placeholderTextColor={colors.neutral[400]} value={purchaseCost} onChangeText={setPurchaseCost} keyboardType="numeric" />
             </View>
 
@@ -858,7 +873,10 @@ function AssetFormSheet({
 
             {/* Replacement Value */}
             <View style={sheetStyles.field}>
-              <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Replacement Value</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Replacement Value</Text>
+                <InfoTooltip content={assetRegisterHelp.fields!.replacementValue} />
+              </View>
               <TextInput style={sheetStyles.input} placeholder="0.00" placeholderTextColor={colors.neutral[400]} value={replacementValue} onChangeText={setReplacementValue} keyboardType="numeric" />
             </View>
 
@@ -1087,7 +1105,7 @@ export function AssetRegisterScreen() {
   const renderHeader = () => (
     <>
       <Animated.View entering={FadeInDown.duration(400)}>
-        <AppTopHeader title="Asset Register" subtitle={`${totalCount} asset${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} />
+        <AppTopHeader title="Asset Register" subtitle={`${totalCount} asset${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} rightSlot={<HelpDrawer help={assetRegisterHelp} />} />
       </Animated.View>
       <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>
         <SearchBar

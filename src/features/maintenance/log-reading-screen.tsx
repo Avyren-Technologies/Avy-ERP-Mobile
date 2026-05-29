@@ -17,9 +17,12 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { showSuccess, showErrorMessage } from '@/components/ui/utils';
 import { useLogReading } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useAsset, useAssetMeters } from '@/features/maintenance/api/use-maintenance-queries';
+import { logReadingHelp } from '@/features/maintenance/help';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ SOURCE OPTIONS ============
@@ -124,7 +127,7 @@ export function LogReadingScreen() {
             <Text className="font-inter text-lg font-bold text-white">Log Reading</Text>
             {asset ? <Text className="font-inter text-[11px] text-white/80">{asset.name}</Text> : null}
           </View>
-          <View style={{ width: 36 }} />
+          <HelpDrawer help={logReadingHelp} />
         </View>
       </LinearGradient>
 
@@ -202,9 +205,12 @@ export function LogReadingScreen() {
           {/* Reading Input */}
           {selectedMeter ? (
             <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-              <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                New Reading Value <Text className="text-danger-500">*</Text>
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                  New Reading Value <Text className="text-danger-500">*</Text>
+                </Text>
+                {logReadingHelp.fields?.meterValue ? <InfoTooltip content={logReadingHelp.fields.meterValue} /> : null}
+              </View>
               <TextInput
                 style={[
                   styles.readingInput,

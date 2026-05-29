@@ -18,6 +18,9 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { workOrderDetailHelp } from '@/features/maintenance/help';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
@@ -141,7 +144,7 @@ function StatBox({ label, value, isDark }: { label: string; value: string; isDar
     );
 }
 
-function HeaderBar({ onBack, title }: { onBack: () => void; title: string }) {
+function HeaderBar({ onBack, title, rightSlot }: { onBack: () => void; title: string; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient
@@ -156,7 +159,7 @@ function HeaderBar({ onBack, title }: { onBack: () => void; title: string }) {
                 </Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">{title}</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }
@@ -202,9 +205,12 @@ function HoldSheet({ visible, onClose, onSubmit, isSubmitting }: {
                 </View>
                 <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
                     <View style={sheetStyles.field}>
-                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                            Hold Reason <Text className="text-danger-500">*</Text>
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                            <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                Hold Reason <Text className="text-danger-500">*</Text>
+                            </Text>
+                            {workOrderDetailHelp.fields?.holdReason ? <InfoTooltip content={workOrderDetailHelp.fields.holdReason} /> : null}
+                        </View>
                         <View style={{ gap: 6 }}>
                             {HOLD_REASON_OPTIONS.map((opt) => (
                                 <Pressable
@@ -696,7 +702,7 @@ export function WorkOrderDetailScreen() {
     if (isLoading) {
         return (
             <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} title="Work Order" />
+                <HeaderBar onBack={() => router.back()} title="Work Order" rightSlot={<HelpDrawer help={workOrderDetailHelp} />} />
                 <View style={{ padding: 24 }}><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -705,7 +711,7 @@ export function WorkOrderDetailScreen() {
     if (error || !wo) {
         return (
             <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} title="Work Order" />
+                <HeaderBar onBack={() => router.back()} title="Work Order" rightSlot={<HelpDrawer help={workOrderDetailHelp} />} />
                 <View style={{ paddingTop: 60 }}>
                     <EmptyState icon="error" title="Failed to load" message="Could not load work order details." action={{ label: 'Retry', onPress: () => refetch() }} />
                 </View>
@@ -741,7 +747,7 @@ export function WorkOrderDetailScreen() {
     return (
         <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <HeaderBar onBack={() => router.back()} title="Work Order" />
+            <HeaderBar onBack={() => router.back()} title="Work Order" rightSlot={<HelpDrawer help={workOrderDetailHelp} />} />
 
             {/* Tabs */}
             <View style={tabStyles.container}>

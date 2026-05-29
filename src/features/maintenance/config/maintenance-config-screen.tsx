@@ -18,6 +18,9 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { configHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -60,16 +63,21 @@ function NumberField({
     onChangeText,
     isDark,
     suffix,
+    tooltip,
 }: {
     label: string;
     value: string;
     onChangeText: (v: string) => void;
     isDark: boolean;
     suffix?: string;
+    tooltip?: string;
 }) {
     return (
         <View style={fieldStyles.row}>
-            <Text className="flex-1 font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{label}</Text>
+                {tooltip ? <InfoTooltip content={tooltip} /> : null}
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <TextInput
                     style={[
@@ -96,14 +104,19 @@ function ToggleField({
     label,
     value,
     onValueChange,
+    tooltip,
 }: {
     label: string;
     value: boolean;
     onValueChange: (v: boolean) => void;
+    tooltip?: string;
 }) {
     return (
         <View style={fieldStyles.row}>
-            <Text className="flex-1 font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{label}</Text>
+                {tooltip ? <InfoTooltip content={tooltip} /> : null}
+            </View>
             <Switch
                 value={value}
                 onValueChange={onValueChange}
@@ -120,16 +133,21 @@ function PickerField({
     options,
     onSelect,
     isDark,
+    tooltip,
 }: {
     label: string;
     value: string;
     options: { value: string; label: string }[];
     onSelect: (v: string) => void;
     isDark: boolean;
+    tooltip?: string;
 }) {
     return (
         <View style={fieldStyles.pickerRow}>
-            <Text className="mb-2 font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <Text className="font-inter text-xs font-semibold text-primary-900 dark:text-primary-100">{label}</Text>
+                {tooltip ? <InfoTooltip content={tooltip} /> : null}
+            </View>
             <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 {options.map((opt) => (
                     <Pressable
@@ -263,7 +281,7 @@ export function MaintenanceConfigScreen() {
     if (isLoading) {
         return (
             <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <AppTopHeader title="Maintenance Config" onMenuPress={toggle} />
+                <AppTopHeader title="Maintenance Config" onMenuPress={toggle} rightSlot={<HelpDrawer help={configHelp} />} />
                 <View style={{ padding: 24 }}>
                     <SkeletonCard />
                     <SkeletonCard />
@@ -276,7 +294,7 @@ export function MaintenanceConfigScreen() {
     if (error) {
         return (
             <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <AppTopHeader title="Maintenance Config" onMenuPress={toggle} />
+                <AppTopHeader title="Maintenance Config" onMenuPress={toggle} rightSlot={<HelpDrawer help={configHelp} />} />
                 <View style={{ paddingTop: 60 }}>
                     <EmptyState icon="error" title="Failed to load" message="Check your connection." action={{ label: 'Retry', onPress: () => refetch() }} />
                 </View>
@@ -289,7 +307,7 @@ export function MaintenanceConfigScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
             <Animated.View entering={FadeInDown.duration(400)}>
-                <AppTopHeader title="Maintenance Config" onMenuPress={toggle} />
+                <AppTopHeader title="Maintenance Config" onMenuPress={toggle} rightSlot={<HelpDrawer help={configHelp} />} />
             </Animated.View>
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -304,10 +322,10 @@ export function MaintenanceConfigScreen() {
                     <Animated.View entering={FadeInUp.duration(300).delay(50)}>
                         <View style={[sectionStyles.card, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                             <SectionHeader title="General" icon="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-                            <NumberField label="Default Lead Days" value={defaultLeadDays} onChangeText={setDefaultLeadDays} isDark={isDark} suffix="days" />
-                            <NumberField label="Grace Period Days" value={defaultGracePeriodDays} onChangeText={setDefaultGracePeriodDays} isDark={isDark} suffix="days" />
-                            <PickerField label="Non-Working Day Rule" value={nonWorkingDayRule} options={NON_WORKING_DAY_OPTIONS} onSelect={setNonWorkingDayRule} isDark={isDark} />
-                            <PickerField label="Auto-Assign Rule" value={autoAssignRule} options={AUTO_ASSIGN_OPTIONS} onSelect={setAutoAssignRule} isDark={isDark} />
+                            <NumberField label="Default Lead Days" value={defaultLeadDays} onChangeText={setDefaultLeadDays} isDark={isDark} suffix="days" tooltip={configHelp.fields!.defaultLeadDays} />
+                            <NumberField label="Grace Period Days" value={defaultGracePeriodDays} onChangeText={setDefaultGracePeriodDays} isDark={isDark} suffix="days" tooltip={configHelp.fields!.defaultGracePeriodDays} />
+                            <PickerField label="Non-Working Day Rule" value={nonWorkingDayRule} options={NON_WORKING_DAY_OPTIONS} onSelect={setNonWorkingDayRule} isDark={isDark} tooltip={configHelp.fields!.nonWorkingDayRule} />
+                            <PickerField label="Auto-Assign Rule" value={autoAssignRule} options={AUTO_ASSIGN_OPTIONS} onSelect={setAutoAssignRule} isDark={isDark} tooltip={configHelp.fields!.autoAssignRule} />
                         </View>
                     </Animated.View>
 
@@ -329,10 +347,10 @@ export function MaintenanceConfigScreen() {
                             <NumberField label="L1 Escalation" value={escalationL1Minutes} onChangeText={setEscalationL1Minutes} isDark={isDark} suffix="min" />
                             <NumberField label="L2 Escalation" value={escalationL2Minutes} onChangeText={setEscalationL2Minutes} isDark={isDark} suffix="min" />
                             <NumberField label="L3 Escalation" value={escalationL3Minutes} onChangeText={setEscalationL3Minutes} isDark={isDark} suffix="min" />
-                            <NumberField label="Bottleneck Alert" value={bottleneckAlertMinutes} onChangeText={setBottleneckAlertMinutes} isDark={isDark} suffix="min" />
-                            <NumberField label="Repeat Failure Threshold" value={repeatFailureThreshold} onChangeText={setRepeatFailureThreshold} isDark={isDark} />
-                            <NumberField label="Repeat Failure Window" value={repeatFailureWindowDays} onChangeText={setRepeatFailureWindowDays} isDark={isDark} suffix="days" />
-                            <NumberField label="Repair vs Replace %" value={repairVsReplacePercent} onChangeText={setRepairVsReplacePercent} isDark={isDark} suffix="%" />
+                            <NumberField label="Bottleneck Alert" value={bottleneckAlertMinutes} onChangeText={setBottleneckAlertMinutes} isDark={isDark} suffix="min" tooltip={configHelp.fields!.bottleneckAlertMinutes} />
+                            <NumberField label="Repeat Failure Threshold" value={repeatFailureThreshold} onChangeText={setRepeatFailureThreshold} isDark={isDark} tooltip={configHelp.fields!.repeatFailureThreshold} />
+                            <NumberField label="Repeat Failure Window" value={repeatFailureWindowDays} onChangeText={setRepeatFailureWindowDays} isDark={isDark} suffix="days" tooltip={configHelp.fields!.repeatFailureWindowDays} />
+                            <NumberField label="Repair vs Replace %" value={repairVsReplacePercent} onChangeText={setRepairVsReplacePercent} isDark={isDark} suffix="%" tooltip={configHelp.fields!.repairVsReplacePercent} />
                         </View>
                     </Animated.View>
 
@@ -340,14 +358,14 @@ export function MaintenanceConfigScreen() {
                     <Animated.View entering={FadeInUp.duration(300).delay(350)}>
                         <View style={[sectionStyles.card, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[900] : colors.primary[50] }]}>
                             <SectionHeader title="Features" icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            <ToggleField label="Permit to Work (PTW)" value={ptwEnabled} onValueChange={setPtwEnabled} />
-                            <ToggleField label="Shutdown Planning" value={shutdownPlanningEnabled} onValueChange={setShutdownPlanningEnabled} />
+                            <ToggleField label="Permit to Work (PTW)" value={ptwEnabled} onValueChange={setPtwEnabled} tooltip={configHelp.fields!.ptwEnabled} />
+                            <ToggleField label="Shutdown Planning" value={shutdownPlanningEnabled} onValueChange={setShutdownPlanningEnabled} tooltip={configHelp.fields!.shutdownPlanningEnabled} />
                             <ToggleField label="Vendor Portal" value={vendorPortalEnabled} onValueChange={setVendorPortalEnabled} />
                             <ToggleField label="Condition Monitoring" value={conditionMonitoringEnabled} onValueChange={setConditionMonitoringEnabled} />
-                            <ToggleField label="QR Tagging" value={qrTaggingEnabled} onValueChange={setQrTaggingEnabled} />
-                            <ToggleField label="QA Release" value={qaReleaseEnabled} onValueChange={setQaReleaseEnabled} />
-                            <ToggleField label="Sanitation" value={sanitationEnabled} onValueChange={setSanitationEnabled} />
-                            <ToggleField label="Calibration Block" value={calibrationBlockEnabled} onValueChange={setCalibrationBlockEnabled} />
+                            <ToggleField label="QR Tagging" value={qrTaggingEnabled} onValueChange={setQrTaggingEnabled} tooltip={configHelp.fields!.qrTaggingEnabled} />
+                            <ToggleField label="QA Release" value={qaReleaseEnabled} onValueChange={setQaReleaseEnabled} tooltip={configHelp.fields!.qaReleaseEnabled} />
+                            <ToggleField label="Sanitation" value={sanitationEnabled} onValueChange={setSanitationEnabled} tooltip={configHelp.fields!.sanitationEnabled} />
+                            <ToggleField label="Calibration Block" value={calibrationBlockEnabled} onValueChange={setCalibrationBlockEnabled} tooltip={configHelp.fields!.calibrationBlockEnabled} />
                         </View>
                     </Animated.View>
                 </ScrollView>

@@ -20,10 +20,12 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useAddWOEvidence } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
+import { captureEvidenceHelp } from '@/features/maintenance/help';
 import {
     canAddWorkOrderEvidence,
     createEvidenceItem,
@@ -150,7 +152,7 @@ export function CaptureEvidenceScreen() {
     if (isLoading) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={captureEvidenceHelp} />} />
                 <View style={{ padding: 24 }}><SkeletonCard /></View>
             </View>
         );
@@ -159,7 +161,7 @@ export function CaptureEvidenceScreen() {
     return (
         <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <HeaderBar onBack={() => router.back()} />
+            <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={captureEvidenceHelp} />} />
 
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
@@ -332,7 +334,7 @@ export function CaptureEvidenceScreen() {
     );
 }
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function HeaderBar({ onBack, rightSlot }: { onBack: () => void; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[headerStyles.gradient, { paddingTop: insets.top + 8 }]}>
@@ -342,7 +344,7 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
                 </Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">Capture Evidence</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }

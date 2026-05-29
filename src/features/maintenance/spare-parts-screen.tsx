@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { sparePartsHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -58,6 +60,7 @@ export function SparePartsScreen() {
                         title="Spare Parts"
                         subtitle="Kit check and stockout alerts"
                         onMenuPress={toggle}
+                        rightSlot={<HelpDrawer help={sparePartsHelp} />}
                     />
                 </Animated.View>
 

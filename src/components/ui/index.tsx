@@ -9,6 +9,7 @@ export * from './confirm-modal';
 export * from './dropdown-field';
 export * from './empty-state';
 export * from './focus-aware-status-bar';
+export { HelpDrawer } from './help-drawer';
 export * from './image';
 export * from './image-viewer';
 export * from './info-tooltip';

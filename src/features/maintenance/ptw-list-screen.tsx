@@ -21,6 +21,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { ptwListHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -259,7 +261,7 @@ export function PTWListScreen() {
             
             {/* Main scrollable view wrapping list & top headers */}
             <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
-                <AppTopHeader title="Permit to Work" onMenuPress={toggle} />
+                <AppTopHeader title="Permit to Work" onMenuPress={toggle} rightSlot={<HelpDrawer help={ptwListHelp} />} />
 
                 <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
                     <SearchBar value={search} onChangeText={setSearch} placeholder="Search permits..." />

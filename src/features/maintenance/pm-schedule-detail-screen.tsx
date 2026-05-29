@@ -20,6 +20,8 @@ import { Text } from '@/components/ui';
 import { DatePickerField } from '@/components/ui/date-picker';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { pmScheduleDetailHelp } from '@/features/maintenance/help';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
@@ -320,7 +322,7 @@ export function PMScheduleDetailScreen() {
     if (isLoading) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={pmScheduleDetailHelp} />} />
                 <View style={{ padding: 24 }}>
                     <SkeletonCard />
                     <SkeletonCard />
@@ -332,7 +334,7 @@ export function PMScheduleDetailScreen() {
     if (error || !pm) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={pmScheduleDetailHelp} />} />
                 <View style={{ paddingTop: 60 }}>
                     <EmptyState
                         icon="error"
@@ -368,7 +370,7 @@ export function PMScheduleDetailScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             />
-            <HeaderBar onBack={() => router.back()} />
+            <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={pmScheduleDetailHelp} />} />
 
             <ScrollView
                 style={{ flex: 1 }}
@@ -722,7 +724,7 @@ export function PMScheduleDetailScreen() {
     );
 }
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function HeaderBar({ onBack, rightSlot }: { onBack: () => void; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient
@@ -744,7 +746,7 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
                 </Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">PM Schedule</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }

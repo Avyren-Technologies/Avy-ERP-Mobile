@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { analyticsHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -232,7 +234,7 @@ export function AnalyticsScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary[500]} />}
             >
                 <Animated.View entering={FadeInDown.duration(400)}>
-                    <AppTopHeader title="Analytics" subtitle="Performance & Cost Insights" onMenuPress={toggle} />
+                    <AppTopHeader title="Analytics" subtitle="Performance & Cost Insights" onMenuPress={toggle} rightSlot={<HelpDrawer help={analyticsHelp} />} />
                 </Animated.View>
 
                 <View style={{ paddingHorizontal: 24, paddingTop: 20, gap: 16 }}>

@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { downtimeHistoryHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -156,6 +158,7 @@ export function DowntimeHistoryScreen() {
                     title="Downtime History"
                     subtitle={`${totalCount} record${totalCount !== 1 ? 's' : ''}`}
                     onMenuPress={toggle}
+                    rightSlot={<HelpDrawer help={downtimeHistoryHelp} />}
                 />
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>

@@ -16,6 +16,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { pmScheduleListHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -218,7 +220,7 @@ export function PMScheduleListScreen() {
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             
             <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
-                <AppTopHeader title="PM Schedules" subtitle={`${totalCount} schedule${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} />
+                <AppTopHeader title="PM Schedules" subtitle={`${totalCount} schedule${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} rightSlot={<HelpDrawer help={pmScheduleListHelp} />} />
                 
                 <View style={{ paddingHorizontal: 24, paddingTop: 8 }}>
                     <SearchBar value={search} onChangeText={setSearch} placeholder="Search PM schedules..." />

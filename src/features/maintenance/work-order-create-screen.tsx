@@ -19,8 +19,11 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { DatePickerField } from '@/components/ui/date-picker';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { TimePickerField } from '@/components/ui/time-picker';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
+import { workOrderCreateHelp } from '@/features/maintenance/help';
 import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCreateWorkOrder } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useAssets, useJobPlans } from '@/features/maintenance/api/use-maintenance-queries';
@@ -220,7 +223,7 @@ export function WorkOrderCreateScreen() {
                     <Svg width={22} height={22} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                 </Pressable>
                 <Text className="font-inter text-lg font-bold text-white">New Work Order</Text>
-                <View style={{ width: 44 }} />
+                <HelpDrawer help={workOrderCreateHelp} />
             </LinearGradient>
 
             <KeyboardAvoidingView
@@ -247,14 +250,17 @@ export function WorkOrderCreateScreen() {
 
                     <Animated.View entering={FadeInUp.duration(300).delay(100)}>
                         {renderPickerField('Work Order Type', 'woType', woType, 'Select type', MAINTENANCE_WO_TYPE_OPTIONS, setWoType, true, 'woType')}
+                        {workOrderCreateHelp.fields?.woType ? <InfoTooltip content={workOrderCreateHelp.fields.woType} /> : null}
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(150)}>
                         {renderPickerField('Priority', 'priority', priority, 'Select priority', MAINTENANCE_WO_PRIORITY_OPTIONS, setPriority)}
+                        {workOrderCreateHelp.fields?.priority ? <InfoTooltip content={workOrderCreateHelp.fields.priority} /> : null}
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(200)}>
                         {renderPickerField('Job Plan', 'jobPlan', jobPlanId, 'Select job plan (optional)', jobPlanOptions, setJobPlanId)}
+                        {workOrderCreateHelp.fields?.jobPlan ? <InfoTooltip content={workOrderCreateHelp.fields.jobPlan} /> : null}
                     </Animated.View>
 
                     <Animated.View entering={FadeInUp.duration(300).delay(250)}>
@@ -300,7 +306,10 @@ export function WorkOrderCreateScreen() {
 
                     <Animated.View entering={FadeInUp.duration(300).delay(350)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Estimated Hours</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Estimated Hours</Text>
+                                {workOrderCreateHelp.fields?.estimatedHours ? <InfoTooltip content={workOrderCreateHelp.fields.estimatedHours} /> : null}
+                            </View>
                             <TextInput style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]} placeholder="e.g. 4" placeholderTextColor={colors.neutral[400]} value={estimatedHours} onChangeText={setEstimatedHours} keyboardType="numeric" />
                         </View>
                     </Animated.View>

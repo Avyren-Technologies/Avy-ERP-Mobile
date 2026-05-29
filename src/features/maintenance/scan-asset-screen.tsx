@@ -16,8 +16,10 @@ import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
 import { showErrorMessage } from '@/components/ui/utils';
 import { maintenanceApi } from '@/features/maintenance/api/maintenance-api';
+import { scanAssetHelp } from '@/features/maintenance/help';
 import { AssetOperationalBadge } from '@/features/maintenance/shared/asset-status-badge';
 import { CriticalityBadge } from '@/features/maintenance/shared/criticality-badge';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -112,7 +114,7 @@ export function ScanAssetScreen() {
               </Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">Scan Asset</Text>
-            <View style={{ width: 36 }} />
+            <HelpDrawer help={scanAssetHelp} />
           </View>
         </LinearGradient>
 
@@ -151,11 +153,14 @@ export function ScanAssetScreen() {
             </Svg>
           </Pressable>
           <Text className="font-inter text-lg font-bold text-white">Scan Asset</Text>
-          <Pressable onPress={() => setShowManual(!showManual)} style={styles.manualBtn} hitSlop={12}>
-            <Svg width={18} height={18} viewBox="0 0 24 24">
-              <Path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <HelpDrawer help={scanAssetHelp} />
+            <Pressable onPress={() => setShowManual(!showManual)} style={styles.manualBtn} hitSlop={12}>
+              <Svg width={18} height={18} viewBox="0 0 24 24">
+                <Path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Pressable>
+          </View>
         </View>
       </LinearGradient>
 

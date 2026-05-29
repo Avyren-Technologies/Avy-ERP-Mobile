@@ -22,6 +22,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { failureCodesHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { DropdownField } from '@/components/ui/dropdown-field';
@@ -553,6 +555,7 @@ export function FailureCodesScreen() {
                     title="Failure Codes"
                     subtitle={breadcrumb}
                     onMenuPress={toggle}
+                    rightSlot={<HelpDrawer help={failureCodesHelp} />}
                 />
             </Animated.View>
 

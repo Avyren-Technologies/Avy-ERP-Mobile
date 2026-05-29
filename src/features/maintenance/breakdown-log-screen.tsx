@@ -7,8 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { useAssets } from '@/features/maintenance/api/use-maintenance-queries';
 import { useLogBreakdown } from '@/features/maintenance/api/use-maintenance-mutations';
+import { breakdownLogHelp } from '@/features/maintenance/help';
 import { useIsDark } from '@/hooks/use-is-dark';
 import { showSuccess, showError } from '@/components/ui/utils';
 
@@ -72,9 +75,12 @@ export function BreakdownLogScreen() {
                     <Pressable onPress={() => router.back()} style={styles.backBtn}>
                         <Text className="font-inter text-sm font-bold text-primary-600">Back</Text>
                     </Pressable>
-                    <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white" style={{ marginTop: 8 }}>
-                        Log Breakdown
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                        <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">
+                            Log Breakdown
+                        </Text>
+                        <HelpDrawer help={breakdownLogHelp} />
+                    </View>
                     <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400" style={{ marginTop: 4 }}>
                         Quick-log an equipment breakdown
                     </Text>
@@ -163,7 +169,10 @@ export function BreakdownLogScreen() {
 
                 {/* Priority */}
                 <Animated.View entering={FadeInUp.duration(400).delay(250)} style={styles.section}>
-                    <Text className="font-inter text-sm font-bold text-neutral-700 dark:text-neutral-300">Priority</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text className="font-inter text-sm font-bold text-neutral-700 dark:text-neutral-300">Priority</Text>
+                        {breakdownLogHelp.fields?.priority ? <InfoTooltip content={breakdownLogHelp.fields.priority} /> : null}
+                    </View>
                     <View style={styles.priorityRow}>
                         {PRIORITY_OPTIONS.map((p) => (
                             <Pressable
@@ -188,7 +197,10 @@ export function BreakdownLogScreen() {
                 {/* Safety Risk */}
                 <Animated.View entering={FadeInUp.duration(400).delay(300)} style={[styles.safetyRow, { backgroundColor: isDark ? 'rgba(217,119,6,0.1)' : '#FFF7ED' }]}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-warning-700 dark:text-warning-400">Safety Risk</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text className="font-inter text-sm font-bold text-warning-700 dark:text-warning-400">Safety Risk</Text>
+                            {breakdownLogHelp.fields?.safetyRisk ? <InfoTooltip content={breakdownLogHelp.fields.safetyRisk} /> : null}
+                        </View>
                         <Text className="font-inter text-xs text-warning-600 dark:text-warning-500">Does this pose a safety hazard?</Text>
                     </View>
                     <Pressable

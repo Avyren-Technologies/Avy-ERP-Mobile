@@ -21,6 +21,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { checklistTemplatesHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -681,11 +683,15 @@ export function ChecklistTemplatesScreen() {
     const renderHeader = () => (
         <>
             <Animated.View entering={FadeInDown.duration(400)}>
+<<<<<<< HEAD
                 <AppTopHeader
                     title="Checklists"
                     subtitle={`${totalCount} template${totalCount !== 1 ? 's' : ''}`}
                     onMenuPress={toggle}
                 />
+=======
+                <AppTopHeader title="Checklists" subtitle={`${totalCount} template${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} rightSlot={<HelpDrawer help={checklistTemplatesHelp} />} />
+>>>>>>> 34bd028 (chore: update package version to 1.5.4 and remove deprecated CLI files)
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search checklists..." />

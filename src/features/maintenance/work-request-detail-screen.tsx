@@ -18,6 +18,8 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { workRequestDetailHelp } from '@/features/maintenance/help';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
@@ -352,7 +354,7 @@ export function WorkRequestDetailScreen() {
     if (isLoading) {
         return (
             <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={workRequestDetailHelp} />} />
                 <View style={{ padding: 24 }}>
                     <SkeletonCard />
                     <SkeletonCard />
@@ -364,7 +366,7 @@ export function WorkRequestDetailScreen() {
     if (error || !wr) {
         return (
             <View style={[mainStyles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={workRequestDetailHelp} />} />
                 <View style={{ paddingTop: 60 }}>
                     <EmptyState
                         icon="error"
@@ -390,7 +392,7 @@ export function WorkRequestDetailScreen() {
                 end={{ x: 1, y: 1 }}
             />
 
-            <HeaderBar onBack={() => router.back()} />
+            <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={workRequestDetailHelp} />} />
 
             <ScrollView
                 style={{ flex: 1 }}
@@ -573,7 +575,7 @@ function TimelineItem({
     );
 }
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function HeaderBar({ onBack, rightSlot }: { onBack: () => void; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient
@@ -588,7 +590,7 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
                 </Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">Work Request</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }

@@ -21,6 +21,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { strategiesHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -476,7 +478,7 @@ export function StrategiesScreen() {
     const renderHeader = () => (
         <>
             <Animated.View entering={FadeInDown.duration(400)}>
-                <AppTopHeader title="Strategies" subtitle={`${totalCount} strateg${totalCount !== 1 ? 'ies' : 'y'}`} onMenuPress={toggle} />
+                <AppTopHeader title="Strategies" subtitle={`${totalCount} strateg${totalCount !== 1 ? 'ies' : 'y'}`} onMenuPress={toggle} rightSlot={<HelpDrawer help={strategiesHelp} />} />
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search strategies..." filters={filterChips} activeFilter={activeFilter} onFilterChange={setActiveFilter} />

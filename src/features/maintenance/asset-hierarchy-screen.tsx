@@ -16,6 +16,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { assetHierarchyHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAssetHierarchy } from '@/features/maintenance/api/use-maintenance-queries';
@@ -155,6 +157,7 @@ export function AssetHierarchyScreen() {
           title="Asset Hierarchy"
           subtitle={`${nodes.length} root asset${nodes.length !== 1 ? 's' : ''}`}
           onMenuPress={toggle}
+          rightSlot={<HelpDrawer help={assetHierarchyHelp} />}
         />
       </Animated.View>
 

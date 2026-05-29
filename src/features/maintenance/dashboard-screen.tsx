@@ -15,6 +15,8 @@ import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { dashboardHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -255,6 +257,7 @@ export function MaintenanceDashboardScreen() {
             title="Maintenance"
             subtitle="Asset & Work Management"
             onMenuPress={toggle}
+            rightSlot={<HelpDrawer help={dashboardHelp} />}
           />
         </Animated.View>
 

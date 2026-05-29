@@ -20,7 +20,10 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { DatePickerField } from '@/components/ui/date-picker';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
+import { workRequestCreateHelp } from '@/features/maintenance/help';
 import { maintenanceApi } from '@/features/maintenance/api/maintenance-api';
 import { useCreateWorkRequest } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useAssets } from '@/features/maintenance/api/use-maintenance-queries';
@@ -300,7 +303,7 @@ export function WorkRequestCreateScreen() {
                     </Svg>
                 </Pressable>
                 <Text className="font-inter text-lg font-bold text-white">New Work Request</Text>
-                <View style={{ width: 44 }} />
+                <HelpDrawer help={workRequestCreateHelp} />
             </LinearGradient>
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -344,6 +347,7 @@ export function WorkRequestCreateScreen() {
                     {/* Request Type */}
                     <Animated.View entering={FadeInUp.duration(300).delay(100)}>
                         {renderPickerField('Request Type', 'requestType', requestType, 'Select type', WR_TYPES, (v) => setRequestType(v), true, 'requestType')}
+                        {workRequestCreateHelp.fields?.requestType ? <InfoTooltip content={workRequestCreateHelp.fields.requestType} /> : null}
                     </Animated.View>
 
                     {/* Priority */}
@@ -388,7 +392,10 @@ export function WorkRequestCreateScreen() {
                     {/* Location Detail */}
                     <Animated.View entering={FadeInUp.duration(300).delay(250)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Location Detail</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Location Detail</Text>
+                                {workRequestCreateHelp.fields?.locationDetail ? <InfoTooltip content={workRequestCreateHelp.fields.locationDetail} /> : null}
+                            </View>
                             <TextInput
                                 style={[formStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
                                 placeholder="e.g. Building A, Floor 2, Bay 3"
@@ -411,8 +418,11 @@ export function WorkRequestCreateScreen() {
                     {/* Safety Risk */}
                     <Animated.View entering={FadeInUp.duration(300).delay(350)}>
                         <View style={[formStyles.field, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-                            <View>
-                                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Safety Risk</Text>
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Safety Risk</Text>
+                                    {workRequestCreateHelp.fields?.safetyRisk ? <InfoTooltip content={workRequestCreateHelp.fields.safetyRisk} /> : null}
+                                </View>
                                 <Text className="font-inter text-[10px] text-neutral-400">Mark if this poses a safety concern</Text>
                             </View>
                             <Switch

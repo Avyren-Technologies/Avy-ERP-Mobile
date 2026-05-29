@@ -21,6 +21,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { jobPlansHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -507,7 +509,7 @@ export function JobPlansScreen() {
     const renderHeader = () => (
         <>
             <Animated.View entering={FadeInDown.duration(400)}>
-                <AppTopHeader title="Job Plans" subtitle={`${totalCount} plan${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} />
+                <AppTopHeader title="Job Plans" subtitle={`${totalCount} plan${totalCount !== 1 ? 's' : ''}`} onMenuPress={toggle} rightSlot={<HelpDrawer help={jobPlansHelp} />} />
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={{ paddingHorizontal: 24, paddingVertical: 16 }}>
                 <SearchBar value={search} onChangeText={setSearch} placeholder="Search job plans..." filters={filterChips} activeFilter={activeFilter} onFilterChange={setActiveFilter} />

@@ -19,8 +19,11 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import { DatePickerField } from '@/components/ui/date-picker';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { pmScheduleCreateHelp } from '@/features/maintenance/help';
 import { useCreatePMSchedule, useUpdatePMSchedule } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useAssets, useJobPlans, usePMSchedule, useContracts } from '@/features/maintenance/api/use-maintenance-queries';
 import {
@@ -360,7 +363,7 @@ export function PMScheduleCreateScreen() {
                         </Svg>
                     </Pressable>
                     <Text className="font-inter text-lg font-bold text-white">Edit PM Schedule</Text>
-                    <View style={{ width: 44 }} />
+                    <HelpDrawer help={pmScheduleCreateHelp} />
                 </LinearGradient>
                 <View style={{ padding: 24 }}>
                     <SkeletonCard />
@@ -417,7 +420,7 @@ export function PMScheduleCreateScreen() {
                     </Svg>
                 </Pressable>
                 <Text className="font-inter text-lg font-bold text-white">{isEdit ? 'Edit PM Schedule' : 'New PM Schedule'}</Text>
-                <View style={{ width: 44 }} />
+                <HelpDrawer help={pmScheduleCreateHelp} />
             </LinearGradient>
 
             <KeyboardAvoidingView style={mainStyles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -477,6 +480,7 @@ export function PMScheduleCreateScreen() {
                             (v) => setField('strategyKey', v as PMFormStrategyKey),
                             true,
                         )}
+                        {pmScheduleCreateHelp.fields?.strategyType ? <InfoTooltip content={pmScheduleCreateHelp.fields.strategyType} /> : null}
                     </Animated.View>
 
                     {strategy === 'PREVENTIVE_CALENDAR' ? (
@@ -491,6 +495,7 @@ export function PMScheduleCreateScreen() {
                                 (v) => setField('frequency', v),
                                 true,
                             )}
+                            {pmScheduleCreateHelp.fields?.frequencyValue ? <InfoTooltip content={pmScheduleCreateHelp.fields.frequencyValue} /> : null}
                             {form.frequency === 'CUSTOM_DAYS' ? (
                                 <View style={formStyles.field}>
                                     <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
@@ -514,6 +519,7 @@ export function PMScheduleCreateScreen() {
                                 PM_SCHEDULE_TYPE_OPTIONS,
                                 (v) => setField('scheduleType', v),
                             )}
+                            {pmScheduleCreateHelp.fields?.scheduleType ? <InfoTooltip content={pmScheduleCreateHelp.fields.scheduleType} /> : null}
                         </Animated.View>
                     ) : null}
 
@@ -529,10 +535,14 @@ export function PMScheduleCreateScreen() {
                                 (v) => setField('meterType', v),
                                 true,
                             )}
+                            {pmScheduleCreateHelp.fields?.meterType ? <InfoTooltip content={pmScheduleCreateHelp.fields.meterType} /> : null}
                             <View style={formStyles.field}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                                    Meter interval <Text className="text-danger-500">*</Text>
-                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                    <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                        Meter interval <Text className="text-danger-500">*</Text>
+                                    </Text>
+                                    {pmScheduleCreateHelp.fields?.meterInterval ? <InfoTooltip content={pmScheduleCreateHelp.fields.meterInterval} /> : null}
+                                </View>
                                 <TextInput
                                     style={inputStyle}
                                     placeholder="e.g. 500"
@@ -597,7 +607,10 @@ export function PMScheduleCreateScreen() {
                         <SectionTitle>Common settings</SectionTitle>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={[formStyles.field, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Lead days</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                    <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Lead days</Text>
+                                    {pmScheduleCreateHelp.fields?.leadDays ? <InfoTooltip content={pmScheduleCreateHelp.fields.leadDays} /> : null}
+                                </View>
                                 <TextInput
                                     style={inputStyle}
                                     placeholder="7"
@@ -608,7 +621,10 @@ export function PMScheduleCreateScreen() {
                                 />
                             </View>
                             <View style={[formStyles.field, { flex: 1 }]}>
-                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Grace period (days)</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                    <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Grace period (days)</Text>
+                                    {pmScheduleCreateHelp.fields?.gracePeriodDays ? <InfoTooltip content={pmScheduleCreateHelp.fields.gracePeriodDays} /> : null}
+                                </View>
                                 <TextInput
                                     style={inputStyle}
                                     placeholder="0"
@@ -646,6 +662,7 @@ export function PMScheduleCreateScreen() {
                             PM_AUTO_ASSIGN_RULE_OPTIONS,
                             (v) => setField('autoAssignRule', v),
                         )}
+                        {pmScheduleCreateHelp.fields?.autoAssign ? <InfoTooltip content={pmScheduleCreateHelp.fields.autoAssign} /> : null}
                         {form.autoAssignRule ? (
                             <View style={formStyles.field}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Assign to (user ID)</Text>

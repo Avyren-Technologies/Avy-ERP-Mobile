@@ -19,12 +19,15 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { EmployeePickerField } from '@/features/maintenance/components/employee-picker-field';
 import { useLogWOLabour } from '@/features/maintenance/api/use-maintenance-mutations';
+import { logLabourHelp } from '@/features/maintenance/help';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
 import {
     buildLogLabourPayload,
@@ -195,7 +198,7 @@ export function LogLabourScreen() {
     if (isLoading) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={logLabourHelp} />} />
                 <View style={{ padding: 24 }}>
                     <SkeletonCard />
                     <SkeletonCard />
@@ -217,7 +220,7 @@ export function LogLabourScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             />
-            <HeaderBar onBack={() => router.back()} />
+            <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={logLabourHelp} />} />
 
             <KeyboardAvoidingView
                 style={styles.flex}
@@ -325,7 +328,10 @@ export function LogLabourScreen() {
 
                             <View style={styles.row}>
                                 <View style={{ flex: 1 }}>
-                                    <FieldLabel label="Hours" required />
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <FieldLabel label="Hours" required />
+                                        {logLabourHelp.fields?.hours ? <InfoTooltip content={logLabourHelp.fields.hours} /> : null}
+                                    </View>
                                     <TextInput
                                         style={[styles.input, { backgroundColor: inputBg, borderColor: errors.hours ? colors.danger[400] : inputBorder, color: isDark ? colors.white : colors.primary[950] }]}
                                         placeholder="2.5"
@@ -340,7 +346,10 @@ export function LogLabourScreen() {
                                     {errors.hours ? <Text className="mt-1 font-inter text-[10px] text-danger-600">{errors.hours}</Text> : null}
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <FieldLabel label="Hourly rate" />
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <FieldLabel label="Hourly rate" />
+                                        {logLabourHelp.fields?.hourlyRate ? <InfoTooltip content={logLabourHelp.fields.hourlyRate} /> : null}
+                                    </View>
                                     <TextInput
                                         style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: isDark ? colors.white : colors.primary[950] }]}
                                         placeholder="0.00"
@@ -461,7 +470,7 @@ function FieldLabel({ label, required }: { label: string; required?: boolean }) 
     );
 }
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function HeaderBar({ onBack, rightSlot }: { onBack: () => void; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient
@@ -483,7 +492,7 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
                 </Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">Log Labour</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }

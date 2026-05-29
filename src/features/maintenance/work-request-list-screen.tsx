@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { workRequestListHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -197,6 +199,7 @@ export function WorkRequestListScreen() {
                     title="Work Requests"
                     subtitle={`${totalCount} request${totalCount !== 1 ? 's' : ''}`}
                     onMenuPress={toggle}
+                    rightSlot={<HelpDrawer help={workRequestListHelp} />}
                 />
             </Animated.View>
             <Animated.View entering={FadeIn.duration(400).delay(150)} style={styles.searchSection}>

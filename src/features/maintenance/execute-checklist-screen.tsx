@@ -17,19 +17,27 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+<<<<<<< HEAD
 import { DatePickerField } from '@/components/ui/date-picker';
+=======
+import { HelpDrawer } from '@/components/ui/help-drawer';
+>>>>>>> 34bd028 (chore: update package version to 1.5.4 and remove deprecated CLI files)
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TimePickerField } from '@/components/ui/time-picker';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useSubmitChecklist } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
+<<<<<<< HEAD
 import {
     MAX_EVIDENCE_UPLOAD_BYTES,
     prepareEvidenceImageForUpload,
     WORK_ORDER_EVIDENCE_CAMERA_OPTIONS,
 } from '@/features/maintenance/work-order-evidence';
 import { useFileUpload } from '@/hooks/use-file-upload';
+=======
+import { executeChecklistHelp } from '@/features/maintenance/help';
+>>>>>>> 34bd028 (chore: update package version to 1.5.4 and remove deprecated CLI files)
 import { useIsDark } from '@/hooks/use-is-dark';
 
 type FieldValue = string | boolean | number | null;
@@ -502,7 +510,7 @@ export function ExecuteChecklistScreen() {
     if (isLoading) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={executeChecklistHelp} />} />
                 <View style={{ padding: 24 }}><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -511,7 +519,7 @@ export function ExecuteChecklistScreen() {
     if (error || sections.length === 0) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={executeChecklistHelp} />} />
                 <View style={{ paddingTop: 60 }}>
                     <EmptyState icon="search" title="No checklist" message="This work order has no checklist to execute." />
                 </View>
@@ -522,7 +530,7 @@ export function ExecuteChecklistScreen() {
     return (
         <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <HeaderBar onBack={() => router.back()} />
+            <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={executeChecklistHelp} />} />
 
             {/* Progress bar */}
             <View style={styles.progressContainer}>
@@ -604,7 +612,7 @@ export function ExecuteChecklistScreen() {
     );
 }
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function HeaderBar({ onBack, rightSlot }: { onBack: () => void; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient
@@ -616,7 +624,7 @@ function HeaderBar({ onBack }: { onBack: () => void }) {
                 <Svg width={22} height={22} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
             </Pressable>
             <Text className="font-inter text-lg font-bold text-white">Execute Checklist</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }

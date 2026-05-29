@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { breakdownListHelp } from '@/features/maintenance/help';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
@@ -451,6 +453,7 @@ export function BreakdownListScreen() {
                     title="Breakdowns"
                     subtitle={subtitleText}
                     onMenuPress={toggle}
+                    rightSlot={<HelpDrawer help={breakdownListHelp} />}
                 />
             </Animated.View>
 

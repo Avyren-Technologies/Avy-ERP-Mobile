@@ -18,10 +18,13 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useCompleteWorkOrder, useCloseWorkOrder } from '@/features/maintenance/api/use-maintenance-mutations';
 import { useWorkOrder, useActionCodes } from '@/features/maintenance/api/use-maintenance-queries';
+import { closeJobHelp } from '@/features/maintenance/help';
 import {
     buildObservationsForComplete,
     getWorkOrderExecutionObservations,
@@ -135,7 +138,7 @@ export function CloseJobScreen() {
     if (isLoading) {
         return (
             <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
-                <HeaderBar onBack={() => router.back()} />
+                <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={closeJobHelp} />} />
                 <View style={{ padding: 24 }}><SkeletonCard /><SkeletonCard /></View>
             </View>
         );
@@ -144,7 +147,7 @@ export function CloseJobScreen() {
     return (
         <View style={[styles.container, { backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface }]}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <HeaderBar onBack={() => router.back()} />
+            <HeaderBar onBack={() => router.back()} rightSlot={<HelpDrawer help={closeJobHelp} />} />
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
                 <ScrollView
@@ -189,7 +192,10 @@ export function CloseJobScreen() {
                     {/* Root Cause Code */}
                     <Animated.View entering={FadeInUp.duration(300).delay(100)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Root Cause Code</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Root Cause Code</Text>
+                                {closeJobHelp.fields?.rootCauseCode ? <InfoTooltip content={closeJobHelp.fields.rootCauseCode} /> : null}
+                            </View>
                             <Pressable
                                 onPress={() => setOpenDropdown(openDropdown === 'rootCause' ? null : 'rootCause')}
                                 style={[formStyles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
@@ -214,7 +220,10 @@ export function CloseJobScreen() {
                     {/* Action Taken */}
                     <Animated.View entering={FadeInUp.duration(300).delay(150)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Action Taken</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Action Taken</Text>
+                                {closeJobHelp.fields?.actionTakenCode ? <InfoTooltip content={closeJobHelp.fields.actionTakenCode} /> : null}
+                            </View>
                             <Pressable
                                 onPress={() => setOpenDropdown(openDropdown === 'action' ? null : 'action')}
                                 style={[formStyles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
@@ -239,9 +248,12 @@ export function CloseJobScreen() {
                     {/* Closure reason */}
                     <Animated.View entering={FadeInUp.duration(300).delay(200)}>
                         <View style={formStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                                Closure Reason <Text className="text-danger-500">*</Text>
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                    Closure Reason <Text className="text-danger-500">*</Text>
+                                </Text>
+                                {closeJobHelp.fields?.closureReason ? <InfoTooltip content={closeJobHelp.fields.closureReason} /> : null}
+                            </View>
                             <Text className="mb-2 font-inter text-[10px] text-neutral-500">Required to complete and close this work order</Text>
                             <TextInput
                                 style={[formStyles.input, { height: 88, textAlignVertical: 'top', backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
@@ -339,13 +351,13 @@ export function CloseJobScreen() {
     );
 }
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function HeaderBar({ onBack, rightSlot }: { onBack: () => void; rightSlot?: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     return (
         <LinearGradient colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[headerStyles.gradient, { paddingTop: insets.top + 8 }]}>
             <Pressable onPress={onBack} style={headerStyles.backBtn} hitSlop={12}><Svg width={22} height={22} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg></Pressable>
             <Text className="font-inter text-lg font-bold text-white">Close Job</Text>
-            <View style={{ width: 44 }} />
+            {rightSlot ?? <View style={{ width: 44 }} />}
         </LinearGradient>
     );
 }

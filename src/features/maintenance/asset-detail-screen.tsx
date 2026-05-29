@@ -20,6 +20,8 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { HelpDrawer } from '@/components/ui/help-drawer';
+import { assetDetailHelp } from '@/features/maintenance/help';
 import { showSuccess, showErrorMessage, showError } from '@/components/ui/utils';
 import {
   useUpdateAsset,
@@ -580,11 +582,14 @@ export function AssetDetailScreen() {
             <Text className="font-inter text-lg font-bold text-white" numberOfLines={1}>{asset.name}</Text>
             <Text className="font-inter text-[11px] text-white/80" numberOfLines={1}>{asset.assetNumber}</Text>
           </View>
-          <Pressable onPress={handleDelete} style={styles.deleteBtn} hitSlop={12}>
-            <Svg width={18} height={18} viewBox="0 0 24 24">
-              <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <HelpDrawer help={assetDetailHelp} />
+            <Pressable onPress={handleDelete} style={styles.deleteBtn} hitSlop={12}>
+              <Svg width={18} height={18} viewBox="0 0 24 24">
+                <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Pressable>
+          </View>
         </View>
       </LinearGradient>
 

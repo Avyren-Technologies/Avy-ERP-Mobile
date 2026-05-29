@@ -59,6 +59,11 @@ import { useIsDark } from '@/hooks/use-is-dark';
 
 type DrillLevel = 'sets' | 'modes' | 'causes' | 'actions';
 type FormValue = string | boolean;
+
+function formValueAsString(value: FormValue | undefined): string {
+    return typeof value === 'string' ? value : '';
+}
+
 type FormFieldConfig = {
     key: string;
     label: string;
@@ -165,7 +170,7 @@ function SimpleFormSheet({
                                         label={f.label}
                                         required={f.required}
                                         options={(f.options ?? []).map((o) => ({ id: o.value, name: o.label }))}
-                                        selected={typeof values[f.key] === 'string' ? values[f.key] : ''}
+                                        selected={formValueAsString(values[f.key])}
                                         onSelect={(id) => setValues((p) => ({ ...p, [f.key]: id }))}
                                         placeholder={f.placeholder ?? 'Select...'}
                                         error={errors[f.key]}
@@ -201,7 +206,7 @@ function SimpleFormSheet({
                                         ]}
                                         placeholder={f.placeholder}
                                         placeholderTextColor={colors.neutral[400]}
-                                        value={typeof values[f.key] === 'string' ? values[f.key] : ''}
+                                        value={formValueAsString(values[f.key])}
                                         onChangeText={(v) => { setValues((p) => ({ ...p, [f.key]: v })); if (errors[f.key]) setErrors((p) => { const n = { ...p }; delete n[f.key]; return n; }); }}
                                         multiline={f.multiline}
                                     />

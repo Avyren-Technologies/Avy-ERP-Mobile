@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Fab } from '@/components/ui/fab';
+import { FAB } from '@/components/ui/fab';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useCustomerReturns } from '@/features/inventory/api/use-inventory-queries';
 import { useCreateCustomerReturn, useInspectReturn } from '@/features/inventory/api/use-inventory-mutations';
@@ -62,11 +62,11 @@ export function CustomerReturnScreen() {
         <FlatList data={items} keyExtractor={(item: any) => item.id} renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No customer returns" description="Log a customer return" />}
+          ListEmptyComponent={<EmptyState title="No customer returns" message="Log a customer return" />}
         />
       )}
 
-      <Fab onPress={() => setShowForm(true)} />
+      <FAB onPress={() => setShowForm(true)} />
       {showForm && <CreateReturnSheet onClose={() => setShowForm(false)} />}
     </View>
   );

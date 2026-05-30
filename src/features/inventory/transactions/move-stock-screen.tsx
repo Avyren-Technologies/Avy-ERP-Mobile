@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Fab } from '@/components/ui/fab';
+import { FAB } from '@/components/ui/fab';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useMoveStock } from '@/features/inventory/api/use-inventory-queries';
 import { useCreateMoveStock, useConfirmMoveReceipt } from '@/features/inventory/api/use-inventory-mutations';
@@ -67,11 +67,11 @@ export function MoveStockScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No transfers" description="Create a stock transfer" />}
+          ListEmptyComponent={<EmptyState title="No transfers" message="Create a stock transfer" />}
         />
       )}
 
-      <Fab onPress={() => setShowForm(true)} />
+      <FAB onPress={() => setShowForm(true)} />
 
       {showForm && <CreateMoveSheet onClose={() => setShowForm(false)} />}
     </View>

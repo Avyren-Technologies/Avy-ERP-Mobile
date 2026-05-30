@@ -88,7 +88,7 @@ export function InventoryReportsScreen() {
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No report data" description="Try a different report tab" />}
+          ListEmptyComponent={<EmptyState title="No report data" message="Try a different report tab" />}
         />
       )}
     </View>

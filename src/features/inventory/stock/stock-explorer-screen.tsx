@@ -124,7 +124,7 @@ export function StockExplorerScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No stock records" description="Try adjusting your filters" />}
+          ListEmptyComponent={<EmptyState title="No stock records" message="Try adjusting your filters" />}
           onEndReached={() => { if (meta && page < meta.totalPages) setPage(page + 1); }}
           onEndReachedThreshold={0.5}
         />

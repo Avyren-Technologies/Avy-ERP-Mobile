@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Fab } from '@/components/ui/fab';
+import { FAB } from '@/components/ui/fab';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useGrns, useWarehouses } from '@/features/inventory/api/use-inventory-queries';
 import { useCreateGrn } from '@/features/inventory/api/use-inventory-mutations';
@@ -70,11 +70,11 @@ export function GrnScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No GRNs found" description="Create your first GRN" />}
+          ListEmptyComponent={<EmptyState title="No GRNs found" message="Create your first GRN" />}
         />
       )}
 
-      <Fab onPress={() => setShowForm(true)} />
+      <FAB onPress={() => setShowForm(true)} />
 
       {showForm && <CreateGrnSheet onClose={() => setShowForm(false)} />}
     </View>

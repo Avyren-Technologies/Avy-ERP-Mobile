@@ -2,10 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    const { toggle } = useSidebar();
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import colors from '@/components/ui/colors';
-import { HamburgerButton } from '@/components/ui/sidebar';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { useGlobalSearch } from '@/features/inventory/api/use-inventory-queries';
 
 const ENTITY_TYPES = [
@@ -29,6 +30,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
 
 export function InventorySearchScreen() {
   const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [entityType, setEntityType] = useState('');
@@ -85,7 +87,7 @@ export function InventorySearchScreen() {
         style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 16 }}
       >
         <View style={styles.headerRow}>
-          <HamburgerButton />
+          <HamburgerButton onPress={toggle} />
           <Text className="text-xl font-bold text-white font-inter ml-3">Inventory Search</Text>
         </View>
 

@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Fab } from '@/components/ui/fab';
+import { FAB } from '@/components/ui/fab';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useCounts } from '@/features/inventory/api/use-inventory-queries';
 import { COUNT_STATUS_CONFIG } from '@/features/inventory/shared/inventory-status-colors';
@@ -86,11 +86,11 @@ export function CountListScreen() {
         <FlatList data={items} keyExtractor={(item: any) => item.id} renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No counts" description="Create an inventory count" />}
+          ListEmptyComponent={<EmptyState title="No counts" message="Create an inventory count" />}
         />
       )}
 
-      <Fab onPress={() => router.push('/inventory/counts/new' as any)} />
+      <FAB onPress={() => router.push('/inventory/counts/new' as any)} />
     </View>
   );
 }

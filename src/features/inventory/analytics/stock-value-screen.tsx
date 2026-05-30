@@ -1,10 +1,11 @@
 import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    const { toggle } = useSidebar();
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import colors from '@/components/ui/colors';
-import { HamburgerButton } from '@/components/ui/sidebar';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { useStockValueByWarehouse } from '@/features/inventory/api/use-inventory-queries';
 
 function SummaryCard({ label, value, color, delay }: {
@@ -49,6 +50,7 @@ function WarehouseCard({ item, maxValue, grandTotal, index }: {
 
 export function StockValueScreen() {
   const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
   const { data, isLoading, refetch, isRefetching } = useStockValueByWarehouse();
 
   const result = (data as any)?.data;
@@ -64,7 +66,7 @@ export function StockValueScreen() {
         style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 16 }}
       >
         <View style={styles.headerRow}>
-          <HamburgerButton />
+          <HamburgerButton onPress={toggle} />
           <Text className="text-xl font-bold text-white font-inter ml-3">Stock Value Analysis</Text>
         </View>
         <Text className="text-xs text-white/70 font-inter mt-1">Inventory value breakdown by warehouse</Text>

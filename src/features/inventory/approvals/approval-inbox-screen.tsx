@@ -12,7 +12,7 @@ import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { usePendingApprovals, useApprovalHistory } from '@/features/inventory/api/use-inventory-queries';
 import { useApproveTransaction, useRejectTransaction } from '@/features/inventory/api/use-inventory-mutations';
 import { TransactionStatusBadge } from '@/features/inventory/shared/InventoryStatusBadge';
-import { useConfirmModal } from '@/components/ui/confirm-modal';
+import { useConfirmModal, ConfirmModal } from '@/components/ui/confirm-modal';
 
 export function ApprovalInboxScreen() {
   const insets = useSafeAreaInsets();
@@ -49,12 +49,17 @@ function PendingTab() {
   const rejectMutation = useRejectTransaction();
   const { data, isLoading, refetch, isRefetching } = usePendingApprovals();
   const items = (data as any)?.data || [];
-  const { confirm } = useConfirmModal();
+  const { show: showConfirm, modalProps } = useConfirmModal();
 
-  const handleReject = useCallback(async (id: string) => {
-    const confirmed = await confirm({ title: 'Reject Transaction', message: 'Are you sure you want to reject this transaction?' });
-    if (confirmed) rejectMutation.mutate({ id, data: { reason: 'Rejected via mobile' } });
-  }, [confirm, rejectMutation]);
+  const handleReject = useCallback((id: string) => {
+    showConfirm({
+      title: 'Reject Transaction',
+      message: 'Are you sure you want to reject this transaction?',
+      variant: 'danger',
+      confirmText: 'Reject',
+      onConfirm: () => rejectMutation.mutate({ id, data: { reason: 'Rejected via mobile' } }),
+    });
+  }, [showConfirm, rejectMutation]);
 
   const renderItem = useCallback(({ item, index }: { item: any; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 50).duration(300)}>
@@ -92,11 +97,14 @@ function PendingTab() {
   if (isLoading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary[500]} /></View>;
 
   return (
+    <>
     <FlatList data={items} keyExtractor={(item: any) => item.id} renderItem={renderItem}
       contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-      ListEmptyComponent={<EmptyState title="No pending approvals" description="All transactions have been reviewed" />}
+      ListEmptyComponent={<EmptyState title="No pending approvals" message="All transactions have been reviewed" />}
     />
+    <ConfirmModal {...modalProps} />
+    </>
   );
 }
 
@@ -123,7 +131,7 @@ function HistoryTab() {
     <FlatList data={items} keyExtractor={(item: any) => item.id} renderItem={renderItem}
       contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-      ListEmptyComponent={<EmptyState title="No approval history" description="Approved/rejected items appear here" />}
+      ListEmptyComponent={<EmptyState title="No approval history" message="Approved/rejected items appear here" />}
     />
   );
 }

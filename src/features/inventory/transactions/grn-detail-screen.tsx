@@ -48,7 +48,7 @@ export function GrnDetailScreen() {
             <Text className="text-xl font-bold text-white font-inter ml-3">GRN Detail</Text>
           </View>
         </LinearGradient>
-        <EmptyState title="GRN not found" description="This GRN may have been removed" />
+        <EmptyState title="GRN not found" message="This GRN may have been removed" />
       </View>
     );
   }

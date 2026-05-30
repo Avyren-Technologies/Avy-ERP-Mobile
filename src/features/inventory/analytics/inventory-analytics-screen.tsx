@@ -1,11 +1,12 @@
 import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    const { toggle } = useSidebar();
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
-import { HamburgerButton } from '@/components/ui/sidebar';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { useCurrentKpis, useKpiSnapshots } from '@/features/inventory/api/use-inventory-queries';
 
 function KpiCard({ label, value, unit, trend, color, delay }: {
@@ -63,6 +64,7 @@ function SnapshotCard({ item, index }: { item: any; index: number }) {
 
 export function InventoryAnalyticsScreen() {
   const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
   const router = useRouter();
   const { data: kpiData, isLoading: kpiLoading, refetch: refetchKpis, isRefetching: isRefetchingKpis } = useCurrentKpis();
   const { data: snapshotsData, isLoading: snapLoading, refetch: refetchSnaps, isRefetching: isRefetchingSnaps } = useKpiSnapshots();
@@ -84,7 +86,7 @@ export function InventoryAnalyticsScreen() {
         style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 16 }}
       >
         <View style={styles.headerRow}>
-          <HamburgerButton />
+          <HamburgerButton onPress={toggle} />
           <Text className="text-xl font-bold text-white font-inter ml-3">Inventory Analytics</Text>
         </View>
         <Text className="text-xs text-white/70 font-inter mt-1">KPI trends and performance metrics</Text>

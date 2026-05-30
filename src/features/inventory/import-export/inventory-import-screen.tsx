@@ -2,12 +2,13 @@ import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    const { toggle } = useSidebar();
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as DocumentPicker from 'expo-document-picker';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import colors from '@/components/ui/colors';
-import { HamburgerButton } from '@/components/ui/sidebar';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { useImportJobs } from '@/features/inventory/api/use-inventory-queries';
 import { inventoryApi } from '@/lib/api/inventory';
 import { inventoryKeys } from '@/features/inventory/api/inventory-keys';
@@ -28,6 +29,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 
 export function InventoryImportScreen() {
   const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
   const queryClient = useQueryClient();
   const [entityType, setEntityType] = useState('opening-stock');
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -131,7 +133,7 @@ export function InventoryImportScreen() {
         style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 16 }}
       >
         <View style={styles.headerRow}>
-          <HamburgerButton />
+          <HamburgerButton onPress={toggle} />
           <Text className="text-xl font-bold text-white font-inter ml-3">Import Data</Text>
         </View>
         <Text className="text-xs text-white/70 font-inter mt-1">Upload CSV files to import inventory data</Text>

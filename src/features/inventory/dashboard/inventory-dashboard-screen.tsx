@@ -1,12 +1,13 @@
 import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    const { toggle } = useSidebar();
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { HamburgerButton } from '@/components/ui/sidebar';
+import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 import { useInventoryDashboard } from '@/features/inventory/api/use-inventory-queries';
 
 function KpiCard({ label, value, subtext, color, delay, onPress }: {
@@ -25,6 +26,7 @@ function KpiCard({ label, value, subtext, color, delay, onPress }: {
 
 export function InventoryDashboardScreen() {
   const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
   const router = useRouter();
   const { data, isLoading, refetch, isRefetching } = useInventoryDashboard();
   const dashboard = (data as any)?.data;
@@ -40,7 +42,7 @@ export function InventoryDashboardScreen() {
         style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 16 }}
       >
         <View style={styles.headerRow}>
-          <HamburgerButton />
+          <HamburgerButton onPress={toggle} />
           <Text className="text-xl font-bold text-white font-inter ml-3">Inventory</Text>
         </View>
         <Text className="text-xs text-white/70 font-inter mt-1">Warehouse operations overview</Text>

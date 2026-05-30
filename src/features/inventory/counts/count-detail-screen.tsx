@@ -49,7 +49,7 @@ export function CountDetailScreen() {
             <Text className="text-xl font-bold text-white font-inter ml-3">Count Detail</Text>
           </View>
         </LinearGradient>
-        <EmptyState title="Count not found" description="This count may have been removed" />
+        <EmptyState title="Count not found" message="This count may have been removed" />
       </View>
     );
   }

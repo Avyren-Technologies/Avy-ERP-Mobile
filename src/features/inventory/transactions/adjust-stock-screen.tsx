@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Fab } from '@/components/ui/fab';
+import { FAB } from '@/components/ui/fab';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useAdjustments, useReasonCodes } from '@/features/inventory/api/use-inventory-queries';
 import { useCreateAdjustStock } from '@/features/inventory/api/use-inventory-mutations';
@@ -57,11 +57,11 @@ export function AdjustStockScreen() {
         <FlatList data={items} keyExtractor={(item: any) => item.id} renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No adjustments" description="Create a stock adjustment" />}
+          ListEmptyComponent={<EmptyState title="No adjustments" message="Create a stock adjustment" />}
         />
       )}
 
-      <Fab onPress={() => setShowForm(true)} />
+      <FAB onPress={() => setShowForm(true)} />
       {showForm && <CreateAdjustSheet onClose={() => setShowForm(false)} />}
     </View>
   );

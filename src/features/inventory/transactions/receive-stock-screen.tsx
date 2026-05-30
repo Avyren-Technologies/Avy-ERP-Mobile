@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Fab } from '@/components/ui/fab';
+import { FAB } from '@/components/ui/fab';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useReceiveStock, useWarehouses } from '@/features/inventory/api/use-inventory-queries';
 import { useCreateReceiveStock } from '@/features/inventory/api/use-inventory-mutations';
@@ -65,11 +65,11 @@ export function ReceiveStockScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary[500]} />}
-          ListEmptyComponent={<EmptyState title="No stock receipts" description="Create your first receipt" />}
+          ListEmptyComponent={<EmptyState title="No stock receipts" message="Create your first receipt" />}
         />
       )}
 
-      <Fab onPress={() => setShowForm(true)} />
+      <FAB onPress={() => setShowForm(true)} />
 
       {showForm && <CreateReceiveStockSheet onClose={() => setShowForm(false)} />}
     </View>

@@ -63,8 +63,17 @@ client.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // 403 — permission denied
+    // 403 — company deactivated: force logout
     if (error.response?.status === 403) {
+      const code = error.response?.data?.code;
+      if (code === 'COMPANY_SUSPENDED' || code === 'COMPANY_CANCELLED' || code === 'COMPANY_EXPIRED' || code === 'COMPANY_INACTIVE') {
+        showErrorMessage(error.response?.data?.message || 'Your company account is no longer active.');
+        setTimeout(() => {
+          const { signOut } = require('@/features/auth/use-auth-store') as typeof import('@/features/auth/use-auth-store');
+          signOut();
+        }, 2000);
+        return Promise.reject(error);
+      }
       showWarning('Access Denied', 'You do not have permission to perform this action.');
       return Promise.reject(error);
     }

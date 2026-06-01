@@ -38,7 +38,7 @@ import { useIsDark } from '@/hooks/use-is-dark';
 // ============ TYPES ============
 
 type ComponentType = 'Earning' | 'Deduction' | 'Employer Contribution';
-type CalcMethod = 'Fixed' | '% of Basic' | '% of Gross' | 'Formula';
+type CalcMethod = 'Fixed' | '% of Basic' | '% of Gross' | 'Formula' | 'Balance (Auto)';
 type TaxTreatment = 'Fully Taxable' | 'Partially Exempt' | 'Fully Exempt';
 
 interface SalaryComponentItem {

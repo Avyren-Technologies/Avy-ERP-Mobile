@@ -424,7 +424,7 @@ export function Sidebar({
     const isDark = useIsDark();
     const darkStyles = React.useMemo(() => createStyles(isDark), [isDark]);
     const { isOpen, close, progress } = useSidebar();
-    const [isCollapsed, setIsCollapsed] = React.useState(collapsible);
+    const [isCollapsed, setIsCollapsed] = React.useState(false);
     const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
     const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};

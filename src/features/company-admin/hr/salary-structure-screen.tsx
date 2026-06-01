@@ -38,7 +38,7 @@ import { useIsDark } from '@/hooks/use-is-dark';
 // ============ TYPES ============
 
 type CTCBasis = 'CTC' | 'Take Home';
-type CalcMethod = 'FIXED' | 'PERCENT_OF_BASIC' | 'PERCENT_OF_GROSS' | 'FORMULA';
+type CalcMethod = 'FIXED' | 'PERCENT_OF_BASIC' | 'PERCENT_OF_GROSS' | 'FORMULA' | 'BALANCE';
 
 interface StructureComponent {
     componentId: string;
@@ -62,12 +62,13 @@ interface SalaryStructureItem {
 // ============ CONSTANTS ============
 
 const CTC_OPTIONS: CTCBasis[] = ['CTC', 'Take Home'];
-const CALC_METHODS: CalcMethod[] = ['FIXED', 'PERCENT_OF_BASIC', 'PERCENT_OF_GROSS', 'FORMULA'];
+const CALC_METHODS: CalcMethod[] = ['FIXED', 'PERCENT_OF_BASIC', 'PERCENT_OF_GROSS', 'FORMULA', 'BALANCE'];
 const CALC_LABELS: Record<string, string> = {
     'FIXED': 'Fixed',
     'PERCENT_OF_BASIC': '% of Basic',
     'PERCENT_OF_GROSS': '% of Gross',
     'FORMULA': 'Formula',
+    'BALANCE': 'Balance',
 };
 
 // ============ SHARED ATOMS ============
@@ -230,7 +231,7 @@ function SalaryStructureForm({
         const basicComp = components.find(cc => cc.componentName?.toLowerCase().includes('basic'));
         const basicVal = basicComp?.calculationMethod === 'FIXED' ? basicComp.value : Math.round(monthlyGross * 0.4);
 
-        return components.filter(c => c.componentId).map(c => {
+        const rows = components.filter(c => c.componentId).map(c => {
             let monthly = 0;
             if (c.calculationMethod === 'FIXED') {
                 monthly = c.value;
@@ -239,8 +240,21 @@ function SalaryStructureForm({
             } else if (c.calculationMethod === 'PERCENT_OF_GROSS') {
                 monthly = Math.round(monthlyGross * (c.value / 100));
             }
-            return { name: c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component', monthly };
+            // BALANCE handled below
+            return { name: c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component', monthly, isBalance: c.calculationMethod === 'BALANCE' };
         });
+
+        // Fill BALANCE components with the remainder
+        const totalBeforeBalance = rows.filter(r => !r.isBalance).reduce((s, r) => s + r.monthly, 0);
+        let balanceFilled = false;
+        for (const row of rows) {
+            if (row.isBalance && !balanceFilled) {
+                row.monthly = Math.max(0, Math.round(monthlyGross - totalBeforeBalance));
+                balanceFilled = true;
+            }
+        }
+
+        return rows;
     }, [components, monthlyGross, componentOptions]);
 
     // Statutory estimates
@@ -340,7 +354,11 @@ function SalaryStructureForm({
                                 placeholder="Select component..."
                             />
                             <ChipSelector label="Calculation" options={CALC_METHODS} value={comp.calculationMethod} onSelect={v => updateComponent(idx, { calculationMethod: v as CalcMethod })} labels={CALC_LABELS} />
-                            {comp.calculationMethod !== 'FORMULA' ? (
+                            {comp.calculationMethod === 'BALANCE' ? (
+                                <View style={[styles.fieldWrap, { backgroundColor: colors.primary[50], borderRadius: 12, padding: 10 }]}>
+                                    <Text className="font-inter text-xs text-primary-700">Auto-fills remaining amount to match monthly gross. No value needed.</Text>
+                                </View>
+                            ) : comp.calculationMethod !== 'FORMULA' ? (
                                 <View style={styles.fieldWrap}>
                                     <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                                         {comp.calculationMethod === 'FIXED' ? 'Amount' : 'Percentage (%)'}

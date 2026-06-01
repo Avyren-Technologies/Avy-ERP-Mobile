@@ -31,6 +31,7 @@ import {
     useComputeSalaries,
     useComputeStatutory,
     useCreatePayrollRun,
+    useDeletePayrollRun,
     useDisburseRun,
     useLockAttendance,
     useReviewExceptions,
@@ -521,6 +522,7 @@ export function PayrollRunScreen() {
     const { data: response, isLoading, error, refetch, isFetching } = usePayrollRuns({ month: filterMonth, year: filterYear } as any);
 
     const createMutation = useCreatePayrollRun();
+    const deleteMutation = useDeletePayrollRun();
     const lockMutation = useLockAttendance();
     const reviewMutation = useReviewExceptions();
     const computeMutation = useComputeSalaries();
@@ -648,6 +650,29 @@ export function PayrollRunScreen() {
                         {MONTHS[selectedRun.month - 1]} {selectedRun.year} Run
                     </Text>
                     <RunStatusBadge status={selectedRun.status} />
+                    {!['DISBURSED', 'ARCHIVED'].includes(selectedRun.status) && (
+                        <Pressable
+                            onPress={() => {
+                                showConfirm({
+                                    title: 'Delete Payroll Run',
+                                    message: `Delete payroll run for ${MONTHS[selectedRun.month - 1]} ${selectedRun.year}? This action cannot be undone.`,
+                                    confirmText: 'Delete',
+                                    variant: 'danger',
+                                    onConfirm: () => {
+                                        deleteMutation.mutate(selectedRun.id, {
+                                            onSuccess: () => { setSelectedRunId(null); },
+                                        });
+                                    },
+                                });
+                            }}
+                            disabled={deleteMutation.isPending}
+                            style={{ marginLeft: 8, padding: 6, borderRadius: 8, backgroundColor: colors.danger[50] }}
+                        >
+                            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                                <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke={colors.danger[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </Svg>
+                        </Pressable>
+                    )}
                 </View>
                 <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
                     <StepIndicator currentStep={currentStep} totalSteps={6} />

@@ -79,6 +79,9 @@ export const payrollRunApi = {
   getPayrollRun: (id: string) =>
     client.get(`/hr/payroll-runs/${id}`),
 
+  deletePayrollRun: (id: string) =>
+    client.delete(`/hr/payroll-runs/${id}`),
+
   // 6-step wizard actions
   lockAttendance: (id: string) =>
     client.patch(`/hr/payroll-runs/${id}/lock-attendance`),

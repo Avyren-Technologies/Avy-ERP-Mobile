@@ -216,7 +216,7 @@ function AppSidebar() {
             userInitials={getUserInitials(user)}
             profilePhotoUrl={profilePhotoUrl}
             onSignOut={signOut}
-            collapsible={true}
+            collapsible={false}
         />
     );
 }

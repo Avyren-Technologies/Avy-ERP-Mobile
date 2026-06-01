@@ -445,9 +445,9 @@ export function Sidebar({
         return initial;
     });
     // Module-level collapse (HRMS, Operations, etc.)
+    // All modules start collapsed EXCEPT the one containing the active route
     const [collapsedModules, setCollapsedModules] = React.useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
-        // Find which module separator contains the active item
         let activeModuleSep: string | null = null;
         let currentSep = '';
         for (const section of sections) {
@@ -457,7 +457,6 @@ export function Sidebar({
                 if (hasActive && !activeModuleSep) activeModuleSep = currentSep;
             }
         }
-        // Collapse all module separators except the active one
         for (const section of sections) {
             if (section.moduleSeparator) {
                 initial[section.moduleSeparator] = section.moduleSeparator !== activeModuleSep;
@@ -473,6 +472,27 @@ export function Sidebar({
         if (s.moduleSeparator) _curMod = s.moduleSeparator;
         if (_curMod && s.title) sectionModuleMap[s.title] = _curMod;
     }
+
+    // On sidebar open: collapse all modules except the one with the active route
+    React.useEffect(() => {
+        if (!isOpen) return;
+        let activeModuleSep: string | null = null;
+        let currentSep = '';
+        for (const section of sections) {
+            if (section.moduleSeparator) currentSep = section.moduleSeparator;
+            if (currentSep) {
+                const hasActive = section.items.some(item => item.isActive || item.children?.some(c => c.isActive));
+                if (hasActive && !activeModuleSep) activeModuleSep = currentSep;
+            }
+        }
+        const next: Record<string, boolean> = {};
+        for (const section of sections) {
+            if (section.moduleSeparator) {
+                next[section.moduleSeparator] = section.moduleSeparator !== activeModuleSep;
+            }
+        }
+        setCollapsedModules(next);
+    }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [searchText, setSearchText] = React.useState('');
     const searchInputRef = React.useRef<TextInput>(null);
@@ -906,9 +926,14 @@ export function Sidebar({
                                         }}
                                         style={isModuleCollapsed ? darkStyles.moduleSeparatorCollapsed : styles.moduleSeparator}
                                     >
-                                        {isModuleCollapsed ? (
+                                        {isModuleCollapsed ? (() => {
+                                            const modConfig = MODULE_ICON_CONFIG[section.moduleSeparator!] ?? { icon: 'settings' as SidebarIconType, bgColor: 'rgba(100, 116, 139, 0.12)', iconColor: '#64748b' };
+                                            return (
                                             <>
-                                                <Text className="font-inter text-[11px] font-bold uppercase tracking-[1.5px] text-neutral-600 dark:text-neutral-300" style={{ flex: 1 }}>
+                                                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: modConfig.bgColor, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                                                    <SidebarNavIcon type={modConfig.icon} color={modConfig.iconColor} size={18} />
+                                                </View>
+                                                <Text className="font-inter text-sm font-semibold text-neutral-700 dark:text-neutral-200" style={{ flex: 1 }}>
                                                     {section.moduleSeparator}
                                                 </Text>
                                                 <Svg width={14} height={14} viewBox="0 0 24 24">
@@ -922,7 +947,8 @@ export function Sidebar({
                                                     />
                                                 </Svg>
                                             </>
-                                        ) : (
+                                            );
+                                        })() : (
                                             <>
                                                 <View style={styles.moduleSeparatorLine} />
                                                 <Text className="font-inter text-[9px] font-bold uppercase tracking-[2px] text-primary-500">
@@ -1433,16 +1459,14 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
     moduleSeparatorCollapsed: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 10,
-        marginTop: 12,
-        marginBottom: 4,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 10,
-        backgroundColor: isDark ? 'rgba(79, 70, 229, 0.08)' : colors.neutral[50],
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(79, 70, 229, 0.15)' : colors.neutral[100],
-        gap: 8,
+        marginHorizontal: 8,
+        marginTop: 2,
+        marginBottom: 2,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+        gap: 4,
     },
     moduleSeparatorLine: {
         flex: 1,

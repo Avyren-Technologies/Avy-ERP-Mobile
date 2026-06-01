@@ -271,7 +271,7 @@ function SalaryStructureForm({
     const gratCfg = (gratCfgData as any)?.data;
 
     const statutoryRows = React.useMemo(() => {
-        const rows: { label: string; monthly: number }[] = [];
+        const rows: { label: string; monthly: number; category: 'deduction' | 'employer' }[] = [];
         let pfBase = 0; let esiBase = 0; let gratBase = 0;
         for (const c of components) {
             const master = allComps.find((mc: any) => mc.id === c.componentId);
@@ -284,18 +284,22 @@ function SalaryStructureForm({
         }
         if (pfCfg && pfBase > 0) {
             const capped = Math.min(pfBase, Number(pfCfg.wageCeiling ?? 15000));
-            rows.push({ label: 'PF (Employee)', monthly: Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100) });
+            rows.push({ label: 'PF (Employee)', monthly: Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100), category: 'deduction' });
+            const epfRate = Number(pfCfg.employerEpfRate ?? 3.67);
+            const epsRate = Number(pfCfg.employerEpsRate ?? 8.33);
+            rows.push({ label: 'PF (Employer)', monthly: Math.round(capped * (epfRate + epsRate) / 100), category: 'employer' });
         }
         if (esiCfg) {
             const base = esiBase > 0 ? esiBase : monthlyGross;
             if (base <= Number(esiCfg.wageCeiling ?? 21000)) {
-                rows.push({ label: 'ESI (Employee)', monthly: Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100) });
+                rows.push({ label: 'ESI (Employee)', monthly: Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100), category: 'deduction' });
+                rows.push({ label: 'ESI (Employer)', monthly: Math.round(base * Number(esiCfg.employerRate ?? 3.25) / 100), category: 'employer' });
             }
         }
         if (gratCfg?.provisionMethod === 'MONTHLY' && gratBase > 0) {
             const annual = (gratBase * 15 * 1) / 26;
             const capped = Math.min(annual, Number(gratCfg.maxAmount ?? 2000000));
-            rows.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12) });
+            rows.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12), category: 'employer' });
         }
         return rows;
     }, [components, previewRows, allComps, pfCfg, esiCfg, gratCfg, monthlyGross]);
@@ -449,19 +453,53 @@ function SalaryStructureForm({
                                 </View>
                             )}
 
-                            {/* Statutory Estimates */}
-                            {statutoryRows.length > 0 && (
-                                <View style={[styles.sectionCard, { backgroundColor: colors.warning[50], borderColor: colors.warning[200], borderWidth: 1, marginTop: 12 }]}>
-                                    <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-warning-600">Statutory Deductions (Estimated)</Text>
-                                    {statutoryRows.map((row, idx) => (
-                                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.warning[200] }}>
-                                            <Text className="font-inter text-xs text-warning-800">{row.label}</Text>
-                                            <Text className="font-inter text-xs font-semibold text-warning-700">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                            {/* Statutory Estimates — Employee Deductions */}
+                            {statutoryRows.some(r => r.category === 'deduction') && (() => {
+                                const deductionRows = statutoryRows.filter(r => r.category === 'deduction');
+                                const totalDeductions = deductionRows.reduce((s, r) => s + r.monthly, 0);
+                                const grossEarnings = previewRows.filter(r => r.type === 'EARNING').reduce((s, r) => s + r.monthly, 0);
+                                const estTakeHome = grossEarnings - totalDeductions;
+                                return (
+                                    <View style={[styles.sectionCard, { backgroundColor: colors.warning[50], borderColor: colors.warning[200], borderWidth: 1, marginTop: 12 }]}>
+                                        <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-warning-600">Statutory Employee Deductions (Est.)</Text>
+                                        {deductionRows.map((row, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.warning[200] }}>
+                                                <Text className="font-inter text-xs text-warning-800">{row.label}</Text>
+                                                <Text className="font-inter text-xs font-semibold text-warning-700">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                                            </View>
+                                        ))}
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, marginTop: 4 }}>
+                                            <Text className="font-inter text-xs font-bold text-warning-800">Est. Take-Home</Text>
+                                            <Text className="font-inter text-xs font-bold text-warning-800">&#8377;{estTakeHome.toLocaleString('en-IN')}</Text>
                                         </View>
-                                    ))}
-                                    <Text className="mt-2 font-inter text-[9px] text-warning-500">Based on current statutory config. Actual amounts vary with attendance and CTC.</Text>
-                                </View>
-                            )}
+                                        <Text className="mt-2 font-inter text-[9px] text-warning-500">Based on current statutory config. Actual amounts vary with attendance and CTC.</Text>
+                                    </View>
+                                );
+                            })()}
+
+                            {/* Statutory Estimates — Employer Contributions */}
+                            {statutoryRows.some(r => r.category === 'employer') && (() => {
+                                const employerRows = statutoryRows.filter(r => r.category === 'employer');
+                                const totalEmployer = employerRows.reduce((s, r) => s + r.monthly, 0);
+                                const grossEarnings = previewRows.filter(r => r.type === 'EARNING').reduce((s, r) => s + r.monthly, 0);
+                                const totalCTC = grossEarnings + totalEmployer;
+                                return (
+                                    <View style={[styles.sectionCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE', borderWidth: 1, marginTop: 4 }]}>
+                                        <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-info-600">Statutory Employer Contributions (Est.)</Text>
+                                        {employerRows.map((row, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#BFDBFE' }}>
+                                                <Text className="font-inter text-xs text-info-800">{row.label}</Text>
+                                                <Text className="font-inter text-xs font-semibold text-info-700">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                                            </View>
+                                        ))}
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, marginTop: 4 }}>
+                                            <Text className="font-inter text-xs font-bold text-info-800">Total CTC</Text>
+                                            <Text className="font-inter text-xs font-bold text-info-700">&#8377;{totalCTC.toLocaleString('en-IN')}</Text>
+                                        </View>
+                                        <Text className="mt-2 font-inter text-[9px] text-info-400">Based on current statutory config. Actual amounts vary with attendance and CTC.</Text>
+                                    </View>
+                                );
+                            })()}
                         </>
                     )}
                 </ScrollView>

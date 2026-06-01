@@ -135,17 +135,65 @@ function AssignSalaryModal({
         if (!structureId || ctcNum <= 0) return [];
         const struct = structureData.find((s: any) => (s.id ?? '') === structureId);
         if (!struct?.components) return [];
-        return (struct.components as any[]).map((c: any) => {
-            let monthly = 0;
-            if (c.calculationMethod === 'Fixed') monthly = c.value ?? 0;
-            else if (c.calculationMethod === '% of Gross') monthly = Math.round(monthlyGross * ((c.value ?? 0) / 100));
-            else if (c.calculationMethod === '% of Basic') {
-                const basicComp = (struct.components as any[]).find((cc: any) => (cc.componentName ?? '').toLowerCase().includes('basic'));
-                const basicVal = basicComp?.calculationMethod === 'Fixed' ? (basicComp.value ?? 0) : Math.round(monthlyGross * 0.4);
-                monthly = Math.round(basicVal * ((c.value ?? 0) / 100));
+        const comps = struct.components as any[];
+
+        // Normalize calculation method to uppercase enum form
+        const getMethod = (c: any) => {
+            const m = (c.calculationMethod ?? c.method ?? '').toString();
+            // Handle both display strings and enum values
+            if (m === 'Fixed' || m === 'FIXED') return 'FIXED';
+            if (m === '% of Gross' || m === 'PERCENT_OF_GROSS' || m === 'PERCENTAGE_OF_CTC') return 'PERCENT_OF_GROSS';
+            if (m === '% of Basic' || m === 'PERCENT_OF_BASIC' || m === 'PERCENTAGE_OF_BASIC') return 'PERCENT_OF_BASIC';
+            if (m === 'Formula' || m === 'FORMULA') return 'FORMULA';
+            if (m === 'Balance' || m === 'BALANCE' || m === 'Balance (Auto)') return 'BALANCE';
+            return m.toUpperCase();
+        };
+
+        // First pass: find basic amount
+        let basicAmt = 0;
+        for (const c of comps) {
+            const name = (c.componentName ?? '').toLowerCase();
+            const code = (c.componentCode ?? '').toUpperCase();
+            const isBasic = code === 'BASIC' || name.includes('basic');
+            if (isBasic) {
+                const m = getMethod(c);
+                if (m === 'FIXED') basicAmt = c.value ?? 0;
+                else if (m === 'PERCENT_OF_GROSS') basicAmt = Math.round(monthlyGross * ((c.value ?? 0) / 100));
             }
-            return { name: c.componentName ?? 'Component', monthly };
+        }
+        if (!basicAmt) basicAmt = Math.round(monthlyGross * 0.4);
+
+        // Second pass: compute all non-BALANCE components
+        const rows = comps.map((c: any) => {
+            const m = getMethod(c);
+            const val = Number(c.value) || 0;
+            const isBalance = m === 'BALANCE';
+            let monthly = 0;
+            if (m === 'FIXED') monthly = val;
+            else if (m === 'PERCENT_OF_GROSS') monthly = Math.round(monthlyGross * (val / 100));
+            else if (m === 'PERCENT_OF_BASIC') monthly = Math.round(basicAmt * (val / 100));
+            else if (m === 'FORMULA') {
+                const formula = (c.formula ?? c.formulaValue ?? '').toString().toLowerCase();
+                const match = formula.match(/([\d.]+)%?\s*of\s*(gross|basic)/);
+                if (match) {
+                    const pct = parseFloat(match[1]);
+                    monthly = match[2] === 'basic' ? Math.round(basicAmt * pct / 100) : Math.round(monthlyGross * pct / 100);
+                }
+            }
+            return { name: c.componentName ?? 'Component', monthly, isBalance, componentId: c.componentId };
         });
+
+        // Third pass: fill BALANCE components with remainder
+        const totalBeforeBalance = rows.filter(r => !r.isBalance).reduce((s, r) => s + r.monthly, 0);
+        let balanceFilled = false;
+        for (const row of rows) {
+            if (row.isBalance && !balanceFilled) {
+                row.monthly = Math.max(0, Math.round(monthlyGross - totalBeforeBalance));
+                balanceFilled = true;
+            }
+        }
+
+        return rows;
     }, [structureId, ctcNum, structureData, monthlyGross]);
 
     // Statutory estimates
@@ -158,11 +206,12 @@ function AssignSalaryModal({
     const { data: gratCfgData } = useGratuityConfig();
     const gratCfg = (gratCfgData as any)?.data;
 
-    const statutoryRows = React.useMemo(() => {
-        if (breakup.length === 0 || !structureId) return [];
+    const statutoryEstimates = React.useMemo(() => {
+        if (breakup.length === 0 || !structureId) return null;
         const struct = structureData.find((s: any) => (s.id ?? '') === structureId);
-        if (!struct?.components) return [];
-        const rows: { label: string; monthly: number }[] = [];
+        if (!struct?.components) return null;
+        const estimates: { label: string; monthly: number; category: 'deduction' | 'employer' }[] = [];
+        const grossSalary = breakup.reduce((s, r) => s + r.monthly, 0);
         let pfBase = 0; let esiBase = 0; let gratBase = 0;
         for (const c of struct.components as any[]) {
             const master = allComps.find((mc: any) => mc.id === c.componentId || mc.code === c.componentCode);
@@ -175,21 +224,37 @@ function AssignSalaryModal({
         }
         if (pfCfg && pfBase > 0) {
             const capped = Math.min(pfBase, Number(pfCfg.wageCeiling ?? 15000));
-            rows.push({ label: 'PF (Employee)', monthly: Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100) });
+            const pfEmp = Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100);
+            const pfErEpf = Math.round(capped * Number(pfCfg.employerEpfRate ?? 3.67) / 100);
+            const pfErEps = Math.round(capped * Number(pfCfg.employerEpsRate ?? 8.33) / 100);
+            estimates.push({ label: 'PF (Employee)', monthly: pfEmp, category: 'deduction' });
+            estimates.push({ label: 'PF (Employer)', monthly: pfErEpf + pfErEps, category: 'employer' });
         }
         if (esiCfg) {
-            const base = esiBase > 0 ? esiBase : monthlyGross;
+            const base = esiBase > 0 ? esiBase : grossSalary;
             if (base <= Number(esiCfg.wageCeiling ?? 21000)) {
-                rows.push({ label: 'ESI (Employee)', monthly: Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100) });
+                const esiEmp = Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100);
+                const esiEr = Math.round(base * Number(esiCfg.employerRate ?? 3.25) / 100);
+                estimates.push({ label: 'ESI (Employee)', monthly: esiEmp, category: 'deduction' });
+                estimates.push({ label: 'ESI (Employer)', monthly: esiEr, category: 'employer' });
             }
         }
         if (gratCfg?.provisionMethod === 'MONTHLY' && gratBase > 0) {
             const annual = (gratBase * 15 * 1) / 26;
             const capped = Math.min(annual, Number(gratCfg.maxAmount ?? 2000000));
-            rows.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12) });
+            estimates.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12), category: 'employer' });
         }
-        return rows;
-    }, [breakup, structureId, structureData, allComps, pfCfg, esiCfg, gratCfg, monthlyGross]);
+        if (estimates.length === 0) return null;
+
+        const deductions = estimates.filter(e => e.category === 'deduction');
+        const employer = estimates.filter(e => e.category === 'employer');
+        const totalDeductions = deductions.reduce((s, e) => s + e.monthly, 0);
+        const totalEmployer = employer.reduce((s, e) => s + e.monthly, 0);
+        const netTakeHome = grossSalary - totalDeductions;
+        const totalCtc = grossSalary + totalEmployer;
+
+        return { deductions, employer, totalDeductions, totalEmployer, netTakeHome, totalCtc, grossSalary };
+    }, [breakup, structureId, structureData, allComps, pfCfg, esiCfg, gratCfg]);
 
     const handleSave = () => {
         if (!employeeId || !structureId || ctcNum <= 0) return;
@@ -233,23 +298,48 @@ function AssignSalaryModal({
                                         </View>
                                     ))}
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
-                                        <Text className="font-inter text-xs font-bold text-primary-800">Monthly Gross</Text>
-                                        <Text className="font-inter text-xs font-bold text-primary-800">{formatCurrency(monthlyGross)}</Text>
+                                        <Text className="font-inter text-xs font-bold text-primary-800">Gross Salary</Text>
+                                        <Text className="font-inter text-xs font-bold text-primary-800">{formatCurrency(breakup.reduce((s, r) => s + r.monthly, 0))}</Text>
                                     </View>
                                 </View>
 
                                 {/* Statutory Estimates */}
-                                {statutoryRows.length > 0 && (
-                                    <View style={[styles.previewCard, { backgroundColor: colors.warning[50], borderColor: colors.warning[200], borderWidth: 1, marginTop: 10 }]}>
-                                        <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-warning-600">Statutory Deductions (Estimated)</Text>
-                                        {statutoryRows.map((row, idx) => (
-                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.warning[200] }}>
-                                                <Text className="font-inter text-xs text-warning-800">{row.label}</Text>
-                                                <Text className="font-inter text-xs font-semibold text-warning-700">{formatCurrency(row.monthly)}</Text>
+                                {statutoryEstimates && (
+                                    <>
+                                        {/* Employee Deductions */}
+                                        {statutoryEstimates.deductions.length > 0 && (
+                                            <View style={[styles.previewCard, { backgroundColor: colors.warning[50], borderColor: colors.warning[200], borderWidth: 1, marginTop: 10 }]}>
+                                                <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-warning-600">Employee Deductions (Estimated)</Text>
+                                                {statutoryEstimates.deductions.map((row, idx) => (
+                                                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.warning[200] }}>
+                                                        <Text className="font-inter text-xs text-warning-800">{row.label}</Text>
+                                                        <Text className="font-inter text-xs font-semibold text-warning-700">{formatCurrency(row.monthly)}</Text>
+                                                    </View>
+                                                ))}
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.warning[200] }}>
+                                                    <Text className="font-inter text-xs font-bold text-warning-800">Est. Take-Home</Text>
+                                                    <Text className="font-inter text-xs font-bold text-warning-700">{formatCurrency(statutoryEstimates.netTakeHome)}</Text>
+                                                </View>
                                             </View>
-                                        ))}
-                                        <Text className="mt-2 font-inter text-[9px] text-warning-500">Based on current config. Actual amounts vary.</Text>
-                                    </View>
+                                        )}
+                                        {/* Employer Contributions */}
+                                        {statutoryEstimates.employer.length > 0 && (
+                                            <View style={[styles.previewCard, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', borderWidth: 1, marginTop: 10 }]}>
+                                                <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-blue-600">Employer Contributions (Estimated)</Text>
+                                                {statutoryEstimates.employer.map((row, idx) => (
+                                                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#bfdbfe' }}>
+                                                        <Text className="font-inter text-xs text-blue-800">{row.label}</Text>
+                                                        <Text className="font-inter text-xs font-semibold text-blue-700">{formatCurrency(row.monthly)}</Text>
+                                                    </View>
+                                                ))}
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: '#bfdbfe' }}>
+                                                    <Text className="font-inter text-xs font-bold text-blue-800">Total CTC</Text>
+                                                    <Text className="font-inter text-xs font-bold text-blue-700">{formatCurrency(statutoryEstimates.totalCtc)}</Text>
+                                                </View>
+                                            </View>
+                                        )}
+                                        <Text className="mt-2 font-inter text-[9px] text-neutral-400">Based on current statutory config. Actual amounts vary with attendance and CTC.</Text>
+                                    </>
                                 )}
                             </>
                         )}

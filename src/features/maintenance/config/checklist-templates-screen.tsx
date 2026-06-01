@@ -30,7 +30,7 @@ import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { showErrorMessage, showSuccess } from '@/components/ui/utils';
+import { showError, showErrorMessage, showSuccess } from '@/components/ui/utils';
 import {
     useCreateChecklistTemplate,
     useDeleteChecklistTemplate,
@@ -251,6 +251,7 @@ function BuilderSheet({
     const [description, setDescription] = React.useState(initialDescription);
     const [sections, setSections] = React.useState<SectionForm[]>(initialSections.length > 0 ? initialSections : [newSection()]);
     const [isActive, setIsActive] = React.useState(initialIsActive);
+    const [submitted, setSubmitted] = React.useState(false);
 
     React.useEffect(() => {
         if (visible) {
@@ -258,6 +259,7 @@ function BuilderSheet({
             setDescription(initialDescription);
             setSections(initialSections.length > 0 ? initialSections : [newSection()]);
             setIsActive(initialIsActive);
+            setSubmitted(false);
         }
     }, [visible, initialName, initialDescription, initialSections, initialIsActive]);
 
@@ -296,14 +298,42 @@ function BuilderSheet({
 
     // ── Submit
     const handleSubmit = () => {
+        setSubmitted(true);
+        let hasError = false;
+        const newSections = sections.map(sec => {
+            const isSecNameInvalid = !sec.name.trim();
+            const isPassThresholdInvalid = sec.passThreshold && (isNaN(Number(sec.passThreshold)) || Number(sec.passThreshold) < 0 || Number(sec.passThreshold) > 100);
+            const hasFieldErrors = sec.fields.some(f => !f.label.trim() || (f.fieldType === 'DROPDOWN' && !f.config.trim()));
+            if (isSecNameInvalid || isPassThresholdInvalid || hasFieldErrors) {
+                hasError = true;
+                return { ...sec, collapsed: false };
+            }
+            return sec;
+        });
+
+        if (hasError) {
+            setSections(newSections);
+        }
+
         if (!name.trim()) { showErrorMessage('Template name is required'); return; }
-        for (const sec of sections) {
+        for (const sec of newSections) {
             if (!sec.name.trim()) { showErrorMessage('All sections must have a name'); return; }
+            if (sec.passThreshold) {
+                const val = Number(sec.passThreshold);
+                if (isNaN(val) || val < 0 || val > 100) {
+                    showErrorMessage(`Section "${sec.name}" pass threshold must be between 0 and 100`);
+                    return;
+                }
+            }
             for (const f of sec.fields) {
                 if (!f.label.trim()) { showErrorMessage('All fields must have a label'); return; }
+                if (f.fieldType === 'DROPDOWN' && !f.config.trim()) {
+                    showErrorMessage(`Dropdown field "${f.label}" requires comma-separated options`);
+                    return;
+                }
             }
         }
-        onSubmit({ name, description, sections, isActive });
+        onSubmit({ name, description, sections: newSections, isActive });
     };
 
     return (
@@ -341,8 +371,16 @@ function BuilderSheet({
                                     onChangeText={setName}
                                     placeholder="e.g. Monthly Pump Inspection"
                                     placeholderTextColor={colors.neutral[400]}
-                                    style={[builderStyles.input, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
+                                    style={[
+                                        builderStyles.input,
+                                        {
+                                            backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50],
+                                            borderColor: submitted && !name.trim() ? colors.danger[500] : (isDark ? colors.neutral[700] : colors.neutral[200]),
+                                            color: isDark ? colors.white : colors.primary[950]
+                                        }
+                                    ]}
                                 />
+                                {submitted && !name.trim() && <Text className="text-[10px] text-danger-500 font-bold mt-1">Template name is required</Text>}
                             </View>
 
                             <View style={builderStyles.field}>
@@ -379,128 +417,191 @@ function BuilderSheet({
                                 </Pressable>
                             </View>
 
-                            {sections.map((sec, si) => (
-                                <View key={si} style={[sectionStyles.card, { backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50], borderColor: isDark ? colors.neutral[800] : colors.neutral[200] }]}>
-                                    {/* Section header row */}
-                                    <View style={sectionStyles.headerRow}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text className="mb-1.5 font-inter text-[11px] font-bold text-primary-900 dark:text-primary-100">
-                                                Section Name <Text className="text-danger-500">*</Text>
-                                            </Text>
-                                            <View style={[sectionStyles.sectionNameBox, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.primary[700] : colors.primary[200] }]}>
+                            {sections.map((sec, si) => {
+                                const isSecNameInvalid = submitted && !sec.name.trim();
+                                const isPassThresholdInvalid = submitted && sec.passThreshold && (isNaN(Number(sec.passThreshold)) || Number(sec.passThreshold) < 0 || Number(sec.passThreshold) > 100);
+                                const hasFieldErrors = submitted && sec.fields.some(f => !f.label.trim() || (f.fieldType === 'DROPDOWN' && !f.config.trim()));
+                                const isSectionInvalid = isSecNameInvalid || isPassThresholdInvalid || hasFieldErrors;
+
+                                return (
+                                    <View key={si} style={[
+                                        sectionStyles.card,
+                                        {
+                                            backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                                            borderColor: isSectionInvalid ? colors.danger[500] : (isDark ? colors.neutral[800] : colors.neutral[200]),
+                                            borderWidth: isSectionInvalid ? 1.5 : 1
+                                        }
+                                    ]}>
+                                        {/* Section header row */}
+                                        <View style={sectionStyles.headerRow}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text className="mb-1.5 font-inter text-[11px] font-bold text-primary-900 dark:text-primary-100">
+                                                    Section Name <Text className="text-danger-500">*</Text>
+                                                </Text>
+                                                <View style={[
+                                                    sectionStyles.sectionNameBox,
+                                                    {
+                                                        backgroundColor: isDark ? '#1A1730' : colors.white,
+                                                        borderColor: isSecNameInvalid ? colors.danger[500] : (isDark ? colors.primary[700] : colors.primary[200])
+                                                    }
+                                                ]}>
+                                                    <TextInput
+                                                        value={sec.name}
+                                                        onChangeText={(v) => updateSection(si, { name: v })}
+                                                        placeholder="Enter section name"
+                                                        placeholderTextColor={colors.neutral[400]}
+                                                        style={[sectionStyles.sectionNameInput, { color: isDark ? colors.white : colors.primary[950] }]}
+                                                    />
+                                                </View>
+                                                {isSecNameInvalid && <Text className="text-[9px] text-danger-500 font-bold mt-1 ml-1">Section name is required</Text>}
+                                            </View>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 22 }}>
+                                                {sec.collapsed && isSectionInvalid && (
+                                                    <Text className="text-[10px] font-bold text-danger-500 mr-1 animate-pulse">! Error</Text>
+                                                )}
+                                                {/* Collapse toggle */}
+                                                <Pressable onPress={() => updateSection(si, { collapsed: !sec.collapsed })} hitSlop={8}>
+                                                    <Svg width={16} height={16} viewBox="0 0 24 24">
+                                                        <Path d={sec.collapsed ? 'M6 9l6 6 6-6' : 'M18 15l-6-6-6 6'} stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </Svg>
+                                                </Pressable>
+                                                {/* Remove section */}
+                                                <Pressable onPress={() => removeSection(si)} hitSlop={8}>
+                                                    <Svg width={14} height={14} viewBox="0 0 24 24">
+                                                        <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke={colors.danger[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </Svg>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+
+                                        {/* Section meta: Required + Pass % */}
+                                        <View style={sectionStyles.metaRow}>
+                                            <Pressable onPress={() => updateSection(si, { isMandatory: !sec.isMandatory })} style={sectionStyles.checkRow}>
+                                                <View style={[sectionStyles.checkbox, { backgroundColor: sec.isMandatory ? colors.primary[600] : 'transparent', borderColor: sec.isMandatory ? colors.primary[600] : colors.neutral[300] }]}>
+                                                    {sec.isMandatory && (
+                                                        <Svg width={10} height={10} viewBox="0 0 24 24">
+                                                            <Path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </Svg>
+                                                    )}
+                                                </View>
+                                                <Text className="font-inter text-[11px] text-neutral-500">Required</Text>
+                                            </Pressable>
+
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                <Text className="font-inter text-[11px] font-semibold text-neutral-500">Pass %</Text>
                                                 <TextInput
-                                                    value={sec.name}
-                                                    onChangeText={(v) => updateSection(si, { name: v })}
-                                                    placeholder="Enter section name"
+                                                    value={sec.passThreshold}
+                                                    onChangeText={(v) => updateSection(si, { passThreshold: v })}
+                                                    placeholder="0-100"
                                                     placeholderTextColor={colors.neutral[400]}
-                                                    style={[sectionStyles.sectionNameInput, { color: isDark ? colors.white : colors.primary[950] }]}
+                                                    keyboardType="numeric"
+                                                    maxLength={3}
+                                                    style={[
+                                                        sectionStyles.passInput,
+                                                        {
+                                                            backgroundColor: isDark ? '#1A1730' : colors.white,
+                                                            borderColor: isPassThresholdInvalid ? colors.danger[500] : (isDark ? colors.neutral[700] : colors.neutral[200]),
+                                                            color: isDark ? colors.white : colors.primary[950]
+                                                        }
+                                                    ]}
                                                 />
                                             </View>
                                         </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 22 }}>
-                                            {/* Collapse toggle */}
-                                            <Pressable onPress={() => updateSection(si, { collapsed: !sec.collapsed })} hitSlop={8}>
-                                                <Svg width={16} height={16} viewBox="0 0 24 24">
-                                                    <Path d={sec.collapsed ? 'M6 9l6 6 6-6' : 'M18 15l-6-6-6 6'} stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                                </Svg>
-                                            </Pressable>
-                                            {/* Remove section */}
-                                            <Pressable onPress={() => removeSection(si)} hitSlop={8}>
-                                                <Svg width={14} height={14} viewBox="0 0 24 24">
-                                                    <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke={colors.danger[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                                </Svg>
-                                            </Pressable>
-                                        </View>
-                                    </View>
 
-                                    {/* Section meta: Required + Pass % */}
-                                    <View style={sectionStyles.metaRow}>
-                                        <Pressable onPress={() => updateSection(si, { isMandatory: !sec.isMandatory })} style={sectionStyles.checkRow}>
-                                            <View style={[sectionStyles.checkbox, { backgroundColor: sec.isMandatory ? colors.primary[600] : 'transparent', borderColor: sec.isMandatory ? colors.primary[600] : colors.neutral[300] }]}>
-                                                {sec.isMandatory && (
-                                                    <Svg width={10} height={10} viewBox="0 0 24 24">
-                                                        <Path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </Svg>
-                                                )}
-                                            </View>
-                                            <Text className="font-inter text-[11px] text-neutral-500">Required</Text>
-                                        </Pressable>
+                                        {/* Fields */}
+                                        {!sec.collapsed && (
+                                            <View style={{ marginTop: 10 }}>
+                                                {sec.fields.map((f, fi) => {
+                                                    const isFieldLabelInvalid = submitted && !f.label.trim();
+                                                    const isDropdownOptionsInvalid = submitted && f.fieldType === 'DROPDOWN' && !f.config.trim();
 
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                            <Text className="font-inter text-[11px] font-semibold text-neutral-500">Pass %</Text>
-                                            <TextInput
-                                                value={sec.passThreshold}
-                                                onChangeText={(v) => updateSection(si, { passThreshold: v })}
-                                                placeholder="0-100"
-                                                placeholderTextColor={colors.neutral[400]}
-                                                keyboardType="numeric"
-                                                maxLength={3}
-                                                style={[sectionStyles.passInput, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
-                                            />
-                                        </View>
-                                    </View>
+                                                    return (
+                                                        <View key={fi} style={[
+                                                            fieldStyles.fieldBlock,
+                                                            {
+                                                                backgroundColor: isDark ? '#1A1730' : colors.white,
+                                                                borderColor: (isFieldLabelInvalid || isDropdownOptionsInvalid) ? colors.danger[400] : (isDark ? colors.neutral[700] : colors.neutral[200]),
+                                                                borderWidth: (isFieldLabelInvalid || isDropdownOptionsInvalid) ? 1.5 : 1
+                                                            }
+                                                        ]}>
+                                                            <View style={fieldStyles.row}>
+                                                                {/* Field label */}
+                                                                <View style={{ flex: 1 }}>
+                                                                    <TextInput
+                                                                        value={f.label}
+                                                                        onChangeText={(v) => updateField(si, fi, { label: v })}
+                                                                        placeholder="Field label"
+                                                                        placeholderTextColor={colors.neutral[400]}
+                                                                        style={[
+                                                                            fieldStyles.labelInput,
+                                                                            {
+                                                                                color: isDark ? colors.white : colors.primary[950],
+                                                                                borderColor: isFieldLabelInvalid ? colors.danger[500] : 'transparent',
+                                                                                borderBottomWidth: isFieldLabelInvalid ? 1 : 0
+                                                                            }
+                                                                        ]}
+                                                                    />
+                                                                    {isFieldLabelInvalid && <Text className="text-[8px] text-danger-500 font-bold mt-0.5">Label required</Text>}
+                                                                </View>
 
-                                    {/* Fields */}
-                                    {!sec.collapsed && (
-                                        <View style={{ marginTop: 10 }}>
-                                            {sec.fields.map((f, fi) => (
-                                                <View key={fi} style={[fieldStyles.fieldBlock, { backgroundColor: isDark ? '#1A1730' : colors.white, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
-                                                    <View style={fieldStyles.row}>
-                                                        {/* Field label */}
-                                                        <TextInput
-                                                            value={f.label}
-                                                            onChangeText={(v) => updateField(si, fi, { label: v })}
-                                                            placeholder="Field label"
-                                                            placeholderTextColor={colors.neutral[400]}
-                                                            style={[fieldStyles.labelInput, { color: isDark ? colors.white : colors.primary[950] }]}
-                                                        />
+                                                                {/* Field type picker */}
+                                                                <View style={{ width: 110 }}>
+                                                                    <FieldTypePicker
+                                                                        value={f.fieldType}
+                                                                        onChange={(v) => updateField(si, fi, { fieldType: v })}
+                                                                        isDark={isDark}
+                                                                    />
+                                                                </View>
 
-                                                        {/* Field type picker */}
-                                                        <View style={{ width: 110 }}>
-                                                            <FieldTypePicker
-                                                                value={f.fieldType}
-                                                                onChange={(v) => updateField(si, fi, { fieldType: v })}
-                                                                isDark={isDark}
-                                                            />
-                                                        </View>
+                                                                {/* Mandatory toggle */}
+                                                                <Pressable onPress={() => updateField(si, fi, { isMandatory: !f.isMandatory })} hitSlop={8}>
+                                                                    <View style={[fieldStyles.reqChk, { backgroundColor: f.isMandatory ? colors.danger[500] : 'transparent', borderColor: f.isMandatory ? colors.danger[500] : colors.neutral[300] }]}>
+                                                                        {f.isMandatory && (
+                                                                            <Svg width={9} height={9} viewBox="0 0 24 24">
+                                                                                <Path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                                            </Svg>
+                                                                        )}
+                                                                    </View>
+                                                                </Pressable>
 
-                                                        {/* Mandatory toggle */}
-                                                        <Pressable onPress={() => updateField(si, fi, { isMandatory: !f.isMandatory })} hitSlop={8}>
-                                                            <View style={[fieldStyles.reqChk, { backgroundColor: f.isMandatory ? colors.danger[500] : 'transparent', borderColor: f.isMandatory ? colors.danger[500] : colors.neutral[300] }]}>
-                                                                {f.isMandatory && (
-                                                                    <Svg width={9} height={9} viewBox="0 0 24 24">
-                                                                        <Path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                                {/* Remove field */}
+                                                                <Pressable onPress={() => removeField(si, fi)} hitSlop={8}>
+                                                                    <Svg width={13} height={13} viewBox="0 0 24 24">
+                                                                        <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                                                     </Svg>
-                                                                )}
+                                                                </Pressable>
                                                             </View>
-                                                        </Pressable>
+                                                            {f.fieldType === 'DROPDOWN' ? (
+                                                                <View style={{ marginTop: 6 }}>
+                                                                    <TextInput
+                                                                        value={f.config}
+                                                                        onChangeText={(v) => updateField(si, fi, { config: v })}
+                                                                        placeholder="Options (comma separated)"
+                                                                        placeholderTextColor={colors.neutral[400]}
+                                                                        style={[
+                                                                            fieldStyles.configInput,
+                                                                            {
+                                                                                backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                                                                                borderColor: isDropdownOptionsInvalid ? colors.danger[500] : (isDark ? colors.neutral[700] : colors.neutral[200]),
+                                                                                color: isDark ? colors.white : colors.primary[950]
+                                                                            }
+                                                                        ]}
+                                                                    />
+                                                                    {isDropdownOptionsInvalid && <Text className="text-[9px] text-danger-500 font-bold mt-1">Options are required</Text>}
+                                                                </View>
+                                                            ) : null}
+                                                        </View>
+                                                    );
+                                                })}
 
-                                                        {/* Remove field */}
-                                                        <Pressable onPress={() => removeField(si, fi)} hitSlop={8}>
-                                                            <Svg width={13} height={13} viewBox="0 0 24 24">
-                                                                <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </Svg>
-                                                        </Pressable>
-                                                    </View>
-                                                    {f.fieldType === 'DROPDOWN' ? (
-                                                        <TextInput
-                                                            value={f.config}
-                                                            onChangeText={(v) => updateField(si, fi, { config: v })}
-                                                            placeholder="Options (comma separated)"
-                                                            placeholderTextColor={colors.neutral[400]}
-                                                            style={[fieldStyles.configInput, { backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200], color: isDark ? colors.white : colors.primary[950] }]}
-                                                        />
-                                                    ) : null}
-                                                </View>
-                                            ))}
-
-                                            <Pressable onPress={() => addField(si)} hitSlop={8} style={{ marginTop: 8 }}>
-                                                <Text className="font-inter text-xs font-bold text-primary-600">+ Add Field</Text>
-                                            </Pressable>
-                                        </View>
-                                    )}
-                                </View>
-                            ))}
+                                                <Pressable onPress={() => addField(si)} hitSlop={8} style={{ marginTop: 8 }}>
+                                                    <Text className="font-inter text-xs font-bold text-primary-600">+ Add Field</Text>
+                                                </Pressable>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
                         </View>
                     </ScrollView>
 
@@ -525,8 +626,6 @@ function BuilderSheet({
         </RNModal>
     );
 }
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export function ChecklistTemplatesScreen() {
     const isDark = useIsDark();
@@ -647,8 +746,8 @@ export function ChecklistTemplatesScreen() {
             }
             setBuilderVisible(false);
             refetch();
-        } catch {
-            showErrorMessage(editingId ? 'Failed to update template' : 'Failed to create template');
+        } catch (err: any) {
+            showError(err);
         }
     };
 

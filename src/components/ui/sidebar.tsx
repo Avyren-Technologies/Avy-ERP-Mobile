@@ -76,6 +76,21 @@ interface SidebarProps {
     collapsible?: boolean;
 }
 
+// ============ MODULE ICON CONFIG (collapsed state) ============
+
+const MODULE_ICON_CONFIG: Record<string, { icon: SidebarIconType; bgColor: string; iconColor: string }> = {
+    'Self-Service': { icon: 'users', bgColor: 'rgba(139, 92, 246, 0.12)', iconColor: '#8b5cf6' },
+    'Company Admin': { icon: 'companies', bgColor: 'rgba(59, 130, 246, 0.12)', iconColor: '#3b82f6' },
+    'HR Analytics': { icon: 'reports', bgColor: 'rgba(6, 182, 212, 0.12)', iconColor: '#06b6d4' },
+    'HRMS': { icon: 'users', bgColor: 'rgba(99, 102, 241, 0.12)', iconColor: '#6366f1' },
+    'Masters': { icon: 'settings', bgColor: 'rgba(100, 116, 139, 0.12)', iconColor: '#64748b' },
+    'Operations': { icon: 'settings', bgColor: 'rgba(249, 115, 22, 0.12)', iconColor: '#f97316' },
+    'Asset Maintenance': { icon: 'settings', bgColor: 'rgba(245, 158, 11, 0.12)', iconColor: '#f59e0b' },
+    'Production Incentive': { icon: 'reports', bgColor: 'rgba(16, 185, 129, 0.12)', iconColor: '#10b981' },
+    'Visitor Management': { icon: 'users', bgColor: 'rgba(236, 72, 153, 0.12)', iconColor: '#ec4899' },
+    'Document Comparison': { icon: 'reports', bgColor: 'rgba(244, 63, 94, 0.12)', iconColor: '#f43f5e' },
+};
+
 // ============ ICONS ============
 
 export function SidebarNavIcon({
@@ -262,6 +277,138 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
         && prev.item.badge === next.item.badge;
 });
 
+// ============ COLLAPSED NAVIGATION ============
+
+const CollapsedModuleCard = React.memo(function CollapsedModuleCard({
+    moduleName,
+    onPress,
+    hasActive,
+}: {
+    moduleName: string;
+    onPress: () => void;
+    hasActive: boolean;
+}) {
+    const config = MODULE_ICON_CONFIG[moduleName] ?? { icon: 'settings' as SidebarIconType, bgColor: 'rgba(100, 116, 139, 0.12)', iconColor: '#64748b' };
+    return (
+        <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [
+                collapsedStyles.moduleCard,
+                hasActive && { borderColor: config.iconColor, borderWidth: 1.5 },
+                pressed && { opacity: 0.7 },
+            ]}
+        >
+            <View style={[collapsedStyles.moduleCardIcon, { backgroundColor: config.bgColor }]}>
+                <SidebarNavIcon type={config.icon} color={config.iconColor} size={18} />
+            </View>
+            <Text
+                className="font-inter text-[8px] font-bold uppercase text-neutral-500 dark:text-neutral-400"
+                numberOfLines={1}
+                style={{ textAlign: 'center' }}
+            >
+                {moduleName.length > 10 ? moduleName.substring(0, 9) + '..' : moduleName}
+            </Text>
+        </Pressable>
+    );
+});
+
+const CollapsedNavItem = React.memo(function CollapsedNavItem({
+    item,
+    onClose,
+}: {
+    item: SidebarNavItem;
+    onClose: () => void;
+}) {
+    return (
+        <Pressable
+            onPress={() => {
+                item.onPress();
+                onClose();
+            }}
+            style={({ pressed }) => [
+                collapsedStyles.iconOnlyItem,
+                item.isActive && collapsedStyles.iconOnlyItemActive,
+                pressed && !item.isActive && { opacity: 0.7 },
+            ]}
+        >
+            <View style={[collapsedStyles.iconOnlyWrap, item.isActive && collapsedStyles.iconOnlyWrapActive]}>
+                <SidebarNavIcon
+                    type={item.icon}
+                    color={item.isActive ? colors.primary[600] : colors.neutral[500]}
+                    size={20}
+                />
+            </View>
+            {item.badge != null && item.badge > 0 && (
+                <View style={collapsedStyles.collapsedBadge}>
+                    <Text className="font-inter text-[7px] font-bold text-white">
+                        {item.badge > 9 ? '9+' : item.badge}
+                    </Text>
+                </View>
+            )}
+        </Pressable>
+    );
+});
+
+const collapsedStyles = StyleSheet.create({
+    container: {
+        alignItems: 'center',
+        paddingVertical: 8,
+        gap: 6,
+    },
+    moduleCard: {
+        width: 52,
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderWidth: 1,
+        borderColor: 'transparent',
+        gap: 4,
+    },
+    moduleCardIcon: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconOnlyItem: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+    },
+    iconOnlyItemActive: {
+        backgroundColor: colors.primary[50],
+    },
+    iconOnlyWrap: {
+        width: 38,
+        height: 38,
+        borderRadius: 11,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.neutral[100],
+    },
+    iconOnlyWrapActive: {
+        backgroundColor: colors.primary[100],
+    },
+    collapsedBadge: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        minWidth: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: colors.danger[500],
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 3,
+    },
+});
+
 // ============ SIDEBAR COMPONENT (always mounted) ============
 
 export function Sidebar({
@@ -277,7 +424,7 @@ export function Sidebar({
     const isDark = useIsDark();
     const darkStyles = React.useMemo(() => createStyles(isDark), [isDark]);
     const { isOpen, close, progress } = useSidebar();
-    const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const [isCollapsed, setIsCollapsed] = React.useState(collapsible);
     const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
     const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
@@ -551,7 +698,8 @@ export function Sidebar({
                     </View>
                 </LinearGradient>
 
-                {/* Search Bar */}
+                {/* Search Bar — hidden when collapsed */}
+                {!isCollapsed && (
                 <View style={styles.searchBarContainer}>
                     <View style={styles.searchBar}>
                         <Svg width={16} height={16} viewBox="0 0 24 24" style={styles.searchIcon}>
@@ -602,17 +750,87 @@ export function Sidebar({
                         )}
                     </View>
                 </View>
+                )}
 
                 {/* Navigation Items — Scrollable */}
                 <View ref={navAreaRef} style={styles.navContainer} collapsable={false}>
                 <ScrollView
                     ref={scrollViewRef}
                     style={{ flex: 1 }}
-                    contentContainerStyle={styles.navContentContainer}
+                    contentContainerStyle={isCollapsed ? collapsedStyles.container : styles.navContentContainer}
                     showsVerticalScrollIndicator={false}
                     bounces={true}
                 >
-                    {isSearching ? (
+                    {isCollapsed ? (
+                        /* Collapsed: icon-only navigation */
+                        (() => {
+                            // Collect non-module items (top-level items before any module separator)
+                            const topItems: SidebarNavItem[] = [];
+                            const moduleEntries: { name: string; hasActive: boolean }[] = [];
+                            const seenModules = new Set<string>();
+                            let currentModule = '';
+
+                            for (const section of sections) {
+                                if (section.moduleSeparator) {
+                                    currentModule = section.moduleSeparator;
+                                }
+                                if (currentModule && !seenModules.has(currentModule)) {
+                                    seenModules.add(currentModule);
+                                    // Check if any item in this module is active
+                                    let modHasActive = false;
+                                    let checkMod = '';
+                                    for (const s of sections) {
+                                        if (s.moduleSeparator) checkMod = s.moduleSeparator;
+                                        if (checkMod === currentModule) {
+                                            if (s.items.some(i => i.isActive || i.children?.some(c => c.isActive))) {
+                                                modHasActive = true;
+                                            }
+                                        }
+                                    }
+                                    moduleEntries.push({ name: currentModule, hasActive: modHasActive });
+                                }
+                                if (!currentModule) {
+                                    // Top-level items (e.g. Overview/Dashboard)
+                                    topItems.push(...section.items);
+                                }
+                            }
+
+                            return (
+                                <>
+                                    {/* Top-level items as icon-only buttons */}
+                                    {topItems.map((item) => (
+                                        <CollapsedNavItem key={item.id} item={item} onClose={close} />
+                                    ))}
+
+                                    {/* Separator */}
+                                    {topItems.length > 0 && moduleEntries.length > 0 && (
+                                        <View style={{ width: 40, height: 1, backgroundColor: colors.neutral[200], marginVertical: 4 }} />
+                                    )}
+
+                                    {/* Module cards */}
+                                    {moduleEntries.map((mod) => (
+                                        <CollapsedModuleCard
+                                            key={mod.name}
+                                            moduleName={mod.name}
+                                            hasActive={mod.hasActive}
+                                            onPress={() => {
+                                                LayoutAnimation.configureNext(LayoutAnimation.create(200, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+                                                setIsCollapsed(false);
+                                                // Expand this module and collapse others
+                                                setCollapsedModules(() => {
+                                                    const next: Record<string, boolean> = {};
+                                                    for (const m of moduleEntries) {
+                                                        next[m.name] = m.name !== mod.name;
+                                                    }
+                                                    return next;
+                                                });
+                                            }}
+                                        />
+                                    ))}
+                                </>
+                            );
+                        })()
+                    ) : isSearching ? (
                         /* Flat filtered results when searching */
                         filteredItems.length > 0 ? (
                             <View style={styles.navSection}>
@@ -888,6 +1106,7 @@ export function Sidebar({
                     style={({ pressed }) => [
                         styles.signOutButton,
                         { marginBottom: insets.bottom + 20 },
+                        isCollapsed && { justifyContent: 'center', borderTopWidth: 0 },
                         pressed && { opacity: 0.75 },
                     ]}
                 >

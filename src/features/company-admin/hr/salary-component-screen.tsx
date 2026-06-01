@@ -63,7 +63,7 @@ interface SalaryComponentItem {
 // ============ CONSTANTS ============
 
 const COMPONENT_TYPES: ComponentType[] = ['Earning', 'Deduction', 'Employer Contribution'];
-const CALC_METHODS: CalcMethod[] = ['Fixed', '% of Basic', '% of Gross', 'Formula'];
+const CALC_METHODS: CalcMethod[] = ['Fixed', '% of Basic', '% of Gross', 'Formula', 'Balance (Auto)'];
 const TAX_TREATMENTS: TaxTreatment[] = ['Fully Taxable', 'Partially Exempt', 'Fully Exempt'];
 
 const TYPE_COLORS: Record<ComponentType, { bg: string; text: string }> = {
@@ -173,6 +173,7 @@ function SalaryComponentFormModal({
     const isValid = form.name.trim() && form.code.trim();
     const showFormulaValue = form.calculationMethod === '% of Basic' || form.calculationMethod === '% of Gross';
     const showFormula = form.calculationMethod === 'Formula';
+    const showBalance = form.calculationMethod === 'Balance (Auto)';
     const showExemption = form.taxTreatment === 'Partially Exempt' || form.taxTreatment === 'Fully Exempt';
 
     return (
@@ -206,6 +207,11 @@ function SalaryComponentFormModal({
                             <View style={styles.fieldWrap}>
                                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Formula</Text>
                                 <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "BASIC * 0.12"' placeholderTextColor={colors.neutral[400]} value={form.formula} onChangeText={v => update('formula', v)} /></View>
+                            </View>
+                        )}
+                        {showBalance && (
+                            <View style={[styles.fieldWrap, { backgroundColor: colors.primary[50], borderRadius: 12, padding: 10 }]}>
+                                <Text className="font-inter text-xs text-primary-700">Auto-fills remaining amount so all components sum to monthly gross. No value needed.</Text>
                             </View>
                         )}
 

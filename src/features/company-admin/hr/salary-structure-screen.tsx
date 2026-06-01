@@ -226,6 +226,11 @@ function SalaryStructureForm({
     // Preview calculation
     const ctcNum = Number(sampleCTC) || 0;
     const monthlyGross = Math.round(ctcNum / 12);
+
+    // Statutory estimates
+    const { data: compResponse } = useSalaryComponents();
+    const allComps: any[] = (compResponse as any)?.data ?? [];
+
     const previewRows = React.useMemo(() => {
         // First pass: compute basic amount
         const basicComp = components.find(cc => cc.componentName?.toLowerCase().includes('basic'));
@@ -241,7 +246,9 @@ function SalaryStructureForm({
                 monthly = Math.round(monthlyGross * (c.value / 100));
             }
             // BALANCE handled below
-            return { name: c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component', monthly, isBalance: c.calculationMethod === 'BALANCE' };
+            const master = allComps.find((mc: any) => mc.id === c.componentId);
+            const type: string = master?.type ?? 'EARNING';
+            return { name: c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component', monthly, isBalance: c.calculationMethod === 'BALANCE', type };
         });
 
         // Fill BALANCE components with the remainder
@@ -255,11 +262,7 @@ function SalaryStructureForm({
         }
 
         return rows;
-    }, [components, monthlyGross, componentOptions]);
-
-    // Statutory estimates
-    const { data: compResponse } = useSalaryComponents();
-    const allComps: any[] = (compResponse as any)?.data ?? [];
+    }, [components, monthlyGross, componentOptions, allComps]);
     const { data: pfCfgData } = usePFConfig();
     const pfCfg = (pfCfgData as any)?.data;
     const { data: esiCfgData } = useESIConfig();
@@ -390,17 +393,61 @@ function SalaryStructureForm({
                                         <TextInput style={[styles.textInput, { flex: 1 }]} value={sampleCTC} onChangeText={setSampleCTC} keyboardType="number-pad" placeholder="1000000" placeholderTextColor={colors.neutral[400]} />
                                     </View>
                                 </View>
-                                {previewRows.map((row, idx) => (
+                                {previewRows.filter(r => r.type === 'EARNING').map((row, idx) => (
                                     <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] }}>
                                         <Text className="font-inter text-xs text-neutral-600 dark:text-neutral-400">{row.name}</Text>
                                         <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
                                     </View>
                                 ))}
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
-                                    <Text className="font-inter text-xs font-bold text-primary-800">Monthly Gross</Text>
-                                    <Text className="font-inter text-xs font-bold text-primary-800">&#8377;{monthlyGross.toLocaleString('en-IN')}</Text>
+                                    <Text className="font-inter text-xs font-bold text-primary-800">Gross Salary</Text>
+                                    <Text className="font-inter text-xs font-bold text-primary-800">&#8377;{previewRows.filter(r => r.type === 'EARNING').reduce((s, r) => s + r.monthly, 0).toLocaleString('en-IN')}</Text>
                                 </View>
                             </View>
+
+                            {/* Deductions */}
+                            {previewRows.some(r => r.type === 'DEDUCTION') && (
+                                <View style={[styles.sectionCard, { backgroundColor: '#FEF2F2', borderColor: '#FECACA', borderWidth: 1, marginTop: 4 }]}>
+                                    <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-danger-600">Employee Deductions</Text>
+                                    {previewRows.filter(r => r.type === 'DEDUCTION').map((row, idx) => (
+                                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#FECACA' }}>
+                                            <Text className="font-inter text-xs text-danger-800">{row.name}</Text>
+                                            <Text className="font-inter text-xs font-semibold text-danger-700">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                                        </View>
+                                    ))}
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
+                                        <Text className="font-inter text-xs font-bold text-danger-800">Total Deductions</Text>
+                                        <Text className="font-inter text-xs font-bold text-danger-700">&#8377;{previewRows.filter(r => r.type === 'DEDUCTION').reduce((s, r) => s + r.monthly, 0).toLocaleString('en-IN')}</Text>
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Employer Contributions */}
+                            {previewRows.some(r => r.type === 'EMPLOYER_CONTRIBUTION') && (
+                                <View style={[styles.sectionCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE', borderWidth: 1, marginTop: 4 }]}>
+                                    <Text className="mb-2 font-inter text-[10px] font-bold uppercase tracking-wider text-info-600">Employer Contributions</Text>
+                                    {previewRows.filter(r => r.type === 'EMPLOYER_CONTRIBUTION').map((row, idx) => (
+                                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#BFDBFE' }}>
+                                            <Text className="font-inter text-xs text-info-800">{row.name}</Text>
+                                            <Text className="font-inter text-xs font-semibold text-info-700">&#8377;{row.monthly.toLocaleString('en-IN')}</Text>
+                                        </View>
+                                    ))}
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 }}>
+                                        <Text className="font-inter text-xs font-bold text-info-800">Total Employer Cost</Text>
+                                        <Text className="font-inter text-xs font-bold text-info-700">&#8377;{previewRows.filter(r => r.type === 'EMPLOYER_CONTRIBUTION').reduce((s, r) => s + r.monthly, 0).toLocaleString('en-IN')}</Text>
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* CTC */}
+                            {previewRows.some(r => r.type === 'EMPLOYER_CONTRIBUTION') && (
+                                <View style={[styles.sectionCard, { backgroundColor: colors.accent[50], borderColor: colors.accent[200], borderWidth: 1, marginTop: 4 }]}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                        <Text className="font-inter text-xs font-bold text-accent-800">CTC (Gross + Employer)</Text>
+                                        <Text className="font-inter text-xs font-bold text-accent-700">&#8377;{(previewRows.filter(r => r.type === 'EARNING').reduce((s, r) => s + r.monthly, 0) + previewRows.filter(r => r.type === 'EMPLOYER_CONTRIBUTION').reduce((s, r) => s + r.monthly, 0)).toLocaleString('en-IN')}</Text>
+                                    </View>
+                                </View>
+                            )}
 
                             {/* Statutory Estimates */}
                             {statutoryRows.length > 0 && (
@@ -501,7 +548,11 @@ export function SalaryStructureScreen() {
     const gradeOptions = React.useMemo(() => toOptions(gradeResponse), [gradeResponse]);
     const designationOptions = React.useMemo(() => toOptions(desigResponse), [desigResponse]);
     const employeeTypeOptions = React.useMemo(() => toOptions(empTypeResponse), [empTypeResponse]);
-    const componentOptions = React.useMemo(() => toOptions(compResponse), [compResponse]);
+    const componentOptions = React.useMemo(() => {
+        const raw = (compResponse as any)?.data ?? compResponse ?? [];
+        if (!Array.isArray(raw)) return [];
+        return raw.filter((item: any) => item.type === 'EARNING').map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
+    }, [compResponse]);
 
     const items: SalaryStructureItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];

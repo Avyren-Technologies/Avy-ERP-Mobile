@@ -58,8 +58,16 @@ export const payrollRunKeys = {
     [...payrollRunKeys.all, 'statutory-dashboard'] as const,
 
   // Summary endpoints
+  fiscalYearKpis: (fyStart?: number) =>
+    fyStart != null
+      ? ([...payrollRunKeys.all, 'fy-kpis', fyStart] as const)
+      : ([...payrollRunKeys.all, 'fy-kpis'] as const),
   attendanceSummary: (runId: string) =>
     [...payrollRunKeys.all, 'attendance-summary', runId] as const,
+  attendanceDetail: (runId: string, params?: Record<string, unknown>) =>
+    params
+      ? ([...payrollRunKeys.all, 'attendance-detail', runId, params] as const)
+      : ([...payrollRunKeys.all, 'attendance-detail', runId] as const),
   computeSummary: (runId: string) =>
     [...payrollRunKeys.all, 'compute-summary', runId] as const,
   statutorySummary: (runId: string) =>
@@ -263,6 +271,16 @@ export function useVarianceReport(params?: PayrollReportParams) {
 
 // --- Summary Queries ---
 
+/** Fiscal year KPI summary (counts by status + net pay disbursed) */
+export function useFiscalYearKpis(fyStart?: number) {
+  return useQuery({
+    queryKey: payrollRunKeys.fiscalYearKpis(fyStart),
+    queryFn: () => payrollRunApi.getFiscalYearKpis(fyStart),
+    staleTime: 60_000,
+    refetchOnMount: true,
+  });
+}
+
 /** Attendance summary for a payroll run */
 export function usePayrollAttendanceSummary(runId: string) {
   return useQuery({
@@ -271,6 +289,21 @@ export function usePayrollAttendanceSummary(runId: string) {
     enabled: !!runId,
     staleTime: 0,
     refetchOnMount: true,
+  });
+}
+
+/** Paginated per-employee attendance for a payroll run */
+export function usePayrollAttendanceDetail(
+  runId: string,
+  params?: { page?: number; limit?: number; search?: string; department?: string },
+) {
+  return useQuery({
+    queryKey: payrollRunKeys.attendanceDetail(runId, params as Record<string, unknown>),
+    queryFn: () => payrollRunApi.getAttendanceDetail(runId, params),
+    enabled: !!runId,
+    staleTime: 0,
+    refetchOnMount: true,
+    placeholderData: (prev) => prev,
   });
 }
 

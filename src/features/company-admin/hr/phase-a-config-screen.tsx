@@ -1,437 +1,604 @@
+/* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useConfigurationStatus } from '@/features/company-admin/api/use-payroll-phases-queries';
+import { useAuthStore, getDisplayName } from '@/features/auth/use-auth-store';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
-import { useIsDark } from '@/hooks/use-is-dark';
 
-// ── Step metadata ─────────────────────────────────────────────────────────
-const STEP_META: Record<string, { emoji: string; ownerRole: string; estMin: number }> = {
-  org_structure:       { emoji: '🏢', ownerRole: 'HR Admin',        estMin: 20 },
-  salary_components:   { emoji: '💰', ownerRole: 'Payroll Officer', estMin: 15 },
-  salary_structures:   { emoji: '📋', ownerRole: 'Payroll Officer', estMin: 15 },
-  ctc_breakup:         { emoji: '📊', ownerRole: 'Payroll Officer', estMin: 10 },
-  employee_salary:     { emoji: '👥', ownerRole: 'HR Admin',        estMin: 25 },
-  pf_esi_config:       { emoji: '🛡️', ownerRole: 'Finance Lead',    estMin: 12 },
-  tds_pt_config:       { emoji: '📑', ownerRole: 'Finance Lead',    estMin: 18 },
-  attendance_rules:    { emoji: '⏰', ownerRole: 'HR Admin',        estMin: 10 },
-  leave_types:         { emoji: '🌴', ownerRole: 'HR Admin',        estMin: 8 },
-  leave_policy:        { emoji: '📅', ownerRole: 'HR Admin',        estMin: 10 },
-  payroll_simulation:  { emoji: '🚀', ownerRole: 'Payroll Officer', estMin: 5 },
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Types                                                                    */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+type StepStatus = 'COMPLETE' | 'IN_PROGRESS' | 'NOT_STARTED';
+
+interface BackendStep {
+    id: string;
+    stepNumber: number;
+    name: string;
+    description: string;
+    status: StepStatus;
+    lastUpdated: string | null;
+    actionUrl: string;
+    metadata: { count?: number; label?: string } | null;
+}
+
+interface StepMeta {
+    emoji: string;
+    iconTintBg: string;     // background tint
+    iconTintFg: string;     // foreground accent (text)
+    ownerRole: string;
+    estMin: number;
+    isNew?: boolean;
+}
+
+const STEP_META: Record<string, StepMeta> = {
+    org_structure:       { emoji: '🏢', iconTintBg: colors.info[50],    iconTintFg: colors.info[600],    ownerRole: 'HR Admin',        estMin: 10 },
+    salary_components:   { emoji: '₹',  iconTintBg: colors.accent[50],  iconTintFg: colors.accent[600],  ownerRole: 'Payroll Officer', estMin: 25 },
+    salary_structures:   { emoji: '🧩', iconTintBg: colors.primary[50], iconTintFg: colors.primary[600], ownerRole: 'Payroll Officer', estMin: 45 },
+    ctc_breakup:         { emoji: '👤', iconTintBg: colors.success[50], iconTintFg: colors.success[600], ownerRole: 'Payroll Officer', estMin: 30 },
+    employee_salary:     { emoji: '👥', iconTintBg: '#F0F9FF',          iconTintFg: '#0284C7',           ownerRole: 'HR Admin',        estMin: 20 },
+    pf_esi_config:       { emoji: '🛡️', iconTintBg: '#F5F3FF',          iconTintFg: '#7C3AED',           ownerRole: 'Finance Lead',    estMin: 45 },
+    tds_pt_config:       { emoji: '%',  iconTintBg: '#FFF7ED',          iconTintFg: '#EA580C',           ownerRole: 'Finance Lead',    estMin: 20 },
+    attendance_rules:    { emoji: '📄', iconTintBg: '#FFF1F2',          iconTintFg: '#E11D48',           ownerRole: 'HR Admin',        estMin: 30 },
+    leave_types:         { emoji: '🏦', iconTintBg: colors.danger[50],  iconTintFg: colors.danger[600],  ownerRole: 'HR Admin',        estMin: 30 },
+    leave_policy:        { emoji: '🏛️', iconTintBg: colors.warning[50], iconTintFg: colors.warning[600], ownerRole: 'HR Admin',        estMin: 40, isNew: true },
+    payroll_simulation:  { emoji: '⚙️', iconTintBg: colors.neutral[100], iconTintFg: colors.neutral[700], ownerRole: 'Payroll Officer', estMin: 30 },
 };
 
-// ── Premium Progress Ring ──────────────────────────────────────────────────
-function ProgressRing({ completed, total, size = 140 }: { completed: number; total: number; size?: number }) {
-  const isDark = useIsDark();
-  const strokeWidth = 12;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = total > 0 ? completed / total : 0;
-  const offset = circumference * (1 - progress);
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Atoms                                                                    */
+/* ──────────────────────────────────────────────────────────────────────── */
 
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
-        <Defs>
-          <SvgGradient id="ringgrad-a" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={colors.primary[500]} />
-            <Stop offset="100%" stopColor={colors.accent[500]} />
-          </SvgGradient>
-        </Defs>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke={isDark ? colors.charcoal[800] : colors.neutral[100]} strokeWidth={strokeWidth} fill="none" />
-        <Circle
-          cx={size / 2} cy={size / 2} r={radius}
-          stroke="url(#ringgrad-a)"
-          strokeWidth={strokeWidth} fill="none"
-          strokeDasharray={`${circumference}`} strokeDashoffset={offset}
-          strokeLinecap="round" rotation={-90} origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-      <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Text className="text-3xl font-inter font-bold text-gray-900 dark:text-white">{completed}/{total}</Text>
-        <Text className="text-[10px] uppercase font-inter font-semibold tracking-widest text-gray-400 mt-1">Progress</Text>
-      </View>
-    </View>
-  );
-}
+function ProgressRing({ completed, total, size = 116 }: { completed: number; total: number; size?: number }) {
+    const strokeWidth = 10;
+    const radius = (size - strokeWidth) / 2;
+    const circ = 2 * Math.PI * radius;
+    const progress = total > 0 ? completed / total : 0;
+    const offset = circ * (1 - progress);
 
-// ── Stat Card ─────────────────────────────────────────────────────────────
-function StatCard({ count, label, tone, emoji }: { count: number; label: string; tone: 'green' | 'amber' | 'gray'; emoji: string }) {
-  const isDark = useIsDark();
-  const palette = {
-    green: { bg: isDark ? 'rgba(16,185,129,0.12)' : colors.success[50],  border: isDark ? 'rgba(16,185,129,0.3)' : colors.success[200],  iconBg: isDark ? 'rgba(16,185,129,0.2)' : colors.success[100],  text: colors.success[700],  label: colors.success[600] },
-    amber: { bg: isDark ? 'rgba(245,158,11,0.12)' : colors.warning[50],  border: isDark ? 'rgba(245,158,11,0.3)' : colors.warning[200],  iconBg: isDark ? 'rgba(245,158,11,0.2)' : colors.warning[100],  text: colors.warning[700],  label: colors.warning[600] },
-    gray:  { bg: isDark ? colors.charcoal[850]     : colors.neutral[50],  border: isDark ? colors.charcoal[800]    : colors.neutral[200],  iconBg: isDark ? colors.charcoal[800]    : colors.neutral[100],  text: isDark ? colors.neutral[300] : colors.neutral[700], label: isDark ? colors.neutral[400] : colors.neutral[500] },
-  }[tone];
-
-  return (
-    <View style={[styles.statCard, { backgroundColor: palette.bg, borderColor: palette.border }]}>
-      <View style={[styles.statIconWrap, { backgroundColor: palette.iconBg }]}>
-        <Text style={{ fontSize: 14 }}>{emoji}</Text>
-      </View>
-      <Text className="text-2xl font-inter font-bold" style={{ color: palette.text, marginTop: 6 }}>{count}</Text>
-      <Text className="text-[10px] uppercase font-inter font-semibold tracking-wider" style={{ color: palette.label, marginTop: 4 }}>{label}</Text>
-    </View>
-  );
-}
-
-// ── Status Badge ──────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  const isDark = useIsDark();
-  const map: Record<string, { label: string; bg: string; text: string }> = {
-    COMPLETE:    { label: 'Complete',    bg: isDark ? 'rgba(16,185,129,0.18)' : colors.success[100], text: colors.success[700] },
-    IN_PROGRESS: { label: 'In Progress', bg: isDark ? 'rgba(245,158,11,0.18)' : colors.warning[100], text: colors.warning[700] },
-    NOT_STARTED: { label: 'Not Started', bg: isDark ? colors.charcoal[800]      : colors.neutral[100], text: isDark ? colors.neutral[400] : colors.neutral[500] },
-  };
-  const c = map[status] ?? map.NOT_STARTED;
-  return (
-    <View style={{ backgroundColor: c.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
-      <Text className="text-[10px] font-inter font-bold uppercase tracking-wider" style={{ color: c.text }}>{c.label}</Text>
-    </View>
-  );
-}
-
-// ── Step Number Badge ─────────────────────────────────────────────────────
-function StepNumberBadge({ num, status }: { num: number; status: string }) {
-  const isDark = useIsDark();
-  const bg = status === 'COMPLETE' ? colors.success[500] : status === 'IN_PROGRESS' ? colors.warning[500] : (isDark ? colors.charcoal[700] : colors.neutral[200]);
-  const fg = status === 'NOT_STARTED' ? (isDark ? colors.neutral[400] : colors.neutral[500]) : '#fff';
-  return (
-    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      {status === 'COMPLETE'
-        ? <Text style={{ color: fg, fontSize: 16, fontWeight: 'bold' }}>✓</Text>
-        : <Text className="font-inter font-bold" style={{ color: fg, fontSize: 12 }}>{num}</Text>
-      }
-    </View>
-  );
-}
-
-// ── Owner Avatar ──────────────────────────────────────────────────────────
-const AVATAR_PALETTE = [colors.primary[500], colors.accent[500], colors.success[500], colors.warning[500], colors.danger[500]];
-function OwnerAvatar({ role }: { role: string }) {
-  const initials = role.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
-  const idx = initials.charCodeAt(0) % AVATAR_PALETTE.length;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: AVATAR_PALETTE[idx], alignItems: 'center', justifyContent: 'center' }}>
-        <Text className="font-inter font-bold text-white" style={{ fontSize: 8 }}>{initials}</Text>
-      </View>
-      <Text className="text-[10px] font-inter font-medium text-gray-600 dark:text-gray-400">{role}</Text>
-    </View>
-  );
-}
-
-// ── Main Screen ───────────────────────────────────────────────────────────
-export function PhaseAConfigScreen() {
-  const isDark = useIsDark();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const fmt = useCompanyFormatter();
-  const { data, isLoading, refetch } = useConfigurationStatus();
-  const config = data?.data;
-
-  const completedCount = config?.completedCount ?? 0;
-  const totalCount = config?.totalCount ?? 11;
-  const steps = config?.steps ?? [];
-  const estimatedMin = config?.estimatedMinutesRemaining ?? 0;
-  const lastActivity = config?.lastActivity;
-  const allComplete = completedCount === totalCount;
-
-  const inProgressCount = steps.filter((s: any) => s.status === 'IN_PROGRESS').length;
-  const pendingCount = steps.filter((s: any) => s.status === 'NOT_STARTED').length;
-
-  if (isLoading) {
     return (
-      <View style={{ flex: 1, padding: 16 }}>
-        <SkeletonCard />
-        <SkeletonCard />
-      </View>
+        <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+                <Defs>
+                    <SvgGradient id="phaseA-ring" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0%" stopColor={colors.success[500]} />
+                        <Stop offset="100%" stopColor={colors.success[700]} />
+                    </SvgGradient>
+                </Defs>
+                <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.neutral[200]} strokeWidth={strokeWidth} fill="none" />
+                <Circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    stroke="url(#phaseA-ring)" strokeWidth={strokeWidth}
+                    strokeLinecap="round" fill="none"
+                    strokeDasharray={circ}
+                    strokeDashoffset={offset}
+                />
+            </Svg>
+            <Text className="font-inter text-xl font-bold text-neutral-900">{completed}/{total}</Text>
+            <Text className="mt-0.5 font-inter text-[10px] font-medium uppercase tracking-wider text-neutral-500">Completed</Text>
+        </View>
     );
-  }
+}
 
-  const navigateToStep = (actionUrl: string) => {
-    const mobilePath = actionUrl.replace('/app/', '/');
-    router.push(mobilePath as any);
-  };
-
-  const formatTime = (min: number) => {
-    if (min <= 0) return '0m';
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    if (h === 0) return `${m}m`;
-    if (m === 0) return `${h}h`;
-    return `${h}h ${m}m`;
-  };
-
-  const bgColor = isDark ? colors.charcoal[950] : colors.gradient.surface;
-  const cardBg = isDark ? colors.charcoal[900] : '#fff';
-  const borderColor = isDark ? colors.charcoal[800] : colors.neutral[200];
-
-  return (
-    <View style={{ flex: 1, backgroundColor: bgColor }}>
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
-      >
-        <Text className="text-xl font-inter font-bold text-white">Phase A — Configuration</Text>
-        <Text className="text-xs font-inter text-white/80 mt-1">Complete prerequisites before running payroll</Text>
-      </LinearGradient>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}>
-        {/* Hero: Progress + Stats */}
-        <Animated.View entering={FadeInDown.delay(80)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ alignItems: 'center', marginBottom: 16 }}>
-            <ProgressRing completed={completedCount} total={totalCount} />
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <StatCard count={completedCount} label="Completed" tone="green" emoji="✓" />
-            <StatCard count={inProgressCount} label="In Progress" tone="amber" emoji="⟳" />
-            <StatCard count={pendingCount} label="Pending" tone="gray" emoji="○" />
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: isDark ? colors.charcoal[800] : colors.neutral[200] }]} />
-
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[styles.timeIcon, { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : colors.primary[50] }]}>
-                <Text style={{ fontSize: 14 }}>⏱</Text>
-              </View>
-              <View>
-                <Text className="text-[10px] uppercase font-inter font-semibold tracking-widest text-gray-400">Est. Remaining</Text>
-                <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white mt-0.5">~{formatTime(estimatedMin)}</Text>
-              </View>
-            </View>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[styles.timeIcon, { backgroundColor: isDark ? 'rgba(139,92,246,0.18)' : colors.accent[50] }]}>
-                <Text style={{ fontSize: 14 }}>📅</Text>
-              </View>
-              <View>
-                <Text className="text-[10px] uppercase font-inter font-semibold tracking-widest text-gray-400">Last Activity</Text>
-                <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white mt-0.5">{lastActivity ? fmt.date(lastActivity) : '—'}</Text>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Configuration Steps */}
-        <Animated.View entering={FadeInDown.delay(150)} style={[styles.card, { backgroundColor: cardBg, borderColor, padding: 0 }]}>
-          <View style={[styles.cardHeader, { borderBottomColor: isDark ? colors.charcoal[800] : colors.neutral[100] }]}>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">
-              Configuration Steps <Text className="text-gray-400 font-inter">({totalCount})</Text>
+function StatTile({ value, label, bg, fg }: { value: number | string; label: string; bg: string; fg: string }) {
+    return (
+        <View style={[styles.tile, { backgroundColor: bg }]}>
+            <Text style={[styles.tileValue, { color: fg }]} numberOfLines={1} adjustsFontSizeToFit>{String(value)}</Text>
+            <Text
+                style={[styles.tileLabel, { color: fg }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                allowFontScaling={false}
+            >
+                {label}
             </Text>
-            <Pressable onPress={() => refetch()} style={styles.refreshBtn}>
-              <Text className="text-[10px] font-inter font-semibold text-gray-500 dark:text-gray-400">↻ Refresh</Text>
-            </Pressable>
-          </View>
+        </View>
+    );
+}
 
-          {steps.map((step: any, i: number) => {
-            const meta = STEP_META[step.id] ?? { emoji: '⚙️', ownerRole: 'Admin', estMin: 10 };
-            const isLast = i === steps.length - 1;
-            return (
-              <Animated.View
-                key={step.id}
-                entering={FadeInDown.delay(200 + i * 35)}
-                style={{ paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: isLast ? 0 : 1, borderBottomColor: isDark ? colors.charcoal[800] : colors.neutral[100] }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                  <StepNumberBadge num={step.stepNumber} status={step.status} />
-                  <View style={[styles.stepIconWrap, { backgroundColor: isDark ? colors.charcoal[850] : colors.neutral[50] }]}>
-                    <Text style={{ fontSize: 16 }}>{meta.emoji}</Text>
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text className="text-sm font-inter font-semibold text-gray-900 dark:text-white">{step.name}</Text>
-                    <Text className="text-xs font-inter text-gray-500 dark:text-gray-400 mt-0.5" numberOfLines={2}>{step.description}</Text>
-                    {step.metadata?.label && (
-                      <View style={{ marginTop: 4 }}>
-                        <Text className="text-[10px] font-inter font-medium text-indigo-500 dark:text-indigo-400">{step.metadata.label}</Text>
-                      </View>
-                    )}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-                      <OwnerAvatar role={meta.ownerRole} />
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Text style={{ fontSize: 9 }}>⏱</Text>
-                        <Text className="text-[10px] font-inter font-medium text-gray-500">{meta.estMin} min</Text>
-                      </View>
-                      <StatusBadge status={step.status} />
+function StatusBadge({ status }: { status: StepStatus }) {
+    const map: Record<StepStatus, { bg: string; fg: string; label: string }> = {
+        COMPLETE:    { bg: colors.success[50], fg: colors.success[700], label: 'Completed' },
+        IN_PROGRESS: { bg: colors.warning[50], fg: colors.warning[700], label: 'In Progress' },
+        NOT_STARTED: { bg: colors.neutral[100], fg: colors.neutral[600], label: 'Pending' },
+    };
+    const t = map[status];
+    return (
+        <View style={[styles.pill, { backgroundColor: t.bg }]}>
+            <Text style={[styles.pillText, { color: t.fg }]}>{t.label}</Text>
+        </View>
+    );
+}
+
+function RolePill({ role, bg, fg }: { role: string; bg: string; fg: string }) {
+    return (
+        <View style={[styles.pill, { backgroundColor: bg, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+            <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: fg, opacity: 0.7 }} />
+            <Text style={[styles.pillText, { color: fg }]}>{role}</Text>
+        </View>
+    );
+}
+
+function StepCard({
+    step, meta, isLocked, index,
+}: { step: BackendStep; meta: StepMeta; isLocked: boolean; index: number }) {
+    const router = useRouter();
+    const fmt = useCompanyFormatter();
+    const actionLabel = step.status === 'COMPLETE' ? 'View Details' : step.status === 'IN_PROGRESS' ? 'Continue Setup' : 'Start Setup';
+    const actionTint = step.status === 'IN_PROGRESS' ? colors.warning[700] : colors.primary[600];
+
+    return (
+        <Animated.View entering={FadeInDown.delay(80 * index).duration(360)} style={styles.stepCard}>
+            <View style={styles.stepHeaderRow}>
+                <View style={styles.stepNumberBox}>
+                    <Text style={styles.stepNumber}>{step.stepNumber}</Text>
+                    {isLocked && <Text style={styles.lockChar}>🔒</Text>}
+                </View>
+                <View style={[styles.stepIconCircle, { backgroundColor: meta.iconTintBg }]}>
+                    <Text style={[styles.stepEmoji, { color: meta.iconTintFg }]}>{meta.emoji}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                        <Text className="font-inter text-[14px] font-bold text-neutral-900" style={{ flexShrink: 1 }}>
+                            {step.name}
+                        </Text>
+                        {meta.isNew && (
+                            <View style={styles.newBadge}>
+                                <Text style={styles.newBadgeText}>NEW</Text>
+                            </View>
+                        )}
                     </View>
-                  </View>
+                    <Text className="mt-1 font-inter text-[12px] leading-[16px] text-neutral-600">{step.description}</Text>
+                </View>
+            </View>
+
+            <View style={styles.stepMetaRow}>
+                <StatusBadge status={step.status} />
+                <RolePill role={meta.ownerRole} bg={meta.iconTintBg} fg={meta.iconTintFg} />
+                <View style={styles.timeChip}>
+                    <Text style={styles.timeChipText}>⏱ ~{meta.estMin} min</Text>
+                </View>
+            </View>
+
+            <View style={styles.stepFooterRow}>
+                <Text className="font-inter text-[11px] text-neutral-500">
+                    {step.lastUpdated ? `Last updated ${fmt.date(step.lastUpdated)}` : 'Not started yet'}
+                </Text>
+                <Pressable onPress={() => router.push(step.actionUrl.replace('/app', '') as any)}>
+                    <Text style={[styles.actionText, { color: actionTint }]}>
+                        {actionLabel} ›
+                    </Text>
+                </Pressable>
+            </View>
+        </Animated.View>
+    );
+}
+
+const KEY_BENEFITS = [
+    'Accurate salary computation',
+    'Statutory compliance',
+    'Reduced payroll errors',
+    'Faster payroll processing',
+    'Audit ready setup',
+];
+
+const QUICK_LINKS: { label: string; emoji: string; to: string }[] = [
+    { label: 'Organisation Structure',     emoji: '🏢', to: '/company/hr/departments' },
+    { label: 'Salary Component Master',    emoji: '₹',  to: '/company/hr/salary-components' },
+    { label: 'Salary Structure Templates', emoji: '🧩', to: '/company/hr/salary-structures' },
+    { label: 'Statutory Configuration',    emoji: '🛡️', to: '/company/hr/statutory-config' },
+    { label: 'Bank Master',                emoji: '🏦', to: '/company/hr/bank-config' },
+    { label: 'Loan Policy Configuration',  emoji: '🏛️', to: '/company/hr/loan-policies' },
+    { label: 'Payroll Run Configuration',  emoji: '⚙️', to: '/company/hr/payroll-runs' },
+];
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Main screen                                                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+export function PhaseAConfigScreen() {
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const fmt = useCompanyFormatter();
+    const { toggle } = useSidebar();
+    const authUser = useAuthStore.use.user();
+    const authUserName = getDisplayName(authUser);
+
+    const { data, isLoading, isRefetching, refetch } = useConfigurationStatus();
+    // mobile axios interceptor + API fn already unwrap to inner payload
+    const status = (data as any) ?? null;
+
+    const steps: BackendStep[] = (status?.steps as BackendStep[]) ?? [];
+
+    const counts = React.useMemo(() => {
+        const c = { complete: 0, inProgress: 0, pending: 0 };
+        steps.forEach(s => {
+            if (s.status === 'COMPLETE') c.complete++;
+            else if (s.status === 'IN_PROGRESS') c.inProgress++;
+            else c.pending++;
+        });
+        return c;
+    }, [steps]);
+
+    const completedCount = status?.completedCount ?? 0;
+    const totalCount = status?.totalCount ?? 11;
+    const estMin = status?.estimatedMinutesRemaining ?? 0;
+    const remainingHours = Math.floor(estMin / 60);
+    const remainingMin = estMin % 60;
+    const remainingSteps = totalCount - completedCount;
+    const phaseAComplete = completedCount >= totalCount;
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+                <AppTopHeader title="Phase A — Configuration" onMenuPress={toggle} />
+                <View style={{ padding: 16, gap: 12 }}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </View>
+            </View>
+        );
+    }
+
+    return (
+        <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+            <AppTopHeader title="Phase A — Configuration" onMenuPress={toggle} subtitle="One-time Setup" />
+
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 120 + insets.bottom }}
+                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary[600]} />}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* ── Intro card ────────────────────────────────────── */}
+                <Animated.View entering={FadeInDown.duration(360)} style={styles.heroCard}>
+                    <Text className="font-inter text-[12px] font-bold uppercase tracking-wider text-primary-600">Configuration Prerequisites</Text>
+                    <Text className="mt-1 font-inter text-[13px] leading-[18px] text-neutral-600">
+                        Complete all configuration prerequisites to ensure accurate, compliant and audit-ready payroll processing.
+                    </Text>
+                </Animated.View>
+
+                {/* ── Progress hero ─────────────────────────────────── */}
+                <Animated.View entering={FadeInDown.delay(60).duration(360)} style={[styles.heroCard, { marginTop: 12, alignItems: 'center' }]}>
+                    <Text className="mb-3 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500" style={{ alignSelf: 'flex-start' }}>Overall Progress</Text>
+                    <ProgressRing completed={completedCount} total={totalCount} />
+                    <View style={styles.statGrid}>
+                        <StatTile value={counts.complete}   label="Completed"   bg={colors.success[50]} fg={colors.success[700]} />
+                        <StatTile value={counts.inProgress} label="In Progress" bg={colors.warning[50]} fg={colors.warning[700]} />
+                        <StatTile value={counts.pending}    label="Pending"     bg={colors.accent[50]}  fg={colors.accent[700]} />
+                        <StatTile value={0}                 label="Not Started" bg={colors.neutral[100]} fg={colors.neutral[700]} />
+                    </View>
+                </Animated.View>
+
+                {/* ── Estimated + Last Updated ──────────────────────── */}
+                <Animated.View entering={FadeInDown.delay(120).duration(360)} style={[styles.metaRow, { marginTop: 12 }]}>
+                    <View style={[styles.metaCard, { backgroundColor: colors.white }]}>
+                        <View style={[styles.metaIcon, { backgroundColor: colors.info[50] }]}>
+                            <Text style={{ color: colors.info[600] }}>⏱</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">Estimated Time</Text>
+                            <Text className="mt-1 font-inter text-[16px] font-bold text-neutral-900">
+                                {remainingHours > 0 ? `~${remainingHours}h ${remainingMin}m` : `~${remainingMin}m`}
+                            </Text>
+                            <Text className="font-inter text-[10px] text-neutral-500">Across {remainingSteps} steps</Text>
+                        </View>
+                    </View>
+                    <View style={[styles.metaCard, { backgroundColor: colors.white }]}>
+                        <View style={[styles.metaIcon, { backgroundColor: colors.accent[50] }]}>
+                            <Text style={{ color: colors.accent[600] }}>📅</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">Last Updated</Text>
+                            <Text className="mt-1 font-inter text-[13px] font-bold text-neutral-900" numberOfLines={1}>
+                                {status?.lastActivity ? fmt.date(status.lastActivity) : '—'}
+                            </Text>
+                            <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                                {status?.lastActivity && authUser ? `by ${authUserName}` : 'No activity yet'}
+                            </Text>
+                        </View>
+                    </View>
+                </Animated.View>
+
+                {/* ── Configuration steps list ──────────────────────── */}
+                <View style={{ marginTop: 20, marginBottom: 8, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text className="font-inter text-[15px] font-bold text-neutral-900">
+                        Configuration Steps <Text className="font-inter text-neutral-500 font-semibold">({totalCount})</Text>
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <Text className="font-inter text-[10px] text-neutral-500">🔒 Dependent</Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">⏱ Est. time</Text>
+                    </View>
+                </View>
+
+                {steps.map((step, idx) => {
+                    const meta = STEP_META[step.id] ?? { emoji: '⚙️', iconTintBg: colors.neutral[100], iconTintFg: colors.neutral[700], ownerRole: 'HR', estMin: 15 };
+                    const isLocked = idx > 0 && steps[idx - 1]!.status !== 'COMPLETE' && step.status !== 'COMPLETE' && step.status !== 'IN_PROGRESS';
+                    return <StepCard key={step.id} step={step} meta={meta} isLocked={isLocked} index={idx} />;
+                })}
+
+                {/* ── About card ───────────────────────────────────── */}
+                <Animated.View entering={FadeInDown.duration(360)} style={[styles.infoCard, { marginTop: 16 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <View style={[styles.miniIcon, { backgroundColor: colors.info[50] }]}>
+                            <Text style={{ color: colors.info[600] }}>ℹ</Text>
+                        </View>
+                        <Text className="font-inter text-[14px] font-bold text-neutral-900">About Phase A</Text>
+                    </View>
+                    <Text className="font-inter text-[12.5px] leading-[18px] text-neutral-600">
+                        Phase A is a one-time configuration of masters, rules and preferences. Once completed, you can proceed to Phase B (Pre-Run Activities) every payroll cycle.
+                    </Text>
+                </Animated.View>
+
+                {/* ── Key Benefits ─────────────────────────────────── */}
+                <View style={[styles.infoCard, { marginTop: 12 }]}>
+                    <Text className="mb-3 font-inter text-[14px] font-bold text-neutral-900">Key Benefits</Text>
+                    {KEY_BENEFITS.map(b => (
+                        <View key={b} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <View style={styles.checkmarkCircle}>
+                                <Text style={{ color: colors.success[700], fontWeight: '700', fontSize: 11 }}>✓</Text>
+                            </View>
+                            <Text className="font-inter text-[12.5px] text-neutral-700">{b}</Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* ── Quick Links ──────────────────────────────────── */}
+                <View style={[styles.infoCard, { marginTop: 12 }]}>
+                    <Text className="mb-3 font-inter text-[14px] font-bold text-neutral-900">Quick Links</Text>
+                    {QUICK_LINKS.map(l => (
+                        <Pressable
+                            key={l.label}
+                            onPress={() => router.push(l.to as any)}
+                            style={({ pressed }) => [styles.quickLink, pressed && { backgroundColor: colors.neutral[100] }]}
+                        >
+                            <Text style={styles.quickLinkText}>
+                                <Text style={{ color: colors.primary[500] }}>{l.emoji}  </Text>
+                                {l.label}
+                            </Text>
+                            <Text style={{ color: colors.neutral[400], fontSize: 14 }}>›</Text>
+                        </Pressable>
+                    ))}
+                </View>
+
+                {/* ── Need Help (gradient) ─────────────────────────── */}
+                <LinearGradient
+                    colors={[colors.primary[600], colors.primary[700], colors.accent[700]] as const}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={[styles.helpCard, { marginTop: 12 }]}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <View style={styles.helpIcon}>
+                            <Text style={{ fontSize: 16 }}>🎧</Text>
+                        </View>
+                        <Text className="font-inter text-[14px] font-bold text-white">Need Help?</Text>
+                    </View>
+                    <Text className="mb-3 font-inter text-[12.5px] text-white/80">Contact Payroll Support Team</Text>
+                    <Pressable onPress={() => Linking.openURL('mailto:payroll.support@avyerp.com')} style={styles.helpLine}>
+                        <Text style={styles.helpLineText}>✉  payroll.support@avyerp.com</Text>
+                    </Pressable>
+                    <Pressable onPress={() => Linking.openURL('tel:+918012345678')} style={styles.helpLine}>
+                        <Text style={styles.helpLineText}>📞  +91 80 1234 5678</Text>
+                    </Pressable>
+                </LinearGradient>
+            </ScrollView>
+
+            {/* ── Sticky bottom action bar ──────────────────────────── */}
+            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
+                <View style={styles.bottomStatus}>
+                    {phaseAComplete ? (
+                        <>
+                            <Text style={{ color: colors.success[600], fontSize: 14 }}>✓</Text>
+                            <Text className="font-inter text-[12px] font-semibold text-success-700">
+                                All {totalCount} steps complete. Ready to proceed.
+                            </Text>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={{ color: colors.neutral[500], fontSize: 14 }}>🔒</Text>
+                            <Text className="font-inter text-[12px] font-semibold text-neutral-700">
+                                Cannot proceed: {totalCount - completedCount} step{totalCount - completedCount === 1 ? '' : 's'} pending
+                            </Text>
+                        </>
+                    )}
                 </View>
                 <Pressable
-                  onPress={() => navigateToStep(step.actionUrl)}
-                  style={[styles.actionBtn, {
-                    backgroundColor: step.status === 'COMPLETE'
-                      ? 'transparent'
-                      : step.status === 'IN_PROGRESS' ? colors.warning[500] : colors.primary[600],
-                    borderWidth: step.status === 'COMPLETE' ? 1 : 0,
-                    borderColor: isDark ? colors.charcoal[700] : colors.neutral[300],
-                    marginTop: 10,
-                  }]}
+                    disabled={!phaseAComplete}
+                    onPress={() => router.push('/company/hr/payroll-pre-run' as any)}
+                    style={[styles.bottomCta, !phaseAComplete && { opacity: 0.5 }]}
                 >
-                  <Text className="text-xs font-inter font-bold" style={{ color: step.status === 'COMPLETE' ? (isDark ? colors.neutral[300] : colors.neutral[600]) : '#fff' }}>
-                    {step.status === 'COMPLETE' ? 'Review' : step.status === 'IN_PROGRESS' ? 'Continue' : 'Configure'} →
-                  </Text>
+                    {phaseAComplete ? (
+                        <LinearGradient
+                            colors={[colors.primary[600], colors.accent[600]] as const}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    ) : (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.neutral[200] }]} />
+                    )}
+                    <Text className="font-inter text-[13px] font-bold" style={{ color: phaseAComplete ? colors.white : colors.neutral[500] }}>
+                        {phaseAComplete ? 'Proceed to Phase B' : 'Complete to enable'}  ›
+                    </Text>
                 </Pressable>
-              </Animated.View>
-            );
-          })}
-        </Animated.View>
-
-        {/* About Phase A */}
-        <Animated.View entering={FadeInDown.delay(450)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <View style={styles.sectionIcon}>
-              <LinearGradient colors={[colors.primary[500], colors.accent[500]]} style={styles.sectionIconGrad}>
-                <Text style={{ fontSize: 14, color: '#fff' }}>ℹ</Text>
-              </LinearGradient>
             </View>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">About Phase A</Text>
-          </View>
-          <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 leading-5">
-            Phase A ensures all foundational configurations — org structure, salary components, statutory rules, and attendance policies — are in place before you process payroll. Each step builds on the previous, creating a reliable and compliant payroll pipeline.
-          </Text>
-        </Animated.View>
-
-        {/* Key Benefits */}
-        <Animated.View entering={FadeInDown.delay(500)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <View style={styles.sectionIcon}>
-              <LinearGradient colors={[colors.success[500], colors.success[600]]} style={styles.sectionIconGrad}>
-                <Text style={{ fontSize: 14, color: '#fff' }}>✨</Text>
-              </LinearGradient>
-            </View>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Key Benefits</Text>
-          </View>
-          {[
-            { t: 'Statutory compliance', d: 'PF, ESI, PT, TDS rules in place before first run.' },
-            { t: 'Validated structures', d: 'Salary structures and CTC breakups correctly defined.' },
-            { t: 'Clean employee data', d: 'Catches missing salary assignments and gaps early.' },
-            { t: 'Reduced rework', d: 'Lowers payroll errors, reissues, and penalties.' },
-          ].map((b, i) => (
-            <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-              <View style={[styles.checkBullet, { backgroundColor: isDark ? 'rgba(16,185,129,0.18)' : colors.success[100] }]}>
-                <Text style={{ fontSize: 10, color: colors.success[600] }}>✓</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text className="text-xs font-inter text-gray-600 dark:text-gray-400">
-                  <Text className="font-inter font-bold text-gray-900 dark:text-white">{b.t}.</Text> {b.d}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </Animated.View>
-
-        {/* Quick Links */}
-        <Animated.View entering={FadeInDown.delay(550)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <View style={styles.sectionIcon}>
-              <LinearGradient colors={[colors.accent[500], '#D946EF']} style={styles.sectionIconGrad}>
-                <Text style={{ fontSize: 14, color: '#fff' }}>📖</Text>
-              </LinearGradient>
-            </View>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Quick Links</Text>
-          </View>
-          {[
-            { label: 'Salary Components', path: '/company/hr/salary-components', emoji: '💰' },
-            { label: 'Salary Structures', path: '/company/hr/salary-structures', emoji: '📋' },
-            { label: 'Employee Salary',  path: '/company/hr/employee-salary',  emoji: '👥' },
-            { label: 'Statutory Config', path: '/company/hr/statutory-config', emoji: '🛡️' },
-            { label: 'Tax & TDS',        path: '/company/hr/tax-config',       emoji: '📑' },
-          ].map((link) => (
-            <Pressable
-              key={link.path}
-              onPress={() => router.push(link.path as any)}
-              style={[styles.quickLink, { borderBottomColor: isDark ? colors.charcoal[800] : colors.neutral[100] }]}
-            >
-              <Text style={{ fontSize: 14, width: 22 }}>{link.emoji}</Text>
-              <Text className="text-sm font-inter font-medium text-gray-700 dark:text-gray-300 flex-1">{link.label}</Text>
-              <Text className="text-gray-400">›</Text>
-            </Pressable>
-          ))}
-        </Animated.View>
-
-        {/* Need Help */}
-        <Animated.View entering={FadeInDown.delay(600)}>
-          <LinearGradient
-            colors={[colors.primary[500], colors.accent[600]]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={[styles.card, { borderWidth: 0, padding: 18 }]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 16, color: '#fff' }}>?</Text>
-              </View>
-              <Text className="text-base font-inter font-bold text-white">Need Help?</Text>
-            </View>
-            <Text className="text-xs font-inter text-white/85 mb-3 leading-5">
-              Our payroll experts are here to help you set up Phase A correctly the first time.
-            </Text>
-            <Pressable onPress={() => Linking.openURL('tel:+918045671234')} style={styles.contactBtn}>
-              <Text className="text-sm font-inter font-bold text-white">📞 +91 80 4567 1234</Text>
-            </Pressable>
-            <Pressable onPress={() => Linking.openURL('mailto:support@avyrentechnologies.com')} style={[styles.contactBtn, { marginTop: 6 }]}>
-              <Text className="text-sm font-inter font-bold text-white">✉ Email Support</Text>
-            </Pressable>
-          </LinearGradient>
-        </Animated.View>
-      </ScrollView>
-
-      {/* Bottom Bar */}
-      <View style={[styles.bottomBar, {
-        backgroundColor: allComplete ? (isDark ? 'rgba(16,185,129,0.12)' : colors.success[50]) : (isDark ? 'rgba(99,102,241,0.12)' : colors.primary[50]),
-        borderTopColor: allComplete ? colors.success[200] : colors.primary[200],
-        paddingBottom: insets.bottom + 8,
-      }]}>
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text className="text-xs font-inter font-bold" style={{ color: allComplete ? colors.success[700] : colors.primary[700] }}>
-            {allComplete ? 'All steps complete!' : `${totalCount - completedCount} steps remaining`}
-          </Text>
-          <Text className="text-[10px] font-inter mt-0.5" style={{ color: allComplete ? colors.success[600] : colors.primary[600] }}>
-            {allComplete ? 'Proceed to Phase B.' : 'Complete to unlock Phase B.'}
-          </Text>
         </View>
-        <Pressable
-          disabled={!allComplete}
-          onPress={() => router.push('/company/hr/payroll-pre-run' as any)}
-          style={{
-            backgroundColor: allComplete ? colors.primary[600] : (isDark ? colors.charcoal[700] : colors.neutral[200]),
-            paddingHorizontal: 16, paddingVertical: 11, borderRadius: 12,
-          }}
-        >
-          <Text className="text-sm font-inter font-bold" style={{ color: allComplete ? '#fff' : (isDark ? colors.neutral[500] : colors.neutral[400]) }}>
-            Phase B →
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
+    );
 }
 
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Styles                                                                   */
+/* ──────────────────────────────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
-  header:        { paddingBottom: 16, paddingHorizontal: 16 },
-  card:          { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  cardHeader:    { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statCard:      { flex: 1, borderRadius: 14, borderWidth: 1, padding: 12, alignItems: 'flex-start' },
-  statIconWrap:  { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  divider:       { height: 1, marginVertical: 14 },
-  timeIcon:      { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  refreshBtn:    { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  stepIconWrap:  { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  actionBtn:     { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, alignItems: 'center', alignSelf: 'flex-start' },
-  sectionIcon:   { width: 32, height: 32, borderRadius: 10, overflow: 'hidden' },
-  sectionIconGrad: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  checkBullet:   { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  quickLink:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1 },
-  contactBtn:    { backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, alignItems: 'center' },
-  bottomBar:     { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, flexDirection: 'row', alignItems: 'center' },
+    heroCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    statGrid: {
+        marginTop: 14,
+        width: '100%',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    tile: {
+        width: '48%',
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 64,
+    },
+    tileValue: { fontFamily: 'Inter', fontSize: 22, fontWeight: '800', lineHeight: 24 },
+    tileLabel: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', marginTop: 4, letterSpacing: 0.6, textTransform: 'uppercase' },
+    metaRow: { flexDirection: 'row', gap: 12 },
+    metaCard: {
+        flex: 1,
+        flexDirection: 'row',
+        gap: 10,
+        alignItems: 'center',
+        borderRadius: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    metaIcon: { width: 32, height: 32, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+    stepCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        marginTop: 10,
+        gap: 10,
+    },
+    stepHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    stepNumberBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        backgroundColor: colors.neutral[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 2,
+    },
+    stepNumber: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: colors.neutral[700] },
+    lockChar: { fontSize: 8 },
+    stepIconCircle: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    stepEmoji: { fontSize: 17, fontWeight: '700' },
+    newBadge: {
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        borderRadius: 999,
+        backgroundColor: colors.success[50],
+        borderWidth: 1,
+        borderColor: colors.success[200],
+    },
+    newBadgeText: { fontFamily: 'Inter', fontSize: 8, fontWeight: '800', letterSpacing: 0.8, color: colors.success[700] },
+    stepMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
+    pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+    pillText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700' },
+    timeChip: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: colors.neutral[100],
+    },
+    timeChipText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: colors.neutral[700] },
+    stepFooterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
+    },
+    actionText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700' },
+    infoCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    miniIcon: { width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+    checkmarkCircle: {
+        width: 18,
+        height: 18,
+        borderRadius: 999,
+        backgroundColor: colors.success[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    quickLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 9,
+        paddingHorizontal: 8,
+        borderRadius: 10,
+    },
+    quickLinkText: { fontFamily: 'Inter', fontSize: 12.5, color: colors.neutral[700] },
+    helpCard: {
+        borderRadius: 16,
+        padding: 16,
+        overflow: 'hidden',
+    },
+    helpIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    helpLine: { paddingVertical: 4 },
+    helpLineText: { fontFamily: 'Inter', fontSize: 12.5, color: colors.white },
+    bottomBar: {
+        position: 'absolute',
+        left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(255,255,255,0.96)',
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[200],
+        paddingHorizontal: 14,
+        paddingTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    bottomStatus: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    bottomCta: {
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        overflow: 'hidden',
+        minWidth: 160,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });
+
+export default PhaseAConfigScreen;

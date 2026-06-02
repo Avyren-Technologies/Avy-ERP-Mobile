@@ -7,226 +7,166 @@ import {
     RefreshControl,
     ScrollView,
     StyleSheet,
+    TextInput,
     View,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
-import { FAB } from '@/components/ui/fab';
-import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
-
 import {
-    useApproveRun,
-    useComputeSalaries,
-    useComputeStatutory,
+    useFiscalYearKpis,
+    usePayrollRuns,
+} from '@/features/company-admin/api/use-payroll-run-queries';
+import {
     useCreatePayrollRun,
     useDeletePayrollRun,
-    useDisburseRun,
-    useLockAttendance,
-    useReviewExceptions,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
-import { usePayrollRun, usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
 import { useConfigurationStatus } from '@/features/company-admin/api/use-payroll-phases-queries';
-import { useRouter } from 'expo-router';
-import { useIsDark } from '@/hooks/use-is-dark';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
-import { Step1AttendanceValidation } from '@/features/company-admin/hr/Step1AttendanceValidation';
-import { Step2PayrollExceptions } from '@/features/company-admin/hr/Step2PayrollExceptions';
-import { Step3PayrollComputation } from '@/features/company-admin/hr/Step3PayrollComputation';
-import { Step4StatutoryCompliance } from '@/features/company-admin/hr/Step4StatutoryCompliance';
-import { Step5PayrollApproval } from '@/features/company-admin/hr/Step5PayrollApproval';
-import { Step6Disbursement } from '@/features/company-admin/hr/Step6Disbursement';
-import { Step7PostPayroll } from '@/features/company-admin/hr/Step7PostPayroll';
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-// ============ TYPES ============
+type StatusFilter = 'all' | 'draft' | 'in_progress' | 'completed' | 'upcoming' | 'cancelled' | 'archived';
 
-type RunStatus =
-    | 'DRAFT'
-    | 'ATTENDANCE_LOCKED'
-    | 'EXCEPTIONS_REVIEWED'
-    | 'COMPUTED'
-    | 'STATUTORY_DONE'
-    | 'APPROVED'
-    | 'DISBURSED'
-    | 'ARCHIVED';
-
-interface PayrollRunItem {
-    id: string;
-    month: number;
-    year: number;
-    status: RunStatus;
-    employeeCount: number;
-    totalNetPay: number;
-    totalGross: number;
-    totalDeductions: number;
-    createdAt: string;
-    exceptions: ExceptionItem[];
-    pfTotal: number;
-    esiTotal: number;
-    ptTotal: number;
-    tdsTotal: number;
-    lwfTotal: number;
-    holdCount: number;
-}
-
-interface ExceptionItem {
-    id: string;
-    employeeName: string;
-    type: string;
-    description: string;
-    reviewed: boolean;
-}
-
-// ============ CONSTANTS ============
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-const STATUS_COLORS: Record<RunStatus, { bg: string; text: string; dot: string }> = {
-    DRAFT: { bg: colors.neutral[100], text: colors.neutral[600], dot: colors.neutral[400] },
-    ATTENDANCE_LOCKED: { bg: colors.warning[50], text: colors.warning[700], dot: colors.warning[500] },
-    EXCEPTIONS_REVIEWED: { bg: colors.warning[50], text: colors.warning[600], dot: colors.warning[400] },
-    COMPUTED: { bg: colors.info[50], text: colors.info[700], dot: colors.info[500] },
-    STATUTORY_DONE: { bg: colors.info[50], text: colors.info[600], dot: colors.info[400] },
-    APPROVED: { bg: colors.success[50], text: colors.success[700], dot: colors.success[500] },
-    DISBURSED: { bg: colors.primary[50], text: colors.primary[700], dot: colors.primary[500] },
-    ARCHIVED: { bg: colors.primary[100], text: colors.primary[800], dot: colors.primary[600] },
-};
-
-const STATUS_LABELS: Record<RunStatus, string> = {
-    DRAFT: 'Draft',
-    ATTENDANCE_LOCKED: 'Attendance Locked',
-    EXCEPTIONS_REVIEWED: 'Exceptions Reviewed',
-    COMPUTED: 'Computed',
-    STATUTORY_DONE: 'Statutory Done',
-    APPROVED: 'Approved',
-    DISBURSED: 'Disbursed',
-    ARCHIVED: 'Archived',
-};
-
-const WIZARD_STEPS = [
-    'Lock Attendance',
-    'Review Exceptions',
-    'Compute Salaries',
-    'Statutory Deductions',
-    'Approve',
-    'Disburse',
-    'Post-Payroll',
+const STATUS_TABS: { id: StatusFilter; label: string }[] = [
+    { id: 'all',         label: 'All' },
+    { id: 'draft',       label: 'Draft' },
+    { id: 'in_progress', label: 'In Progress' },
+    { id: 'completed',   label: 'Completed' },
+    { id: 'upcoming',    label: 'Upcoming' },
+    { id: 'cancelled',   label: 'Cancelled' },
+    { id: 'archived',    label: 'Archived' },
 ];
 
-const STATUS_TO_STEP: Record<RunStatus, number> = {
-    DRAFT: 0,
-    ATTENDANCE_LOCKED: 1,
-    EXCEPTIONS_REVIEWED: 2,
-    COMPUTED: 3,
-    STATUTORY_DONE: 4,
-    APPROVED: 5,
-    DISBURSED: 6,
-    ARCHIVED: 6,
+const STATUS_STEP_MAP: Record<string, number> = {
+    draft: 0, attendance_locked: 1, exceptions_reviewed: 2, computed: 3,
+    statutory_done: 4, approved: 5, disbursed: 6, archived: 6,
 };
 
-// ============ HELPERS ============
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Atoms                                                                    */
+/* ──────────────────────────────────────────────────────────────────────── */
 
-const formatCurrency = (n: number) => `₹${n.toLocaleString('en-IN')}`;
-
-// formatDate removed — use fmt.date() from useCompanyFormatter inside components
-
-// ============ SHARED ATOMS ============
-
-function RunStatusBadge({ status }: { status: RunStatus }) {
-    const scheme = STATUS_COLORS[status] ?? STATUS_COLORS.DRAFT;
+function StatTile({
+    label, value, sub, tint,
+}: { label: string; value: React.ReactNode; sub?: string; tint: 'primary' | 'success' | 'warning' | 'accent' | 'danger' | 'emerald' }) {
+    const tintMap = {
+        primary: { bg: colors.primary[50], fg: colors.primary[600] },
+        success: { bg: colors.success[50], fg: colors.success[600] },
+        warning: { bg: colors.warning[50], fg: colors.warning[600] },
+        accent:  { bg: colors.accent[50],  fg: colors.accent[600] },
+        danger:  { bg: colors.danger[50],  fg: colors.danger[600] },
+        emerald: { bg: '#ECFDF5',          fg: '#059669' },
+    } as const;
+    const t = tintMap[tint];
     return (
-        <View style={[styles.statusBadge, { backgroundColor: scheme.bg }]}>
-            <View style={[styles.statusDot, { backgroundColor: scheme.dot }]} />
-            <Text style={{ color: scheme.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{STATUS_LABELS[status] ?? status}</Text>
+        <View style={styles.statTile}>
+            <View style={[styles.statBadge, { backgroundColor: t.bg }]}>
+                <View style={[styles.statDot, { backgroundColor: t.fg }]} />
+            </View>
+            <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
+            <Text className="mt-1 font-inter text-[18px] font-extrabold text-neutral-900" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+            {sub ? <Text className="mt-0.5 font-inter text-[10px] text-neutral-500" numberOfLines={1}>{sub}</Text> : null}
         </View>
     );
 }
 
-function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
+function StatusPill({ status }: { status: string }) {
+    const s = (status ?? '').toLowerCase();
+    const isCompleted = ['disbursed', 'archived'].includes(s);
+    const isInProgress = ['attendance_locked', 'exceptions_reviewed', 'computed', 'statutory_done', 'approved'].includes(s);
+    const isDraft = s === 'draft';
+    const map: { bg: string; fg: string; label: string } = isCompleted
+        ? { bg: colors.success[50], fg: colors.success[700], label: 'Completed' }
+        : isInProgress
+            ? { bg: colors.warning[50], fg: colors.warning[700], label: 'In Progress' }
+            : isDraft
+                ? { bg: colors.accent[50], fg: colors.accent[700], label: 'Draft' }
+                : { bg: colors.neutral[100], fg: colors.neutral[600], label: s.replace(/_/g, ' ') || 'Unknown' };
     return (
-        <View style={styles.stepIndicatorContainer}>
-            <View style={styles.stepRow}>
-                {Array.from({ length: totalSteps }).map((_, idx) => {
-                    const isComplete = idx < currentStep;
-                    const isCurrent = idx === currentStep;
-                    return (
-                        <React.Fragment key={idx}>
-                            {idx > 0 && (
-                                <View style={[styles.stepLine, isComplete && styles.stepLineActive]} />
+        <View style={[styles.pill, { backgroundColor: map.bg }]}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: map.fg }}>{map.label}</Text>
+        </View>
+    );
+}
+
+function ProgressBar({ percent, color }: { percent: number; color: string }) {
+    return (
+        <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(100, percent))}%`, backgroundColor: color }]} />
+        </View>
+    );
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* New Run modal                                                            */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+function NewRunModal({
+    visible, onClose, onSubmit, isPending,
+}: { visible: boolean; onClose: () => void; onSubmit: (m: number, y: number) => void; isPending: boolean }) {
+    const [month, setMonth] = React.useState(new Date().getMonth() + 1);
+    const [year, setYear] = React.useState(new Date().getFullYear());
+    const [monthOpen, setMonthOpen] = React.useState(false);
+
+    return (
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+            <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                    <View style={styles.modalHeader}>
+                        <Text className="font-inter text-[15px] font-bold text-neutral-900">New Payroll Run</Text>
+                        <Pressable onPress={onClose} hitSlop={10}>
+                            <Text style={{ color: colors.neutral[400], fontSize: 18 }}>✕</Text>
+                        </Pressable>
+                    </View>
+
+                    <View style={{ padding: 16, gap: 12 }}>
+                        <View>
+                            <Text className="mb-1.5 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">Month</Text>
+                            <Pressable onPress={() => setMonthOpen(o => !o)} style={styles.selectField}>
+                                <Text className="font-inter text-[13px] text-neutral-900">{MONTHS[month - 1]}</Text>
+                                <Text style={{ color: colors.neutral[500] }}>{monthOpen ? '▲' : '▼'}</Text>
+                            </Pressable>
+                            {monthOpen && (
+                                <View style={styles.selectMenu}>
+                                    <ScrollView style={{ maxHeight: 200 }}>
+                                        {MONTHS.map((m, i) => (
+                                            <Pressable key={m} onPress={() => { setMonth(i + 1); setMonthOpen(false); }}
+                                                style={styles.selectOption}>
+                                                <Text className="font-inter text-[13px] text-neutral-800">{m}</Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
+                                </View>
                             )}
-                            <View style={[styles.stepCircle, isComplete && styles.stepCircleComplete, isCurrent && styles.stepCircleCurrent]}>
-                                {isComplete ? (
-                                    <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                ) : (
-                                    <Text style={{ color: isCurrent ? colors.white : colors.neutral[400], fontFamily: 'Inter', fontSize: 9, fontWeight: '700' }}>{idx + 1}</Text>
-                                )}
-                            </View>
-                        </React.Fragment>
-                    );
-                })}
-            </View>
-            <Text className="mt-2 font-inter text-xs font-bold text-primary-950 dark:text-white text-center">
-                {currentStep < totalSteps ? WIZARD_STEPS[currentStep] : 'Complete'}
-            </Text>
-        </View>
-    );
-}
+                        </View>
 
-function MonthYearPicker({ month, year, onMonthChange, onYearChange }: {
-    month: number; year: number; onMonthChange: (m: number) => void; onYearChange: (y: number) => void;
-}) {
-    return (
-        <View style={styles.monthYearPicker}>
-            <Pressable onPress={() => { if (month === 1) { onMonthChange(12); onYearChange(year - 1); } else { onMonthChange(month - 1); } }} style={styles.dateArrow}>
-                <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M15 18l-6-6 6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-            </Pressable>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[month - 1]} {year}</Text>
-            </View>
-            <Pressable onPress={() => { if (month === 12) { onMonthChange(1); onYearChange(year + 1); } else { onMonthChange(month + 1); } }} style={styles.dateArrow}>
-                <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 6l6 6-6 6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-            </Pressable>
-        </View>
-    );
-}
+                        <View>
+                            <Text className="mb-1.5 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">Year</Text>
+                            <TextInput
+                                value={String(year)}
+                                onChangeText={(t) => setYear(Number(t) || year)}
+                                keyboardType="number-pad"
+                                style={styles.textInput}
+                            />
+                        </View>
+                    </View>
 
-// ============ NEW RUN MODAL ============
-
-function NewRunModal({ visible, onClose, onCreate, isCreating }: {
-    visible: boolean; onClose: () => void;
-    onCreate: (data: { month: number; year: number }) => void; isCreating: boolean;
-}) {
-    const insets = useSafeAreaInsets();
-    const now = new Date();
-    const [month, setMonth] = React.useState(now.getMonth() + 1);
-    const [year, setYear] = React.useState(now.getFullYear());
-
-    React.useEffect(() => {
-        if (visible) { setMonth(now.getMonth() + 1); setYear(now.getFullYear()); }
-    }, [visible]);
-
-    return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-                <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-                <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.sheetHandle} />
-                    <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">New Payroll Run</Text>
-                    <MonthYearPicker month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-                        <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
-                        <Pressable onPress={() => onCreate({ month, year })} disabled={isCreating} style={[styles.saveBtn, isCreating && { opacity: 0.5 }]}>
-                            <Text className="font-inter text-sm font-bold text-white">{isCreating ? 'Creating...' : 'Create Run'}</Text>
+                    <View style={styles.modalActions}>
+                        <Pressable onPress={onClose} style={[styles.modalBtn, styles.modalBtnSecondary]}>
+                            <Text className="font-inter text-[13px] font-bold text-neutral-700">Cancel</Text>
+                        </Pressable>
+                        <Pressable disabled={isPending} onPress={() => onSubmit(month, year)} style={[styles.modalBtn, styles.modalBtnPrimary, isPending && { opacity: 0.5 }]}>
+                            <LinearGradient colors={[colors.primary[600], colors.accent[600]] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                            <Text className="font-inter text-[13px] font-bold text-white">{isPending ? 'Creating…' : 'Create Run'}</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -235,460 +175,487 @@ function NewRunModal({ visible, onClose, onCreate, isCreating }: {
     );
 }
 
-// ============ RUN LIST CARD ============
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Phase A Guard                                                            */
+/* ──────────────────────────────────────────────────────────────────────── */
 
-function RunCard({ item, index, onPress }: { item: PayrollRunItem; index: number; onPress: () => void }) {
-    const fmt = useCompanyFormatter();
-    const formatDate = (d: string) => !d ? '' : fmt.date(d);
+function PayrollPhaseGuardMobile({ completed, total }: { completed: number; total: number }) {
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const { toggle } = useSidebar();
+    const remaining = total - completed;
+    const progress = total > 0 ? (completed / total) * 100 : 0;
+
     return (
-        <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
-            <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-                <View style={styles.cardHeader}>
-                    <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{MONTH_LABELS[item.month - 1]} {item.year}</Text>
-                        <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">Created {formatDate(item.createdAt)}</Text>
+        <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+            <AppTopHeader title="Payroll Runs" onMenuPress={toggle} subtitle="Phase A pending" />
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 + insets.bottom }}>
+                <View style={styles.guardCard}>
+                    <View style={styles.guardHeader}>
+                        <View style={styles.guardIcon}><Text style={{ fontSize: 18 }}>🔒</Text></View>
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-[15px] font-bold text-neutral-900">Configuration required</Text>
+                            <Text className="font-inter text-[12.5px] text-neutral-600">Complete Phase A before processing payroll runs.</Text>
+                        </View>
                     </View>
-                    <RunStatusBadge status={item.status} />
+                    <View style={{ padding: 16 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <Text className="font-inter text-[11px] font-semibold text-neutral-600">Phase A progress</Text>
+                            <Text className="font-inter text-[11px] font-bold text-neutral-900">{completed}/{total}</Text>
+                        </View>
+                        <View style={styles.progressTrack}>
+                            <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: colors.primary[600] }]} />
+                        </View>
+                        <Text className="mt-3 font-inter text-[12px] text-neutral-600">{remaining} step{remaining === 1 ? '' : 's'} remaining.</Text>
+                        <Pressable onPress={() => router.push('/company/hr/payroll-config-prerequisites' as any)}
+                            style={[styles.guardBtnPrimary, { marginTop: 14 }]}>
+                            <LinearGradient colors={[colors.primary[600], colors.accent[600]] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                            <Text className="font-inter text-[13px] font-bold text-white">Open Phase A  ›</Text>
+                        </Pressable>
+                        <Pressable onPress={() => router.push('/company/hr/payroll-pre-run' as any)} style={[styles.guardBtnSecondary, { marginTop: 8 }]}>
+                            <Text className="font-inter text-[13px] font-bold text-primary-700">Open Phase B</Text>
+                        </Pressable>
+                    </View>
                 </View>
-                <View style={styles.cardMeta}>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">{item.employeeCount} employees</Text></View>
-                    <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Net: {formatCurrency(item.totalNetPay)}</Text></View>
-                </View>
-            </Pressable>
-        </Animated.View>
+            </ScrollView>
+        </View>
     );
 }
 
-// ============ MAIN COMPONENT ============
-
-function PayrollPhaseGuardMobile({ totalSteps, completedSteps }: { totalSteps: number; completedSteps: number }) {
-  const isDark = useIsDark();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const remaining = totalSteps - completedSteps;
-  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-
-  return (
-    <View style={{ flex: 1, backgroundColor: isDark ? colors.charcoal[950] : colors.gradient.surface }}>
-      <LinearGradient
-        colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 16 }}
-      >
-        <Text className="text-xl font-inter font-bold text-white">Payroll Run Blocked</Text>
-        <Text className="text-xs font-inter text-white/80 mt-1">Complete Phase A first</Text>
-      </LinearGradient>
-
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
-        <View style={{
-          backgroundColor: isDark ? colors.charcoal[900] : '#fff',
-          borderColor: isDark ? 'rgba(245,158,11,0.3)' : colors.warning[200],
-          borderRadius: 18, borderWidth: 1, padding: 18, marginBottom: 14,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : colors.warning[100], alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 22 }}>🛡️</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Payroll Run Blocked</Text>
-              <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 mt-1">
-                Complete <Text className="font-inter font-bold">Phase A — Configuration Prerequisites</Text> before running payroll. {remaining} step{remaining === 1 ? '' : 's'} remaining.
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text className="text-[10px] font-inter font-bold uppercase tracking-wider text-gray-500">Phase A Progress</Text>
-              <Text className="text-xs font-inter font-bold text-gray-900 dark:text-white">{completedSteps}/{totalSteps}</Text>
-            </View>
-            <View style={{ height: 8, borderRadius: 4, backgroundColor: isDark ? colors.charcoal[800] : colors.neutral[100], overflow: 'hidden' }}>
-              <LinearGradient
-                colors={[colors.primary[500], colors.accent[500]]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={{ height: '100%', width: `${progress}%`, borderRadius: 4 }}
-              />
-            </View>
-          </View>
-
-          <Pressable
-            onPress={() => router.push('/company/hr/payroll-config-prerequisites' as any)}
-            style={{
-              backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : colors.primary[50],
-              borderColor: isDark ? 'rgba(99,102,241,0.4)' : colors.primary[200],
-              borderWidth: 2, borderRadius: 14, padding: 14,
-              flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10,
-            }}
-          >
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? 'rgba(99,102,241,0.3)' : colors.primary[100], alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 16 }}>✓</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white">Open Phase A</Text>
-              <Text className="text-[10px] font-inter text-gray-500 dark:text-gray-400">Configuration prerequisites</Text>
-            </View>
-            <Text className="text-gray-400">›</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/company/hr/payroll-pre-run' as any)}
-            style={{
-              backgroundColor: isDark ? 'rgba(139,92,246,0.18)' : colors.accent[50],
-              borderColor: isDark ? 'rgba(139,92,246,0.4)' : colors.accent[200],
-              borderWidth: 2, borderRadius: 14, padding: 14,
-              flexDirection: 'row', alignItems: 'center', gap: 12,
-            }}
-          >
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? 'rgba(139,92,246,0.3)' : colors.accent[100], alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 16 }}>📋</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white">Open Phase B</Text>
-              <Text className="text-[10px] font-inter text-gray-500 dark:text-gray-400">Pre-run activities</Text>
-            </View>
-            <Text className="text-gray-400">›</Text>
-          </Pressable>
-        </View>
-
-        <View style={{
-          backgroundColor: isDark ? colors.charcoal[900] : colors.neutral[50],
-          borderColor: isDark ? colors.charcoal[800] : colors.neutral[200],
-          borderRadius: 18, borderWidth: 1, padding: 16,
-        }}>
-          <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white mb-2">Why is this blocked?</Text>
-          <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 leading-5">
-            A payroll run requires foundational configuration — salary components, structures, employee assignments, statutory rules, and attendance/leave policies. Running payroll without these in place leads to incorrect calculations, missing statutory deductions, and compliance risk.
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Screen                                                                   */
+/* ──────────────────────────────────────────────────────────────────────── */
 
 export function PayrollRunScreen() {
-  const isDark = useIsDark();
-  const styles = createStyles(isDark);
-  const configStatusQuery = useConfigurationStatus();
-  const configStatus = configStatusQuery.data?.data;
-  const phaseAComplete = configStatus ? configStatus.completedCount === configStatus.totalCount : true;
-
+    const router = useRouter();
     const insets = useSafeAreaInsets();
+    const fmt = useCompanyFormatter();
     const { toggle } = useSidebar();
-    const { show: showConfirm, modalProps: confirmModalProps } = useConfirmModal();
 
-    const now = new Date();
-    const [filterMonth, setFilterMonth] = React.useState(now.getMonth() + 1);
-    const [filterYear, setFilterYear] = React.useState(now.getFullYear());
+    const [activeTab, setActiveTab] = React.useState<StatusFilter>('all');
+    const [search, setSearch] = React.useState('');
+    const [showNewRun, setShowNewRun] = React.useState(false);
 
-    const { data: response, isLoading, error, refetch, isFetching } = usePayrollRuns({ month: filterMonth, year: filterYear } as any);
+    const configStatusQuery = useConfigurationStatus();
+    const configStatus: any = (configStatusQuery.data as any) ?? null;
+    const phaseAComplete = configStatus ? configStatus.completedCount >= configStatus.totalCount : true;
+
+    const { data: runsResp, isLoading: runsLoading, isRefetching, refetch } = usePayrollRuns({ limit: 20 });
+    const runs: any[] = React.useMemo(() => {
+        const r: any = runsResp;
+        if (Array.isArray(r)) return r;
+        if (Array.isArray(r?.data)) return r.data;
+        return [];
+    }, [runsResp]);
+
+    const { data: kpisResp } = useFiscalYearKpis();
+    const kpis: any = (kpisResp as any) ?? null;
 
     const createMutation = useCreatePayrollRun();
     const deleteMutation = useDeletePayrollRun();
-    const lockMutation = useLockAttendance();
-    const reviewMutation = useReviewExceptions();
-    const computeMutation = useComputeSalaries();
-    const statutoryMutation = useComputeStatutory();
-    const approveMutation = useApproveRun();
-    const disburseMutation = useDisburseRun();
+    const confirmModal = useConfirmModal();
 
-    const [showNewRunModal, setShowNewRunModal] = React.useState(false);
-    const [selectedRunId, setSelectedRunId] = React.useState<string | null>(null);
-    const [disbursed, setDisbursed] = React.useState(false);
-
-    // Fetch single run when selected
-    const { data: selectedRunResponse } = usePayrollRun(selectedRunId ?? '');
-
-    const runs: PayrollRunItem[] = React.useMemo(() => {
-        const raw = (response as any)?.data ?? response ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? '',
-            month: item.month ?? 1,
-            year: item.year ?? now.getFullYear(),
-            status: item.status ?? 'DRAFT',
-            employeeCount: item.employeeCount ?? 0,
-            totalNetPay: item.totalNetPay ?? 0,
-            totalGross: item.totalGross ?? 0,
-            totalDeductions: item.totalDeductions ?? 0,
-            createdAt: item.createdAt ?? '',
-            exceptions: Array.isArray(item.exceptions) ? item.exceptions : [],
-            pfTotal: item.pfTotal ?? 0,
-            esiTotal: item.esiTotal ?? 0,
-            ptTotal: item.ptTotal ?? 0,
-            tdsTotal: item.tdsTotal ?? 0,
-            lwfTotal: item.lwfTotal ?? 0,
-            holdCount: item.holdCount ?? 0,
-        }));
-    }, [response]);
-
-    const selectedRun: PayrollRunItem | null = React.useMemo(() => {
-        if (!selectedRunId) return null;
-        const raw = (selectedRunResponse as any)?.data ?? selectedRunResponse;
-        if (!raw) return runs.find(r => r.id === selectedRunId) ?? null;
-        return {
-            id: raw.id ?? '',
-            month: raw.month ?? 1,
-            year: raw.year ?? now.getFullYear(),
-            status: raw.status ?? 'DRAFT',
-            employeeCount: raw.employeeCount ?? 0,
-            totalNetPay: raw.totalNetPay ?? 0,
-            totalGross: raw.totalGross ?? 0,
-            totalDeductions: raw.totalDeductions ?? 0,
-            createdAt: raw.createdAt ?? '',
-            exceptions: Array.isArray(raw.exceptions) ? raw.exceptions : [],
-            pfTotal: raw.pfTotal ?? 0,
-            esiTotal: raw.esiTotal ?? 0,
-            ptTotal: raw.ptTotal ?? 0,
-            tdsTotal: raw.tdsTotal ?? 0,
-            lwfTotal: raw.lwfTotal ?? 0,
-            holdCount: raw.holdCount ?? 0,
-        };
-    }, [selectedRunId, selectedRunResponse, runs]);
-
-    const currentStep = React.useMemo(() => {
-        if (!selectedRun) return 0;
-        return STATUS_TO_STEP[selectedRun.status] ?? 0;
-    }, [selectedRun]);
-
-    const handleCreateRun = (data: { month: number; year: number }) => {
-        createMutation.mutate(data as any, { onSuccess: () => setShowNewRunModal(false) });
-    };
-
-    const handleLock = () => {
-        if (!selectedRunId) return;
-        lockMutation.mutate(selectedRunId);
-    };
-
-    const handleReview = () => {
-        if (!selectedRunId) return;
-        reviewMutation.mutate(selectedRunId);
-    };
-
-    const handleCompute = () => {
-        if (!selectedRunId) return;
-        computeMutation.mutate(selectedRunId);
-    };
-
-    const handleStatutory = () => {
-        if (!selectedRunId) return;
-        statutoryMutation.mutate(selectedRunId);
-    };
-
-    const handleApprove = () => {
-        showConfirm({
-            title: 'Approve Payroll',
-            message: `Approve payroll for ${MONTH_LABELS[(selectedRun?.month ?? 1) - 1]} ${selectedRun?.year}? This will finalize all salary computations.`,
-            confirmText: 'Approve', variant: 'primary',
-            onConfirm: () => { if (selectedRunId) approveMutation.mutate(selectedRunId); },
+    const filtered = React.useMemo(() => {
+        return runs.filter((r) => {
+            if (search) {
+                const q = search.toLowerCase();
+                const label = `${MONTHS[(r.month ?? 1) - 1]} ${r.year}`.toLowerCase();
+                if (!label.includes(q) && !(r.status ?? '').toLowerCase().includes(q)) return false;
+            }
+            const s = (r.status ?? '').toLowerCase();
+            if (activeTab === 'all') return true;
+            if (activeTab === 'draft') return s === 'draft';
+            if (activeTab === 'in_progress') return ['attendance_locked', 'exceptions_reviewed', 'computed', 'statutory_done', 'approved'].includes(s);
+            if (activeTab === 'completed') return ['disbursed', 'archived'].includes(s);
+            if (activeTab === 'upcoming') {
+                const now = new Date();
+                const runDate = new Date(r.year, (r.month ?? 1) - 1, 1);
+                return s === 'draft' && runDate > now;
+            }
+            if (activeTab === 'archived') return s === 'archived';
+            return true;
         });
-    };
+    }, [runs, search, activeTab]);
 
-    const handleDisburse = () => {
-        showConfirm({
-            title: 'Disburse Payroll',
-            message: `Disburse ${formatCurrency(selectedRun?.totalNetPay ?? 0)} to ${selectedRun?.employeeCount ?? 0} employees? This action cannot be undone.`,
-            confirmText: 'Disburse', variant: 'warning',
-            onConfirm: () => {
-                if (selectedRunId) {
-                    disburseMutation.mutate(selectedRunId, {
-                        onSuccess: () => setDisbursed(true),
-                    });
-                }
-            },
-        });
-    };
-
-    // ---- Wizard view ----
-    if (selectedRun) {
-        return (
-            <View style={styles.container}>
-                <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-                <View style={styles.headerBar}>
-                    <Pressable onPress={() => { setSelectedRunId(null); setDisbursed(false); }} style={styles.backBtn}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M19 12H5M12 19l-7-7 7-7" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                    </Pressable>
-                    <Text className="flex-1 text-center font-inter text-base font-bold text-primary-950 dark:text-white">
-                        {MONTHS[selectedRun.month - 1]} {selectedRun.year} Run
-                    </Text>
-                    <RunStatusBadge status={selectedRun.status} />
-                    {!['DISBURSED', 'ARCHIVED'].includes(selectedRun.status) && (
-                        <Pressable
-                            onPress={() => {
-                                showConfirm({
-                                    title: 'Delete Payroll Run',
-                                    message: `Delete payroll run for ${MONTHS[selectedRun.month - 1]} ${selectedRun.year}? This action cannot be undone.`,
-                                    confirmText: 'Delete',
-                                    variant: 'danger',
-                                    onConfirm: () => {
-                                        deleteMutation.mutate(selectedRun.id, {
-                                            onSuccess: () => { setSelectedRunId(null); },
-                                        });
-                                    },
-                                });
-                            }}
-                            disabled={deleteMutation.isPending}
-                            style={{ marginLeft: 8, padding: 6, borderRadius: 8, backgroundColor: colors.danger[50] }}
-                        >
-                            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                                <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke={colors.danger[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </Svg>
-                        </Pressable>
-                    )}
-                </View>
-                <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
-                    <StepIndicator currentStep={currentStep} totalSteps={7} />
-                    {(() => {
-                        const anyMut = lockMutation.isPending || reviewMutation.isPending || computeMutation.isPending || statutoryMutation.isPending || approveMutation.isPending || disburseMutation.isPending;
-                        const stepProps = { runId: selectedRun.id, runDetail: selectedRun, completedStep: currentStep, anyMutating: anyMut };
-                        return (
-                            <>
-                                {currentStep >= 0 && <Step1AttendanceValidation {...stepProps} onStepAction={handleLock} />}
-                                {currentStep >= 1 && <Step2PayrollExceptions {...stepProps} onStepAction={handleReview} />}
-                                {currentStep >= 2 && <Step3PayrollComputation {...stepProps} onStepAction={handleCompute} />}
-                                {currentStep >= 3 && <Step4StatutoryCompliance {...stepProps} onStepAction={handleStatutory} />}
-                                {currentStep >= 4 && <Step5PayrollApproval {...stepProps} onStepAction={handleApprove} />}
-                                {currentStep >= 5 && <Step6Disbursement {...stepProps} onStepAction={handleDisburse} />}
-                                {currentStep >= 6 && <Step7PostPayroll {...stepProps} onStepAction={() => {}} />}
-                            </>
-                        );
-                    })()}
-                </ScrollView>
-                <ConfirmModal {...confirmModalProps} />
-            </View>
-        );
-    }
-
-    // ---- List view ----
-    const renderItem = ({ item, index }: { item: PayrollRunItem; index: number }) => (
-        <RunCard item={item} index={index} onPress={() => setSelectedRunId(item.id)} />
-    );
-
-    const renderHeader = () => (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.headerContent}>
-            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Payroll Runs</Text>
-            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{runs.length} run{runs.length !== 1 ? 's' : ''}</Text>
-            <View style={{ marginTop: 16 }}>
-                <MonthYearPicker month={filterMonth} year={filterYear} onMonthChange={setFilterMonth} onYearChange={setFilterYear} />
-            </View>
-        </Animated.View>
-    );
-
-    const renderEmpty = () => {
-        if (isLoading) return <View style={{ paddingTop: 24 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
-        if (error) return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="error" title="Failed to load payroll runs" message="Check your connection and try again." action={{ label: 'Retry', onPress: () => refetch() }} /></View>;
-        return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No payroll runs" message="Create a new payroll run to get started." /></View>;
-    };
-
-    // ── GUARD: Block payroll run until Phase A is complete ──
     if (configStatusQuery.isLoading) {
         return (
-            <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
-                <SkeletonCard />
+            <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+                <AppTopHeader title="Payroll Runs" onMenuPress={toggle} />
+                <View style={{ padding: 16, gap: 12 }}>
+                    <SkeletonCard /><SkeletonCard /><SkeletonCard />
+                </View>
             </View>
         );
     }
+
     if (configStatus && !phaseAComplete) {
-        return <PayrollPhaseGuardMobile totalSteps={configStatus.totalCount} completedSteps={configStatus.completedCount} />;
+        return <PayrollPhaseGuardMobile completed={configStatus.completedCount} total={configStatus.totalCount} />;
     }
 
+    const handleCreate = async (month: number, year: number) => {
+        try {
+            const result: any = await createMutation.mutateAsync({ month, year });
+            const newId = result?.id ?? result?.data?.id;
+            setShowNewRun(false);
+            if (newId) router.push({ pathname: '/company/hr/payroll-c-step-1' as any, params: { runId: newId } });
+        } catch (e) {
+            // toast handled by global error
+        }
+    };
+
+    const handleDelete = (run: any) => {
+        confirmModal.show({
+            title: 'Delete Payroll Run?',
+            message: `Delete the payroll run for ${MONTHS[(run.month ?? 1) - 1]} ${run.year}? This cannot be undone.`,
+            confirmText: 'Delete',
+            onConfirm: () => deleteMutation.mutate(run.id),
+        });
+    };
+
+    const vsLastFY = kpis?.vsLastFYPct ?? 0;
+
     return (
-        <View style={styles.container}>
-            <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <AppTopHeader title="Phase C — Payroll Run" onMenuPress={toggle} />
-            <FlashList data={runs} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
-                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-                refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
+        <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+            <AppTopHeader title="Payroll Runs" onMenuPress={toggle} subtitle="Create, manage & track" />
+
+            <ScrollView
+                contentContainerStyle={{ padding: 16, paddingBottom: 100 + insets.bottom }}
+                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary[600]} />}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* KPI grid */}
+                <View style={styles.kpiGrid}>
+                    <StatTile label="Total Runs"  value={kpis?.totalRuns ?? '—'}   sub={kpis?.fiscalYear ?? ''}        tint="primary" />
+                    <StatTile label="Completed"   value={kpis?.completed ?? '—'}   sub={kpis ? `${kpis.completedPct}%` : ''} tint="success" />
+                    <StatTile label="In Progress" value={kpis?.inProgress ?? '—'}  sub={kpis ? `${kpis.inProgressPct}%` : ''} tint="warning" />
+                    <StatTile label="Upcoming"    value={kpis?.upcoming ?? '—'}    sub={kpis ? `${kpis.upcomingPct}%` : ''}  tint="accent" />
+                    <StatTile label="Cancelled"   value={kpis?.cancelled ?? '—'}   sub={kpis ? `${kpis.cancelledPct}%` : ''} tint="danger" />
+                    <StatTile label="Net Pay (FY)"
+                        value={`₹${formatCompact(kpis?.netPayDisbursed ?? 0)}`}
+                        sub={kpis ? `vs Last FY ${vsLastFY >= 0 ? '+' : ''}${vsLastFY}%` : ''}
+                        tint="emerald" />
+                </View>
+
+                {/* Action buttons */}
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                    <Pressable onPress={() => setShowNewRun(true)} style={[styles.actionBtn, { flex: 1.5 }]}>
+                        <LinearGradient colors={[colors.primary[600], colors.accent[600]] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                        <Text className="font-inter text-[13px] font-bold text-white">+ New Payroll Run</Text>
+                    </Pressable>
+                    <Pressable style={[styles.actionBtn, styles.actionBtnSecondary, { flex: 1 }]}>
+                        <Text className="font-inter text-[13px] font-bold text-primary-700">↑ Import</Text>
+                    </Pressable>
+                </View>
+
+                {/* Tabs */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 16, gap: 8 }}>
+                    {STATUS_TABS.map(t => (
+                        <Pressable key={t.id} onPress={() => setActiveTab(t.id)}
+                            style={[styles.tab, activeTab === t.id && styles.tabActive]}>
+                            <Text style={[styles.tabLabel, activeTab === t.id && styles.tabLabelActive]}>{t.label}</Text>
+                        </Pressable>
+                    ))}
+                </ScrollView>
+
+                {/* Search */}
+                <View style={styles.searchBox}>
+                    <Text style={{ color: colors.neutral[400], marginRight: 6 }}>🔍</Text>
+                    <TextInput
+                        value={search}
+                        onChangeText={setSearch}
+                        placeholder="Search by run name or period…"
+                        placeholderTextColor={colors.neutral[400]}
+                        style={styles.searchInput}
+                    />
+                </View>
+
+                {/* Run cards */}
+                {runsLoading ? (
+                    <View style={{ marginTop: 12, gap: 8 }}>
+                        <SkeletonCard /><SkeletonCard /><SkeletonCard />
+                    </View>
+                ) : filtered.length === 0 ? (
+                    <View style={{ marginTop: 24 }}>
+                        <EmptyState
+                            icon="inbox"
+                            title="No payroll runs found"
+                            message={search ? `Nothing matches "${search}".` : 'Tap "New Payroll Run" to create your first one.'}
+                            action={{ label: '+ New Payroll Run', onPress: () => setShowNewRun(true) }}
+                        />
+                    </View>
+                ) : (
+                    <View style={{ marginTop: 12, gap: 10 }}>
+                        {filtered.map((r, idx) => {
+                            const monthLabel = MONTHS[(r.month ?? 1) - 1];
+                            const monthShort = monthLabel?.slice(0, 3).toUpperCase();
+                            const s = (r.status ?? '').toLowerCase();
+                            const completedStep = STATUS_STEP_MAP[s] ?? 0;
+                            const pct = Math.round((completedStep / 6) * 100);
+                            const isCompleted = ['disbursed', 'archived'].includes(s);
+                            const isCancelled = s === 'cancelled';
+                            const progressColor = isCompleted ? colors.success[500] : isCancelled ? colors.neutral[400] : colors.warning[500];
+                            const monthStart = new Date(r.year, (r.month ?? 1) - 1, 1).toISOString();
+                            const monthEnd = new Date(r.year, r.month ?? 1, 0).toISOString();
+
+                            return (
+                                <Animated.View key={r.id} entering={FadeInDown.delay(idx * 40).duration(280)}>
+                                    <Pressable
+                                        onPress={() => router.push({ pathname: '/company/hr/payroll-c-step-1' as any, params: { runId: r.id } })}
+                                        style={({ pressed }) => [styles.runCard, pressed && { backgroundColor: colors.neutral[50] }]}
+                                        onLongPress={() => handleDelete(r)}
+                                    >
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                            <View style={styles.monthChip}>
+                                                <Text style={{ fontFamily: 'Inter', fontSize: 9, fontWeight: '800', color: colors.primary[600], letterSpacing: 0.6 }}>{monthShort}</Text>
+                                                <Text style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: '800', color: colors.primary[700] }}>{r.year}</Text>
+                                            </View>
+                                            <View style={{ flex: 1, minWidth: 0 }}>
+                                                <Text className="font-inter text-[13.5px] font-bold text-neutral-900" numberOfLines={1}>
+                                                    {monthLabel} {r.year} Payroll
+                                                </Text>
+                                                <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
+                                                    {fmt.date(monthStart)} – {fmt.date(monthEnd)}
+                                                </Text>
+                                            </View>
+                                            <StatusPill status={s || 'draft'} />
+                                        </View>
+
+                                        <View style={styles.runMetricsRow}>
+                                            <Metric label="Employees" value={r.employeeCount ?? 0} />
+                                            <Metric label="Net Pay" value={r.totalNet || r.totalNetPay ? `₹${formatCompact(Number(r.totalNet ?? r.totalNetPay))}` : '—'} accent={colors.neutral[900]} />
+                                            <Metric label="Progress" value={`${pct}%`} accent={progressColor} />
+                                        </View>
+
+                                        <View style={{ marginTop: 6 }}>
+                                            <ProgressBar percent={pct} color={progressColor} />
+                                            <Text className="mt-1 font-inter text-[10px] text-neutral-500">
+                                                {isCompleted ? `Completed`
+                                                    : isCancelled ? 'Cancelled'
+                                                    : completedStep === 0 ? 'Not Started'
+                                                    : `Step ${completedStep} of 6`}
+                                            </Text>
+                                        </View>
+                                    </Pressable>
+                                </Animated.View>
+                            );
+                        })}
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* Sticky bottom action */}
+            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
+                <Pressable onPress={() => setShowNewRun(true)} style={styles.fab}>
+                    <LinearGradient colors={[colors.primary[600], colors.accent[600]] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                    <Text className="font-inter text-[13px] font-bold text-white">+ New Payroll Run</Text>
+                </Pressable>
+            </View>
+
+            <NewRunModal
+                visible={showNewRun}
+                onClose={() => setShowNewRun(false)}
+                onSubmit={handleCreate}
+                isPending={createMutation.isPending}
             />
-            <FAB onPress={() => setShowNewRunModal(true)} />
-            <NewRunModal visible={showNewRunModal} onClose={() => setShowNewRunModal(false)} onCreate={handleCreateRun} isCreating={createMutation.isPending} />
-            <ConfirmModal {...confirmModalProps} />
+            <ConfirmModal {...confirmModal.modalProps} />
         </View>
     );
 }
 
-// ============ STYLES ============
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Helpers + Atoms                                                          */
+/* ──────────────────────────────────────────────────────────────────────── */
 
-const createStyles = (isDark: boolean) => StyleSheet.create({
-    container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
-    headerBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
-    headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
-    listContent: { paddingHorizontal: 24 },
-    card: {
-        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 16, marginBottom: 12,
-        shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
+function formatCompact(n: number): string {
+    if (n >= 1e7) return `${(n / 1e7).toFixed(2)} Cr`;
+    if (n >= 1e5) return `${(n / 1e5).toFixed(2)} L`;
+    if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+    return n.toLocaleString('en-IN');
+}
+
+function Metric({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+    return (
+        <View style={{ flex: 1 }}>
+            <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
+            <Text style={{ fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: accent ?? colors.neutral[800] }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        </View>
+    );
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Styles                                                                   */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+    kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    statTile: {
+        width: '48%',
+        backgroundColor: colors.white,
+        borderRadius: 14,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
     },
-    cardPressed: { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], transform: [{ scale: 0.98 }] },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
-    metaChip: { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    statusDot: { width: 6, height: 6, borderRadius: 3 },
-    // Wizard
-    wizardCard: {
-        backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 20, padding: 20, marginBottom: 16,
-        shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
-        borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
+    statBadge: { width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    statDot: { width: 10, height: 10, borderRadius: 3 },
+    actionBtn: {
+        height: 44,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
-    summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-    summaryChip: {
-        flex: 1, backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 14, padding: 14,
-        borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
+    actionBtnSecondary: {
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.primary[200],
     },
-    warningBanner: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: colors.warning[50],
-        borderRadius: 10, padding: 10, marginBottom: 12,
+    tab: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
     },
-    primaryBtn: {
-        height: 48, borderRadius: 14, backgroundColor: colors.primary[600],
-        justifyContent: 'center', alignItems: 'center', marginTop: 8,
-        shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
+    tabActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
+    tabLabel: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: colors.neutral[600] },
+    tabLabelActive: { color: colors.white },
+    searchBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 40,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
     },
-    outlineBtn: {
-        height: 44, borderRadius: 14, backgroundColor: isDark ? colors.primary[900] : colors.primary[50],
-        justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24,
-        borderWidth: 1.5, borderColor: colors.primary[200],
+    searchInput: { flex: 1, fontFamily: 'Inter', fontSize: 13, color: colors.neutral[800] },
+    runCard: {
+        backgroundColor: colors.white,
+        borderRadius: 14,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
     },
-    exceptionRow: {
-        flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
-        borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
+    monthChip: {
+        width: 48, height: 48,
+        borderRadius: 10,
+        backgroundColor: colors.primary[50],
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    statutoryRow: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white,
-        borderRadius: 12, padding: 14, borderWidth: 1, borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
+    pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+    runMetricsRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
     },
-    netPayBanner: {
-        backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 14, padding: 16,
-        alignItems: 'center', marginTop: 4,
+    progressTrack: {
+        height: 5,
+        borderRadius: 999,
+        backgroundColor: colors.neutral[100],
+        overflow: 'hidden',
     },
-    finalSummary: {
-        backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderRadius: 14, padding: 16, marginBottom: 12, gap: 8,
+    progressFill: { height: '100%', borderRadius: 999 },
+    bottomBar: {
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(255,255,255,0.97)',
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[200],
+        paddingHorizontal: 14,
+        paddingTop: 12,
+        alignItems: 'center',
     },
-    finalSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    readyRow: { flexDirection: 'row', alignItems: 'center' },
-    // Step indicator
-    stepIndicatorContainer: { alignItems: 'center', paddingVertical: 16, marginBottom: 8 },
-    stepRow: { flexDirection: 'row', alignItems: 'center' },
-    stepCircle: {
-        width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100],
-        justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+    fab: {
+        height: 46,
+        width: '100%',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
     },
-    stepCircleComplete: { backgroundColor: colors.success[500], borderColor: colors.success[500] },
-    stepCircleCurrent: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
-    stepLine: { width: 20, height: 2, backgroundColor: colors.neutral[200] },
-    stepLineActive: { backgroundColor: colors.success[400] },
-    // MonthYear Picker
-    monthYearPicker: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1A1730' : colors.white, borderRadius: 16,
-        padding: 12, borderWidth: 1, borderColor: isDark ? colors.primary[900] : colors.primary[50],
-        shadowColor: colors.primary[900], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1,
+    modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalCard: { backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    modalActions: { flexDirection: 'row', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: colors.neutral[100] },
+    modalBtn: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    modalBtnSecondary: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral[200] },
+    modalBtnPrimary: { backgroundColor: colors.primary[600] },
+    selectField: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: colors.neutral[50],
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
     },
-    dateArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: isDark ? colors.primary[900] : colors.primary[50], justifyContent: 'center', alignItems: 'center' },
-    // Form sheet
-    formSheet: { backgroundColor: isDark ? '#1A1730' : colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 12 },
-    sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[300], alignSelf: 'center', marginBottom: 16 },
-    cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
-    saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+    selectMenu: {
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        borderRadius: 12,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    selectOption: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
+    textInput: {
+        backgroundColor: colors.neutral[50],
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontFamily: 'Inter',
+        fontSize: 13,
+        color: colors.neutral[900],
+    },
+    guardCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.warning[200],
+        overflow: 'hidden',
+    },
+    guardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        padding: 16,
+        backgroundColor: colors.warning[50],
+        borderBottomWidth: 1,
+        borderBottomColor: colors.warning[200],
+    },
+    guardIcon: {
+        width: 36, height: 36,
+        borderRadius: 10,
+        backgroundColor: colors.warning[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    guardBtnPrimary: {
+        height: 46,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    guardBtnSecondary: {
+        height: 46,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.primary[200],
+    },
 });
-const styles = createStyles(false);
+
+export default PayrollRunScreen;

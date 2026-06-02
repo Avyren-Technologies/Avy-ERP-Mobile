@@ -1,504 +1,700 @@
+/* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Text } from '@/components/ui';
+import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
+import { EmptyState } from '@/components/ui/empty-state';
+import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { usePreRunChecklist } from '@/features/company-admin/api/use-payroll-phases-queries';
 import { usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
-import { useIsDark } from '@/hooks/use-is-dark';
+import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
-const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Types                                                                    */
+/* ──────────────────────────────────────────────────────────────────────── */
 
-const ACTIVITY_META: Record<string, { emoji: string; owner: string }> = {
-  verify_attendance:     { emoji: '⏰', owner: 'Attendance Lead' },
-  pending_approvals:     { emoji: '📋', owner: 'HR Manager' },
-  salary_revisions:      { emoji: '📈', owner: 'Payroll Officer' },
-  one_time_adjustments:  { emoji: '✏️', owner: 'Payroll Officer' },
-  review_exceptions:     { emoji: '⚠️', owner: 'Payroll Officer' },
-  statutory_compliance:  { emoji: '🛡️', owner: 'Finance Lead' },
-  new_joiners_exits:     { emoji: '👥', owner: 'HR Admin' },
-  loan_adjustments:      { emoji: '🏦', owner: 'Finance Lead' },
-  salary_holds:          { emoji: '⏸', owner: 'Payroll Officer' },
-  payroll_readiness:     { emoji: '✓', owner: 'Payroll Manager' },
+type ActivityStatus = 'COMPLETE' | 'PENDING' | 'IN_PROGRESS' | 'BLOCKED';
+type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
+
+interface BackendActivity {
+    id: string;
+    activityNumber: number;
+    name: string;
+    description: string;
+    status: ActivityStatus;
+    priority: Priority;
+    pendingCount: number | null;
+    blockerReason: string | null;
+}
+
+interface BackendChecklist {
+    completedCount: number;
+    totalCount: number;
+    run: { id: string; month: number; year: number; status: string; employeeCount: number };
+    keyStats: { totalEmployees: number; totalMonthlyCTC: number; newJoiners: number; exits: number };
+    activities: BackendActivity[];
+}
+
+interface ActivityMeta {
+    emoji: string;
+    iconTintBg: string;
+    iconTintFg: string;
+    estMin: number;
+    ownerRole: string;
+}
+
+const ACTIVITY_META: Record<string, ActivityMeta> = {
+    verify_attendance:     { emoji: '🗓', iconTintBg: colors.success[50], iconTintFg: colors.success[700], estMin: 20, ownerRole: 'HR Admin' },
+    pending_approvals:     { emoji: '✓',  iconTintBg: colors.success[50], iconTintFg: colors.success[700], estMin: 15, ownerRole: 'HR Admin' },
+    salary_revisions:      { emoji: '👤', iconTintBg: colors.accent[50],  iconTintFg: colors.accent[700],  estMin: 30, ownerRole: 'Payroll Officer' },
+    one_time_adjustments:  { emoji: '⇄',  iconTintBg: colors.primary[50], iconTintFg: colors.primary[700], estMin: 20, ownerRole: 'Payroll Officer' },
+    review_exceptions:     { emoji: '⚠',  iconTintBg: colors.warning[50], iconTintFg: colors.warning[700], estMin: 25, ownerRole: 'Payroll Officer' },
+    statutory_compliance:  { emoji: '🛡', iconTintBg: '#F5F3FF',          iconTintFg: '#7C3AED',           estMin: 20, ownerRole: 'Compliance' },
+    new_joiners_exits:     { emoji: '👥', iconTintBg: '#F0F9FF',          iconTintFg: '#0284C7',           estMin: 20, ownerRole: 'HR Admin' },
+    loan_adjustments:      { emoji: '🏛', iconTintBg: colors.warning[50], iconTintFg: colors.warning[700], estMin: 15, ownerRole: 'Finance Lead' },
+    salary_holds:          { emoji: '🔒', iconTintBg: colors.danger[50],  iconTintFg: colors.danger[700],  estMin: 15, ownerRole: 'Payroll Officer' },
+    payroll_readiness:     { emoji: '⚡', iconTintBg: colors.neutral[100], iconTintFg: colors.neutral[700], estMin: 20, ownerRole: 'Payroll Officer' },
 };
 
-// ── Progress Ring ─────────────────────────────────────────────────────────
-function ProgressRing({ completed, total, size = 130 }: { completed: number; total: number; size?: number }) {
-  const isDark = useIsDark();
-  const strokeWidth = 12;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = total > 0 ? completed / total : 0;
-  const offset = circumference * (1 - progress);
+const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
-        <Defs>
-          <SvgGradient id="ringgrad-b" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={colors.primary[500]} />
-            <Stop offset="100%" stopColor={colors.accent[500]} />
-          </SvgGradient>
-        </Defs>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke={isDark ? colors.charcoal[800] : colors.neutral[100]} strokeWidth={strokeWidth} fill="none" />
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="url(#ringgrad-b)" strokeWidth={strokeWidth} fill="none" strokeDasharray={`${circumference}`} strokeDashoffset={offset} strokeLinecap="round" rotation={-90} origin={`${size / 2}, ${size / 2}`} />
-      </Svg>
-      <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Text className="text-2xl font-inter font-bold text-gray-900 dark:text-white">{completed}/{total}</Text>
-        <Text className="text-[10px] uppercase font-inter font-semibold tracking-widest text-gray-400 mt-1">Pre-Run</Text>
-      </View>
-    </View>
-  );
-}
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Atoms                                                                    */
+/* ──────────────────────────────────────────────────────────────────────── */
 
-// ── Stat Card ─────────────────────────────────────────────────────────────
-function StatCard({ count, label, tone, emoji }: { count: number; label: string; tone: 'green' | 'amber' | 'gray'; emoji: string }) {
-  const isDark = useIsDark();
-  const palette = {
-    green: { bg: isDark ? 'rgba(16,185,129,0.12)' : colors.success[50],  border: isDark ? 'rgba(16,185,129,0.3)' : colors.success[200],  iconBg: isDark ? 'rgba(16,185,129,0.2)' : colors.success[100],  text: colors.success[700],  label: colors.success[600] },
-    amber: { bg: isDark ? 'rgba(245,158,11,0.12)' : colors.warning[50],  border: isDark ? 'rgba(245,158,11,0.3)' : colors.warning[200],  iconBg: isDark ? 'rgba(245,158,11,0.2)' : colors.warning[100],  text: colors.warning[700],  label: colors.warning[600] },
-    gray:  { bg: isDark ? colors.charcoal[850]     : colors.neutral[50],  border: isDark ? colors.charcoal[800]    : colors.neutral[200],  iconBg: isDark ? colors.charcoal[800]    : colors.neutral[100],  text: isDark ? colors.neutral[300] : colors.neutral[700], label: isDark ? colors.neutral[400] : colors.neutral[500] },
-  }[tone];
-
-  return (
-    <View style={[styles.statCard, { backgroundColor: palette.bg, borderColor: palette.border }]}>
-      <View style={[styles.statIconWrap, { backgroundColor: palette.iconBg }]}>
-        <Text style={{ fontSize: 13 }}>{emoji}</Text>
-      </View>
-      <Text className="text-xl font-inter font-bold" style={{ color: palette.text, marginTop: 4 }}>{count}</Text>
-      <Text className="text-[9px] uppercase font-inter font-semibold tracking-wider" style={{ color: palette.label, marginTop: 2 }}>{label}</Text>
-    </View>
-  );
-}
-
-// ── KPI Tile ──────────────────────────────────────────────────────────────
-function KPITile({ emoji, label, value, sub, color }: { emoji: string; label: string; value: string | number; sub?: string; color: string }) {
-  const isDark = useIsDark();
-  const tints: Record<string, { bg: string; border: string; iconBg: string }> = {
-    indigo:  { bg: isDark ? 'rgba(99,102,241,0.10)' : colors.primary[50], border: isDark ? 'rgba(99,102,241,0.25)' : colors.primary[200], iconBg: isDark ? 'rgba(99,102,241,0.20)' : colors.primary[100] },
-    emerald: { bg: isDark ? 'rgba(16,185,129,0.10)' : colors.success[50], border: isDark ? 'rgba(16,185,129,0.25)' : colors.success[200], iconBg: isDark ? 'rgba(16,185,129,0.20)' : colors.success[100] },
-    violet:  { bg: isDark ? 'rgba(139,92,246,0.10)' : colors.accent[50],  border: isDark ? 'rgba(139,92,246,0.25)' : colors.accent[200],  iconBg: isDark ? 'rgba(139,92,246,0.20)' : colors.accent[100] },
-    rose:    { bg: isDark ? 'rgba(244,63,94,0.10)'  : colors.danger[50],  border: isDark ? 'rgba(244,63,94,0.25)'  : colors.danger[200],  iconBg: isDark ? 'rgba(244,63,94,0.20)'  : colors.danger[100] },
-  };
-  const t = tints[color] ?? tints.indigo;
-  return (
-    <View style={[styles.kpiTile, { backgroundColor: t.bg, borderColor: t.border }]}>
-      <View style={[styles.kpiIconWrap, { backgroundColor: t.iconBg }]}>
-        <Text style={{ fontSize: 13 }}>{emoji}</Text>
-      </View>
-      <Text className="text-xl font-inter font-bold text-gray-900 dark:text-white" style={{ marginTop: 8 }}>{value}</Text>
-      <Text className="text-[10px] font-inter font-semibold text-gray-600 dark:text-gray-400 mt-1">{label}</Text>
-      {sub && <Text className="text-[9px] font-inter text-gray-400 mt-0.5">{sub}</Text>}
-    </View>
-  );
-}
-
-// ── Status Badge ──────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  const isDark = useIsDark();
-  const map: Record<string, { label: string; bg: string; text: string }> = {
-    COMPLETE:    { label: 'Completed',   bg: isDark ? 'rgba(16,185,129,0.18)' : colors.success[100], text: colors.success[700] },
-    PENDING:     { label: 'Pending',     bg: isDark ? 'rgba(245,158,11,0.18)' : colors.warning[100], text: colors.warning[700] },
-    IN_PROGRESS: { label: 'In Progress', bg: isDark ? 'rgba(14,165,233,0.18)' : colors.info[100],    text: colors.info[700] },
-    BLOCKED:     { label: 'Blocked',     bg: isDark ? 'rgba(244,63,94,0.18)'  : colors.danger[100],  text: colors.danger[700] },
-  };
-  const c = map[status] ?? map.PENDING;
-  return (
-    <View style={{ backgroundColor: c.bg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 }}>
-      <Text className="text-[10px] font-inter font-bold uppercase tracking-wider" style={{ color: c.text }}>{c.label}</Text>
-    </View>
-  );
-}
-
-function PriorityPill({ priority }: { priority: string }) {
-  const isDark = useIsDark();
-  const map: Record<string, { bg: string; text: string }> = {
-    HIGH:   { bg: isDark ? 'rgba(244,63,94,0.18)' : colors.danger[100],  text: colors.danger[700] },
-    MEDIUM: { bg: isDark ? 'rgba(245,158,11,0.18)' : colors.warning[100], text: colors.warning[700] },
-    LOW:    { bg: isDark ? colors.charcoal[800]    : colors.neutral[100], text: isDark ? colors.neutral[400] : colors.neutral[500] },
-  };
-  const c = map[priority] ?? map.LOW;
-  return (
-    <View style={{ backgroundColor: c.bg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-      <Text className="text-[9px] font-inter font-bold uppercase tracking-wider" style={{ color: c.text }}>{priority}</Text>
-    </View>
-  );
-}
-
-const AVATAR_PALETTE = [colors.primary[500], colors.accent[500], colors.success[500], colors.warning[500], colors.danger[500], colors.info[500]];
-function OwnerAvatar({ role }: { role: string }) {
-  const initials = role.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
-  const idx = initials.charCodeAt(0) % AVATAR_PALETTE.length;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: AVATAR_PALETTE[idx], alignItems: 'center', justifyContent: 'center' }}>
-        <Text className="font-inter font-bold text-white" style={{ fontSize: 8 }}>{initials}</Text>
-      </View>
-      <Text className="text-[10px] font-inter font-medium text-gray-600 dark:text-gray-400">{role}</Text>
-    </View>
-  );
-}
-
-function ActivityNumber({ num, status }: { num: number; status: string }) {
-  const isDark = useIsDark();
-  const bg = status === 'COMPLETE'
-    ? colors.success[500]
-    : status === 'BLOCKED' ? colors.danger[500]
-    : status === 'IN_PROGRESS' ? colors.info[500]
-    : (isDark ? colors.charcoal[700] : colors.neutral[200]);
-  const fg = status === 'PENDING' || !['COMPLETE','BLOCKED','IN_PROGRESS'].includes(status) ? (isDark ? colors.neutral[400] : colors.neutral[500]) : '#fff';
-  return (
-    <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      {status === 'COMPLETE'
-        ? <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>✓</Text>
-        : <Text className="font-inter font-bold" style={{ color: fg, fontSize: 11 }}>{num}</Text>
-      }
-    </View>
-  );
-}
-
-function HealthBar({ label, value, tone }: { label: string; value: number; tone: 'green' | 'amber' | 'red' }) {
-  const isDark = useIsDark();
-  const fill = tone === 'green' ? colors.success[500] : tone === 'amber' ? colors.warning[500] : colors.danger[500];
-  const text = tone === 'green' ? colors.success[600] : tone === 'amber' ? colors.warning[600] : colors.danger[600];
-  return (
-    <View style={{ marginBottom: 14 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-        <Text className="text-xs font-inter font-medium text-gray-700 dark:text-gray-300">{label}</Text>
-        <Text className="text-xs font-inter font-bold" style={{ color: text }}>{value}%</Text>
-      </View>
-      <View style={{ height: 6, borderRadius: 3, backgroundColor: isDark ? colors.charcoal[800] : colors.neutral[100], overflow: 'hidden' }}>
-        <View style={{ height: '100%', width: `${Math.max(0, Math.min(100, value))}%`, backgroundColor: fill, borderRadius: 3 }} />
-      </View>
-    </View>
-  );
-}
-
-// ── Main Screen ───────────────────────────────────────────────────────────
-export function PhaseBPreRunScreen() {
-  const isDark = useIsDark();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  const { data: runsData, isLoading: runsLoading } = usePayrollRuns();
-  const runs = (runsData?.data ?? []) as any[];
-  const latestRun = runs.length > 0 ? runs[0] : null;
-  const latestRunId = latestRun?.id ?? '';
-
-  const { data: checklistData, isLoading: checklistLoading, refetch } = usePreRunChecklist(latestRunId);
-  const checklist = checklistData?.data;
-
-  const activities = checklist?.activities ?? [];
-  const completedCount = checklist?.completedCount ?? 0;
-  const totalCount = checklist?.totalCount ?? 10;
-  const keyStats = checklist?.keyStats;
-  const runInfo = checklist?.run;
-  const allComplete = completedCount === totalCount;
-  const isLoading = runsLoading || checklistLoading;
-
-  const inProgressCount = activities.filter((a: any) => a.status === 'IN_PROGRESS').length;
-  const pendingCount = activities.filter((a: any) => a.status === 'PENDING' || a.status === 'BLOCKED').length;
-
-  if (isLoading) {
-    return <View style={{ flex: 1, padding: 16 }}><SkeletonCard /><SkeletonCard /><SkeletonCard /></View>;
-  }
-
-  if (!latestRun) {
+function ProgressRing({ completed, total, size = 110 }: { completed: number; total: number; size?: number }) {
+    const strokeWidth = 10;
+    const radius = (size - strokeWidth) / 2;
+    const circ = 2 * Math.PI * radius;
+    const progress = total > 0 ? completed / total : 0;
+    const offset = circ * (1 - progress);
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <Text className="text-lg font-inter font-bold text-gray-900 dark:text-white mb-2">No Payroll Run Found</Text>
-        <Text className="text-sm font-inter text-gray-500 dark:text-gray-400 text-center mb-4">
-          Create a payroll run first to see pre-run activities.
-        </Text>
-        <Pressable onPress={() => router.push('/company/hr/payroll-runs' as any)} style={{ backgroundColor: colors.primary[600], paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12 }}>
-          <Text className="text-sm font-inter font-bold text-white">Go to Payroll Runs →</Text>
-        </Pressable>
-      </View>
+        <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+                <Defs>
+                    <SvgGradient id="phaseB-ring" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0%" stopColor={colors.primary[600]} />
+                        <Stop offset="100%" stopColor={colors.accent[600]} />
+                    </SvgGradient>
+                </Defs>
+                <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.neutral[200]} strokeWidth={strokeWidth} fill="none" />
+                <Circle
+                    cx={size / 2} cy={size / 2} r={radius}
+                    stroke="url(#phaseB-ring)" strokeWidth={strokeWidth}
+                    strokeLinecap="round" fill="none"
+                    strokeDasharray={circ}
+                    strokeDashoffset={offset}
+                />
+            </Svg>
+            <Text className="font-inter text-xl font-bold text-neutral-900">{completed}/{total}</Text>
+            <Text className="mt-0.5 font-inter text-[10px] font-medium uppercase tracking-wider text-neutral-500">Completed</Text>
+        </View>
     );
-  }
-
-  const runMonth = runInfo?.month ?? latestRun.month;
-  const runYear = runInfo?.year ?? latestRun.year;
-  const runLabel = `${MONTH_NAMES[runMonth]} ${runYear} Payroll`;
-  const payDateMonth = runMonth === 12 ? 1 : runMonth + 1;
-  const payDateYear = runMonth === 12 ? runYear + 1 : runYear;
-
-  const compliancePct = activities.filter((a: any) => a.id === 'statutory_compliance' && a.status === 'COMPLETE').length === 1 ? 100 : 0;
-  const dataPct = Math.round((activities.filter((a: any) => ['verify_attendance', 'new_joiners_exits', 'salary_holds'].includes(a.id) && a.status === 'COMPLETE').length / 3) * 100);
-  const approvalsPct = Math.round((activities.filter((a: any) => ['pending_approvals', 'one_time_adjustments', 'salary_revisions'].includes(a.id) && a.status === 'COMPLETE').length / 3) * 100);
-
-  const eligibleCount = Math.max((keyStats?.totalEmployees ?? 0) - (keyStats?.exits ?? 0), 0);
-  const eligiblePct = keyStats?.totalEmployees > 0 ? Math.round((eligibleCount / keyStats.totalEmployees) * 100) : 0;
-
-  const pendingItemsList = activities.filter((a: any) => a.status !== 'COMPLETE' && a.pendingCount != null && a.pendingCount > 0);
-
-  const bgColor = isDark ? colors.charcoal[950] : colors.gradient.surface;
-  const cardBg = isDark ? colors.charcoal[900] : '#fff';
-  const borderColor = isDark ? colors.charcoal[800] : colors.neutral[200];
-
-  return (
-    <View style={{ flex: 1, backgroundColor: bgColor }}>
-      <LinearGradient
-        colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Text className="text-xl font-inter font-bold text-white">Phase B — Pre-Run</Text>
-          <View style={{ backgroundColor: 'rgba(16,185,129,0.4)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
-            <Text className="text-[10px] font-inter font-bold text-white">✨ Easy Guide</Text>
-          </View>
-        </View>
-        <Text className="text-xs font-inter text-white/80 mt-1">Verify readiness before payroll execution</Text>
-      </LinearGradient>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}>
-        {/* Hero: Progress + Stats + Pay Period */}
-        <Animated.View entering={FadeInDown.delay(80)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <ProgressRing completed={completedCount} total={totalCount} />
-            <View style={{ flex: 1, gap: 8 }}>
-              <StatCard count={completedCount} label="Completed" tone="green" emoji="✓" />
-              <StatCard count={inProgressCount} label="In Progress" tone="amber" emoji="⟳" />
-              <StatCard count={pendingCount} label="Pending" tone="gray" emoji="○" />
-            </View>
-          </View>
-
-          {/* Pay Period Card */}
-          <LinearGradient
-            colors={[isDark ? 'rgba(99,102,241,0.18)' : colors.primary[50], isDark ? 'rgba(139,92,246,0.18)' : colors.accent[50]]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={[styles.payPeriodCard, { borderColor: isDark ? 'rgba(99,102,241,0.3)' : colors.primary[200] }]}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={styles.sectionIcon}>
-                  <LinearGradient colors={[colors.primary[500], colors.accent[500]]} style={styles.sectionIconGrad}>
-                    <Text style={{ fontSize: 14, color: '#fff' }}>📅</Text>
-                  </LinearGradient>
-                </View>
-                <Text className="text-[10px] uppercase font-inter font-bold tracking-widest" style={{ color: colors.primary[600] }}>Pay Period</Text>
-              </View>
-              <Pressable onPress={() => router.push('/company/hr/payroll-runs' as any)}>
-                <Text style={{ color: colors.primary[500], fontSize: 14 }}>✎</Text>
-              </Pressable>
-            </View>
-            <Text className="text-xl font-inter font-bold text-gray-900 dark:text-white" style={{ marginBottom: 6 }}>{runLabel}</Text>
-            <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 mb-2">
-              Pay Date: <Text className="font-inter font-bold text-gray-900 dark:text-white">1 {MONTH_NAMES[payDateMonth]} {payDateYear}</Text>
-            </Text>
-            <View style={{ alignSelf: 'flex-start', backgroundColor: isDark ? 'rgba(99,102,241,0.25)' : colors.primary[100], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-              <Text className="text-[10px] font-inter font-bold uppercase tracking-wider" style={{ color: colors.primary[700] }}>
-                {runInfo?.status ?? latestRun.status}
-              </Text>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* KPI Tiles */}
-        <Animated.View entering={FadeInDown.delay(150)} style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-          <KPITile emoji="👥" label="Total Employees" value={keyStats?.totalEmployees ?? '—'} color="indigo" />
-          <KPITile emoji="✓" label="Eligible" value={eligibleCount} sub={`${eligiblePct}% of total`} color="emerald" />
-        </Animated.View>
-        <Animated.View entering={FadeInDown.delay(200)} style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-          <KPITile emoji="➕" label="New Joiners" value={keyStats?.newJoiners ?? 0} sub="This month" color="violet" />
-          <KPITile emoji="➖" label="Exits" value={keyStats?.exits ?? 0} sub="This month" color="rose" />
-        </Animated.View>
-
-        {/* Checklist */}
-        <Animated.View entering={FadeInDown.delay(250)} style={[styles.card, { backgroundColor: cardBg, borderColor, padding: 0 }]}>
-          <View style={[styles.cardHeader, { borderBottomColor: isDark ? colors.charcoal[800] : colors.neutral[100] }]}>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">
-              Pre-Run Checklist <Text className="text-gray-400 font-inter">({totalCount})</Text>
-            </Text>
-            <Pressable onPress={() => refetch()} style={styles.refreshBtn}>
-              <Text className="text-[10px] font-inter font-semibold text-gray-500 dark:text-gray-400">↻ Refresh</Text>
-            </Pressable>
-          </View>
-
-          {activities.map((act: any, i: number) => {
-            const meta = ACTIVITY_META[act.id] ?? { emoji: '○', owner: 'Admin' };
-            const isLast = i === activities.length - 1;
-            return (
-              <Animated.View
-                key={act.id}
-                entering={FadeInDown.delay(300 + i * 30)}
-                style={{ paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: isLast ? 0 : 1, borderBottomColor: isDark ? colors.charcoal[800] : colors.neutral[100] }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                  <ActivityNumber num={act.activityNumber} status={act.status} />
-                  <View style={[styles.stepIconWrap, { backgroundColor: isDark ? colors.charcoal[850] : colors.neutral[50] }]}>
-                    <Text style={{ fontSize: 15 }}>{meta.emoji}</Text>
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Text className="text-sm font-inter font-semibold text-gray-900 dark:text-white">{act.name}</Text>
-                      {act.pendingCount != null && act.pendingCount > 0 && act.status !== 'COMPLETE' && (
-                        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.danger[500], alignItems: 'center', justifyContent: 'center' }}>
-                          <Text className="font-inter font-bold text-white" style={{ fontSize: 9 }}>{act.pendingCount}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text className="text-xs font-inter text-gray-500 dark:text-gray-400 mt-0.5" numberOfLines={2}>{act.description}</Text>
-                    <View style={{ marginTop: 8 }}>
-                      <OwnerAvatar role={meta.owner} />
-                    </View>
-                    {act.blockerReason && (
-                      <Text className="text-[10px] font-inter mt-1.5" style={{ color: colors.danger[600] }}>⚠ {act.blockerReason}</Text>
-                    )}
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 5 }}>
-                    <PriorityPill priority={act.priority} />
-                    <StatusBadge status={act.status} />
-                  </View>
-                </View>
-              </Animated.View>
-            );
-          })}
-        </Animated.View>
-
-        {/* Health Check */}
-        <Animated.View entering={FadeInDown.delay(550)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <View style={styles.sectionIcon}>
-              <LinearGradient colors={[colors.success[500], colors.success[600]]} style={styles.sectionIconGrad}>
-                <Text style={{ fontSize: 14, color: '#fff' }}>♥</Text>
-              </LinearGradient>
-            </View>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Pre-Run Health Check</Text>
-          </View>
-          <HealthBar label="Compliance" value={compliancePct} tone={compliancePct >= 90 ? 'green' : compliancePct >= 60 ? 'amber' : 'red'} />
-          <HealthBar label="Data Quality" value={dataPct} tone={dataPct >= 90 ? 'green' : dataPct >= 60 ? 'amber' : 'red'} />
-          <HealthBar label="Approvals" value={approvalsPct} tone={approvalsPct >= 90 ? 'green' : approvalsPct >= 60 ? 'amber' : 'red'} />
-        </Animated.View>
-
-        {/* Pending Items */}
-        {pendingItemsList.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(600)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <View style={styles.sectionIcon}>
-                <LinearGradient colors={[colors.warning[500], '#F97316']} style={styles.sectionIconGrad}>
-                  <Text style={{ fontSize: 14, color: '#fff' }}>⚠</Text>
-                </LinearGradient>
-              </View>
-              <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Pending Items</Text>
-            </View>
-            {pendingItemsList.map((item: any) => (
-              <View key={item.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
-                <Text className="text-xs font-inter text-gray-700 dark:text-gray-300 flex-1" numberOfLines={1}>{item.name}</Text>
-                <View style={{ minWidth: 24, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: isDark ? 'rgba(244,63,94,0.2)' : colors.danger[100], alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}>
-                  <Text className="text-[10px] font-inter font-bold" style={{ color: colors.danger[700] }}>{item.pendingCount}</Text>
-                </View>
-              </View>
-            ))}
-          </Animated.View>
-        )}
-
-        {/* Documents & Reports */}
-        <Animated.View entering={FadeInDown.delay(650)} style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <View style={styles.sectionIcon}>
-              <LinearGradient colors={[colors.accent[500], '#D946EF']} style={styles.sectionIconGrad}>
-                <Text style={{ fontSize: 14, color: '#fff' }}>📑</Text>
-              </LinearGradient>
-            </View>
-            <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Documents & Reports</Text>
-          </View>
-          {[
-            { label: 'Salary Register',    emoji: '📄', path: '/company/hr/payroll-reports' },
-            { label: 'Variance Report',    emoji: '📈', path: '/company/hr/payroll-reports' },
-            { label: 'PF / ESI Statement', emoji: '🛡️', path: '/company/hr/statutory-filings' },
-            { label: 'Bank File Preview',  emoji: '🏦', path: '/company/hr/payroll-reports' },
-          ].map((d, i, arr) => (
-            <Pressable
-              key={d.label}
-              onPress={() => router.push(d.path as any)}
-              style={[styles.quickLink, { borderBottomColor: isDark ? colors.charcoal[800] : colors.neutral[100], borderBottomWidth: i === arr.length - 1 ? 0 : 1 }]}
-            >
-              <Text style={{ fontSize: 14, width: 22 }}>{d.emoji}</Text>
-              <Text className="text-sm font-inter font-medium text-gray-700 dark:text-gray-300 flex-1">{d.label}</Text>
-              <Text className="text-gray-400">›</Text>
-            </Pressable>
-          ))}
-        </Animated.View>
-
-        {/* Need Help */}
-        <Animated.View entering={FadeInDown.delay(700)}>
-          <LinearGradient
-            colors={[colors.primary[500], colors.accent[600]]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={[styles.card, { borderWidth: 0, padding: 18 }]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 16, color: '#fff' }}>?</Text>
-              </View>
-              <Text className="text-base font-inter font-bold text-white">Need Help?</Text>
-            </View>
-            <Text className="text-xs font-inter text-white/85 mb-3 leading-5">
-              Stuck on a pre-run check? Our payroll specialists are one call away.
-            </Text>
-            <Pressable onPress={() => Linking.openURL('tel:+918045671234')} style={styles.contactBtn}>
-              <Text className="text-sm font-inter font-bold text-white">📞 +91 80 4567 1234</Text>
-            </Pressable>
-            <Pressable onPress={() => Linking.openURL('mailto:support@avyrentechnologies.com')} style={[styles.contactBtn, { marginTop: 6 }]}>
-              <Text className="text-sm font-inter font-bold text-white">✉ Email Support</Text>
-            </Pressable>
-          </LinearGradient>
-        </Animated.View>
-      </ScrollView>
-
-      {/* Bottom Bar */}
-      <View style={[styles.bottomBar, {
-        backgroundColor: allComplete ? (isDark ? 'rgba(16,185,129,0.12)' : colors.success[50]) : (isDark ? 'rgba(99,102,241,0.12)' : colors.primary[50]),
-        borderTopColor: allComplete ? colors.success[200] : colors.primary[200],
-        paddingBottom: insets.bottom + 8,
-      }]}>
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text className="text-xs font-inter font-bold" style={{ color: allComplete ? colors.success[700] : colors.primary[700] }}>
-            {allComplete ? 'All checks passed!' : `${totalCount - completedCount} remaining`}
-          </Text>
-          <Text className="text-[10px] font-inter mt-0.5" style={{ color: allComplete ? colors.success[600] : colors.primary[600] }}>
-            {allComplete ? 'Ready for payroll execution.' : 'Complete to unlock execution.'}
-          </Text>
-        </View>
-        <Pressable
-          disabled={!allComplete}
-          onPress={() => router.push('/company/hr/payroll-runs' as any)}
-          style={{
-            backgroundColor: allComplete ? colors.primary[600] : (isDark ? colors.charcoal[700] : colors.neutral[200]),
-            paddingHorizontal: 16, paddingVertical: 11, borderRadius: 12,
-          }}
-        >
-          <Text className="text-sm font-inter font-bold" style={{ color: allComplete ? '#fff' : (isDark ? colors.neutral[500] : colors.neutral[400]) }}>
-            Phase C →
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
 }
+
+function StatusPill({ status, pendingCount }: { status: ActivityStatus; pendingCount: number | null }) {
+    const map: Record<ActivityStatus, { bg: string; fg: string; label: string }> = {
+        COMPLETE:    { bg: colors.success[50], fg: colors.success[700], label: 'Completed' },
+        IN_PROGRESS: { bg: colors.warning[50], fg: colors.warning[700], label: 'In Progress' },
+        BLOCKED:     { bg: colors.danger[50],  fg: colors.danger[700],  label: 'Issues' },
+        PENDING:     { bg: colors.neutral[100], fg: colors.neutral[600], label: 'Pending' },
+    };
+    const t = map[status];
+    return (
+        <View>
+            <View style={[styles.pill, { backgroundColor: t.bg }]}>
+                <Text style={[styles.pillText, { color: t.fg }]}>{t.label}</Text>
+            </View>
+            {status === 'BLOCKED' && pendingCount != null && pendingCount > 0 && (
+                <Text style={{ fontFamily: 'Inter', fontSize: 10, marginTop: 2, color: colors.danger[600], fontWeight: '600' }}>{pendingCount} employees</Text>
+            )}
+        </View>
+    );
+}
+
+function PriorityChip({ priority }: { priority: Priority }) {
+    const map: Record<Priority, string> = {
+        HIGH: colors.danger[600],
+        MEDIUM: colors.warning[600],
+        LOW: colors.neutral[500],
+    };
+    return <Text style={{ fontFamily: 'Inter', fontSize: 9, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', color: map[priority] }}>{priority}</Text>;
+}
+
+function RolePill({ role, bg, fg }: { role: string; bg: string; fg: string }) {
+    return (
+        <View style={[styles.pill, { backgroundColor: bg, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+            <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: fg, opacity: 0.7 }} />
+            <Text style={[styles.pillText, { color: fg }]}>{role}</Text>
+        </View>
+    );
+}
+
+function ActivityCard({ activity, meta, index, runId }: { activity: BackendActivity; meta: ActivityMeta; index: number; runId: string }) {
+    const router = useRouter();
+    let label = 'Start';
+    let tint = colors.primary[600];
+    if (activity.status === 'COMPLETE') label = 'View Details';
+    else if (activity.status === 'IN_PROGRESS') label = 'Continue';
+    else if (activity.status === 'BLOCKED') { label = 'Resolve Issues'; tint = colors.danger[600]; }
+
+    return (
+        <Animated.View entering={FadeInDown.delay(60 * index).duration(360)} style={styles.actCard}>
+            <View style={styles.actHeaderRow}>
+                <View style={styles.priorityCol}>
+                    <PriorityChip priority={activity.priority} />
+                </View>
+                <View style={[styles.actIconCircle, { backgroundColor: meta.iconTintBg }]}>
+                    <Text style={[styles.actEmoji, { color: meta.iconTintFg }]}>{meta.emoji}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text className="font-inter text-[13.5px] font-bold text-neutral-900">{activity.name}</Text>
+                    <Text className="mt-1 font-inter text-[12px] leading-[16px] text-neutral-600">{activity.description}</Text>
+                </View>
+            </View>
+
+            <View style={styles.actMetaRow}>
+                <StatusPill status={activity.status} pendingCount={activity.pendingCount} />
+                <RolePill role={meta.ownerRole} bg={meta.iconTintBg} fg={meta.iconTintFg} />
+                <View style={styles.timeChip}>
+                    <Text style={styles.timeChipText}>⏱ ~{meta.estMin} min</Text>
+                </View>
+            </View>
+
+            {activity.blockerReason && (
+                <View style={styles.blockerBanner}>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 11, color: colors.danger[700] }}>⚠ {activity.blockerReason}</Text>
+                </View>
+            )}
+
+            <View style={styles.actFooterRow}>
+                <Text className="font-inter text-[11px] text-neutral-500">
+                    {activity.pendingCount != null ? `${activity.pendingCount} pending` : ' '}
+                </Text>
+                <Pressable onPress={() => router.push(`/company/hr/payroll-runs?runId=${runId}` as any)}>
+                    <Text style={[styles.actionText, { color: tint }]}>{label} ›</Text>
+                </Pressable>
+            </View>
+        </Animated.View>
+    );
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Main screen                                                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+export function PhaseBPreRunScreen() {
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const fmt = useCompanyFormatter();
+    const { toggle } = useSidebar();
+    const params = useLocalSearchParams<{ runId?: string }>();
+    const explicitRunId = params.runId ?? '';
+
+    /* Fetch runs to discover active runId
+       NOTE: mobile axios interceptor + API fn already unwrap to inner payload.
+       listPayrollRuns returns either the array directly OR { data: [...], meta }.
+       Handle both shapes defensively. */
+    const { data: runsResp, isLoading: runsLoading } = usePayrollRuns({ limit: 20 });
+    const runsList: any[] = React.useMemo(() => {
+        const r: any = runsResp;
+        if (Array.isArray(r)) return r;
+        if (Array.isArray(r?.data)) return r.data;
+        if (Array.isArray(r?.items)) return r.items;
+        return [];
+    }, [runsResp]);
+
+    const inferredRunId = React.useMemo(() => {
+        if (explicitRunId) return explicitRunId;
+        const preExec = runsList.find(r => ['DRAFT', 'ATTENDANCE_LOCKED', 'EXCEPTIONS_REVIEWED', 'COMPUTED', 'STATUTORY_DONE'].includes(r.status));
+        if (preExec) return preExec.id;
+        return runsList[0]?.id ?? '';
+    }, [explicitRunId, runsList]);
+
+    const { data: checklistResp, isLoading: checklistLoading, isRefetching, refetch } = usePreRunChecklist(inferredRunId);
+    // mobile axios interceptor + API fn already unwrap to inner payload
+    const checklist = (checklistResp as any) as BackendChecklist | undefined;
+
+    const counts = React.useMemo(() => {
+        const c = { complete: 0, inProgress: 0, issues: 0, pending: 0 };
+        (checklist?.activities ?? []).forEach(a => {
+            if (a.status === 'COMPLETE') c.complete++;
+            else if (a.status === 'IN_PROGRESS') c.inProgress++;
+            else if (a.status === 'BLOCKED') c.issues++;
+            else c.pending++;
+        });
+        return c;
+    }, [checklist]);
+
+    const completed = checklist?.completedCount ?? 0;
+    const total = checklist?.totalCount ?? 10;
+    const blockingIssues = (checklist?.activities ?? []).filter(a => a.status === 'BLOCKED');
+    const blockingHolds = (checklist?.activities ?? []).find(a => a.id === 'salary_holds' && a.status === 'BLOCKED');
+    const allReady = completed >= total && blockingIssues.length === 0;
+
+    if (!runsLoading && runsList.length === 0) {
+        return (
+            <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+                <AppTopHeader title="Phase B — Pre-Run" onMenuPress={toggle} />
+                <EmptyState
+                    icon="inbox"
+                    title="No payroll runs yet"
+                    message="Create a payroll run before pre-run activities can be evaluated."
+                    action={{ label: 'Open Payroll Run Wizard', onPress: () => router.push('/company/hr/payroll-runs' as any) }}
+                />
+            </View>
+        );
+    }
+
+    if (runsLoading || checklistLoading || !checklist) {
+        return (
+            <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+                <AppTopHeader title="Phase B — Pre-Run" onMenuPress={toggle} />
+                <View style={{ padding: 16, gap: 12 }}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </View>
+            </View>
+        );
+    }
+
+    const acts = checklist.activities;
+    const get = (id: string) => acts.find(a => a.id === id);
+
+    const healthChecks = [
+        { label: 'Attendance Closed',     sub: `${checklist.keyStats.totalEmployees - (get('verify_attendance')?.pendingCount ?? 0)}/${checklist.keyStats.totalEmployees} employees`, ok: get('verify_attendance')?.status === 'COMPLETE', emoji: '🗓' },
+        { label: 'Leaves Actioned',       sub: 'All leave requests are actioned',                                                  ok: get('pending_approvals')?.status === 'COMPLETE', emoji: '📅' },
+        { label: 'Pending Regularizations', sub: `${get('review_exceptions')?.pendingCount ?? 0} pending`,                          ok: (get('review_exceptions')?.pendingCount ?? 0) === 0, emoji: '⚠' },
+        { label: 'Salary Holds',          sub: `${get('salary_holds')?.pendingCount ?? 0} employees on hold`,                       ok: (get('salary_holds')?.pendingCount ?? 0) === 0, emoji: '🔒' },
+        { label: 'Loan EMI Schedules',    sub: 'All active and verified',                                                          ok: get('loan_adjustments')?.status === 'COMPLETE', emoji: '🏛' },
+        { label: 'Reimbursement Claims',  sub: `${get('one_time_adjustments')?.pendingCount ?? 0} pending review`,                  ok: (get('one_time_adjustments')?.pendingCount ?? 0) === 0, emoji: '🧾' },
+    ];
+
+    const pendingItems = acts
+        .filter(a => a.status === 'BLOCKED' || (a.status === 'PENDING' && (a.pendingCount ?? 0) > 0))
+        .slice(0, 4);
+
+    const periodLabel = `${MONTHS[checklist.run.month]} ${checklist.run.year} Payroll`;
+    const monthStart = new Date(checklist.run.year, checklist.run.month - 1, 1).toISOString();
+    const monthEnd = new Date(checklist.run.year, checklist.run.month, 0).toISOString();
+    const payDate = new Date(checklist.run.year, checklist.run.month, 5).toISOString();
+
+    const DOCUMENTS = [
+        { label: 'Attendance Summary',      emoji: '🗓', to: '/company/hr/attendance' },
+        { label: 'Leave Summary',           emoji: '📅', to: '/company/hr/my-leave' },
+        { label: 'Pending Regularizations', emoji: '⚠', to: '/company/hr/attendance-overrides' },
+        { label: 'Reimbursement Claims',    emoji: '🧾', to: '/company/hr/expenses' },
+        { label: 'Salary Revision Report',  emoji: '📊', to: '/company/hr/salary-revisions' },
+    ];
+
+    return (
+        <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+            <AppTopHeader title="Phase B — Pre-Run" onMenuPress={toggle} subtitle="Every Payroll Cycle" />
+
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 120 + insets.bottom }}
+                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary[600]} />}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Intro */}
+                <Animated.View entering={FadeInDown.duration(360)} style={styles.heroCard}>
+                    <Text className="font-inter text-[12px] font-bold uppercase tracking-wider text-primary-600">Pre-Run Activities</Text>
+                    <Text className="mt-1 font-inter text-[13px] leading-[18px] text-neutral-600">
+                        Complete all pre-run activities to ensure accurate and smooth payroll execution.
+                    </Text>
+                </Animated.View>
+
+                {/* Progress + Stats */}
+                <Animated.View entering={FadeInDown.delay(60).duration(360)} style={[styles.heroCard, { marginTop: 12 }]}>
+                    <Text className="font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Pre-Run Progress</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 }}>
+                        <ProgressRing completed={completed} total={total} />
+                        <View style={{ flex: 1, gap: 6 }}>
+                            <CountRow color={colors.success[500]} label="Completed"   value={counts.complete} />
+                            <CountRow color={colors.warning[500]} label="In Progress" value={counts.inProgress} />
+                            <CountRow color={colors.danger[500]}  label="Issues"      value={counts.issues} />
+                            <CountRow color={colors.neutral[400]} label="Pending"     value={counts.pending} />
+                        </View>
+                    </View>
+                </Animated.View>
+
+                {/* Payroll Period card */}
+                <Animated.View entering={FadeInDown.delay(120).duration(360)} style={[styles.heroCard, { marginTop: 12 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View style={[styles.miniIcon, { backgroundColor: colors.info[50] }]}>
+                                <Text style={{ color: colors.info[600] }}>📅</Text>
+                            </View>
+                            <Text className="font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Payroll Period</Text>
+                        </View>
+                        <Pressable onPress={() => router.push(`/company/hr/payroll-runs?runId=${checklist.run.id}` as any)}>
+                            <Text style={styles.actionText}>✎ Edit Period</Text>
+                        </Pressable>
+                    </View>
+                    <Text className="mt-2 font-inter text-[18px] font-bold text-neutral-900">{periodLabel}</Text>
+                    <Text className="mt-1 font-inter text-[12.5px] text-neutral-600">
+                        {fmt.date(monthStart)} – {fmt.date(monthEnd)}
+                    </Text>
+                    <Text className="mt-1 font-inter text-[12px] text-neutral-500">
+                        Pay Date (Tentative): <Text className="font-inter font-bold text-neutral-700">{fmt.date(payDate)}</Text>
+                    </Text>
+                </Animated.View>
+
+                {/* Key Stats */}
+                <Animated.View entering={FadeInDown.delay(180).duration(360)} style={[styles.heroCard, { marginTop: 12 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <View style={[styles.miniIcon, { backgroundColor: colors.accent[50] }]}>
+                            <Text style={{ color: colors.accent[600] }}>📊</Text>
+                        </View>
+                        <Text className="font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Key Stats</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                        <KeyStat label="Total Employees" value={checklist.keyStats.totalEmployees} />
+                        <KeyStat label="Active"          value={checklist.run.employeeCount || checklist.keyStats.totalEmployees} />
+                        <KeyStat label="New Joiners"     value={checklist.keyStats.newJoiners} color={colors.success[600]} />
+                        <KeyStat label="Exits"           value={checklist.keyStats.exits}      color={colors.danger[600]} />
+                    </View>
+                </Animated.View>
+
+                {/* Checklist */}
+                <View style={{ marginTop: 20, marginBottom: 8, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text className="font-inter text-[15px] font-bold text-neutral-900">
+                        Pre-Run Checklist <Text className="font-inter text-neutral-500 font-semibold">({total})</Text>
+                    </Text>
+                </View>
+
+                {acts.map((a, idx) => {
+                    const meta = ACTIVITY_META[a.id] ?? { emoji: '⚙️', iconTintBg: colors.neutral[100], iconTintFg: colors.neutral[700], estMin: 15, ownerRole: 'HR' };
+                    return <ActivityCard key={a.id} activity={a} meta={meta} index={idx} runId={checklist.run.id} />;
+                })}
+
+                {/* Holds alert */}
+                {blockingHolds && (
+                    <View style={styles.holdAlert}>
+                        <Text style={{ fontFamily: 'Inter', flex: 1, fontSize: 12.5, color: colors.danger[700], fontWeight: '600' }}>
+                            ⚠ {blockingHolds.pendingCount} employee{(blockingHolds.pendingCount ?? 0) !== 1 ? 's are' : ' is'} on salary hold. Resolve before proceeding.
+                        </Text>
+                        <Pressable
+                            onPress={() => router.push('/company/hr/salary-holds' as any)}
+                            style={styles.reviewHoldsBtn}
+                        >
+                            <Text style={{ fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: colors.danger[700] }}>Review Holds ›</Text>
+                        </Pressable>
+                    </View>
+                )}
+
+                {/* Health check */}
+                <View style={[styles.infoCard, { marginTop: 16 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text className="font-inter text-[14px] font-bold text-neutral-900">Pre-Run Health Check</Text>
+                        <Pressable onPress={() => refetch()}>
+                            <Text style={styles.actionText}>⟳ Refresh</Text>
+                        </Pressable>
+                    </View>
+                    {healthChecks.map(h => (
+                        <View key={h.label} style={styles.healthRow}>
+                            <View style={[styles.healthIcon, { backgroundColor: h.ok ? colors.success[50] : colors.danger[50] }]}>
+                                <Text style={{ color: h.ok ? colors.success[600] : colors.danger[600] }}>{h.emoji}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text className="font-inter text-[12.5px] font-semibold text-neutral-800">{h.label}</Text>
+                                <Text className="font-inter text-[11px] text-neutral-500">{h.sub}</Text>
+                            </View>
+                            <Text style={{ color: h.ok ? colors.success[700] : colors.danger[700], fontWeight: '700' }}>{h.ok ? '✓' : '✕'}</Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* Pending Items */}
+                <View style={[styles.infoCard, { marginTop: 12 }]}>
+                    <Text className="mb-3 font-inter text-[14px] font-bold text-neutral-900">Pending Items Requiring Attention</Text>
+                    {pendingItems.length === 0 ? (
+                        <Text className="font-inter text-[12px] text-neutral-500">No pending items 🎉</Text>
+                    ) : (
+                        pendingItems.map(p => {
+                            const tint = p.priority === 'HIGH' ? colors.danger[600] : p.priority === 'MEDIUM' ? colors.warning[600] : colors.neutral[500];
+                            const iconBg = p.priority === 'HIGH' ? colors.danger[50] : p.priority === 'MEDIUM' ? colors.warning[50] : colors.neutral[100];
+                            return (
+                                <View key={p.id} style={styles.pendingRow}>
+                                    <View style={[styles.healthIcon, { backgroundColor: iconBg }]}>
+                                        <Text style={{ color: tint }}>⚠</Text>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text className="font-inter text-[12.5px] font-semibold text-neutral-800">{p.name}</Text>
+                                        <Text className="font-inter text-[11px] text-neutral-500">{p.blockerReason || (p.pendingCount != null ? `${p.pendingCount} pending` : 'Needs attention')}</Text>
+                                    </View>
+                                    <Text style={{ color: tint, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 }}>{p.priority}</Text>
+                                </View>
+                            );
+                        })
+                    )}
+                </View>
+
+                {/* Documents */}
+                <View style={[styles.infoCard, { marginTop: 12 }]}>
+                    <Text className="mb-3 font-inter text-[14px] font-bold text-neutral-900">Documents & Reports</Text>
+                    {DOCUMENTS.map(d => (
+                        <Pressable
+                            key={d.label}
+                            onPress={() => router.push(d.to as any)}
+                            style={({ pressed }) => [styles.quickLink, pressed && { backgroundColor: colors.neutral[100] }]}
+                        >
+                            <Text style={styles.quickLinkText}>
+                                <Text style={{ color: colors.primary[500] }}>{d.emoji}  </Text>
+                                {d.label} – {MONTHS[checklist.run.month]!.slice(0, 3)} {checklist.run.year}
+                            </Text>
+                            <Text style={{ color: colors.neutral[400], fontSize: 14 }}>›</Text>
+                        </Pressable>
+                    ))}
+                </View>
+
+                {/* Need Help */}
+                <LinearGradient
+                    colors={[colors.primary[600], colors.primary[700], colors.accent[700]] as const}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={[styles.helpCard, { marginTop: 12 }]}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <View style={styles.helpIcon}>
+                            <Text style={{ fontSize: 16 }}>🎧</Text>
+                        </View>
+                        <Text className="font-inter text-[14px] font-bold text-white">Need Help?</Text>
+                    </View>
+                    <Text className="mb-3 font-inter text-[12.5px] text-white/80">Contact Payroll Support Team</Text>
+                    <Pressable onPress={() => Linking.openURL('mailto:payroll.support@avyerp.com')} style={styles.helpLine}>
+                        <Text style={styles.helpLineText}>✉  payroll.support@avyerp.com</Text>
+                    </Pressable>
+                    <Pressable onPress={() => Linking.openURL('tel:+918012345678')} style={styles.helpLine}>
+                        <Text style={styles.helpLineText}>📞  +91 80 1234 5678</Text>
+                    </Pressable>
+                </LinearGradient>
+            </ScrollView>
+
+            {/* Sticky bottom bar */}
+            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
+                <View style={styles.bottomStatus}>
+                    {allReady ? (
+                        <>
+                            <Text style={{ color: colors.success[600], fontSize: 14 }}>✓</Text>
+                            <Text className="font-inter text-[12px] font-semibold text-success-700">All complete. Ready to proceed.</Text>
+                        </>
+                    ) : blockingIssues.length > 0 ? (
+                        <>
+                            <Text style={{ color: colors.neutral[500], fontSize: 14 }}>🔒</Text>
+                            <Text className="font-inter text-[12px] font-semibold text-neutral-700">
+                                {blockingIssues.length} blocking item{blockingIssues.length === 1 ? '' : 's'} need attention
+                            </Text>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={{ color: colors.neutral[500], fontSize: 14 }}>⏱</Text>
+                            <Text className="font-inter text-[12px] font-semibold text-neutral-700">
+                                {total - completed} of {total} remaining
+                            </Text>
+                        </>
+                    )}
+                </View>
+                <Pressable
+                    disabled={!allReady}
+                    onPress={() => router.push(`/company/hr/payroll-runs?runId=${checklist.run.id}` as any)}
+                    style={[styles.bottomCta, !allReady && { opacity: 0.5 }]}
+                >
+                    {allReady ? (
+                        <LinearGradient
+                            colors={[colors.primary[600], colors.accent[600]] as const}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    ) : (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.neutral[200] }]} />
+                    )}
+                    <Text className="font-inter text-[13px] font-bold" style={{ color: allReady ? colors.white : colors.neutral[500] }}>
+                        {allReady ? 'Proceed to Wizard' : 'Resolve to enable'}  ›
+                    </Text>
+                </Pressable>
+            </View>
+        </View>
+    );
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Small atoms                                                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+function CountRow({ color, label, value }: { color: string; label: string; value: number }) {
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: color }} />
+                <Text className="font-inter text-[12.5px] text-neutral-700">{label}</Text>
+            </View>
+            <Text className="font-inter text-[13px] font-bold text-neutral-900">{value}</Text>
+        </View>
+    );
+}
+
+function KeyStat({ label, value, color }: { label: string; value: number; color?: string }) {
+    return (
+        <View style={{ width: '50%', paddingVertical: 6 }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 22, fontWeight: '800', color: color ?? colors.neutral[900], lineHeight: 26 }}>{value}</Text>
+            <Text className="mt-1 font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
+        </View>
+    );
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Styles                                                                   */
+/* ──────────────────────────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  header:        { paddingBottom: 16, paddingHorizontal: 16 },
-  card:          { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  cardHeader:    { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statCard:      { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, gap: 8 },
-  statIconWrap:  { width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  payPeriodCard: { borderRadius: 14, borderWidth: 1, padding: 14, marginTop: 14 },
-  kpiTile:       { flex: 1, borderRadius: 14, borderWidth: 1, padding: 12 },
-  kpiIconWrap:   { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  refreshBtn:    { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  stepIconWrap:  { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  sectionIcon:   { width: 32, height: 32, borderRadius: 10, overflow: 'hidden' },
-  sectionIconGrad: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  quickLink:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  contactBtn:    { backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, alignItems: 'center' },
-  bottomBar:     { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, flexDirection: 'row', alignItems: 'center' },
+    heroCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    miniIcon: { width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+    actCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+        marginTop: 10,
+        gap: 10,
+    },
+    actHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    priorityCol: { width: 52, alignItems: 'flex-start' },
+    actIconCircle: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    actEmoji: { fontSize: 17, fontWeight: '700' },
+    actMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
+    pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+    pillText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700' },
+    timeChip: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: colors.neutral[100],
+    },
+    timeChipText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: colors.neutral[700] },
+    actFooterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[100],
+    },
+    actionText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: colors.primary[600] },
+    blockerBanner: {
+        backgroundColor: colors.danger[50],
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    infoCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    healthRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 6,
+    },
+    healthIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pendingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 6,
+    },
+    quickLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 9,
+        paddingHorizontal: 8,
+        borderRadius: 10,
+    },
+    quickLinkText: { fontFamily: 'Inter', fontSize: 12.5, color: colors.neutral[700] },
+    helpCard: {
+        borderRadius: 16,
+        padding: 16,
+        overflow: 'hidden',
+    },
+    helpIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    helpLine: { paddingVertical: 4 },
+    helpLineText: { fontFamily: 'Inter', fontSize: 12.5, color: colors.white },
+    holdAlert: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: colors.danger[50],
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: colors.danger[200],
+    },
+    reviewHoldsBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.danger[200],
+    },
+    bottomBar: {
+        position: 'absolute',
+        left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(255,255,255,0.96)',
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral[200],
+        paddingHorizontal: 14,
+        paddingTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    bottomStatus: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    bottomCta: {
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        overflow: 'hidden',
+        minWidth: 160,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });
+
+export default PhaseBPreRunScreen;

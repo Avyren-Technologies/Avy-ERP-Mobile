@@ -102,8 +102,16 @@ export const payrollRunApi = {
     client.patch(`/hr/payroll-runs/${id}/disburse`),
 
   // ── Summary Endpoints ──────────────────────────────────────────
+  getFiscalYearKpis: (fyStart?: number) =>
+    client.get('/hr/payroll-runs/kpi-summary', { params: fyStart != null ? { fyStart } : {} }),
+
   getAttendanceSummary: (runId: string) =>
     client.get(`/hr/payroll-runs/${runId}/attendance-summary`),
+
+  getAttendanceDetail: (
+    runId: string,
+    params?: { page?: number; limit?: number; search?: string; department?: string },
+  ) => client.get(`/hr/payroll-runs/${runId}/attendance-detail`, { params }),
 
   getComputeSummary: (runId: string) =>
     client.get(`/hr/payroll-runs/${runId}/compute-summary`),

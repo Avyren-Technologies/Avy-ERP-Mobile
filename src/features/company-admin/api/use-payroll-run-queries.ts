@@ -57,6 +57,16 @@ export const payrollRunKeys = {
   statutoryDashboard: () =>
     [...payrollRunKeys.all, 'statutory-dashboard'] as const,
 
+  // Summary endpoints
+  attendanceSummary: (runId: string) =>
+    [...payrollRunKeys.all, 'attendance-summary', runId] as const,
+  computeSummary: (runId: string) =>
+    [...payrollRunKeys.all, 'compute-summary', runId] as const,
+  statutorySummary: (runId: string) =>
+    [...payrollRunKeys.all, 'statutory-summary', runId] as const,
+  approvalSummary: (runId: string) =>
+    [...payrollRunKeys.all, 'approval-summary', runId] as const,
+
   // Payroll Reports
   salaryRegister: (params?: PayrollReportParams) =>
     [...payrollRunKeys.all, 'salary-register', params] as const,
@@ -248,5 +258,45 @@ export function useVarianceReport(params?: PayrollReportParams) {
     queryKey: payrollRunKeys.varianceReport(params),
     queryFn: () => payrollRunApi.getVarianceReport(params),
     enabled: !!params?.month && !!params?.year,
+  });
+}
+
+// --- Summary Queries ---
+
+/** Attendance summary for a payroll run */
+export function usePayrollAttendanceSummary(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.attendanceSummary(runId),
+    queryFn: () => payrollRunApi.getAttendanceSummary(runId),
+    enabled: !!runId,
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+}
+
+/** Compute summary for a payroll run */
+export function useComputeSummary(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.computeSummary(runId),
+    queryFn: () => payrollRunApi.getComputeSummary(runId),
+    enabled: !!runId,
+  });
+}
+
+/** Statutory summary for a payroll run */
+export function useStatutorySummary(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.statutorySummary(runId),
+    queryFn: () => payrollRunApi.getStatutorySummary(runId),
+    enabled: !!runId,
+  });
+}
+
+/** Approval summary for a payroll run */
+export function useApprovalSummary(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.approvalSummary(runId),
+    queryFn: () => payrollRunApi.getApprovalSummary(runId),
+    enabled: !!runId,
   });
 }

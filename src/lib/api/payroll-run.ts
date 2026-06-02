@@ -101,6 +101,22 @@ export const payrollRunApi = {
   disburseRun: (id: string) =>
     client.patch(`/hr/payroll-runs/${id}/disburse`),
 
+  // ── Summary Endpoints ──────────────────────────────────────────
+  getAttendanceSummary: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/attendance-summary`),
+
+  getComputeSummary: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/compute-summary`),
+
+  getStatutorySummary: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/statutory-summary`),
+
+  getApprovalSummary: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/approval-summary`),
+
+  resetToCompute: (runId: string) =>
+    client.patch(`/hr/payroll-runs/${runId}/reset-compute`),
+
   // ── Payroll Entries ─────────────────────────────────────────────
   listPayrollEntries: (runId: string, params?: PayrollEntryListParams) =>
     client.get(`/hr/payroll-runs/${runId}/entries`, { params }),

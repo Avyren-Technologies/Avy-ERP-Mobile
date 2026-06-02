@@ -35,6 +35,7 @@ export function useLockAttendance() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
       queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
+      queryClient.invalidateQueries({ queryKey: payrollRunKeys.attendanceSummary(id) });
     },
   });
 }
@@ -98,6 +99,19 @@ export function useDisburseRun() {
       queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
       queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
       queryClient.invalidateQueries({ queryKey: payrollRunKeys.payslips() });
+    },
+  });
+}
+
+/** Reset to compute step (re-compute) */
+export function useResetToCompute() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => payrollRunApi.resetToCompute(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
+      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
+      queryClient.invalidateQueries({ queryKey: payrollRunKeys.entries(id) });
     },
   });
 }

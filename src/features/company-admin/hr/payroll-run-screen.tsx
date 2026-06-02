@@ -1,9 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    ActivityIndicator,
     Modal,
     Pressable,
     RefreshControl,
@@ -38,6 +36,14 @@ import {
 } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { usePayrollRun, usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
+
+import { Step1AttendanceValidation } from '@/features/company-admin/hr/Step1AttendanceValidation';
+import { Step2PayrollExceptions } from '@/features/company-admin/hr/Step2PayrollExceptions';
+import { Step3PayrollComputation } from '@/features/company-admin/hr/Step3PayrollComputation';
+import { Step4StatutoryCompliance } from '@/features/company-admin/hr/Step4StatutoryCompliance';
+import { Step5PayrollApproval } from '@/features/company-admin/hr/Step5PayrollApproval';
+import { Step6Disbursement } from '@/features/company-admin/hr/Step6Disbursement';
+import { Step7PostPayroll } from '@/features/company-admin/hr/Step7PostPayroll';
 
 // ============ TYPES ============
 
@@ -112,6 +118,7 @@ const WIZARD_STEPS = [
     'Statutory Deductions',
     'Approve',
     'Disburse',
+    'Post-Payroll',
 ];
 
 const STATUS_TO_STEP: Record<RunStatus, number> = {
@@ -139,21 +146,6 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
         <View style={[styles.statusBadge, { backgroundColor: scheme.bg }]}>
             <View style={[styles.statusDot, { backgroundColor: scheme.dot }]} />
             <Text style={{ color: scheme.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{STATUS_LABELS[status] ?? status}</Text>
-        </View>
-    );
-}
-
-function ExceptionTypeBadge({ type }: { type: string }) {
-    const typeMap: Record<string, { bg: string; text: string }> = {
-        attendance: { bg: colors.warning[50], text: colors.warning[700] },
-        leave: { bg: colors.info[50], text: colors.info[700] },
-        overtime: { bg: colors.accent[50], text: colors.accent[700] },
-        deduction: { bg: colors.danger[50], text: colors.danger[700] },
-    };
-    const scheme = typeMap[type.toLowerCase()] ?? { bg: colors.neutral[100], text: colors.neutral[600] };
-    return (
-        <View style={[styles.statusBadge, { backgroundColor: scheme.bg }]}>
-            <Text style={{ color: scheme.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{type}</Text>
         </View>
     );
 }
@@ -261,246 +253,6 @@ function RunCard({ item, index, onPress }: { item: PayrollRunItem; index: number
                     <View style={styles.metaChip}><Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Net: {formatCurrency(item.totalNetPay)}</Text></View>
                 </View>
             </Pressable>
-        </Animated.View>
-    );
-}
-
-// ============ WIZARD STEPS ============
-
-function Step1LockAttendance({ run, onLock, isLocking }: { run: PayrollRunItem; onLock: () => void; isLocking: boolean }) {
-    const unresolvedCount = (run.exceptions ?? []).filter(e => !e.reviewed).length;
-    return (
-        <Animated.View entering={FadeInDown.duration(400)}>
-            <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Lock Attendance</Text>
-                <View style={styles.summaryRow}>
-                    <View style={[styles.summaryChip, { borderLeftColor: colors.primary[400], borderLeftWidth: 3 }]}>
-                        <Text className="font-inter text-xl font-bold text-primary-800">{run.employeeCount}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Employees</Text>
-                    </View>
-                    <View style={[styles.summaryChip, { borderLeftColor: unresolvedCount > 0 ? colors.warning[400] : colors.success[400], borderLeftWidth: 3 }]}>
-                        <Text className="font-inter text-xl font-bold" style={{ color: unresolvedCount > 0 ? colors.warning[700] : colors.success[700] }}>{unresolvedCount}</Text>
-                        <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Unresolved Issues</Text>
-                    </View>
-                </View>
-                {unresolvedCount > 0 && (
-                    <View style={styles.warningBanner}>
-                        <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.warning[600]} strokeWidth="1.5" fill="none" strokeLinecap="round" /></Svg>
-                        <Text className="ml-2 font-inter text-xs text-warning-700 flex-1">There are unresolved attendance issues. You can still lock, but exceptions will carry over.</Text>
-                    </View>
-                )}
-                <Pressable onPress={onLock} disabled={isLocking} style={[styles.primaryBtn, isLocking && { opacity: 0.5 }]}>
-                    {isLocking ? <ActivityIndicator size="small" color={colors.white} /> : (
-                        <Text className="font-inter text-sm font-bold text-white">Lock Attendance</Text>
-                    )}
-                </Pressable>
-            </View>
-        </Animated.View>
-    );
-}
-
-function Step2ReviewExceptions({ run, onMarkAllReviewed, isReviewing }: { run: PayrollRunItem; onMarkAllReviewed: () => void; isReviewing: boolean }) {
-    const exceptions = run.exceptions ?? [];
-    return (
-        <Animated.View entering={FadeInDown.duration(400)}>
-            <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Review Exceptions</Text>
-                {exceptions.length === 0 ? (
-                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                        <Svg width={32} height={32} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.success[500]} strokeWidth="1.5" fill="none" /></Svg>
-                        <Text className="mt-2 font-inter text-sm text-success-700 font-semibold">No exceptions found</Text>
-                    </View>
-                ) : (
-                    <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
-                        {exceptions.map((exc, idx) => (
-                            <View key={exc.id || idx} style={styles.exceptionRow}>
-                                <View style={{ flex: 1 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{exc.employeeName}</Text>
-                                        <ExceptionTypeBadge type={exc.type} />
-                                    </View>
-                                    <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">{exc.description}</Text>
-                                </View>
-                                {exc.reviewed && (
-                                    <View style={[styles.statusBadge, { backgroundColor: colors.success[50] }]}>
-                                        <Text style={{ color: colors.success[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>Reviewed</Text>
-                                    </View>
-                                )}
-                            </View>
-                        ))}
-                    </ScrollView>
-                )}
-                <Pressable onPress={onMarkAllReviewed} disabled={isReviewing} style={[styles.primaryBtn, isReviewing && { opacity: 0.5 }]}>
-                    {isReviewing ? <ActivityIndicator size="small" color={colors.white} /> : (
-                        <Text className="font-inter text-sm font-bold text-white">Mark All Reviewed</Text>
-                    )}
-                </Pressable>
-            </View>
-        </Animated.View>
-    );
-}
-
-function Step3ComputeSalaries({ run, onCompute, isComputing }: { run: PayrollRunItem; onCompute: () => void; isComputing: boolean }) {
-    const hasComputed = run.status === 'COMPUTED' || run.status === 'STATUTORY_DONE' || run.status === 'APPROVED' || run.status === 'DISBURSED' || run.status === 'ARCHIVED';
-    return (
-        <Animated.View entering={FadeInDown.duration(400)}>
-            <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Compute Salaries</Text>
-                {isComputing ? (
-                    <View style={{ paddingVertical: 30, alignItems: 'center' }}>
-                        <ActivityIndicator size="large" color={colors.primary[500]} />
-                        <Text className="mt-3 font-inter text-sm text-primary-600 font-semibold">Computing salaries...</Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-400">This may take a moment</Text>
-                    </View>
-                ) : hasComputed ? (
-                    <>
-                        <View style={styles.summaryRow}>
-                            <View style={[styles.summaryChip, { borderLeftColor: colors.success[400], borderLeftWidth: 3 }]}>
-                                <Text className="font-inter text-lg font-bold text-success-700">{formatCurrency(run.totalGross)}</Text>
-                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Total Gross</Text>
-                            </View>
-                            <View style={[styles.summaryChip, { borderLeftColor: colors.danger[400], borderLeftWidth: 3 }]}>
-                                <Text className="font-inter text-lg font-bold text-danger-700">{formatCurrency(run.totalDeductions)}</Text>
-                                <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">Total Deductions</Text>
-                            </View>
-                        </View>
-                        <View style={styles.netPayBanner}>
-                            <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Total Net Pay</Text>
-                            <Text className="font-inter text-xl font-bold text-primary-800">{formatCurrency(run.totalNetPay)}</Text>
-                            <Text className="font-inter text-[10px] text-neutral-400">{run.employeeCount} employees</Text>
-                        </View>
-                    </>
-                ) : (
-                    <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                        <Svg width={40} height={40} viewBox="0 0 24 24"><Path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke={colors.neutral[300]} strokeWidth="1.5" fill="none" strokeLinecap="round" /></Svg>
-                        <Text className="mt-2 font-inter text-sm text-neutral-500 dark:text-neutral-400">Ready to compute salaries for {run.employeeCount} employees</Text>
-                    </View>
-                )}
-                {!hasComputed && !isComputing && (
-                    <Pressable onPress={onCompute} style={styles.primaryBtn}>
-                        <Text className="font-inter text-sm font-bold text-white">Compute Salaries</Text>
-                    </Pressable>
-                )}
-            </View>
-        </Animated.View>
-    );
-}
-
-function Step4StatutoryDeductions({ run, onCompute, isComputing }: { run: PayrollRunItem; onCompute: () => void; isComputing: boolean }) {
-    const hasStatutory = run.pfTotal > 0 || run.esiTotal > 0 || run.ptTotal > 0 || run.tdsTotal > 0 || run.lwfTotal > 0;
-    const items = [
-        { label: 'PF', amount: run.pfTotal, color: colors.primary[500] },
-        { label: 'ESI', amount: run.esiTotal, color: colors.info[500] },
-        { label: 'PT', amount: run.ptTotal, color: colors.warning[500] },
-        { label: 'TDS', amount: run.tdsTotal, color: colors.danger[500] },
-        { label: 'LWF', amount: run.lwfTotal, color: colors.accent[500] },
-    ];
-    return (
-        <Animated.View entering={FadeInDown.duration(400)}>
-            <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Statutory Deductions</Text>
-                {hasStatutory ? (
-                    <View style={{ gap: 8 }}>
-                        {items.map(item => (
-                            <View key={item.label} style={[styles.statutoryRow, { borderLeftColor: item.color, borderLeftWidth: 3 }]}>
-                                <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white flex-1">{item.label}</Text>
-                                <Text className="font-inter text-sm font-bold" style={{ color: item.color }}>{formatCurrency(item.amount)}</Text>
-                            </View>
-                        ))}
-                    </View>
-                ) : (
-                    <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                        <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400">Compute statutory deductions for PF, ESI, PT, TDS, and LWF</Text>
-                    </View>
-                )}
-                {!hasStatutory && (
-                    <Pressable onPress={onCompute} disabled={isComputing} style={[styles.primaryBtn, isComputing && { opacity: 0.5 }]}>
-                        {isComputing ? <ActivityIndicator size="small" color={colors.white} /> : (
-                            <Text className="font-inter text-sm font-bold text-white">Compute Statutory</Text>
-                        )}
-                    </Pressable>
-                )}
-            </View>
-        </Animated.View>
-    );
-}
-
-function Step5Approve({ run, onApprove }: { run: PayrollRunItem; onApprove: () => void }) {
-    return (
-        <Animated.View entering={FadeInDown.duration(400)}>
-            <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Approve Payroll</Text>
-                <View style={styles.finalSummary}>
-                    <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Total Gross</Text>
-                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{formatCurrency(run.totalGross)}</Text>
-                    </View>
-                    <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Total Deductions</Text>
-                        <Text className="font-inter text-sm font-bold text-danger-700">{formatCurrency(run.totalDeductions)}</Text>
-                    </View>
-                    <View style={[styles.finalSummaryRow, { borderTopWidth: 1, borderTopColor: colors.neutral[200], paddingTop: 8, marginTop: 4 }]}>
-                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">Total Net Pay</Text>
-                        <Text className="font-inter text-base font-bold text-primary-800">{formatCurrency(run.totalNetPay)}</Text>
-                    </View>
-                    <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Employees</Text>
-                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{run.employeeCount}</Text>
-                    </View>
-                    <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Exceptions</Text>
-                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{(run.exceptions ?? []).length}</Text>
-                    </View>
-                    <View style={styles.finalSummaryRow}>
-                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">Holds</Text>
-                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{run.holdCount ?? 0}</Text>
-                    </View>
-                </View>
-                <Pressable onPress={onApprove} style={[styles.primaryBtn, { backgroundColor: colors.success[600] }]}>
-                    <Text className="font-inter text-sm font-bold text-white">Approve Payroll</Text>
-                </Pressable>
-            </View>
-        </Animated.View>
-    );
-}
-
-function Step6Disburse({ run, onDisburse, isDisbursing, disbursed }: { run: PayrollRunItem; onDisburse: () => void; isDisbursing: boolean; disbursed: boolean }) {
-    const router = useRouter();
-    return (
-        <Animated.View entering={FadeInDown.duration(400)}>
-            <View style={styles.wizardCard}>
-                <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">Disburse</Text>
-                {disbursed || run.status === 'DISBURSED' || run.status === 'ARCHIVED' ? (
-                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.success[100], justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-                            <Svg width={28} height={28} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke={colors.success[600]} strokeWidth="2" fill="none" /></Svg>
-                        </View>
-                        <Text className="font-inter text-base font-bold text-success-700">Payroll Disbursed!</Text>
-                        <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">Bank file generated and payslips created</Text>
-                        <Pressable onPress={() => router.push('/company/hr/payslips' as any)} style={[styles.outlineBtn, { marginTop: 16 }]}>
-                            <Text className="font-inter text-sm font-bold text-primary-600">View Payslips</Text>
-                        </Pressable>
-                    </View>
-                ) : (
-                    <>
-                        <View style={{ gap: 8, marginBottom: 16 }}>
-                            <View style={styles.readyRow}>
-                                <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4" stroke={colors.success[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                <Text className="ml-2 font-inter text-sm text-primary-950 dark:text-white">Bank file ready for generation</Text>
-                            </View>
-                            <View style={styles.readyRow}>
-                                <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M9 12l2 2 4-4" stroke={colors.success[500]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                <Text className="ml-2 font-inter text-sm text-primary-950 dark:text-white">Payslips will be auto-generated</Text>
-                            </View>
-                        </View>
-                        <Pressable onPress={onDisburse} disabled={isDisbursing} style={[styles.primaryBtn, { backgroundColor: colors.primary[700] }, isDisbursing && { opacity: 0.5 }]}>
-                            {isDisbursing ? <ActivityIndicator size="small" color={colors.white} /> : (
-                                <Text className="font-inter text-sm font-bold text-white">Disburse & Generate Payslips</Text>
-                            )}
-                        </Pressable>
-                    </>
-                )}
-            </View>
         </Animated.View>
     );
 }
@@ -675,13 +427,22 @@ export function PayrollRunScreen() {
                     )}
                 </View>
                 <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
-                    <StepIndicator currentStep={currentStep} totalSteps={6} />
-                    {currentStep === 0 && <Step1LockAttendance run={selectedRun} onLock={handleLock} isLocking={lockMutation.isPending} />}
-                    {currentStep === 1 && <Step2ReviewExceptions run={selectedRun} onMarkAllReviewed={handleReview} isReviewing={reviewMutation.isPending} />}
-                    {currentStep === 2 && <Step3ComputeSalaries run={selectedRun} onCompute={handleCompute} isComputing={computeMutation.isPending} />}
-                    {currentStep === 3 && <Step4StatutoryDeductions run={selectedRun} onCompute={handleStatutory} isComputing={statutoryMutation.isPending} />}
-                    {currentStep === 4 && <Step5Approve run={selectedRun} onApprove={handleApprove} />}
-                    {(currentStep === 5 || currentStep === 6) && <Step6Disburse run={selectedRun} onDisburse={handleDisburse} isDisbursing={disburseMutation.isPending} disbursed={disbursed} />}
+                    <StepIndicator currentStep={currentStep} totalSteps={7} />
+                    {(() => {
+                        const anyMut = lockMutation.isPending || reviewMutation.isPending || computeMutation.isPending || statutoryMutation.isPending || approveMutation.isPending || disburseMutation.isPending;
+                        const stepProps = { runId: selectedRun.id, runDetail: selectedRun, completedStep: currentStep, anyMutating: anyMut };
+                        return (
+                            <>
+                                {currentStep >= 0 && <Step1AttendanceValidation {...stepProps} onStepAction={handleLock} />}
+                                {currentStep >= 1 && <Step2PayrollExceptions {...stepProps} onStepAction={handleReview} />}
+                                {currentStep >= 2 && <Step3PayrollComputation {...stepProps} onStepAction={handleCompute} />}
+                                {currentStep >= 3 && <Step4StatutoryCompliance {...stepProps} onStepAction={handleStatutory} />}
+                                {currentStep >= 4 && <Step5PayrollApproval {...stepProps} onStepAction={handleApprove} />}
+                                {currentStep >= 5 && <Step6Disbursement {...stepProps} onStepAction={handleDisburse} />}
+                                {currentStep >= 6 && <Step7PostPayroll {...stepProps} onStepAction={() => {}} />}
+                            </>
+                        );
+                    })()}
                 </ScrollView>
                 <ConfirmModal {...confirmModalProps} />
             </View>

@@ -474,8 +474,8 @@ export function PhaseBPreRunScreen() {
                     <Pressable onPress={() => Linking.openURL('mailto:payroll.support@avyerp.com')} style={styles.helpLine}>
                         <Text style={styles.helpLineText}>✉  payroll.support@avyerp.com</Text>
                     </Pressable>
-                    <Pressable onPress={() => Linking.openURL('tel:+918012345678')} style={styles.helpLine}>
-                        <Text style={styles.helpLineText}>📞  +91 80 1234 5678</Text>
+                    <Pressable onPress={() => Linking.openURL('tel:+91 9019189889')} style={styles.helpLine}>
+                        <Text style={styles.helpLineText}>📞  +91 9019189889</Text>
                     </Pressable>
                 </LinearGradient>
             </ScrollView>

@@ -30,6 +30,8 @@ import {
     useDeletePayrollRun,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { useConfigurationStatus } from '@/features/company-admin/api/use-payroll-phases-queries';
+import { useDepartments } from '@/features/company-admin/api/use-hr-queries';
+import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -235,6 +237,17 @@ export function PayrollRunScreen() {
     const [activeTab, setActiveTab] = React.useState<StatusFilter>('all');
     const [search, setSearch] = React.useState('');
     const [showNewRun, setShowNewRun] = React.useState(false);
+    const [showFilters, setShowFilters] = React.useState(false);
+
+    /* Toolbar filter state */
+    const inferDefaultFyStart = () => {
+        const now = new Date();
+        return now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1;
+    };
+    const [fyStart, setFyStart] = React.useState<number>(inferDefaultFyStart());
+    const [selectedDeptId, setSelectedDeptId] = React.useState<string>('all');
+    const [selectedLocationId, setSelectedLocationId] = React.useState<string>('all');
+    const [sortBy, setSortBy] = React.useState<'runDate' | 'status' | 'netPay' | 'employees'>('runDate');
 
     const configStatusQuery = useConfigurationStatus();
     const configStatus: any = (configStatusQuery.data as any) ?? null;
@@ -249,20 +262,57 @@ export function PayrollRunScreen() {
         return Array.isArray(arr) ? arr : [];
     }, [runsResp]);
 
-    const { data: kpisResp } = useFiscalYearKpis();
+    const { data: kpisResp } = useFiscalYearKpis(fyStart);
     const kpis: any = (kpisResp as any)?.data ?? null;
+
+    /* Filter option sources */
+    const { data: deptResp } = useDepartments();
+    const { data: locResp } = useCompanyLocations();
+    const departments: any[] = ((deptResp as any)?.data ?? deptResp ?? []) as any[];
+    const locations: any[] = ((locResp as any)?.data ?? locResp ?? []) as any[];
+
+    /* FY options (current FY + 4 prior) */
+    const fyOptions = React.useMemo(() => {
+        const cur = inferDefaultFyStart();
+        const arr: { value: number; label: string }[] = [];
+        for (let i = 0; i < 5; i++) {
+            const y = cur - i;
+            arr.push({ value: y, label: `FY ${y}-${String(y + 1).slice(-2)}` });
+        }
+        return arr;
+    }, []);
+
+    const sortOptions: { value: typeof sortBy; label: string }[] = [
+        { value: 'runDate',   label: 'Run Date (newest first)' },
+        { value: 'status',    label: 'Status' },
+        { value: 'netPay',    label: 'Net Pay (high → low)' },
+        { value: 'employees', label: 'Employees (high → low)' },
+    ];
+
+    const activeFilterCount =
+        (selectedDeptId !== 'all' ? 1 : 0) +
+        (selectedLocationId !== 'all' ? 1 : 0) +
+        (sortBy !== 'runDate' ? 1 : 0);
 
     const createMutation = useCreatePayrollRun();
     const deleteMutation = useDeletePayrollRun();
     const confirmModal = useConfirmModal();
 
     const filtered = React.useMemo(() => {
-        return runs.filter((r) => {
+        const STATUS_ORDER: Record<string, number> = {
+            draft: 0, attendance_locked: 1, exceptions_reviewed: 2, computed: 3,
+            statutory_done: 4, approved: 5, disbursed: 6, archived: 7,
+        };
+        const flt = runs.filter((r) => {
             if (search) {
                 const q = search.toLowerCase();
                 const label = `${MONTHS[(r.month ?? 1) - 1]} ${r.year}`.toLowerCase();
                 if (!label.includes(q) && !(r.status ?? '').toLowerCase().includes(q)) return false;
             }
+            // FY filter (Indian FY Apr–Mar)
+            const runFyStart = (r.month ?? 1) >= 4 ? r.year : r.year - 1;
+            if (runFyStart !== fyStart) return false;
+
             const s = (r.status ?? '').toLowerCase();
             if (activeTab === 'all') return true;
             if (activeTab === 'draft') return s === 'draft';
@@ -274,9 +324,17 @@ export function PayrollRunScreen() {
                 return s === 'draft' && runDate > now;
             }
             if (activeTab === 'archived') return s === 'archived';
+            if (activeTab === 'cancelled') return s === 'cancelled';
             return true;
         });
-    }, [runs, search, activeTab]);
+
+        const sorted = [...flt];
+        if (sortBy === 'runDate') sorted.sort((a, b) => (b.year - a.year) || ((b.month ?? 1) - (a.month ?? 1)));
+        else if (sortBy === 'status') sorted.sort((a, b) => (STATUS_ORDER[(b.status ?? '').toLowerCase()] ?? 0) - (STATUS_ORDER[(a.status ?? '').toLowerCase()] ?? 0));
+        else if (sortBy === 'netPay') sorted.sort((a, b) => Number(b.totalNet ?? 0) - Number(a.totalNet ?? 0));
+        else if (sortBy === 'employees') sorted.sort((a, b) => (b.employeeCount ?? 0) - (a.employeeCount ?? 0));
+        return sorted;
+    }, [runs, search, activeTab, fyStart, sortBy]);
 
     if (configStatusQuery.isLoading) {
         return (
@@ -358,17 +416,37 @@ export function PayrollRunScreen() {
                     ))}
                 </ScrollView>
 
-                {/* Search */}
-                <View style={styles.searchBox}>
-                    <Text style={{ color: colors.neutral[400], marginRight: 6 }}>🔍</Text>
-                    <TextInput
-                        value={search}
-                        onChangeText={setSearch}
-                        placeholder="Search by run name or period…"
-                        placeholderTextColor={colors.neutral[400]}
-                        style={styles.searchInput}
-                    />
+                {/* Search + Filter row */}
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                    <View style={[styles.searchBox, { flex: 1 }]}>
+                        <Text style={{ color: colors.neutral[400], marginRight: 6 }}>🔍</Text>
+                        <TextInput
+                            value={search}
+                            onChangeText={setSearch}
+                            placeholder="Search by run name or period…"
+                            placeholderTextColor={colors.neutral[400]}
+                            style={styles.searchInput}
+                        />
+                    </View>
+                    <Pressable onPress={() => setShowFilters(true)} style={styles.filterIconBtn}>
+                        <Text style={{ fontSize: 16, color: colors.primary[700] }}>⚙</Text>
+                        {activeFilterCount > 0 && (
+                            <View style={styles.filterBadge}>
+                                <Text style={{ fontFamily: 'Inter', fontSize: 9, fontWeight: '800', color: colors.white }}>{activeFilterCount}</Text>
+                            </View>
+                        )}
+                    </Pressable>
                 </View>
+
+                {/* FY + Sort chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingTop: 10, gap: 8 }}>
+                    {fyOptions.map(opt => (
+                        <Pressable key={opt.value} onPress={() => setFyStart(opt.value)}
+                            style={[styles.miniChip, fyStart === opt.value && styles.miniChipActive]}>
+                            <Text style={[styles.miniChipLabel, fyStart === opt.value && styles.miniChipLabelActive]}>{opt.label}</Text>
+                        </Pressable>
+                    ))}
+                </ScrollView>
 
                 {/* Run cards */}
                 {runsLoading ? (
@@ -458,8 +536,139 @@ export function PayrollRunScreen() {
                 onSubmit={handleCreate}
                 isPending={createMutation.isPending}
             />
+            <FilterSheet
+                visible={showFilters}
+                onClose={() => setShowFilters(false)}
+                fyStart={fyStart}
+                fyOptions={fyOptions}
+                onFyChange={setFyStart}
+                deptId={selectedDeptId}
+                departments={departments}
+                onDeptChange={setSelectedDeptId}
+                locationId={selectedLocationId}
+                locations={locations}
+                onLocationChange={setSelectedLocationId}
+                sortBy={sortBy}
+                sortOptions={sortOptions}
+                onSortChange={setSortBy}
+                onReset={() => {
+                    setFyStart(inferDefaultFyStart());
+                    setSelectedDeptId('all');
+                    setSelectedLocationId('all');
+                    setSortBy('runDate');
+                }}
+            />
             <ConfirmModal {...confirmModal.modalProps} />
         </View>
+    );
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* FilterSheet — bottom-sheet with all filter controls                      */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+function FilterSheet({
+    visible, onClose,
+    fyStart, fyOptions, onFyChange,
+    deptId, departments, onDeptChange,
+    locationId, locations, onLocationChange,
+    sortBy, sortOptions, onSortChange,
+    onReset,
+}: {
+    visible: boolean;
+    onClose: () => void;
+    fyStart: number;
+    fyOptions: { value: number; label: string }[];
+    onFyChange: (v: number) => void;
+    deptId: string;
+    departments: any[];
+    onDeptChange: (v: string) => void;
+    locationId: string;
+    locations: any[];
+    onLocationChange: (v: string) => void;
+    sortBy: 'runDate' | 'status' | 'netPay' | 'employees';
+    sortOptions: { value: 'runDate' | 'status' | 'netPay' | 'employees'; label: string }[];
+    onSortChange: (v: 'runDate' | 'status' | 'netPay' | 'employees') => void;
+    onReset: () => void;
+}) {
+    return (
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+            <View style={styles.modalBackdrop}>
+                <View style={[styles.modalCard, { maxHeight: '85%' }]}>
+                    <View style={styles.modalHeader}>
+                        <Text className="font-inter text-[15px] font-bold text-neutral-900">Filters & Sort</Text>
+                        <Pressable onPress={onClose} hitSlop={10}>
+                            <Text style={{ color: colors.neutral[400], fontSize: 18 }}>✕</Text>
+                        </Pressable>
+                    </View>
+
+                    <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+                        {/* FY */}
+                        <Text className="mb-2 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Fiscal Year</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                            {fyOptions.map(o => (
+                                <Pressable key={o.value} onPress={() => onFyChange(o.value)}
+                                    style={[styles.filterChip, fyStart === o.value && styles.filterChipActive]}>
+                                    <Text style={[styles.filterChipLabel, fyStart === o.value && styles.filterChipLabelActive]}>{o.label}</Text>
+                                </Pressable>
+                            ))}
+                        </View>
+
+                        {/* Department */}
+                        <Text className="mb-2 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Department</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                            <Pressable onPress={() => onDeptChange('all')}
+                                style={[styles.filterChip, deptId === 'all' && styles.filterChipActive]}>
+                                <Text style={[styles.filterChipLabel, deptId === 'all' && styles.filterChipLabelActive]}>All Departments</Text>
+                            </Pressable>
+                            {departments.map((d: any) => (
+                                <Pressable key={d.id} onPress={() => onDeptChange(d.id)}
+                                    style={[styles.filterChip, deptId === d.id && styles.filterChipActive]}>
+                                    <Text style={[styles.filterChipLabel, deptId === d.id && styles.filterChipLabelActive]}>{d.name}</Text>
+                                </Pressable>
+                            ))}
+                        </View>
+
+                        {/* Location */}
+                        <Text className="mb-2 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Location</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                            <Pressable onPress={() => onLocationChange('all')}
+                                style={[styles.filterChip, locationId === 'all' && styles.filterChipActive]}>
+                                <Text style={[styles.filterChipLabel, locationId === 'all' && styles.filterChipLabelActive]}>All Locations</Text>
+                            </Pressable>
+                            {locations.map((l: any) => (
+                                <Pressable key={l.id} onPress={() => onLocationChange(l.id)}
+                                    style={[styles.filterChip, locationId === l.id && styles.filterChipActive]}>
+                                    <Text style={[styles.filterChipLabel, locationId === l.id && styles.filterChipLabelActive]}>{l.name}</Text>
+                                </Pressable>
+                            ))}
+                        </View>
+
+                        {/* Sort */}
+                        <Text className="mb-2 font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Sort by</Text>
+                        <View style={{ gap: 8 }}>
+                            {sortOptions.map(o => (
+                                <Pressable key={o.value} onPress={() => onSortChange(o.value)}
+                                    style={[styles.sortRow, sortBy === o.value && styles.sortRowActive]}>
+                                    <Text style={[styles.sortLabel, sortBy === o.value && styles.sortLabelActive]}>{o.label}</Text>
+                                    {sortBy === o.value && <Text style={{ color: colors.primary[700], fontWeight: '700' }}>✓</Text>}
+                                </Pressable>
+                            ))}
+                        </View>
+                    </ScrollView>
+
+                    <View style={styles.modalActions}>
+                        <Pressable onPress={onReset} style={[styles.modalBtn, styles.modalBtnSecondary]}>
+                            <Text className="font-inter text-[13px] font-bold text-neutral-700">Reset</Text>
+                        </Pressable>
+                        <Pressable onPress={onClose} style={[styles.modalBtn, styles.modalBtnPrimary]}>
+                            <LinearGradient colors={[colors.primary[600], colors.accent[600]] as const} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                            <Text className="font-inter text-[13px] font-bold text-white">Apply</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        </Modal>
     );
 }
 
@@ -533,6 +742,64 @@ const styles = StyleSheet.create({
         borderColor: colors.neutral[200],
     },
     searchInput: { flex: 1, fontFamily: 'Inter', fontSize: 13, color: colors.neutral[800] },
+    filterIconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.primary[200],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    filterBadge: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        minWidth: 16,
+        height: 16,
+        paddingHorizontal: 3,
+        borderRadius: 999,
+        backgroundColor: colors.primary[600],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    miniChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    miniChipActive: { backgroundColor: colors.primary[50], borderColor: colors.primary[300] },
+    miniChipLabel: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: colors.neutral[600] },
+    miniChipLabelActive: { color: colors.primary[700] },
+    filterChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    filterChipActive: { backgroundColor: colors.primary[50], borderColor: colors.primary[400] },
+    filterChipLabel: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: colors.neutral[700] },
+    filterChipLabelActive: { color: colors.primary[700], fontWeight: '700' },
+    sortRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 11,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    sortRowActive: { backgroundColor: colors.primary[50], borderColor: colors.primary[300] },
+    sortLabel: { fontFamily: 'Inter', fontSize: 13, color: colors.neutral[700] },
+    sortLabelActive: { color: colors.primary[700], fontWeight: '700' },
     runCard: {
         backgroundColor: colors.white,
         borderRadius: 14,

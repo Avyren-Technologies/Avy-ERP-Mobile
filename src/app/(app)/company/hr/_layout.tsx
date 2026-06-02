@@ -36,6 +36,12 @@ export default function HRLayout() {
       <Stack.Screen name="payroll-pre-run" />
       <Stack.Screen name="payroll-runs" />
       <Stack.Screen name="payroll-c-step-1" />
+      <Stack.Screen name="payroll-c-step-2" />
+      <Stack.Screen name="payroll-c-step-3" />
+      <Stack.Screen name="payroll-c-step-4" />
+      <Stack.Screen name="payroll-c-step-5" />
+      <Stack.Screen name="payroll-c-step-6" />
+      <Stack.Screen name="payroll-post-run" />
       <Stack.Screen name="payslips" />
       <Stack.Screen name="salary-holds" />
       <Stack.Screen name="salary-revisions" />

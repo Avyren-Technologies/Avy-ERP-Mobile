@@ -89,6 +89,9 @@ export const payrollRunApi = {
   reviewExceptions: (id: string) =>
     client.patch(`/hr/payroll-runs/${id}/review-exceptions`),
 
+  resolveException: (runId: string, exceptionIndex: number, action: 'RESOLVE' | 'SKIP', note?: string) =>
+    client.patch(`/hr/payroll-runs/${runId}/exceptions/${exceptionIndex}/resolve`, { action, note }),
+
   computeSalaries: (id: string) =>
     client.patch(`/hr/payroll-runs/${id}/compute`),
 
@@ -98,8 +101,14 @@ export const payrollRunApi = {
   approveRun: (id: string) =>
     client.patch(`/hr/payroll-runs/${id}/approve`),
 
+  saveApprovalNotes: (id: string, approvalNotes: string) =>
+    client.patch(`/hr/payroll-runs/${id}/approval-notes`, { approvalNotes }),
+
   disburseRun: (id: string) =>
     client.patch(`/hr/payroll-runs/${id}/disburse`),
+
+  archiveRun: (id: string, payload?: Record<string, unknown>) =>
+    client.post(`/hr/payroll-runs/${id}/archive`, payload ?? {}),
 
   // ── Summary Endpoints ──────────────────────────────────────────
   getFiscalYearKpis: (fyStart?: number) =>
@@ -118,6 +127,12 @@ export const payrollRunApi = {
 
   getStatutorySummary: (runId: string) =>
     client.get(`/hr/payroll-runs/${runId}/statutory-summary`),
+
+  getStatutoryFiles: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/statutory-files`),
+
+  getDisbursementBreakdown: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/disbursement-breakdown`),
 
   getApprovalSummary: (runId: string) =>
     client.get(`/hr/payroll-runs/${runId}/approval-summary`),

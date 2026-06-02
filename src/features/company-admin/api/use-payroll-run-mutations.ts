@@ -1,7 +1,28 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { payrollRunApi } from '@/lib/api/payroll-run';
 import { payrollRunKeys } from '@/features/company-admin/api/use-payroll-run-queries';
+
+/**
+ * Invalidate every cache that depends on a payroll-run's state so the
+ * list view, run detail, KPI strip, attendance/compute/statutory/approval
+ * summaries, and statutory files all stay in sync after any wizard mutation.
+ */
+function invalidateRunCaches(qc: QueryClient, runId?: string) {
+  qc.invalidateQueries({ queryKey: payrollRunKeys.runs() });
+  qc.invalidateQueries({ queryKey: payrollRunKeys.fiscalYearKpis() });
+  if (runId) {
+    qc.invalidateQueries({ queryKey: payrollRunKeys.run(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.entries(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.attendanceSummary(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.attendanceDetail(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.computeSummary(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.statutorySummary(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.statutoryFiles(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.approvalSummary(runId) });
+    qc.invalidateQueries({ queryKey: payrollRunKeys.disbursementBreakdown(runId) });
+  }
+}
 
 // ── Payroll Runs ───────────────────────────────────────────────────
 
@@ -9,11 +30,8 @@ import { payrollRunKeys } from '@/features/company-admin/api/use-payroll-run-que
 export function useCreatePayrollRun() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      payrollRunApi.createPayrollRun(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-    },
+    mutationFn: (data: Record<string, unknown>) => payrollRunApi.createPayrollRun(data),
+    onSuccess: () => invalidateRunCaches(queryClient),
   });
 }
 
@@ -21,8 +39,9 @@ export function useDeletePayrollRun() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.deletePayrollRun(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
+    onSuccess: (_, id) => {
+      invalidateRunCaches(queryClient, id);
+      queryClient.removeQueries({ queryKey: payrollRunKeys.run(id) });
     },
   });
 }
@@ -32,11 +51,7 @@ export function useLockAttendance() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.lockAttendance(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.attendanceSummary(id) });
-    },
+    onSuccess: (_, id) => invalidateRunCaches(queryClient, id),
   });
 }
 
@@ -45,10 +60,17 @@ export function useReviewExceptions() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.reviewExceptions(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
-    },
+    onSuccess: (_, id) => invalidateRunCaches(queryClient, id),
+  });
+}
+
+/** Step 2: Resolve a single exception (action: RESOLVE / SKIP) */
+export function useResolveException() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, exceptionIndex, action, note }: { runId: string; exceptionIndex: number; action: 'RESOLVE' | 'SKIP'; note?: string }) =>
+      payrollRunApi.resolveException(runId, exceptionIndex, action, note),
+    onSuccess: (_, vars) => invalidateRunCaches(queryClient, vars.runId),
   });
 }
 
@@ -57,11 +79,7 @@ export function useComputeSalaries() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.computeSalaries(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.entries(id) });
-    },
+    onSuccess: (_, id) => invalidateRunCaches(queryClient, id),
   });
 }
 
@@ -70,11 +88,7 @@ export function useComputeStatutory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.computeStatutory(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.entries(id) });
-    },
+    onSuccess: (_, id) => invalidateRunCaches(queryClient, id),
   });
 }
 
@@ -83,10 +97,17 @@ export function useApproveRun() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.approveRun(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
-    },
+    onSuccess: (_, id) => invalidateRunCaches(queryClient, id),
+  });
+}
+
+/** Step 5: Save approval notes (no status change) */
+export function useSaveApprovalNotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, notes }: { runId: string; notes: string }) =>
+      payrollRunApi.saveApprovalNotes(runId, notes),
+    onSuccess: (_, vars) => invalidateRunCaches(queryClient, vars.runId),
   });
 }
 
@@ -96,10 +117,19 @@ export function useDisburseRun() {
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.disburseRun(id),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
+      invalidateRunCaches(queryClient, id);
       queryClient.invalidateQueries({ queryKey: payrollRunKeys.payslips() });
     },
+  });
+}
+
+/** Step 6: Archive the run (separate from disburse) */
+export function useArchiveRun() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, payload }: { runId: string; payload?: Record<string, unknown> }) =>
+      payrollRunApi.archiveRun(runId, payload),
+    onSuccess: (_, vars) => invalidateRunCaches(queryClient, vars.runId),
   });
 }
 
@@ -108,11 +138,7 @@ export function useResetToCompute() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => payrollRunApi.resetToCompute(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.runs() });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.run(id) });
-      queryClient.invalidateQueries({ queryKey: payrollRunKeys.entries(id) });
-    },
+    onSuccess: (_, id) => invalidateRunCaches(queryClient, id),
   });
 }
 

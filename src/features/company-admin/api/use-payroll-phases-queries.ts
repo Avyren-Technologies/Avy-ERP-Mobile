@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { payrollPhasesApi } from '@/lib/api/payroll-phases';
+import { payrollRunKeys } from './use-payroll-run-queries';
 
 export const payrollPhasesKeys = {
   all: ['payroll-phases'] as const,
@@ -37,5 +38,19 @@ export function usePostRunInsights(runId: string) {
     queryKey: payrollPhasesKeys.postRunInsights(runId),
     queryFn: () => payrollPhasesApi.getPostRunInsights(runId),
     enabled: !!runId,
+  });
+}
+
+/** Mark a manual post-run activity (bank_reconciliation / variance_audit / gl_posting) as complete */
+export function useCompletePostRunActivity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, activityId, note }: { runId: string; activityId: string; note?: string }) =>
+      payrollPhasesApi.completePostRunActivity(runId, activityId, note ? { note } : undefined),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: payrollPhasesKeys.postRunChecklist(vars.runId) });
+      qc.invalidateQueries({ queryKey: payrollPhasesKeys.postRunInsights(vars.runId) });
+      qc.invalidateQueries({ queryKey: payrollRunKeys.run(vars.runId) });
+    },
   });
 }

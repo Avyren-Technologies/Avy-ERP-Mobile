@@ -189,14 +189,13 @@ export function PhaseCStep1Screen() {
         return () => clearTimeout(t);
     }, [searchInput]);
 
-    /* Resolve a runId — explicit or latest pre-execution */
+    /* Resolve a runId — explicit or latest pre-execution
+       payrollRunApi.* returns the API envelope — extract `.data` here. */
     const { data: runsResp, isLoading: runsLoading } = usePayrollRuns({ limit: 20 });
     const runsList: any[] = React.useMemo(() => {
-        const r: any = runsResp;
-        if (Array.isArray(r)) return r;
-        if (Array.isArray(r?.data)) return r.data;
-        if (Array.isArray(r?.items)) return r.items;
-        return [];
+        const env: any = runsResp;
+        const arr = env?.data ?? env;
+        return Array.isArray(arr) ? arr : [];
     }, [runsResp]);
 
     const inferredRunId = React.useMemo(() => {
@@ -207,14 +206,14 @@ export function PhaseCStep1Screen() {
     }, [explicitRunId, runsList]);
 
     const { data: runResp } = usePayrollRun(inferredRunId);
-    const runDetail: any = (runResp as any) ?? null;
+    const runDetail: any = (runResp as any)?.data ?? null;
 
     const { data: summaryResp, isLoading: summaryLoading, isRefetching: summaryRefetching, refetch: refetchSummary } = usePayrollAttendanceSummary(inferredRunId);
-    const summary: any = (summaryResp as any) ?? null;
+    const summary: any = (summaryResp as any)?.data ?? null;
 
     const { data: detailResp, isLoading: detailLoading, isFetching: detailFetching, refetch: refetchDetail } =
         usePayrollAttendanceDetail(inferredRunId, { page, limit, search: search || undefined });
-    const detail: any = (detailResp as any) ?? null;
+    const detail: any = (detailResp as any)?.data ?? null;
 
     const lockMutation = useLockAttendance();
     const confirmModal = useConfirmModal();

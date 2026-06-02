@@ -240,16 +240,17 @@ export function PayrollRunScreen() {
     const configStatus: any = (configStatusQuery.data as any) ?? null;
     const phaseAComplete = configStatus ? configStatus.completedCount >= configStatus.totalCount : true;
 
+    // payrollRunApi.* returns the API envelope (axios interceptor unwraps just the wrapper).
+    // We pull `.data` off the envelope here.
     const { data: runsResp, isLoading: runsLoading, isRefetching, refetch } = usePayrollRuns({ limit: 20 });
     const runs: any[] = React.useMemo(() => {
-        const r: any = runsResp;
-        if (Array.isArray(r)) return r;
-        if (Array.isArray(r?.data)) return r.data;
-        return [];
+        const env: any = runsResp;
+        const arr = env?.data ?? env;
+        return Array.isArray(arr) ? arr : [];
     }, [runsResp]);
 
     const { data: kpisResp } = useFiscalYearKpis();
-    const kpis: any = (kpisResp as any) ?? null;
+    const kpis: any = (kpisResp as any)?.data ?? null;
 
     const createMutation = useCreatePayrollRun();
     const deleteMutation = useDeletePayrollRun();

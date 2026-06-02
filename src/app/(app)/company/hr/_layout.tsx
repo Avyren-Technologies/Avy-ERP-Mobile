@@ -32,6 +32,8 @@ export default function HRLayout() {
       <Stack.Screen name="loan-policies" />
       <Stack.Screen name="loans" />
       {/* Payroll Operations */}
+      <Stack.Screen name="payroll-config-prerequisites" />
+      <Stack.Screen name="payroll-pre-run" />
       <Stack.Screen name="payroll-runs" />
       <Stack.Screen name="payslips" />
       <Stack.Screen name="salary-holds" />

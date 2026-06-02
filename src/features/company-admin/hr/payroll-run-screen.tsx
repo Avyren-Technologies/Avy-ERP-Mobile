@@ -35,6 +35,8 @@ import {
     useReviewExceptions,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { usePayrollRun, usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
+import { useConfigurationStatus } from '@/features/company-admin/api/use-payroll-phases-queries';
+import { useRouter } from 'expo-router';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 import { Step1AttendanceValidation } from '@/features/company-admin/hr/Step1AttendanceValidation';
@@ -259,9 +261,116 @@ function RunCard({ item, index, onPress }: { item: PayrollRunItem; index: number
 
 // ============ MAIN COMPONENT ============
 
+function PayrollPhaseGuardMobile({ totalSteps, completedSteps }: { totalSteps: number; completedSteps: number }) {
+  const isDark = useIsDark();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const remaining = totalSteps - completedSteps;
+  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: isDark ? colors.charcoal[950] : colors.gradient.surface }}>
+      <LinearGradient
+        colors={[colors.gradient.start, colors.gradient.mid, colors.gradient.end]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 16 }}
+      >
+        <Text className="text-xl font-inter font-bold text-white">Payroll Run Blocked</Text>
+        <Text className="text-xs font-inter text-white/80 mt-1">Complete Phase A first</Text>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
+        <View style={{
+          backgroundColor: isDark ? colors.charcoal[900] : '#fff',
+          borderColor: isDark ? 'rgba(245,158,11,0.3)' : colors.warning[200],
+          borderRadius: 18, borderWidth: 1, padding: 18, marginBottom: 14,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : colors.warning[100], alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 22 }}>🛡️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text className="text-base font-inter font-bold text-gray-900 dark:text-white">Payroll Run Blocked</Text>
+              <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 mt-1">
+                Complete <Text className="font-inter font-bold">Phase A — Configuration Prerequisites</Text> before running payroll. {remaining} step{remaining === 1 ? '' : 's'} remaining.
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text className="text-[10px] font-inter font-bold uppercase tracking-wider text-gray-500">Phase A Progress</Text>
+              <Text className="text-xs font-inter font-bold text-gray-900 dark:text-white">{completedSteps}/{totalSteps}</Text>
+            </View>
+            <View style={{ height: 8, borderRadius: 4, backgroundColor: isDark ? colors.charcoal[800] : colors.neutral[100], overflow: 'hidden' }}>
+              <LinearGradient
+                colors={[colors.primary[500], colors.accent[500]]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={{ height: '100%', width: `${progress}%`, borderRadius: 4 }}
+              />
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => router.push('/company/hr/payroll-config-prerequisites' as any)}
+            style={{
+              backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : colors.primary[50],
+              borderColor: isDark ? 'rgba(99,102,241,0.4)' : colors.primary[200],
+              borderWidth: 2, borderRadius: 14, padding: 14,
+              flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10,
+            }}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? 'rgba(99,102,241,0.3)' : colors.primary[100], alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 16 }}>✓</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white">Open Phase A</Text>
+              <Text className="text-[10px] font-inter text-gray-500 dark:text-gray-400">Configuration prerequisites</Text>
+            </View>
+            <Text className="text-gray-400">›</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/company/hr/payroll-pre-run' as any)}
+            style={{
+              backgroundColor: isDark ? 'rgba(139,92,246,0.18)' : colors.accent[50],
+              borderColor: isDark ? 'rgba(139,92,246,0.4)' : colors.accent[200],
+              borderWidth: 2, borderRadius: 14, padding: 14,
+              flexDirection: 'row', alignItems: 'center', gap: 12,
+            }}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? 'rgba(139,92,246,0.3)' : colors.accent[100], alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 16 }}>📋</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white">Open Phase B</Text>
+              <Text className="text-[10px] font-inter text-gray-500 dark:text-gray-400">Pre-run activities</Text>
+            </View>
+            <Text className="text-gray-400">›</Text>
+          </Pressable>
+        </View>
+
+        <View style={{
+          backgroundColor: isDark ? colors.charcoal[900] : colors.neutral[50],
+          borderColor: isDark ? colors.charcoal[800] : colors.neutral[200],
+          borderRadius: 18, borderWidth: 1, padding: 16,
+        }}>
+          <Text className="text-sm font-inter font-bold text-gray-900 dark:text-white mb-2">Why is this blocked?</Text>
+          <Text className="text-xs font-inter text-gray-600 dark:text-gray-400 leading-5">
+            A payroll run requires foundational configuration — salary components, structures, employee assignments, statutory rules, and attendance/leave policies. Running payroll without these in place leads to incorrect calculations, missing statutory deductions, and compliance risk.
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 export function PayrollRunScreen() {
   const isDark = useIsDark();
   const styles = createStyles(isDark);
+  const configStatusQuery = useConfigurationStatus();
+  const configStatus = configStatusQuery.data?.data;
+  const phaseAComplete = configStatus ? configStatus.completedCount === configStatus.totalCount : true;
 
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
@@ -470,10 +579,22 @@ export function PayrollRunScreen() {
         return <View style={{ paddingTop: 40, alignItems: 'center' }}><EmptyState icon="inbox" title="No payroll runs" message="Create a new payroll run to get started." /></View>;
     };
 
+    // ── GUARD: Block payroll run until Phase A is complete ──
+    if (configStatusQuery.isLoading) {
+        return (
+            <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+                <SkeletonCard />
+            </View>
+        );
+    }
+    if (configStatus && !phaseAComplete) {
+        return <PayrollPhaseGuardMobile totalSteps={configStatus.totalCount} completedSteps={configStatus.completedCount} />;
+    }
+
     return (
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <AppTopHeader title="Payroll Runs" onMenuPress={toggle} />
+            <AppTopHeader title="Phase C — Payroll Run" onMenuPress={toggle} />
             <FlashList data={runs} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}

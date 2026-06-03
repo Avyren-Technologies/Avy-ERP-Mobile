@@ -33,6 +33,8 @@ interface BackendActivity {
     priority: Priority;
     pendingCount: number | null;
     blockerReason: string | null;
+    /** Backend-provided deep link to the page where this activity can be resolved. */
+    actionUrl?: string;
 }
 
 interface BackendChecklist {
@@ -179,7 +181,12 @@ function ActivityCard({ activity, meta, index, runId }: { activity: BackendActiv
                 <Text className="font-inter text-[11px] text-neutral-500">
                     {activity.pendingCount != null ? `${activity.pendingCount} pending` : ' '}
                 </Text>
-                <Pressable onPress={() => router.push(`/company/hr/payroll-runs?runId=${runId}` as any)}>
+                <Pressable onPress={() => {
+                    const url = activity.actionUrl
+                        ? activity.actionUrl.replace(/^\/app/, '') // strip /app for mobile router
+                        : `/company/hr/payroll-c-step-2?runId=${runId}`;
+                    router.push(url as any);
+                }}>
                     <Text style={[styles.actionText, { color: tint }]}>{label} ›</Text>
                 </Pressable>
             </View>
@@ -271,7 +278,7 @@ export function PhaseBPreRunScreen() {
     const get = (id: string) => acts.find(a => a.id === id);
 
     const healthChecks = [
-        { label: 'Attendance Closed',     sub: `${checklist.keyStats.totalEmployees - (get('verify_attendance')?.pendingCount ?? 0)}/${checklist.keyStats.totalEmployees} employees`, ok: get('verify_attendance')?.status === 'COMPLETE', emoji: '🗓' },
+        { label: 'Attendance Closed',     sub: ((p: number) => p === 0 ? 'All attendance reviewed' : `${p} record${p === 1 ? '' : 's'} pending`)(get('verify_attendance')?.pendingCount ?? 0), ok: get('verify_attendance')?.status === 'COMPLETE', emoji: '🗓' },
         { label: 'Leaves Actioned',       sub: 'All leave requests are actioned',                                                  ok: get('pending_approvals')?.status === 'COMPLETE', emoji: '📅' },
         { label: 'Pending Regularizations', sub: `${get('review_exceptions')?.pendingCount ?? 0} pending`,                          ok: (get('review_exceptions')?.pendingCount ?? 0) === 0, emoji: '⚠' },
         { label: 'Salary Holds',          sub: `${get('salary_holds')?.pendingCount ?? 0} employees on hold`,                       ok: (get('salary_holds')?.pendingCount ?? 0) === 0, emoji: '🔒' },
@@ -337,7 +344,7 @@ export function PhaseBPreRunScreen() {
                             </View>
                             <Text className="font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Payroll Period</Text>
                         </View>
-                        <Pressable onPress={() => router.push(`/company/hr/payroll-runs?runId=${checklist.run.id}` as any)}>
+                        <Pressable onPress={() => router.push(`/company/hr/payroll-c-step-1?runId=${checklist.run.id}` as any)}>
                             <Text style={styles.actionText}>✎ Edit Period</Text>
                         </Pressable>
                     </View>
@@ -506,7 +513,7 @@ export function PhaseBPreRunScreen() {
                 </View>
                 <Pressable
                     disabled={!allReady}
-                    onPress={() => router.push(`/company/hr/payroll-runs?runId=${checklist.run.id}` as any)}
+                    onPress={() => router.push(`/company/hr/payroll-c-step-1?runId=${checklist.run.id}` as any)}
                     style={[styles.bottomCta, !allReady && { opacity: 0.5 }]}
                 >
                     {allReady ? (

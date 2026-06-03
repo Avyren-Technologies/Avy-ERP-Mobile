@@ -276,6 +276,7 @@ function ApplyLeaveModal({
     defaultLeaveTypeId?: string;
 }>) {
     const insets = useSafeAreaInsets();
+    const isDark = useIsDark();
     const [leaveTypeId, setLeaveTypeId] = React.useState('');
     const [fromDate,  setFromDate]  = React.useState('');
     const [toDate,    setToDate]    = React.useState('');
@@ -432,40 +433,46 @@ function ApplyLeaveModal({
                             </Svg>
                         </Pressable>
                         {leaveTypeDropdownOpen && (
-                            <View style={{ borderTopWidth: 1, borderTopColor: colors.neutral[100], backgroundColor: colors.neutral[50] }}>
-                                {displayLeaveTypes.map((lt) => (
-                                    <Pressable 
-                                        key={lt.id ?? lt.name} 
-                                        onPress={() => {
-                                            setLeaveTypeId(lt.id);
-                                            setLeaveTypeDropdownOpen(false);
-                                        }}
-                                        style={[
-                                            st.dateRow, 
-                                            { paddingVertical: 12 },
-                                            leaveTypeId === lt.id && { backgroundColor: colors.primary[50] }
-                                        ]}
-                                    >
-                                        <View>
-                                            <Text style={[st.dateValue, leaveTypeId === lt.id && { color: colors.primary[700] }]}>{lt.name}</Text>
-                                            {lt.total > 0 && (
-                                                <Text style={{ fontFamily: 'Inter', fontSize: 11, color: colors.neutral[500], marginTop: 2 }}>
-                                                    {lt.used} used out of {lt.total}
-                                                </Text>
+                            <View style={{ borderTopWidth: 1, borderTopColor: isDark ? colors.neutral[800] : colors.neutral[100], backgroundColor: isDark ? '#1C1936' : colors.neutral[50] }}>
+                                <ScrollView 
+                                    style={{ maxHeight: 180 }} 
+                                    nestedScrollEnabled={true}
+                                    showsVerticalScrollIndicator={true}
+                                >
+                                    {displayLeaveTypes.map((lt) => (
+                                        <Pressable 
+                                            key={lt.id ?? lt.name} 
+                                            onPress={() => {
+                                                setLeaveTypeId(lt.id);
+                                                setLeaveTypeDropdownOpen(false);
+                                            }}
+                                            style={[
+                                                st.dateRow, 
+                                                { paddingVertical: 12 },
+                                                leaveTypeId === lt.id && { backgroundColor: isDark ? colors.primary[900] + '30' : colors.primary[50] }
+                                            ]}
+                                        >
+                                            <View>
+                                                <Text style={[st.dateValue, leaveTypeId === lt.id && { color: colors.primary[500] }]}>{lt.name}</Text>
+                                                {lt.total > 0 && (
+                                                    <Text style={{ fontFamily: 'Inter', fontSize: 11, color: isDark ? colors.neutral[400] : colors.neutral[500], marginTop: 2 }}>
+                                                        {lt.used} used out of {lt.total}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                            {leaveTypeId === lt.id && (
+                                                <Svg width={16} height={16} viewBox="0 0 24 24">
+                                                    <Path d="M20 6L9 17l-5-5" stroke={colors.primary[500]} strokeWidth="2" fill="none" strokeLinecap="round" />
+                                                </Svg>
                                             )}
+                                        </Pressable>
+                                    ))}
+                                    {displayLeaveTypes.length === 0 && (
+                                        <View style={{ padding: 16, alignItems: 'center' }}>
+                                            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: colors.neutral[400] }}>No leave types available</Text>
                                         </View>
-                                        {leaveTypeId === lt.id && (
-                                            <Svg width={16} height={16} viewBox="0 0 24 24">
-                                                <Path d="M20 6L9 17l-5-5" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" />
-                                            </Svg>
-                                        )}
-                                    </Pressable>
-                                ))}
-                                {displayLeaveTypes.length === 0 && (
-                                    <View style={{ padding: 16, alignItems: 'center' }}>
-                                        <Text style={{ fontFamily: 'Inter', fontSize: 12, color: colors.neutral[400] }}>No leave types available</Text>
-                                    </View>
-                                )}
+                                    )}
+                                </ScrollView>
                             </View>
                         )}
                     </View>

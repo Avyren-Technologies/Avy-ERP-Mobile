@@ -299,12 +299,14 @@ function ChipSelect({
     selected,
     onSelect,
     required,
+    editable = true,
 }: {
     label: string;
     options: string[];
     selected: string;
     onSelect: (v: string) => void;
     required?: boolean;
+    editable?: boolean;
 }) {
     return (
         <View style={st.field}>
@@ -317,8 +319,15 @@ function ChipSelect({
                     return (
                         <Pressable
                             key={opt}
-                            onPress={() => onSelect(opt)}
-                            style={[st.chip, isActive && st.chipActive]}
+                            onPress={() => {
+                                if (editable) onSelect(opt);
+                            }}
+                            disabled={!editable}
+                            style={[
+                                st.chip,
+                                isActive && st.chipActive,
+                                !editable && { opacity: 0.65 }
+                            ]}
                         >
                             <Text
                                 className={`font-inter text-xs font-semibold ${isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}
@@ -341,6 +350,7 @@ function DropdownField({
     required,
     placeholder = 'Select...',
     createRoute,
+    editable = true,
 }: {
     label: string;
     options: { id: string; name: string }[];
@@ -349,6 +359,7 @@ function DropdownField({
     required?: boolean;
     placeholder?: string;
     createRoute?: { route: string; label: string };
+    editable?: boolean;
 }) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
@@ -367,7 +378,7 @@ function DropdownField({
                 <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     {label}{required ? <Text className="text-danger-500"> *</Text> : null}
                 </Text>
-                {createRoute && (
+                {createRoute && editable && (
                     <Pressable onPress={() => router.push(createRoute.route as any)} hitSlop={8}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
@@ -379,8 +390,18 @@ function DropdownField({
                 )}
             </View>
             <Pressable
-                onPress={() => { setOpen(true); setSearch(''); }}
-                style={[st.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                onPress={() => {
+                    if (editable) {
+                        setOpen(true);
+                        setSearch('');
+                    }
+                }}
+                disabled={!editable}
+                style={[
+                    st.input,
+                    !editable && st.inputReadOnly,
+                    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }
+                ]}
             >
                 <Text
                     className={`font-inter text-sm ${selectedItem ? 'text-primary-950 dark:text-white' : 'text-neutral-400'}`}
@@ -584,6 +605,7 @@ function PersonalTab({
     dynamicRoles,
     rolesError,
     rolesLoading,
+    editable = true,
 }: {
     form: PersonalForm;
     onChange: (updates: Partial<PersonalForm>) => void;
@@ -599,18 +621,19 @@ function PersonalTab({
     dynamicRoles?: { id: string; name: string; isActive?: boolean }[];
     rolesError?: boolean;
     rolesLoading?: boolean;
+    editable?: boolean;
 }) {
     const [showPwd, setShowPwd] = React.useState(false);
     const [showConfirmPwd, setShowConfirmPwd] = React.useState(false);
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Basic Details" />
-            <FormField label="First Name" value={form.firstName} onChangeText={(v) => onChange({ firstName: v })} placeholder="e.g. Rahul" required autoCapitalize="words" />
-            <FormField label="Middle Name" value={form.middleName} onChangeText={(v) => onChange({ middleName: v })} placeholder="e.g. Kumar" autoCapitalize="words" />
-            <FormField label="Last Name" value={form.lastName} onChangeText={(v) => onChange({ lastName: v })} placeholder="e.g. Sharma" required autoCapitalize="words" />
-            <DatePickerField label="Date of Birth" value={form.dob} onChange={(v) => onChange({ dob: v })} required />
-            <ChipSelect label="Gender" options={['Male', 'Female', 'Non-Binary', 'Prefer not to say']} selected={form.gender} onSelect={(v) => onChange({ gender: v })} />
-            <ChipSelect label="Marital Status" options={['Single', 'Married', 'Divorced', 'Widowed']} selected={form.maritalStatus} onSelect={(v) => onChange({ maritalStatus: v })} />
+            <FormField label="First Name" value={form.firstName} onChangeText={(v) => onChange({ firstName: v })} placeholder="e.g. Rahul" required autoCapitalize="words" editable={editable} />
+            <FormField label="Middle Name" value={form.middleName} onChangeText={(v) => onChange({ middleName: v })} placeholder="e.g. Kumar" autoCapitalize="words" editable={editable} />
+            <FormField label="Last Name" value={form.lastName} onChangeText={(v) => onChange({ lastName: v })} placeholder="e.g. Sharma" required autoCapitalize="words" editable={editable} />
+            <DatePickerField label="Date of Birth" value={form.dob} onChange={(v) => onChange({ dob: v })} required editable={editable} />
+            <ChipSelect label="Gender" options={['Male', 'Female', 'Non-Binary', 'Prefer not to say']} selected={form.gender} onSelect={(v) => onChange({ gender: v })} required editable={editable} />
+            <ChipSelect label="Marital Status" options={['Single', 'Married', 'Divorced', 'Widowed']} selected={form.maritalStatus} onSelect={(v) => onChange({ maritalStatus: v })} editable={editable} />
             <DropdownField
                 label="Blood Group"
                 options={[
@@ -626,26 +649,27 @@ function PersonalTab({
                 selected={form.bloodGroup}
                 onSelect={(v) => onChange({ bloodGroup: v })}
                 placeholder="Select..."
+                editable={editable}
             />
-            <FormField label="Father's Name" value={form.fatherName} onChangeText={(v) => onChange({ fatherName: v })} autoCapitalize="words" />
-            <FormField label="Mother's Name" value={form.motherName} onChangeText={(v) => onChange({ motherName: v })} autoCapitalize="words" />
-            <FormField label="Nationality" value={form.nationality} onChangeText={(v) => onChange({ nationality: v })} autoCapitalize="words" />
-            <FormField label="Religion" value={form.religion} onChangeText={(v) => onChange({ religion: v })} placeholder="e.g. Hindu, Muslim, Christian" autoCapitalize="words" />
-            <FormField label="Category" value={form.category} onChangeText={(v) => onChange({ category: v })} placeholder="e.g. General, OBC, SC, ST" autoCapitalize="words" />
+            <FormField label="Father's Name" value={form.fatherName} onChangeText={(v) => onChange({ fatherName: v })} autoCapitalize="words" editable={editable} />
+            <FormField label="Mother's Name" value={form.motherName} onChangeText={(v) => onChange({ motherName: v })} autoCapitalize="words" editable={editable} />
+            <FormField label="Nationality" value={form.nationality} onChangeText={(v) => onChange({ nationality: v })} autoCapitalize="words" editable={editable} />
+            <FormField label="Religion" value={form.religion} onChangeText={(v) => onChange({ religion: v })} placeholder="e.g. Hindu, Muslim, Christian" autoCapitalize="words" editable={editable} />
+            <FormField label="Category" value={form.category} onChangeText={(v) => onChange({ category: v })} placeholder="e.g. General, OBC, SC, ST" autoCapitalize="words" editable={editable} />
 
             <SectionTitle title="Contact" />
-            <FormField label="Personal Mobile" value={form.personalMobile} onChangeText={(v) => onChange({ personalMobile: v })} placeholder="+91 98765 43210" keyboardType="phone-pad" required />
-            <FormField label="Alternative Mobile" value={form.alternativeMobile} onChangeText={(v) => onChange({ alternativeMobile: v })} keyboardType="phone-pad" />
-            <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" />
-            <FormField label="Official Email" value={form.officialEmail} onChangeText={(v) => onChange({ officialEmail: v })} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" />
+            <FormField label="Personal Mobile" value={form.personalMobile} onChangeText={(v) => onChange({ personalMobile: v })} placeholder="+91 98765 43210" keyboardType="phone-pad" required editable={editable} />
+            <FormField label="Alternative Mobile" value={form.alternativeMobile} onChangeText={(v) => onChange({ alternativeMobile: v })} keyboardType="phone-pad" editable={editable} />
+            <FormField label="Personal Email" value={form.personalEmail} onChangeText={(v) => onChange({ personalEmail: v })} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" required={createUserAccount} editable={editable} />
+            <FormField label="Official Email" value={form.officialEmail} onChangeText={(v) => onChange({ officialEmail: v })} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" required={createUserAccount} editable={editable} />
 
             <SectionTitle title="Current Address" />
-            <FormField label="Address Line 1" value={form.currentLine1} onChangeText={(v) => onChange({ currentLine1: v })} placeholder="Street, building" />
-            <FormField label="Address Line 2" value={form.currentLine2} onChangeText={(v) => onChange({ currentLine2: v })} placeholder="Area, landmark" />
-            <FormField label="City" value={form.currentCity} onChangeText={(v) => onChange({ currentCity: v })} autoCapitalize="words" />
-            <FormField label="State" value={form.currentState} onChangeText={(v) => onChange({ currentState: v })} autoCapitalize="words" />
-            <FormField label="PIN Code" value={form.currentPin} onChangeText={(v) => onChange({ currentPin: v })} keyboardType="number-pad" />
-            <FormField label="Country" value={form.currentCountry} onChangeText={(v) => onChange({ currentCountry: v })} autoCapitalize="words" />
+            <FormField label="Address Line 1" value={form.currentLine1} onChangeText={(v) => onChange({ currentLine1: v })} placeholder="Street, building" editable={editable} />
+            <FormField label="Address Line 2" value={form.currentLine2} onChangeText={(v) => onChange({ currentLine2: v })} placeholder="Area, landmark" editable={editable} />
+            <FormField label="City" value={form.currentCity} onChangeText={(v) => onChange({ currentCity: v })} autoCapitalize="words" editable={editable} />
+            <FormField label="State" value={form.currentState} onChangeText={(v) => onChange({ currentState: v })} autoCapitalize="words" editable={editable} />
+            <FormField label="PIN Code" value={form.currentPin} onChangeText={(v) => onChange({ currentPin: v })} keyboardType="number-pad" editable={editable} />
+            <FormField label="Country" value={form.currentCountry} onChangeText={(v) => onChange({ currentCountry: v })} autoCapitalize="words" editable={editable} />
 
             <SectionTitle title="Permanent Address" />
             <View style={st.toggleRow}>
@@ -655,19 +679,20 @@ function PersonalTab({
                     onValueChange={(v) => onChange({ sameAsCurrent: v })}
                     trackColor={{ false: colors.neutral[200], true: colors.primary[400] }}
                     thumbColor={form.sameAsCurrent ? colors.white : colors.neutral[100]}
+                    disabled={!editable}
                 />
             </View>
-            <FormField label="Address Line 1" value={form.sameAsCurrent ? form.currentLine1 : form.permanentLine1} onChangeText={(v) => onChange({ permanentLine1: v })} editable={!form.sameAsCurrent} />
-            <FormField label="Address Line 2" value={form.sameAsCurrent ? form.currentLine2 : form.permanentLine2} onChangeText={(v) => onChange({ permanentLine2: v })} editable={!form.sameAsCurrent} />
-            <FormField label="City" value={form.sameAsCurrent ? form.currentCity : form.permanentCity} onChangeText={(v) => onChange({ permanentCity: v })} autoCapitalize="words" editable={!form.sameAsCurrent} />
-            <FormField label="State" value={form.sameAsCurrent ? form.currentState : form.permanentState} onChangeText={(v) => onChange({ permanentState: v })} autoCapitalize="words" editable={!form.sameAsCurrent} />
-            <FormField label="PIN Code" value={form.sameAsCurrent ? form.currentPin : form.permanentPin} onChangeText={(v) => onChange({ permanentPin: v })} keyboardType="number-pad" editable={!form.sameAsCurrent} />
-            <FormField label="Country" value={form.sameAsCurrent ? form.currentCountry : form.permanentCountry} onChangeText={(v) => onChange({ permanentCountry: v })} autoCapitalize="words" editable={!form.sameAsCurrent} />
+            <FormField label="Address Line 1" value={form.sameAsCurrent ? form.currentLine1 : form.permanentLine1} onChangeText={(v) => onChange({ permanentLine1: v })} editable={editable && !form.sameAsCurrent} />
+            <FormField label="Address Line 2" value={form.sameAsCurrent ? form.currentLine2 : form.permanentLine2} onChangeText={(v) => onChange({ permanentLine2: v })} editable={editable && !form.sameAsCurrent} />
+            <FormField label="City" value={form.sameAsCurrent ? form.currentCity : form.permanentCity} onChangeText={(v) => onChange({ permanentCity: v })} autoCapitalize="words" editable={editable && !form.sameAsCurrent} />
+            <FormField label="State" value={form.sameAsCurrent ? form.currentState : form.permanentState} onChangeText={(v) => onChange({ permanentState: v })} autoCapitalize="words" editable={editable && !form.sameAsCurrent} />
+            <FormField label="PIN Code" value={form.sameAsCurrent ? form.currentPin : form.permanentPin} onChangeText={(v) => onChange({ permanentPin: v })} keyboardType="number-pad" editable={editable && !form.sameAsCurrent} />
+            <FormField label="Country" value={form.sameAsCurrent ? form.currentCountry : form.permanentCountry} onChangeText={(v) => onChange({ permanentCountry: v })} autoCapitalize="words" editable={editable && !form.sameAsCurrent} />
 
             <SectionTitle title="Emergency Contact" />
-            <FormField label="Contact Name" value={form.emergencyName} onChangeText={(v) => onChange({ emergencyName: v })} autoCapitalize="words" required />
-            <FormField label="Relation" value={form.emergencyRelation} onChangeText={(v) => onChange({ emergencyRelation: v })} autoCapitalize="words" required />
-            <FormField label="Mobile" value={form.emergencyMobile} onChangeText={(v) => onChange({ emergencyMobile: v })} keyboardType="phone-pad" required />
+            <FormField label="Contact Name" value={form.emergencyName} onChangeText={(v) => onChange({ emergencyName: v })} autoCapitalize="words" required editable={editable} />
+            <FormField label="Relation" value={form.emergencyRelation} onChangeText={(v) => onChange({ emergencyRelation: v })} autoCapitalize="words" required editable={editable} />
+            <FormField label="Mobile" value={form.emergencyMobile} onChangeText={(v) => onChange({ emergencyMobile: v })} keyboardType="phone-pad" required editable={editable} />
 
             {/* Create Login Account — only for new employees */}
             {isCreateMode && (
@@ -699,6 +724,7 @@ function PersonalTab({
                                         onChangeText={(v) => onUserPasswordChange?.(v)}
                                         placeholder="Min 6 characters"
                                         secureTextEntry={!showPwd}
+                                        required={createUserAccount}
                                     />
                                     <Pressable onPress={() => setShowPwd((v) => !v)} style={st.eyeBtn}>
                                         <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
@@ -726,6 +752,7 @@ function PersonalTab({
                                         onChangeText={(v) => onConfirmPasswordChange?.(v)}
                                         placeholder="Re-enter password"
                                         secureTextEntry={!showConfirmPwd}
+                                        required={createUserAccount}
                                     />
                                     <Pressable onPress={() => setShowConfirmPwd((v) => !v)} style={st.eyeBtn}>
                                         <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
@@ -782,6 +809,7 @@ function ProfessionalTab({
     isCreateMode,
     employeeStatus,
     onStatusChange,
+    editable = true,
 }: {
     form: ProfessionalForm;
     onChange: (updates: Partial<ProfessionalForm>) => void;
@@ -797,6 +825,7 @@ function ProfessionalTab({
     isCreateMode?: boolean;
     employeeStatus?: EmployeeStatus;
     onStatusChange?: (status: EmployeeStatus) => void;
+    editable?: boolean;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
@@ -807,21 +836,22 @@ function ProfessionalTab({
                     options={['Probation', 'Active', 'Confirmed']}
                     selected={employeeStatus || 'Probation'}
                     onSelect={(v) => onStatusChange(v as EmployeeStatus)}
+                    editable={editable}
                 />
             )}
-            <DatePickerField label="Joining Date" value={form.joiningDate} onChange={(v) => onChange({ joiningDate: v })} required />
-            <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required createRoute={{ route: '/company/hr/employee-types', label: 'Create Employee Type' }} />
-            <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required createRoute={{ route: '/company/hr/designations', label: 'Create Designation' }} />
-            <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required createRoute={{ route: '/company/hr/departments', label: 'Create Department' }} />
-            <DropdownField label="Grade" options={grades} selected={form.gradeId} onSelect={(v) => onChange({ gradeId: v })} createRoute={{ route: '/company/hr/grades', label: 'Create Grade' }} />
+            <DatePickerField label="Joining Date" value={form.joiningDate} onChange={(v) => onChange({ joiningDate: v })} required editable={editable} />
+            <DropdownField label="Employee Type" options={employeeTypes} selected={form.employeeTypeId} onSelect={(v) => onChange({ employeeTypeId: v })} required createRoute={{ route: '/company/hr/employee-types', label: 'Create Employee Type' }} editable={editable} />
+            <DropdownField label="Designation" options={designations} selected={form.designationId} onSelect={(v) => onChange({ designationId: v })} required createRoute={{ route: '/company/hr/designations', label: 'Create Designation' }} editable={editable} />
+            <DropdownField label="Department" options={departments} selected={form.departmentId} onSelect={(v) => onChange({ departmentId: v })} required createRoute={{ route: '/company/hr/departments', label: 'Create Department' }} editable={editable} />
+            <DropdownField label="Grade" options={grades} selected={form.gradeId} onSelect={(v) => onChange({ gradeId: v })} createRoute={{ route: '/company/hr/grades', label: 'Create Grade' }} editable={editable} />
 
             <SectionTitle title="Reporting" />
-            <DropdownField label="Reporting Manager" options={employees} selected={form.reportingManagerId} onSelect={(v) => onChange({ reportingManagerId: v })} placeholder="Search manager..." />
-            <DropdownField label="Functional Manager" options={employees} selected={form.functionalManagerId} onSelect={(v) => onChange({ functionalManagerId: v })} placeholder="Search manager..." />
+            <DropdownField label="Reporting Manager" options={employees} selected={form.reportingManagerId} onSelect={(v) => onChange({ reportingManagerId: v })} placeholder="Search manager..." editable={editable} />
+            <DropdownField label="Functional Manager" options={employees} selected={form.functionalManagerId} onSelect={(v) => onChange({ functionalManagerId: v })} placeholder="Search manager..." editable={editable} />
 
             <SectionTitle title="Work Setup" />
-            <DropdownField label="Location" options={locations || []} selected={form.locationId} onSelect={(v) => onChange({ locationId: v, geofenceId: '' })} placeholder="Select location..." createRoute={{ route: '/company/locations', label: 'Create Location' }} />
-            <DropdownField label="Geofence" options={geofenceOptions || []} selected={form.geofenceId} onSelect={(v) => onChange({ geofenceId: v })} placeholder={!form.locationId ? 'Select a location first' : 'No specific geofence'} />
+            <DropdownField label="Location" options={locations || []} selected={form.locationId} onSelect={(v) => onChange({ locationId: v, geofenceId: '' })} placeholder="Select location..." createRoute={{ route: '/company/locations', label: 'Create Location' }} editable={editable} />
+            <DropdownField label="Geofence" options={geofenceOptions || []} selected={form.geofenceId} onSelect={(v) => onChange({ geofenceId: v })} placeholder={!form.locationId ? 'Select a location first' : 'No specific geofence'} editable={editable} />
             {!form.locationId ? (
                 <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-400">
                     Select a location first to see available geofences.
@@ -831,10 +861,10 @@ function ProfessionalTab({
                     Attendance check-in zone for this employee.
                 </Text>
             )}
-            <DropdownField label="Shift" options={shifts || []} selected={form.shiftId} onSelect={(v) => onChange({ shiftId: v })} placeholder="Select shift..." createRoute={{ route: '/company/shifts', label: 'Create Shift' }} />
-            <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} />
-            <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} />
-            <FormField label="Notice Period (Days)" value={form.noticePeriodDays} onChangeText={(v) => onChange({ noticePeriodDays: v })} keyboardType="number-pad" placeholder="e.g. 90" />
+            <DropdownField label="Shift" options={shifts || []} selected={form.shiftId} onSelect={(v) => onChange({ shiftId: v })} placeholder="Select shift..." createRoute={{ route: '/company/shifts', label: 'Create Shift' }} editable={editable} />
+            <ChipSelect label="Work Type" options={['On-site', 'Remote', 'Hybrid']} selected={form.workType} onSelect={(v) => onChange({ workType: v })} editable={editable} />
+            <DropdownField label="Cost Centre" options={costCentres} selected={form.costCentreId} onSelect={(v) => onChange({ costCentreId: v })} createRoute={{ route: '/company/hr/cost-centres', label: 'Create Cost Centre' }} editable={editable} />
+            <FormField label="Notice Period (Days)" value={form.noticePeriodDays} onChangeText={(v) => onChange({ noticePeriodDays: v })} keyboardType="number-pad" placeholder="e.g. 90" editable={editable} />
             <Text className="font-inter -mt-2 mb-1 text-[10px] leading-4 text-neutral-500 dark:text-neutral-400">
                 Defaults from the grade (Grade master). You can override per employee.
             </Text>
@@ -852,12 +882,14 @@ function SalaryTab({
     structureOptions,
     structuresData,
     onComputeBreakdown,
+    editable = true,
 }: {
     form: SalaryForm;
     onChange: (updates: Partial<SalaryForm>) => void;
     structureOptions: { id: string; name: string }[];
     structuresData: any[];
     onComputeBreakdown: (structure: any, annualCtc: number) => void;
+    editable?: boolean;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
@@ -866,7 +898,7 @@ function SalaryTab({
                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
                     Annual CTC
                 </Text>
-                <View style={[st.input, { flexDirection: 'row', alignItems: 'center' }]}>
+                <View style={[st.input, !editable && st.inputReadOnly, { flexDirection: 'row', alignItems: 'center' }]}>
                     <Text className="mr-2 font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">INR</Text>
                     <TextInput
                         style={[st.textInner, { flex: 1 }]}
@@ -882,6 +914,7 @@ function SalaryTab({
                             }
                         }}
                         keyboardType="number-pad"
+                        editable={editable}
                     />
                 </View>
                 {form.annualCtc ? (
@@ -890,7 +923,7 @@ function SalaryTab({
                     </Text>
                 ) : null}
             </View>
-            <ChipSelect label="Payment Mode" options={['NEFT', 'IMPS', 'Cheque']} selected={form.paymentMode} onSelect={(v) => onChange({ paymentMode: v })} />
+            <ChipSelect label="Payment Mode" options={['NEFT', 'IMPS', 'Cheque']} selected={form.paymentMode} onSelect={(v) => onChange({ paymentMode: v })} editable={editable} />
 
             <SectionTitle title="Salary Structure" />
             <DropdownField
@@ -907,6 +940,7 @@ function SalaryTab({
                     }
                 }}
                 placeholder="Select structure..."
+                editable={editable}
             />
 
             {form.salaryStructure && Object.keys(form.salaryStructure).length > 0 ? (
@@ -952,9 +986,11 @@ function SalaryTab({
 function BankTab({
     form,
     onChange,
+    editable = true,
 }: {
     form: BankForm;
     onChange: (updates: Partial<BankForm>) => void;
+    editable?: boolean;
 }) {
     const [ifscVerifying, setIfscVerifying] = React.useState(false);
     const [ifscError, setIfscError] = React.useState('');
@@ -996,6 +1032,7 @@ function BankTab({
                 placeholder="e.g. SBIN0001234"
                 autoCapitalize="characters"
                 error={ifscError || undefined}
+                editable={editable}
             />
             {ifscVerifying && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -10, marginBottom: 12 }}>
@@ -1003,9 +1040,9 @@ function BankTab({
                     <Text className="font-inter text-[10px] font-semibold text-primary-600">Verifying IFSC...</Text>
                 </View>
             )}
-            <FormField label="Bank Name" value={form.bankName} onChangeText={(v) => onChange({ bankName: v })} placeholder="Auto-filled from IFSC" editable={!form.ifscCode} />
-            <FormField label="Bank Branch" value={form.bankBranch} onChangeText={(v) => onChange({ bankBranch: v })} placeholder="Auto-filled from IFSC" editable={!form.ifscCode} />
-            <FormField label="Account Number" value={form.accountNumber} onChangeText={(v) => onChange({ accountNumber: v })} keyboardType="number-pad" placeholder="Enter account number" />
+            <FormField label="Bank Name" value={form.bankName} onChangeText={(v) => onChange({ bankName: v })} placeholder="Auto-filled from IFSC" editable={editable && !form.ifscCode} />
+            <FormField label="Bank Branch" value={form.bankBranch} onChangeText={(v) => onChange({ bankBranch: v })} placeholder="Auto-filled from IFSC" editable={editable && !form.ifscCode} />
+            <FormField label="Account Number" value={form.accountNumber} onChangeText={(v) => onChange({ accountNumber: v })} keyboardType="number-pad" placeholder="Enter account number" editable={editable} />
             <FormField
                 label="Confirm Account Number"
                 value={form.confirmAccountNumber}
@@ -1013,8 +1050,9 @@ function BankTab({
                 keyboardType="number-pad"
                 placeholder="Re-enter account number"
                 error={accountMismatch ? 'Account numbers do not match' : undefined}
+                editable={editable}
             />
-            <ChipSelect label="Account Type" options={['Savings', 'Current']} selected={form.accountType} onSelect={(v) => onChange({ accountType: v })} />
+            <ChipSelect label="Account Type" options={['Savings', 'Current']} selected={form.accountType} onSelect={(v) => onChange({ accountType: v })} editable={editable} />
         </Animated.View>
     );
 }
@@ -1026,6 +1064,7 @@ function DocumentsTab({
     employeeId,
     onUpload,
     isUploading,
+    editable = true,
 }: {
     form: DocumentsForm;
     onChange: (updates: Partial<DocumentsForm>) => void;
@@ -1033,20 +1072,22 @@ function DocumentsTab({
     employeeId: string;
     onUpload: () => void;
     isUploading: boolean;
+    editable?: boolean;
 }) {
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Statutory IDs" />
-            <FormField label="PAN" value={form.pan} onChangeText={(v) => onChange({ pan: v.toUpperCase() })} placeholder="ABCDE1234F" autoCapitalize="characters" />
+            <FormField label="PAN" value={form.pan} onChangeText={(v) => onChange({ pan: v.toUpperCase() })} placeholder="ABCDE1234F" autoCapitalize="characters" editable={editable} />
             <View style={st.field}>
                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Aadhaar</Text>
                 <TextInput
-                    style={st.input}
+                    style={[st.input, !editable && st.inputReadOnly]}
                     placeholder="1234 5678 9012"
                     placeholderTextColor={colors.neutral[400]}
                     value={form.aadhaar}
                     onChangeText={(v) => onChange({ aadhaar: v.replace(/\D/g, '').slice(0, 12) })}
                     keyboardType="number-pad"
+                    editable={editable}
                 />
                 {form.aadhaar.length >= 4 ? (
                     <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
@@ -1054,11 +1095,11 @@ function DocumentsTab({
                     </Text>
                 ) : null}
             </View>
-            <FormField label="UAN" value={form.uan} onChangeText={(v) => onChange({ uan: v })} placeholder="Universal Account Number" keyboardType="number-pad" />
-            <FormField label="ESI IP Number" value={form.esiIpNumber} onChangeText={(v) => onChange({ esiIpNumber: v })} placeholder="ESI Insurance Point Number" />
-            <FormField label="Passport Number" value={form.passport} onChangeText={(v) => onChange({ passport: v.toUpperCase() })} autoCapitalize="characters" />
-            <FormField label="Driving Licence" value={form.dl} onChangeText={(v) => onChange({ dl: v.toUpperCase() })} autoCapitalize="characters" />
-            <FormField label="Voter ID" value={form.voterId} onChangeText={(v) => onChange({ voterId: v.toUpperCase() })} autoCapitalize="characters" />
+            <FormField label="UAN" value={form.uan} onChangeText={(v) => onChange({ uan: v })} placeholder="Universal Account Number" keyboardType="number-pad" editable={editable} />
+            <FormField label="ESI IP Number" value={form.esiIpNumber} onChangeText={(v) => onChange({ esiIpNumber: v })} placeholder="ESI Insurance Point Number" editable={editable} />
+            <FormField label="Passport Number" value={form.passport} onChangeText={(v) => onChange({ passport: v.toUpperCase() })} autoCapitalize="characters" editable={editable} />
+            <FormField label="Driving Licence" value={form.dl} onChangeText={(v) => onChange({ dl: v.toUpperCase() })} autoCapitalize="characters" editable={editable} />
+            <FormField label="Voter ID" value={form.voterId} onChangeText={(v) => onChange({ voterId: v.toUpperCase() })} autoCapitalize="characters" editable={editable} />
 
             <SectionTitle title="Uploaded Documents" />
             {docs.length === 0 ? (
@@ -1088,22 +1129,24 @@ function DocumentsTab({
             )}
 
             {/* Upload button */}
-            <Pressable
-                style={[st.uploadBtn, isUploading && { opacity: 0.6 }]}
-                onPress={onUpload}
-                disabled={isUploading}
-            >
-                {isUploading ? (
-                    <ActivityIndicator size="small" color={colors.primary[500]} />
-                ) : (
-                    <Svg width={18} height={18} viewBox="0 0 24 24">
-                        <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke={colors.primary[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                )}
-                <Text className="font-inter text-sm font-semibold text-primary-600">
-                    {isUploading ? 'Uploading...' : 'Upload Document'}
-                </Text>
-            </Pressable>
+            {editable && (
+                <Pressable
+                    style={[st.uploadBtn, isUploading && { opacity: 0.6 }]}
+                    onPress={onUpload}
+                    disabled={isUploading}
+                >
+                    {isUploading ? (
+                        <ActivityIndicator size="small" color={colors.primary[500]} />
+                    ) : (
+                        <Svg width={18} height={18} viewBox="0 0 24 24">
+                            <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke={colors.primary[500]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    )}
+                    <Text className="font-inter text-sm font-semibold text-primary-600">
+                        {isUploading ? 'Uploading...' : 'Upload Document'}
+                    </Text>
+                </Pressable>
+            )}
         </Animated.View>
     );
 }
@@ -1212,6 +1255,7 @@ export function EmployeeDetailScreen() {
     const [confirmPassword, setConfirmPassword] = React.useState('');
     const [userRole, setUserRole] = React.useState('');
     const [employeeName, setEmployeeName] = React.useState('');
+    const [editing, setEditing] = React.useState(isCreateMode);
 
     const prevDeptIdRef = React.useRef<string | null>(null);
     const prevGradeIdRef = React.useRef<string | null>(null);
@@ -1273,6 +1317,101 @@ export function EmployeeDetailScreen() {
         category: 'employee-document',
         entityId: employeeId || 'new',
     });
+
+    // Reset Form values from API query data
+    const resetForm = React.useCallback(() => {
+        if (!employeeData || isCreateMode) return;
+        const d: any = (employeeData as any)?.data ?? employeeData;
+        if (!d) return;
+
+        setEmployeeName([d.firstName, d.lastName].filter(Boolean).join(' '));
+        setEmployeeStatus(d.status ?? 'Active');
+        setProfilePhotoUrl(d.profilePhotoUrl ?? null);
+        setCreateUserAccount(!!d.user);
+
+        const reverseGenderMap: Record<string, string> = { 'MALE': 'Male', 'FEMALE': 'Female', 'NON_BINARY': 'Non-Binary', 'PREFER_NOT_TO_SAY': 'Prefer not to say' };
+        const reverseMaritalMap: Record<string, string> = { 'SINGLE': 'Single', 'MARRIED': 'Married', 'DIVORCED': 'Divorced', 'WIDOWED': 'Widowed' };
+        const reverseWorkTypeMap: Record<string, string> = { 'ON_SITE': 'On-site', 'REMOTE': 'Remote', 'HYBRID': 'Hybrid' };
+        const [fName, mName] = (d.fatherMotherName || '').split(' / ');
+
+        setPersonal({
+            firstName: d.firstName ?? '', middleName: d.middleName ?? '',
+            lastName: d.lastName ?? '', dob: (d.dateOfBirth || d.dob || '').slice(0, 10),
+            gender: reverseGenderMap[d.gender] || d.gender || '',
+            maritalStatus: reverseMaritalMap[d.maritalStatus] || d.maritalStatus || '',
+            bloodGroup: d.bloodGroup ?? '', fatherName: fName ?? d.fatherMotherName ?? '',
+            motherName: mName ?? '', nationality: d.nationality ?? 'Indian',
+            religion: d.religion ?? '', category: d.category ?? '',
+            personalMobile: d.personalMobile ?? d.mobile ?? '',
+            alternativeMobile: d.alternativeMobile ?? '',
+            personalEmail: d.personalEmail ?? d.email ?? '',
+            officialEmail: d.officialEmail ?? '',
+            currentLine1: d.currentAddress?.line1 ?? d.currentLine1 ?? '',
+            currentLine2: d.currentAddress?.line2 ?? d.currentLine2 ?? '',
+            currentCity: d.currentAddress?.city ?? d.currentCity ?? '',
+            currentState: d.currentAddress?.state ?? d.currentState ?? '',
+            currentPin: d.currentAddress?.pin ?? d.currentPin ?? '',
+            currentCountry: d.currentAddress?.country ?? d.currentCountry ?? 'India',
+            sameAsCurrent: d.sameAsCurrent ?? true,
+            permanentLine1: d.permanentAddress?.line1 ?? d.permanentLine1 ?? '',
+            permanentLine2: d.permanentAddress?.line2 ?? d.permanentLine2 ?? '',
+            permanentCity: d.permanentAddress?.city ?? d.permanentCity ?? '',
+            permanentState: d.permanentAddress?.state ?? d.permanentState ?? '',
+            permanentPin: d.permanentAddress?.pin ?? d.permanentPin ?? '',
+            permanentCountry: d.permanentAddress?.country ?? d.permanentCountry ?? 'India',
+            emergencyName: d.emergencyContactName ?? d.emergencyContact?.name ?? '',
+            emergencyRelation: d.emergencyContactRelation ?? d.emergencyContact?.relation ?? '',
+            emergencyMobile: d.emergencyContactMobile ?? d.emergencyContact?.mobile ?? '',
+        });
+
+        setProfessional({
+            joiningDate: (d.joiningDate ?? '').slice(0, 10), employeeTypeId: d.employeeTypeId ?? d.employeeType?.id ?? '',
+            departmentId: d.departmentId ?? d.department?.id ?? '',
+            designationId: d.designationId ?? d.designation?.id ?? '',
+            gradeId: d.gradeId ?? d.grade?.id ?? '',
+            reportingManagerId: d.reportingManagerId ?? d.reportingManager?.id ?? '',
+            functionalManagerId: d.functionalManagerId ?? d.functionalManager?.id ?? '',
+            workType: reverseWorkTypeMap[d.workType] || d.workType || '', shiftId: d.shiftId ?? '',
+            locationId: d.locationId ?? d.location?.id ?? '',
+            geofenceId: d.geofenceId ?? d.geofence?.id ?? '',
+            costCentreId: d.costCentreId ?? d.costCentre?.id ?? '',
+            noticePeriodDays: d.noticePeriodDays?.toString() ?? '',
+            probationEndDate: d.probationEndDate ? String(d.probationEndDate).slice(0, 10) : '',
+        });
+        prevDeptIdRef.current = d.departmentId ?? d.department?.id ?? null;
+        prevGradeIdRef.current = d.gradeId ?? d.grade?.id ?? null;
+
+        setSalary({
+            annualCtc: d.annualCtc?.toString() ?? '',
+            paymentMode: d.paymentMode ?? '',
+            structureId: d.salaryStructureId ?? '',
+            salaryStructure: d.salaryStructure ?? null,
+        });
+
+        setBank({
+            ifscCode: d.bankIfscCode ?? d.bankDetails?.ifscCode ?? '',
+            bankName: d.bankName ?? d.bankDetails?.bankName ?? '',
+            bankBranch: d.bankBranch ?? d.bankDetails?.bankBranch ?? '',
+            accountNumber: d.bankAccountNumber ?? d.bankDetails?.accountNumber ?? '',
+            confirmAccountNumber: d.bankAccountNumber ?? d.bankDetails?.accountNumber ?? '',
+            accountType: d.accountType?.charAt(0).toUpperCase() + d.accountType?.slice(1).toLowerCase() || '',
+        });
+
+        setDocuments({
+            pan: d.panNumber ?? d.pan ?? '',
+            aadhaar: d.aadhaarNumber ?? d.aadhaar ?? '',
+            uan: d.uan ?? '',
+            esiIpNumber: d.esiIpNumber ?? '',
+            passport: d.passportNumber ?? d.passport ?? '',
+            dl: d.drivingLicence ?? d.dl ?? '',
+            voterId: d.voterId ?? '',
+        });
+    }, [employeeData, isCreateMode]);
+
+    // Populate form from API data (edit mode)
+    React.useEffect(() => {
+        resetForm();
+    }, [resetForm]);
 
     // Load draft on mount (create mode only)
     React.useEffect(() => {
@@ -1793,30 +1932,40 @@ export function EmployeeDetailScreen() {
     // Collect all form data
     const collectFormData = (): Record<string, unknown> => ({
         // Profile photo
-        profilePhotoUrl: profilePhotoUrl ?? undefined,
+        profilePhotoUrl: profilePhotoUrl || null,
         // Personal
-        firstName: personal.firstName, middleName: personal.middleName,
-        lastName: personal.lastName, dateOfBirth: personal.dob,
+        firstName: personal.firstName,
+        middleName: personal.middleName || '',
+        lastName: personal.lastName,
+        dateOfBirth: personal.dob,
         gender: genderMap[personal.gender] || personal.gender,
-        maritalStatus: maritalMap[personal.maritalStatus] || personal.maritalStatus,
-        bloodGroup: personal.bloodGroup,
-        fatherMotherName: [personal.fatherName, personal.motherName].filter(Boolean).join(' / ') || undefined,
-        nationality: personal.nationality, religion: personal.religion,
-        category: personal.category, personalMobile: personal.personalMobile,
-        alternativeMobile: personal.alternativeMobile,
-        personalEmail: personal.personalEmail,
-        officialEmail: personal.officialEmail || undefined,
-        currentAddress: {
-            line1: personal.currentLine1, line2: personal.currentLine2,
-            city: personal.currentCity, state: personal.currentState,
-            pin: personal.currentPin, country: personal.currentCountry,
-        },
+        maritalStatus: maritalMap[personal.maritalStatus] || personal.maritalStatus || undefined,
+        bloodGroup: personal.bloodGroup || '',
+        fatherMotherName: [personal.fatherName, personal.motherName].filter(Boolean).join(' / ') || '',
+        nationality: personal.nationality || 'Indian',
+        religion: personal.religion || '',
+        category: personal.category || '',
+        personalMobile: personal.personalMobile,
+        alternativeMobile: personal.alternativeMobile || '',
+        personalEmail: personal.personalEmail || '',
+        officialEmail: personal.officialEmail || '',
+        currentAddress: personal.currentLine1?.trim() ? {
+            line1: personal.currentLine1,
+            line2: personal.currentLine2 || '',
+            city: personal.currentCity || '',
+            state: personal.currentState || '',
+            pin: personal.currentPin || '',
+            country: personal.currentCountry || 'India',
+        } : undefined,
         sameAsCurrent: personal.sameAsCurrent,
-        permanentAddress: personal.sameAsCurrent ? undefined : {
-            line1: personal.permanentLine1, line2: personal.permanentLine2,
-            city: personal.permanentCity, state: personal.permanentState,
-            pin: personal.permanentPin, country: personal.permanentCountry,
-        },
+        permanentAddress: personal.sameAsCurrent ? undefined : (personal.permanentLine1?.trim() ? {
+            line1: personal.permanentLine1,
+            line2: personal.permanentLine2 || '',
+            city: personal.permanentCity || '',
+            state: personal.permanentState || '',
+            pin: personal.permanentPin || '',
+            country: personal.permanentCountry || 'India',
+        } : undefined),
         emergencyContactName: personal.emergencyName,
         emergencyContactRelation: personal.emergencyRelation,
         emergencyContactMobile: personal.emergencyMobile,
@@ -1828,33 +1977,35 @@ export function EmployeeDetailScreen() {
         gradeId: professional.gradeId || undefined,
         reportingManagerId: professional.reportingManagerId || undefined,
         functionalManagerId: professional.functionalManagerId || undefined,
-        workType: workTypeMap[professional.workType] || professional.workType,
+        workType: workTypeMap[professional.workType] || professional.workType || undefined,
         shiftId: professional.shiftId || undefined,
         locationId: professional.locationId || undefined,
         geofenceId: professional.geofenceId || undefined,
         costCentreId: professional.costCentreId || undefined,
         noticePeriodDays: professional.noticePeriodDays ? parseInt(professional.noticePeriodDays, 10) : undefined,
-        probationEndDate: professional.probationEndDate?.trim() || undefined,
+        probationEndDate: professional.probationEndDate?.trim() || null,
         // Salary
         annualCtc: salary.annualCtc ? parseFloat(salary.annualCtc) : undefined,
         paymentMode: salary.paymentMode || undefined,
         salaryStructure: salary.salaryStructure || undefined,
         // Bank
         bankDetails: {
-            ifscCode: bank.ifscCode, bankName: bank.bankName,
-            bankBranch: bank.bankBranch, accountNumber: bank.accountNumber,
-            accountType: bank.accountType,
+            ifscCode: bank.ifscCode || '',
+            bankName: bank.bankName || '',
+            bankBranch: bank.bankBranch || '',
+            accountNumber: bank.accountNumber || '',
+            accountType: bank.accountType || undefined,
         },
         // Initial status (for new employees)
         initialStatus: employeeStatus.toUpperCase().replaceAll(' ', '_') as any,
         // Documents / Statutory
-        panNumber: documents.pan || undefined,
-        aadhaarNumber: documents.aadhaar || undefined,
-        uan: documents.uan || undefined,
-        esiIpNumber: documents.esiIpNumber || undefined,
-        passportNumber: documents.passport || undefined,
-        drivingLicence: documents.dl || undefined,
-        voterId: documents.voterId || undefined,
+        panNumber: documents.pan || '',
+        aadhaarNumber: documents.aadhaar || '',
+        uan: documents.uan || '',
+        esiIpNumber: documents.esiIpNumber || '',
+        passportNumber: documents.passport || '',
+        drivingLicence: documents.dl || '',
+        voterId: documents.voterId || '',
     });
 
     const handleSave = () => {
@@ -1863,11 +2014,6 @@ export function EmployeeDetailScreen() {
         // --- Personal ---
         if (!personal.firstName.trim() || !personal.lastName.trim()) {
             showErrorMessage('First Name and Last Name are required.');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.fatherName.trim() || !personal.motherName.trim()) {
-            showErrorMessage("Father's and Mother's names are required.");
             setActiveTab('personal');
             return;
         }
@@ -1881,43 +2027,13 @@ export function EmployeeDetailScreen() {
             setActiveTab('personal');
             return;
         }
-        if (!personal.maritalStatus) {
-            showErrorMessage('Marital Status is required.');
+        if (!personal.personalMobile.trim() || personal.personalMobile.trim().length < 10) {
+            showErrorMessage('Personal Mobile number is required and must be at least 10 digits.');
             setActiveTab('personal');
             return;
         }
-        if (!personal.bloodGroup) {
-            showErrorMessage('Blood Group is required.');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.nationality.trim()) {
-            showErrorMessage('Nationality is required.');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.religion.trim()) {
-            showErrorMessage('Religion is required.');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.category.trim()) {
-            showErrorMessage('Caste Category is required.');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.personalMobile.trim()) {
-            showErrorMessage('Personal Mobile is required.');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.currentLine1.trim() || !personal.currentCity.trim() || !personal.currentState.trim() || !personal.currentCountry.trim()) {
-            showErrorMessage('Complete Current Address is required (Line 1, City, State, Country).');
-            setActiveTab('personal');
-            return;
-        }
-        if (!personal.emergencyName.trim() || !personal.emergencyRelation.trim() || !personal.emergencyMobile.trim()) {
-            showErrorMessage('Emergency Contact details are required.');
+        if (!personal.emergencyName.trim() || !personal.emergencyRelation.trim() || !personal.emergencyMobile.trim() || personal.emergencyMobile.trim().length < 10) {
+            showErrorMessage('Emergency Contact details (Name, Relation, and at least 10-digit Mobile) are required.');
             setActiveTab('personal');
             return;
         }
@@ -1928,18 +2044,18 @@ export function EmployeeDetailScreen() {
             setActiveTab('professional');
             return;
         }
-        if (!professional.workType) {
-            showErrorMessage('Work Type is required.');
+        if (!professional.employeeTypeId) {
+            showErrorMessage('Employee Type is required.');
             setActiveTab('professional');
             return;
         }
-        if (!professional.employeeTypeId || !professional.departmentId || !professional.designationId) {
-            showErrorMessage('Employment details (Type, Dept, Desig) are incomplete.');
+        if (!professional.designationId) {
+            showErrorMessage('Designation is required.');
             setActiveTab('professional');
             return;
         }
-        if (!professional.locationId || !professional.shiftId) {
-            showErrorMessage('Work Setup (Location, Shift) is incomplete.');
+        if (!professional.departmentId) {
+            showErrorMessage('Department is required.');
             setActiveTab('professional');
             return;
         }
@@ -1984,6 +2100,7 @@ export function EmployeeDetailScreen() {
                     onSuccess: () => {
                         storage.remove(DRAFT_KEY);
                         showSuccess('Employee updated successfully.');
+                        setEditing(false);
                     },
                     onError: (err: any) => {
                         showErrorMessage(err?.message ?? 'Failed to update employee.');
@@ -2137,7 +2254,7 @@ export function EmployeeDetailScreen() {
             {/* Profile Photo */}
             <Animated.View entering={FadeIn.duration(400).delay(50)}>
                 <View style={st.photoSection}>
-                    <Pressable onPress={handlePickPhoto} style={st.avatarContainer}>
+                    <Pressable onPress={handlePickPhoto} disabled={!editing} style={st.avatarContainer}>
                         {isPhotoUploading ? (
                             <View style={st.avatarPlaceholder}>
                                 <ActivityIndicator size="small" color={colors.primary[500]} />
@@ -2151,12 +2268,14 @@ export function EmployeeDetailScreen() {
                                 </Text>
                             </View>
                         )}
-                        <View style={st.cameraIconBadge}>
-                            <Svg width={12} height={12} viewBox="0 0 24 24">
-                                <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                <Circle cx="12" cy="13" r="4" stroke={colors.white} strokeWidth="2" fill="none" />
-                            </Svg>
-                        </View>
+                        {editing && (
+                            <View style={st.cameraIconBadge}>
+                                <Svg width={12} height={12} viewBox="0 0 24 24">
+                                    <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={colors.white} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                    <Circle cx="12" cy="13" r="4" stroke={colors.white} strokeWidth="2" fill="none" />
+                                </Svg>
+                            </View>
+                        )}
                     </Pressable>
                     <Text className="mt-1 font-inter text-[10px] text-neutral-400">
                         {isPhotoUploading ? 'Uploading...' : `Tap to ${profilePhotoUrl ? 'change' : 'add'} photo`}
@@ -2192,6 +2311,7 @@ export function EmployeeDetailScreen() {
                         dynamicRoles={rbacRolesResponse?.data || []}
                         rolesError={rolesError}
                         rolesLoading={rolesLoading}
+                        editable={editing}
                     />
                 )}
                 {activeTab === 'professional' && (
@@ -2210,6 +2330,7 @@ export function EmployeeDetailScreen() {
                         isCreateMode={isCreateMode}
                         employeeStatus={employeeStatus}
                         onStatusChange={setEmployeeStatus}
+                        editable={editing}
                     />
                 )}
                 {activeTab === 'salary' && (
@@ -2219,10 +2340,15 @@ export function EmployeeDetailScreen() {
                         structureOptions={salaryStructureOptions}
                         structuresData={salaryStructuresData}
                         onComputeBreakdown={computeSalaryBreakdown}
+                        editable={editing}
                     />
                 )}
                 {activeTab === 'bank' && (
-                    <BankTab form={bank} onChange={(u) => setBank((p) => ({ ...p, ...u }))} />
+                    <BankTab
+                        form={bank}
+                        onChange={(u) => setBank((p) => ({ ...p, ...u }))}
+                        editable={editing}
+                    />
                 )}
                 {activeTab === 'documents' && (
                     <DocumentsTab
@@ -2232,6 +2358,7 @@ export function EmployeeDetailScreen() {
                         employeeId={employeeId}
                         onUpload={handleUploadDocument}
                         isUploading={isDocUploading || uploadMutation.isPending}
+                        editable={editing}
                     />
                 )}
                 {activeTab === 'timeline' && (
@@ -2296,23 +2423,36 @@ export function EmployeeDetailScreen() {
 
                 return (
                     <View style={[st.bottomBar, { paddingBottom: insets.bottom + 80 }]}>
-                        {/* Status Action menu button (edit mode only) */}
-                        {!isCreateMode && employeeStatus !== 'Exited' && (
+                        {/* Status Action OR Cancel (edit mode only) */}
+                        {!isCreateMode && (
                             <Pressable
-                                onPress={() => setShowStatusMenu(true)}
+                                onPress={() => {
+                                    if (editing) {
+                                        resetForm();
+                                        setEditing(false);
+                                    } else {
+                                        setShowStatusMenu(true);
+                                    }
+                                }}
                                 style={({ pressed }) => [
                                     st.statusActionBtn,
+                                    editing && {
+                                        backgroundColor: isDark ? colors.neutral[800] : colors.neutral[100],
+                                        borderColor: isDark ? colors.neutral[700] : colors.neutral[300],
+                                    },
                                     pressed && { opacity: 0.85 },
                                     statusMutation.isPending && { opacity: 0.6 },
                                 ]}
                                 disabled={statusMutation.isPending}
                             >
-                                <Text className="font-inter text-sm font-semibold text-primary-600">
-                                    Status Action
+                                <Text className={`font-inter text-sm font-semibold ${editing ? 'text-neutral-700 dark:text-neutral-300' : 'text-primary-600'}`}>
+                                    {editing ? 'Cancel' : 'Status Action'}
                                 </Text>
-                                <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{ marginLeft: 4 }}>
-                                    <Path d="M6 9l6 6 6-6" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </Svg>
+                                {!editing && (
+                                    <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{ marginLeft: 4 }}>
+                                        <Path d="M6 9l6 6 6-6" stroke={colors.primary[600]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </Svg>
+                                )}
                             </Pressable>
                         )}
 
@@ -2331,8 +2471,8 @@ export function EmployeeDetailScreen() {
                             </Pressable>
                         )}
 
-                        {/* Next / Create / Save button */}
-                        {isNotLastCreateTab ? (
+                        {/* Next / Create / Save / Edit button */}
+                        {isCreateMode && isNotLastCreateTab ? (
                             <Pressable
                                 onPress={() => setActiveTab(createTabOrder[currentCreateTabIndex + 1])}
                                 style={({ pressed }) => [
@@ -2347,7 +2487,13 @@ export function EmployeeDetailScreen() {
                             </Pressable>
                         ) : (
                             <Pressable
-                                onPress={handleSave}
+                                onPress={() => {
+                                    if (!isCreateMode && !editing) {
+                                        setEditing(true);
+                                    } else {
+                                        handleSave();
+                                    }
+                                }}
                                 style={({ pressed }) => [
                                     st.saveBtn,
                                     pressed && { opacity: 0.85 },
@@ -2360,7 +2506,7 @@ export function EmployeeDetailScreen() {
                                     <ActivityIndicator color={colors.white} size="small" />
                                 ) : (
                                     <Text className="font-inter text-sm font-bold text-white">
-                                        {isCreateMode ? 'Create Employee' : 'Save Changes'}
+                                        {isCreateMode ? 'Create Employee' : editing ? 'Save Changes' : 'Edit Employee'}
                                     </Text>
                                 )}
                             </Pressable>

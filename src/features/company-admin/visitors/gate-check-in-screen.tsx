@@ -137,6 +137,8 @@ function WalkInForm({
     if (!name.trim()) e.name = 'Visitor name is required';
     if (!phone.trim()) e.phone = 'Phone number is required';
     if (!purpose.trim()) e.purpose = 'Purpose of visit is required';
+    if (!selectedTypeId) e.visitorTypeId = 'Visitor type is required';
+    if (!plantId) e.plantId = 'Plant is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -205,15 +207,24 @@ function WalkInForm({
         </View>
       </View>
 
-      {/* Purpose */}
+      {/* Purpose — strict enum chips (backend rejects free-text) */}
       <View style={formStyles.fieldWrap}>
         <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
           Purpose <Text className="text-danger-500">*</Text>
         </Text>
-        <View style={[formStyles.inputWrap, { height: 80 }, !!errors.purpose && { borderColor: colors.danger[300] }]}>
-          <TextInput style={[formStyles.textInput, isDark && { color: colors.white }, { textAlignVertical: 'top' }]} placeholder="Purpose of visit" placeholderTextColor={colors.neutral[400]} value={purpose} onChangeText={(v) => { setPurpose(v); if (errors.purpose) setErrors(prev => ({ ...prev, purpose: '' })); }} multiline />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {(['MEETING', 'DELIVERY', 'MAINTENANCE', 'AUDIT', 'INTERVIEW', 'SITE_TOUR', 'PERSONAL', 'OTHER'] as const).map((p) => {
+            const selected = purpose === p;
+            return (
+              <Pressable key={p} onPress={() => { setPurpose(p); if (errors.purpose) setErrors(prev => ({ ...prev, purpose: '' })); }} style={[formStyles.chip, selected && formStyles.chipActive]}>
+                <Text className={`font-inter text-[11px] font-bold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-300'}`}>
+                  {p.replace(/_/g, ' ')}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
-        {!!errors.purpose && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.purpose}</Text>}
+        {!!errors.purpose && <Text className="mt-2 font-inter text-[10px] text-danger-500 font-medium">{errors.purpose}</Text>}
       </View>
 
       {/* Host */}
@@ -229,15 +240,19 @@ function WalkInForm({
       <DropdownField
         label="Location (Plant)"
         selected={plantId}
-        onSelect={setPlantId}
+        onSelect={(v) => { setPlantId(v); if (errors.plantId) setErrors(prev => ({ ...prev, plantId: '' })); }}
         options={locationOptions}
         placeholder="Select location..."
+        required
+        error={errors.plantId}
       />
 
       {/* Visitor Type Chips */}
       {visitorTypes.length > 0 && (
         <View style={formStyles.fieldWrap}>
-          <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Visitor Type</Text>
+          <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+            Visitor Type <Text className="text-danger-500">*</Text>
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {visitorTypes.map(vt => {
@@ -245,7 +260,7 @@ function WalkInForm({
                 return (
                   <Pressable
                     key={vt.id}
-                    onPress={() => setSelectedTypeId(selected ? '' : vt.id)}
+                    onPress={() => { setSelectedTypeId(selected ? '' : vt.id); if (errors.visitorTypeId) setErrors(prev => ({ ...prev, visitorTypeId: '' })); }}
                     style={[formStyles.chip, selected && formStyles.chipActive]}
                   >
                     <Text className={`font-inter text-xs font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>
@@ -256,6 +271,7 @@ function WalkInForm({
               })}
             </View>
           </ScrollView>
+          {!!errors.visitorTypeId && <Text className="mt-2 font-inter text-[10px] text-danger-500 font-medium">{errors.visitorTypeId}</Text>}
         </View>
       )}
 

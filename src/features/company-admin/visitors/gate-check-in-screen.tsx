@@ -1588,7 +1588,6 @@ export function GateCheckInScreen() {
           </Animated.View>
 
           {/* ─── Quick Actions ─── */}
-          {/* ─── Quick Actions ─── */}
           <Animated.View entering={FadeInDown.duration(400).delay(60)} style={s.cardWrap}>
             <Text style={s.sectionLabel}>QUICK ACTIONS</Text>
             <View style={dashboardStyles.quickActionsRow}>

@@ -135,7 +135,9 @@ export function PreRegisterVisitorScreen() {
       {
         visitorName: name.trim(),
         visitorCompany: company.trim() || undefined,
-        visitorMobile: `+91${phone.trim()}`,
+        // V13 fix — send raw 10-digit number so it matches web payloads and
+        // watchlist lookups (which compare by exact mobileNumber).
+        visitorMobile: phone.trim(),
         visitorEmail: email.trim() || undefined,
         purpose: purpose.trim(),
         hostEmployeeId: hostEmployeeId || undefined,

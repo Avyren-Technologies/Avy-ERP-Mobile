@@ -85,10 +85,13 @@ function CreateGroupModal({
   const [purpose, setPurpose] = React.useState('');
   const [expectedDate, setExpectedDate] = React.useState('');
   const [plantId, setPlantId] = React.useState('');
-  const [memberName1, setMemberName1] = React.useState('');
-  const [memberMobile1, setMemberMobile1] = React.useState('');
-  const [memberName2, setMemberName2] = React.useState('');
-  const [memberMobile2, setMemberMobile2] = React.useState('');
+  // Grp10 fix — dynamic member list (was hard-coded 2 members). Always
+  // initialised with 2 blank rows since backend requires ≥2; user can add up
+  // to 100 (server-side cap) or remove down to 2 minimum.
+  const [members, setMembers] = React.useState<{ name: string; mobile: string }[]>([
+    { name: '', mobile: '' },
+    { name: '', mobile: '' },
+  ]);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const { data: employeesResponse } = useEmployees({ limit: 500 });
@@ -109,8 +112,19 @@ function CreateGroupModal({
   }, [locationsResponse]);
 
   React.useEffect(() => {
-    if (visible) { setGroupName(''); setHostEmployeeId(''); setPurpose(''); setExpectedDate(''); setPlantId(''); setMemberName1(''); setMemberMobile1(''); setMemberName2(''); setMemberMobile2(''); setErrors({}); }
+    if (visible) {
+      setGroupName(''); setHostEmployeeId(''); setPurpose(''); setExpectedDate(''); setPlantId('');
+      setMembers([{ name: '', mobile: '' }, { name: '', mobile: '' }]);
+      setErrors({});
+    }
   }, [visible]);
+
+  const updateMember = (index: number, key: 'name' | 'mobile', value: string) => {
+    setMembers((prev) => prev.map((m, i) => (i === index ? { ...m, [key]: value } : m)));
+    if (errors[`member_${index}`]) setErrors((p) => ({ ...p, [`member_${index}`]: '' }));
+  };
+  const addMember = () => setMembers((prev) => [...prev, { name: '', mobile: '' }]);
+  const removeMember = (index: number) => setMembers((prev) => prev.length > 2 ? prev.filter((_, i) => i !== index) : prev);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -119,8 +133,14 @@ function CreateGroupModal({
     if (!purpose.trim()) e.purpose = 'Purpose is required';
     if (!expectedDate.trim()) e.expectedDate = 'Expected date is required';
     if (!plantId) e.plantId = 'Plant is required';
-    if (!memberName1.trim() || !memberMobile1.trim()) e.member1 = 'Member 1 name and mobile are required';
-    if (!memberName2.trim() || !memberMobile2.trim()) e.member2 = 'Member 2 name and mobile are required';
+    const filled = members.filter((m) => m.name.trim() && m.mobile.trim());
+    if (filled.length < 2) e.members = 'At least 2 members with name and mobile are required';
+    members.forEach((m, i) => {
+      // Only fail rows the user actually filled in partially
+      if ((m.name.trim() && !m.mobile.trim()) || (!m.name.trim() && m.mobile.trim())) {
+        e[`member_${i}`] = 'Both name and mobile are required';
+      }
+    });
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -133,10 +153,9 @@ function CreateGroupModal({
       purpose: purpose.trim(),
       expectedDate: expectedDate.trim(),
       plantId,
-      members: [
-        { visitorName: memberName1.trim(), visitorMobile: memberMobile1.trim() },
-        { visitorName: memberName2.trim(), visitorMobile: memberMobile2.trim() },
-      ],
+      members: members
+        .filter((m) => m.name.trim() && m.mobile.trim())
+        .map((m) => ({ visitorName: m.name.trim(), visitorMobile: m.mobile.trim() })),
     });
   };
 
@@ -208,30 +227,54 @@ function CreateGroupModal({
               error={errors.plantId}
             />
 
-            <Text className="mt-2 mb-1 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
-              Member 1 <Text className="text-danger-500">*</Text>
-            </Text>
-            <View style={formStyles.fieldWrap}>
-              <View style={[formStyles.inputWrap, !!errors.member1 && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Name" placeholderTextColor={colors.neutral[400]} value={memberName1} onChangeText={setMemberName1} />
+            {/* Members — dynamic add/remove (Grp10 fix) */}
+            <View style={{ marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+                  Members <Text className="text-danger-500">*</Text>
+                </Text>
+                <Pressable
+                  onPress={addMember}
+                  style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.primary[50], flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M12 5v14M5 12h14" stroke={colors.primary[700]} strokeWidth="2.5" strokeLinecap="round" /></Svg>
+                  <Text className="font-inter text-[11px] font-bold text-primary-700">Add member</Text>
+                </Pressable>
               </View>
-              <View style={[formStyles.inputWrap, { marginTop: 8 }, !!errors.member1 && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Mobile (10+ digits)" placeholderTextColor={colors.neutral[400]} value={memberMobile1} onChangeText={setMemberMobile1} keyboardType="phone-pad" />
-              </View>
-              {!!errors.member1 && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.member1}</Text>}
-            </View>
-
-            <Text className="mt-2 mb-1 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
-              Member 2 <Text className="text-danger-500">*</Text>
-            </Text>
-            <View style={formStyles.fieldWrap}>
-              <View style={[formStyles.inputWrap, !!errors.member2 && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Name" placeholderTextColor={colors.neutral[400]} value={memberName2} onChangeText={setMemberName2} />
-              </View>
-              <View style={[formStyles.inputWrap, { marginTop: 8 }, !!errors.member2 && { borderColor: colors.danger[300] }]}>
-                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="Mobile (10+ digits)" placeholderTextColor={colors.neutral[400]} value={memberMobile2} onChangeText={setMemberMobile2} keyboardType="phone-pad" />
-              </View>
-              {!!errors.member2 && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.member2}</Text>}
+              {!!errors.members && <Text className="mt-1 mb-1 font-inter text-[10px] text-danger-500 font-medium">{errors.members}</Text>}
+              {members.map((m, idx) => (
+                <View key={idx} style={[formStyles.fieldWrap, { padding: 12, borderRadius: 12, backgroundColor: isDark ? '#100D1F' : colors.neutral[50], borderWidth: 1, borderColor: !!errors[`member_${idx}`] ? colors.danger[300] : colors.neutral[100] }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text className="font-inter text-[11px] font-bold text-neutral-500 uppercase tracking-widest">Member {idx + 1}</Text>
+                    {members.length > 2 && (
+                      <Pressable onPress={() => removeMember(idx)} hitSlop={8} style={{ padding: 4 }}>
+                        <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2.5" strokeLinecap="round" /></Svg>
+                      </Pressable>
+                    )}
+                  </View>
+                  <View style={formStyles.inputWrap}>
+                    <TextInput
+                      style={[formStyles.textInput, isDark && { color: colors.white }]}
+                      placeholder="Full name"
+                      placeholderTextColor={colors.neutral[400]}
+                      value={m.name}
+                      onChangeText={(v) => updateMember(idx, 'name', v)}
+                    />
+                  </View>
+                  <View style={[formStyles.inputWrap, { marginTop: 8 }]}>
+                    <TextInput
+                      style={[formStyles.textInput, isDark && { color: colors.white }]}
+                      placeholder="Mobile (10 digits)"
+                      placeholderTextColor={colors.neutral[400]}
+                      value={m.mobile}
+                      onChangeText={(v) => updateMember(idx, 'mobile', v.replace(/[^0-9]/g, ''))}
+                      keyboardType="phone-pad"
+                      maxLength={15}
+                    />
+                  </View>
+                  {!!errors[`member_${idx}`] && <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors[`member_${idx}`]}</Text>}
+                </View>
+              ))}
             </View>
 
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 24 }}>
@@ -365,17 +408,30 @@ export function GroupVisitsScreen() {
   };
 
   const handleBatchCheckIn = (item: GroupVisitItem) => {
+    const raw = (response as any)?.data ?? response ?? [];
+    const group = Array.isArray(raw) ? raw.find((g: any) => g.id === item.id) : null;
+    const gateId = group?.gateId ?? null;
+
+    // Grp11 fix — refuse to dispatch the batch check-in if no gate is assigned
+    // to the group. Sending an empty checkInGateId silently failed at the
+    // backend Zod validator with a "Required" error.
+    if (!gateId) {
+      showConfirm({
+        title: 'No gate assigned',
+        message: `"${item.groupName}" has no entry gate configured. Open the group from the web app and set an entry gate before running a batch check-in.`,
+        confirmText: 'OK',
+        variant: 'warning',
+        onConfirm: () => undefined,
+      });
+      return;
+    }
+
     showConfirm({
       title: 'Batch Check-In',
-      message: `Check in all ${item.totalMembers} members of "${item.groupName}"? You will need to provide a gate ID.`,
+      message: `Check in all ${item.totalMembers} members of "${item.groupName}" at the assigned entry gate?`,
       confirmText: 'Check In All',
       variant: 'primary',
       onConfirm: () => {
-        // The backend requires memberIds and checkInGateId.
-        // We fetch the group details and check in all EXPECTED members.
-        // For now, we send all member IDs from the cached response.
-        const raw = (response as any)?.data ?? response ?? [];
-        const group = Array.isArray(raw) ? raw.find((g: any) => g.id === item.id) : null;
         const memberIds = (group?.members ?? [])
           .filter((m: any) => m.status === 'EXPECTED')
           .map((m: any) => m.id);
@@ -384,7 +440,7 @@ export function GroupVisitsScreen() {
           return;
         }
         batchCheckInMutation.mutate(
-          { id: item.id, data: { memberIds, checkInGateId: group?.gateId ?? '' } },
+          { id: item.id, data: { memberIds, checkInGateId: gateId } },
           { onSuccess: () => showSuccess('Batch check-in completed') },
         );
       },

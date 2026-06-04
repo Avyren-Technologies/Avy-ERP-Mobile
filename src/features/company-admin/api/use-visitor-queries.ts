@@ -66,6 +66,26 @@ export const visitorKeys = {
   // Safety Inductions
   safetyInductions: (params?: Record<string, unknown>) =>
     [...visitorKeys.all, 'safety-inductions', params] as const,
+
+  // Pass events (timeline)
+  vehiclePassEvents: (id: string, params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'vehicle-pass-events', id, params] as const,
+  materialPassEvents: (id: string, params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'material-pass-events', id, params] as const,
+  vehiclePass: (id: string) => [...visitorKeys.all, 'vehicle-pass', id] as const,
+  materialPass: (id: string) => [...visitorKeys.all, 'material-pass', id] as const,
+
+  // Gate Ops (watchman dashboard)
+  gateOpsStats: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'gate-ops-stats', params] as const,
+  gateOpsExpectedMaterials: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'gate-ops-expected-materials', params] as const,
+  gateOpsExpectedVisitors: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'gate-ops-expected-visitors', params] as const,
+  gateOpsExpectedVehicles: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'gate-ops-expected-vehicles', params] as const,
+  gateOpsRecentActivity: (params?: Record<string, unknown>) =>
+    [...visitorKeys.all, 'gate-ops-recent-activity', params] as const,
 };
 
 // --- Visit Queries ---
@@ -254,5 +274,90 @@ export function useVMSConfig() {
   return useQuery({
     queryKey: visitorKeys.config(),
     queryFn: () => visitorsApi.getVMSConfig(),
+  });
+}
+
+// --- Pass detail & event timeline ---
+
+/** Single material pass with event timeline */
+export function useMaterialPass(id: string) {
+  return useQuery({
+    queryKey: visitorKeys.materialPass(id),
+    queryFn: () => visitorsApi.getMaterialPass(id),
+    enabled: !!id,
+  });
+}
+
+/** Paginated event timeline for a material pass */
+export function useMaterialPassEvents(id: string, params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.materialPassEvents(id, params),
+    queryFn: () => visitorsApi.getMaterialPassEvents(id, params),
+    enabled: !!id,
+  });
+}
+
+/** Single vehicle pass with event timeline */
+export function useVehiclePass(id: string) {
+  return useQuery({
+    queryKey: visitorKeys.vehiclePass(id),
+    queryFn: () => visitorsApi.getVehiclePass(id),
+    enabled: !!id,
+  });
+}
+
+/** Paginated event timeline for a vehicle pass */
+export function useVehiclePassEvents(id: string, params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.vehiclePassEvents(id, params),
+    queryFn: () => visitorsApi.getVehiclePassEvents(id, params),
+    enabled: !!id,
+  });
+}
+
+// --- Gate Ops dashboard queries (watchman home base) ---
+
+/** Today + live counts across all pass types */
+export function useGateOpsStats(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.gateOpsStats(params),
+    queryFn: () => visitorsApi.getGateOpsStats(params),
+    refetchInterval: 30_000,
+  });
+}
+
+/** Today's ISSUED material passes ordered by createdAt */
+export function useGateOpsExpectedMaterials(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.gateOpsExpectedMaterials(params),
+    queryFn: () => visitorsApi.getGateOpsExpectedMaterials(params),
+    refetchInterval: 60_000,
+  });
+}
+
+/** Today's expected visitors (EXPECTED / ARRIVED) */
+export function useGateOpsExpectedVisitors(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.gateOpsExpectedVisitors(params),
+    queryFn: () => visitorsApi.getGateOpsExpectedVisitors(params),
+    refetchInterval: 60_000,
+  });
+}
+
+/** ACTIVE vehicle passes not currently inside (expected to arrive) */
+export function useGateOpsExpectedVehicles(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.gateOpsExpectedVehicles(params),
+    queryFn: () => visitorsApi.getGateOpsExpectedVehicles(params),
+    refetchInterval: 60_000,
+  });
+}
+
+/** Merged recent gate activity feed (visits + vehicles + materials) */
+export function useGateOpsRecentActivity(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: visitorKeys.gateOpsRecentActivity(params),
+    queryFn: () => visitorsApi.getGateOpsRecentActivity(params),
+    refetchInterval: 30_000,
   });
 }

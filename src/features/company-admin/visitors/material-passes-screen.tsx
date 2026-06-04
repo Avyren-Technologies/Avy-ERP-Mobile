@@ -1,5 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
   Image,
@@ -29,7 +30,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { DropdownField } from '@/components/ui/dropdown-field';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { showSuccess } from '@/components/ui/utils';
+import { showSuccess, showWarning } from '@/components/ui/utils';
 
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
@@ -334,6 +335,7 @@ function MaterialCard({
 // ============ MAIN COMPONENT ============
 
 export function MaterialPassesScreen() {
+  const router = useRouter();
   const isDark = useIsDark();
   const s = createStyles(isDark);
   const insets = useSafeAreaInsets();
@@ -345,6 +347,10 @@ export function MaterialPassesScreen() {
   const [typeFilter, setTypeFilter] = React.useState('');
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [qrModalItem, setQrModalItem] = React.useState<MaterialPassItem | null>(null);
+  const [returnModalItem, setReturnModalItem] = React.useState<MaterialPassItem | null>(null);
+  const [returnQty, setReturnQty] = React.useState('');
+  const [returnStatusSel, setReturnStatusSel] = React.useState<'PARTIAL' | 'FULLY_RETURNED'>('FULLY_RETURNED');
+  const [returnNotes, setReturnNotes] = React.useState('');
 
   const queryParams = React.useMemo(() => {
     const p: Record<string, unknown> = {};
@@ -380,14 +386,31 @@ export function MaterialPassesScreen() {
   };
 
   const handleMarkReturned = (item: MaterialPassItem) => {
-    showConfirm({
-      title: 'Mark Returned',
-      message: `Mark "${item.description}" as fully returned?`,
-      confirmText: 'Confirm',
-      variant: 'primary',
-      onConfirm: () => returnMutation.mutate({ id: item.id, data: { quantityReturned: item.quantityIssued || '0', returnStatus: 'FULLY_RETURNED' } }, {
-        onSuccess: () => showSuccess('Material marked as returned'),
-      }),
+    setReturnModalItem(item);
+    setReturnQty(item.quantityIssued ?? '');
+    setReturnStatusSel('FULLY_RETURNED');
+    setReturnNotes('');
+  };
+
+  const submitReturn = () => {
+    if (!returnModalItem) return;
+    const trimmed = returnQty.trim();
+    if (!trimmed) {
+      showWarning('Enter the quantity returned');
+      return;
+    }
+    const numeric = Number(trimmed);
+    const payload: Record<string, unknown> = {
+      quantityReturned: trimmed,
+      returnStatus: returnStatusSel,
+    };
+    if (!Number.isNaN(numeric) && numeric > 0) payload.quantityReturnedValue = numeric;
+    if (returnNotes.trim()) payload.notes = returnNotes.trim();
+    returnMutation.mutate({ id: returnModalItem.id, data: payload }, {
+      onSuccess: () => {
+        showSuccess(returnStatusSel === 'FULLY_RETURNED' ? 'Material fully returned' : 'Partial return recorded');
+        setReturnModalItem(null);
+      },
     });
   };
 
@@ -397,8 +420,18 @@ export function MaterialPassesScreen() {
 
   const renderHeader = () => (
     <Animated.View entering={FadeInDown.duration(400)} style={s.headerContent}>
-      <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Material Passes</Text>
-      <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} pass{items.length !== 1 ? 'es' : ''}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <View style={{ flex: 1 }}>
+          <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Material Passes</Text>
+          <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} pass{items.length !== 1 ? 'es' : ''}</Text>
+        </View>
+        <Pressable onPress={() => router.push('/company/visitors/pass-history' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.primary[50] }}>
+          <Svg width={14} height={14} viewBox="0 0 24 24">
+            <Path d="M12 8v4l3 3M3.05 11a9 9 0 11.94 4M3 4v5h5" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+          <Text className="font-inter text-[11px] font-bold text-primary-700">History</Text>
+        </Pressable>
+      </View>
       <View style={{ marginTop: 16 }}>
         <SearchBar
           value={search}
@@ -441,6 +474,81 @@ export function MaterialPassesScreen() {
       <CreateMaterialModal visible={showCreateModal} onClose={() => setShowCreateModal(false)} onSave={handleCreate} isSaving={createMutation.isPending} />
 
       <ConfirmModal {...confirmModalProps} />
+
+      {/* Return Modal — captures quantity + status + notes */}
+      <Modal visible={!!returnModalItem} transparent animationType="slide" onRequestClose={() => setReturnModalItem(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: insets.bottom + 20 }}>
+            <View style={{ alignItems: 'center', marginBottom: 8 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.neutral[200] }} />
+            </View>
+            <Text className="font-inter text-lg font-bold text-primary-950 text-center">Record Material Return</Text>
+            <Text className="font-inter text-xs text-neutral-500 text-center mt-1">{returnModalItem?.description}</Text>
+            <Text className="font-inter text-[11px] font-mono text-neutral-400 text-center mt-0.5">{returnModalItem?.passNumber}</Text>
+
+            <View style={{ marginTop: 18, gap: 14 }}>
+              <View>
+                <Text className="font-inter text-[11px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Quantity Returned</Text>
+                <View style={{ borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 14, height: 50, justifyContent: 'center', backgroundColor: colors.neutral[50] }}>
+                  <TextInput
+                    style={{ fontFamily: 'Inter', fontSize: 14, color: colors.primary[950] }}
+                    placeholder={`Issued: ${returnModalItem?.quantityIssued ?? ''}`}
+                    placeholderTextColor={colors.neutral[400]}
+                    value={returnQty}
+                    onChangeText={setReturnQty}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <View>
+                <Text className="font-inter text-[11px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Return Status</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(['FULLY_RETURNED', 'PARTIAL'] as const).map((opt) => (
+                    <Pressable
+                      key={opt}
+                      onPress={() => setReturnStatusSel(opt)}
+                      style={{ flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1.5, backgroundColor: returnStatusSel === opt ? colors.primary[600] : 'transparent', borderColor: returnStatusSel === opt ? colors.primary[600] : colors.neutral[200] }}
+                    >
+                      <Text className={`font-inter text-xs font-bold ${returnStatusSel === opt ? 'text-white' : 'text-neutral-600'}`}>{opt === 'FULLY_RETURNED' ? 'Fully Returned' : 'Partial Return'}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <Text className="font-inter text-[11px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Notes (optional)</Text>
+                <View style={{ borderWidth: 1.5, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 14, height: 70, paddingTop: 10, backgroundColor: colors.neutral[50] }}>
+                  <TextInput
+                    style={{ fontFamily: 'Inter', fontSize: 14, color: colors.primary[950], textAlignVertical: 'top' }}
+                    placeholder="Condition, missing items, etc."
+                    placeholderTextColor={colors.neutral[400]}
+                    value={returnNotes}
+                    onChangeText={setReturnNotes}
+                    multiline
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+              <Pressable
+                onPress={() => setReturnModalItem(null)}
+                style={{ flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: colors.neutral[200], justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Text className="font-inter text-sm font-bold text-neutral-600">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={submitReturn}
+                disabled={returnMutation.isPending}
+                style={{ flex: 2, height: 50, borderRadius: 14, backgroundColor: colors.success[600], justifyContent: 'center', alignItems: 'center', opacity: returnMutation.isPending ? 0.5 : 1 }}
+              >
+                <Text className="font-inter text-sm font-bold text-white">{returnMutation.isPending ? 'Saving…' : 'Confirm Return'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* QR Code Modal */}
       <Modal visible={!!qrModalItem} transparent animationType="fade" onRequestClose={() => setQrModalItem(null)}>

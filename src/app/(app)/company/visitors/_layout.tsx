@@ -20,6 +20,7 @@ export default function VisitorsLayout() {
       <Stack.Screen name="denied-entries" />
       <Stack.Screen name="reports" />
       <Stack.Screen name="history" />
+      <Stack.Screen name="pass-history" />
       <Stack.Screen name="settings" />
     </Stack>
   );

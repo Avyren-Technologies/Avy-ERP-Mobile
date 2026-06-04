@@ -27,8 +27,24 @@ import {
     usePayrollRun,
     usePayrollRuns,
 } from '@/features/company-admin/api/use-payroll-run-queries';
-import { useLockAttendance } from '@/features/company-admin/api/use-payroll-run-mutations';
+import {
+    useBulkLockAttendance,
+    useBulkUnlockAttendance,
+    useLockAttendance,
+} from '@/features/company-admin/api/use-payroll-run-mutations';
+import { payrollRunApi } from '@/lib/api/payroll-run';
+import { useFileDownload } from '@/hooks/use-file-download';
+import { showSuccess, showErrorMessage } from '@/components/ui/utils';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import {
+    AttendanceRowDetailSheet,
+    BulkActionsSheet,
+    displayLockedBy,
+    InfoSheet,
+    type AttendanceRowDetailSheetHandle,
+    type BulkActionsSheetHandle,
+    type InfoSheetHandle,
+} from '@/features/company-admin/hr/payroll-wizard-modals';
 
 const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -49,9 +65,13 @@ type AttendanceRow = {
     department: string | null;
     workingDays: number;
     present: number;
+    absent?: number;
     lop: number;
     otHours: number;
     status: 'OK' | 'HAS_ISSUES' | 'NO_DATA';
+    /* New backend fields explaining readiness state */
+    reasons?: string[];
+    suggestions?: Array<string | { text?: string; label?: string; screen?: string }>;
 };
 
 /* ──────────────────────────────────────────────────────────────────────── */
@@ -95,8 +115,8 @@ function StepIndicator({ current }: { current: number }) {
 }
 
 function StatTile({
-    label, value, sub, tint = 'primary',
-}: { label: string; value: string | number; sub?: string; tint?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'accent' }) {
+    label, value, sub, tint = 'primary', onPress,
+}: { label: string; value: string | number; sub?: string; tint?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'accent'; onPress?: () => void }) {
     const tintMap = {
         primary: { bg: colors.primary[50], fg: colors.primary[600] },
         success: { bg: colors.success[50], fg: colors.success[600] },
@@ -106,14 +126,30 @@ function StatTile({
         accent:  { bg: colors.accent[50],  fg: colors.accent[600] },
     } as const;
     const t = tintMap[tint];
-    return (
-        <View style={styles.statTile}>
+    const inner = (
+        <>
             <View style={[styles.statDot, { backgroundColor: t.bg }]}><View style={[styles.statDotInner, { backgroundColor: t.fg }]} /></View>
             <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
-            <Text className="mt-1 font-inter text-[18px] font-extrabold text-neutral-900" style={{ lineHeight: 22 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+            <Text
+                className="mt-1 font-inter text-[18px] font-extrabold text-neutral-900"
+                style={{ lineHeight: 22 }}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit
+            >
+                {value}
+            </Text>
             {sub ? <Text className="mt-0.5 font-inter text-[10px] text-neutral-500" numberOfLines={1}>{sub}</Text> : null}
-        </View>
+        </>
     );
+    if (onPress) {
+        return (
+            <Pressable style={({ pressed }) => [styles.statTile, pressed && { opacity: 0.7 }]} onPress={onPress}>
+                {inner}
+            </Pressable>
+        );
+    }
+    return <View style={styles.statTile}>{inner}</View>;
 }
 
 function LockDonut({ ready, override, notReady }: { ready: number; override: number; notReady: number }) {
@@ -184,6 +220,16 @@ export function PhaseCStep1Screen() {
     const [page, setPage] = React.useState(1);
     const limit = 10;
 
+    /* Filters / selection */
+    const [filtersOpen, setFiltersOpen] = React.useState(false);
+    const [statusFilter, setStatusFilter] = React.useState<'all' | 'OK' | 'HAS_ISSUES' | 'NO_DATA'>('all');
+    const [departmentFilter, setDepartmentFilter] = React.useState<string>('');
+    const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+
+    const bulkSheetRef = React.useRef<BulkActionsSheetHandle>(null);
+    const infoSheetRef = React.useRef<InfoSheetHandle>(null);
+    const rowDetailSheetRef = React.useRef<AttendanceRowDetailSheetHandle>(null);
+
     React.useEffect(() => {
         const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 350);
         return () => clearTimeout(t);
@@ -216,6 +262,9 @@ export function PhaseCStep1Screen() {
     const detail: any = (detailResp as any)?.data ?? null;
 
     const lockMutation = useLockAttendance();
+    const bulkLockMutation = useBulkLockAttendance();
+    const bulkUnlockMutation = useBulkUnlockAttendance();
+    const fileDownload = useFileDownload();
     const confirmModal = useConfirmModal();
 
     const employees: AttendanceRow[] = detail?.employees ?? [];
@@ -236,11 +285,13 @@ export function PhaseCStep1Screen() {
     const year = runDetail?.year;
     const monthStart = month && year ? new Date(year, month - 1, 1) : null;
     const monthEnd = month && year ? new Date(year, month, 0) : null;
-    const lockedBy = runDetail?.lockedBy;
+    /* Defensive: backend may return joined name OR raw CUID for `lockedBy`. */
+    const lockedBy = displayLockedBy(runDetail?.lockedByName, runDetail?.lockedBy);
     const lockedAt = runDetail?.lockedAt;
     const isAlreadyLocked = runDetail?.status && runDetail.status !== 'DRAFT';
 
-    const counts = React.useMemo(() => {
+    /* Page-level counts (fallback when summary lacks global lockStatus) */
+    const pageCounts = React.useMemo(() => {
         const c = { ready: 0, notReady: 0 };
         employees.forEach(e => {
             if (e.status === 'OK') c.ready++;
@@ -248,6 +299,143 @@ export function PhaseCStep1Screen() {
         });
         return c;
     }, [employees]);
+
+    /* GLOBAL counts — sourced from /attendance-summary endpoint */
+    const globalCounts = React.useMemo(() => {
+        const ls: any = summary?.lockStatus ?? {};
+        const ready = Number(ls.ready ?? 0);
+        const notReady = Number(ls.notReady ?? ls.has_issues ?? 0);
+        const noData = Number(ls.noData ?? 0);
+        const total = ready + notReady + noData;
+        return { ready, notReady, noData, total };
+    }, [summary]);
+
+    /* Donut counts — prefer global, fall back to page */
+    const counts = globalCounts.total > 0
+        ? { ready: globalCounts.ready, notReady: globalCounts.notReady + globalCounts.noData }
+        : pageCounts;
+
+    /* Department options for filter (from current page) */
+    const departmentOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        employees.forEach(e => { if (e.department) set.add(e.department); });
+        return Array.from(set).sort();
+    }, [employees]);
+
+    /* Apply client-side filters on visible page */
+    const filteredEmployees = React.useMemo(() => {
+        return employees.filter(e => {
+            if (statusFilter !== 'all' && e.status !== statusFilter) return false;
+            if (departmentFilter && e.department !== departmentFilter) return false;
+            return true;
+        });
+    }, [employees, statusFilter, departmentFilter]);
+
+    const visibleIds = filteredEmployees.map(e => e.employeeId);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+    const toggleSelectAll = () => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (allVisibleSelected) visibleIds.forEach(id => next.delete(id));
+            else visibleIds.forEach(id => next.add(id));
+            return next;
+        });
+    };
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+    React.useEffect(() => { setSelectedIds(new Set()); }, [search, statusFilter, departmentFilter, page]);
+
+    const exportFilename = () => {
+        const m = runDetail?.month;
+        const y = runDetail?.year;
+        const period = m && y ? `${y}-${String(m).padStart(2, '0')}` : 'period';
+        return `attendance-${period}.xlsx`;
+    };
+
+    const onBulkLock = () => {
+        const ids = Array.from(selectedIds);
+        if (ids.length === 0 || !inferredRunId) return;
+        confirmModal.show({
+            title: 'Lock Selected?',
+            message: `Lock attendance for ${ids.length} selected employee(s)?`,
+            confirmText: 'Lock',
+            onConfirm: () => {
+                bulkLockMutation.mutate(
+                    { runId: inferredRunId, employeeIds: ids },
+                    {
+                        onSuccess: () => {
+                            showSuccess('Attendance Locked', `Locked ${ids.length} employee(s).`);
+                            setSelectedIds(new Set());
+                            refetchSummary();
+                            refetchDetail();
+                        },
+                        onError: () => showErrorMessage('Failed to lock attendance.'),
+                    },
+                );
+            },
+        });
+    };
+    const onBulkUnlock = () => {
+        const ids = Array.from(selectedIds);
+        if (ids.length === 0 || !inferredRunId) return;
+        confirmModal.show({
+            title: 'Unlock Selected?',
+            message: `Unlock attendance for ${ids.length} selected employee(s)?`,
+            confirmText: 'Unlock',
+            variant: 'warning',
+            onConfirm: () => {
+                bulkUnlockMutation.mutate(
+                    { runId: inferredRunId, employeeIds: ids },
+                    {
+                        onSuccess: () => {
+                            showSuccess('Attendance Unlocked', `Unlocked ${ids.length} employee(s).`);
+                            setSelectedIds(new Set());
+                            refetchSummary();
+                            refetchDetail();
+                        },
+                        onError: () => showErrorMessage('Failed to unlock attendance.'),
+                    },
+                );
+            },
+        });
+    };
+    const onBulkExport = async () => {
+        const ids = Array.from(selectedIds);
+        if (!inferredRunId) return;
+        try {
+            const buffer = await payrollRunApi.exportAttendance(inferredRunId, ids);
+            await fileDownload.download(buffer, {
+                fileName: exportFilename(),
+                mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                dialogTitle: 'Save attendance export',
+            });
+            setSelectedIds(new Set());
+        } catch {
+            showErrorMessage('Failed to export attendance.');
+        }
+    };
+
+    const openLopExplainer = () => {
+        infoSheetRef.current?.present({
+            title: 'LOP Method',
+            body: 'LOP = (Basic Salary ÷ Working Days in Month) × LOP Days. Working Days excludes weekly offs and holidays.',
+            bullets: [
+                'Basic Salary is taken from the active EmployeeSalary record.',
+                'Working Days are calculated per company calendar (weekly offs + holidays subtracted).',
+                'LOP Days come from attendance + approved leaves marked LOP.',
+                'Final LOP is rounded to 2 decimal places.',
+            ],
+        });
+    };
+    const openKpi = (label: string, value: string) => {
+        infoSheetRef.current?.present({ title: label, body: value });
+    };
 
     const vs = summary?.vsLastMonth;
     const currentTotalLOP = vs?.currentTotalLOP ?? totalLOP;
@@ -324,24 +512,41 @@ export function PhaseCStep1Screen() {
                     <View style={styles.metaGrid}>
                         <MetaPill emoji="📅" label="Payroll Period" value={monthStart && monthEnd ? `${fmt.date(monthStart.toISOString())} – ${fmt.date(monthEnd.toISOString())}` : '—'} />
                         <MetaPill emoji="⏰" label="Cut-off" value={monthEnd ? fmt.date(monthEnd.toISOString()) : '—'} />
-                        <MetaPill emoji="🧮" label="LOP Method" value="÷ Working Days" />
+                        <MetaPill emoji="🧮" label="LOP Method" value="÷ Working Days" onPressInfo={openLopExplainer} />
                         <MetaPill emoji="✓" label="Pro-rata" value="Enabled" />
                     </View>
                 </Animated.View>
 
                 {/* KPI grid */}
                 <View style={[styles.kpiGrid, { marginTop: 12 }]}>
-                    <StatTile label="Total Employees"   value={totalActive}    sub="Active" tint="primary" />
-                    <StatTile label="Attendance Avail." value={`${attendancePresent}`} sub={`${presentPercent}%`} tint="success" />
-                    <StatTile label="Manual Overrides"  value={overrideTotal}  sub={overridePending > 0 ? `${overridePending} pending` : 'All approved'} tint="warning" />
-                    <StatTile label="LOP Days"          value={totalLOP.toFixed(1)} sub="Total" tint="danger" />
-                    <StatTile label="Locked By"         value={isAlreadyLocked && lockedBy ? String(lockedBy).slice(0, 12) : '—'} sub={isAlreadyLocked ? 'See log' : 'Not yet'} tint="info" />
-                    <StatTile label="Locked On"         value={isAlreadyLocked && lockedAt ? fmt.date(lockedAt) : '—'} sub={isAlreadyLocked && lockedAt ? fmt.time(lockedAt) : 'Not yet'} tint="accent" />
+                    <StatTile label="Total Employees"   value={totalActive}    sub="Active" tint="primary"
+                        onPress={() => openKpi('Total Employees', `${totalActive} active employees`)} />
+                    <StatTile label="Attendance Avail." value={`${attendancePresent}`} sub={`${presentPercent}%`} tint="success"
+                        onPress={() => openKpi('Attendance Available', `${attendancePresent} of ${withSalary} (${presentPercent}%)`)} />
+                    <StatTile label="Manual Overrides"  value={overrideTotal}  sub={overridePending > 0 ? `${overridePending} pending` : 'All approved'} tint="warning"
+                        onPress={() => openKpi('Manual Overrides', `Total: ${overrideTotal}\nApproved: ${overrideApproved}\nPending: ${overridePending}\nRejected: ${overrideRejected}`)} />
+                    <StatTile label="LOP Days"          value={totalLOP.toFixed(1)} sub="Total" tint="danger"
+                        onPress={() => openKpi('LOP Days', `Total LOP for this period: ${totalLOP.toFixed(2)} days across all employees.`)} />
+                    <StatTile label="Locked By"         value={isAlreadyLocked ? lockedBy : '—'} sub={isAlreadyLocked ? 'See activity log' : 'Not yet'} tint="info"
+                        onPress={() => openKpi('Attendance Locked By', isAlreadyLocked ? lockedBy : 'Not locked yet')} />
+                    <StatTile label="Locked On"         value={isAlreadyLocked && lockedAt ? fmt.date(lockedAt) : '—'} sub={isAlreadyLocked && lockedAt ? fmt.time(lockedAt) : 'Not yet'} tint="accent"
+                        onPress={() => openKpi('Attendance Locked On', isAlreadyLocked && lockedAt ? `${fmt.date(lockedAt)} ${fmt.time(lockedAt)}` : 'Not locked yet')} />
                 </View>
 
                 {/* Lock summary donut */}
                 <Animated.View entering={FadeInDown.delay(60).duration(360)} style={[styles.heroCard, { marginTop: 16 }]}>
-                    <Text className="font-inter text-[13px] font-bold text-neutral-900 mb-2">Attendance Lock Summary</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text className="font-inter text-[13px] font-bold text-neutral-900">Attendance Lock Summary</Text>
+                        <Pressable
+                            onPress={() => openKpi(
+                                'Attendance Lock Summary',
+                                'Company-wide lock readiness for all employees in this payroll run (with current salary). \n• Ready to Lock — attendance captured with no absent or LOP days\n• Not Ready — has absent or LOP records\n• Overrides Pending — manual adjustments awaiting approval',
+                            )}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: colors.info[500], fontWeight: '800' }}>ⓘ</Text>
+                        </Pressable>
+                    </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                         <LockDonut ready={counts.ready} override={overridePending} notReady={counts.notReady} />
                         <View style={{ flex: 1, gap: 8 }}>
@@ -383,10 +588,77 @@ export function PhaseCStep1Screen() {
                     </View>
                 </View>
 
-                {/* Employee table heading + search */}
+                {/* Employee table heading + bulk actions */}
                 <View style={{ marginTop: 20, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Text className="font-inter text-[15px] font-bold text-neutral-900">Employee Attendance ({total})</Text>
                 </View>
+
+                {/* Bulk actions / filters toolbar */}
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                    <Pressable
+                        onPress={() => bulkSheetRef.current?.present()}
+                        disabled={selectedIds.size === 0}
+                        style={[styles.toolbarBtn, selectedIds.size === 0 && { opacity: 0.5 }]}
+                    >
+                        <Text className="font-inter text-[12px] font-bold" style={{ color: colors.primary[700] }}>
+                            Bulk Actions{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                        </Text>
+                    </Pressable>
+                    <Pressable
+                        onPress={() => setFiltersOpen(o => !o)}
+                        style={[styles.toolbarBtn, filtersOpen && { backgroundColor: colors.primary[50], borderColor: colors.primary[300] }]}
+                    >
+                        <Text className="font-inter text-[12px] font-bold" style={{ color: filtersOpen ? colors.primary[700] : colors.neutral[700] }}>
+                            ⚙ Filters
+                            {(statusFilter !== 'all' || departmentFilter) ? ` (${(statusFilter !== 'all' ? 1 : 0) + (departmentFilter ? 1 : 0)})` : ''}
+                        </Text>
+                    </Pressable>
+                    <Pressable onPress={toggleSelectAll} style={styles.toolbarBtn}>
+                        <Text className="font-inter text-[12px] font-bold" style={{ color: colors.neutral[700] }}>
+                            {allVisibleSelected ? '☑ Deselect All' : '☐ Select All'}
+                        </Text>
+                    </Pressable>
+                </View>
+
+                {filtersOpen ? (
+                    <View style={styles.filtersPanel}>
+                        <Text className="mb-2 font-inter text-[10.5px] font-bold uppercase tracking-wider text-neutral-500">Status</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                            {(['all', 'OK', 'HAS_ISSUES', 'NO_DATA'] as const).map(s => (
+                                <Pressable key={s} onPress={() => setStatusFilter(s)}
+                                    style={[styles.filterChip, statusFilter === s && styles.filterChipActive]}>
+                                    <Text style={{ fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: statusFilter === s ? colors.white : colors.neutral[700] }}>
+                                        {s === 'all' ? 'All' : s === 'OK' ? 'Ready' : s === 'HAS_ISSUES' ? 'Issues' : 'No Data'}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                        {departmentOptions.length > 0 ? (
+                            <>
+                                <Text className="mt-3 mb-2 font-inter text-[10.5px] font-bold uppercase tracking-wider text-neutral-500">Department</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                                    <Pressable onPress={() => setDepartmentFilter('')} style={[styles.filterChip, !departmentFilter && styles.filterChipActive]}>
+                                        <Text style={{ fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: !departmentFilter ? colors.white : colors.neutral[700] }}>All</Text>
+                                    </Pressable>
+                                    {departmentOptions.map(d => (
+                                        <Pressable key={d} onPress={() => setDepartmentFilter(d)}
+                                            style={[styles.filterChip, departmentFilter === d && styles.filterChipActive]}>
+                                            <Text style={{ fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: departmentFilter === d ? colors.white : colors.neutral[700] }}>
+                                                {d}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </ScrollView>
+                            </>
+                        ) : null}
+                        {(statusFilter !== 'all' || departmentFilter) ? (
+                            <Pressable onPress={() => { setStatusFilter('all'); setDepartmentFilter(''); }} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                                <Text className="font-inter text-[12px] font-bold" style={{ color: colors.primary[600] }}>Reset filters</Text>
+                            </Pressable>
+                        ) : null}
+                    </View>
+                ) : null}
+
                 <View style={styles.searchBox}>
                     <Text style={{ color: colors.neutral[400], marginRight: 6 }}>🔍</Text>
                     <TextInput
@@ -404,34 +676,64 @@ export function PhaseCStep1Screen() {
                         <SkeletonCard />
                         <SkeletonCard />
                     </View>
-                ) : employees.length === 0 ? (
+                ) : filteredEmployees.length === 0 ? (
                     <View style={[styles.heroCard, { marginTop: 12, alignItems: 'center', paddingVertical: 24 }]}>
                         <Text style={{ fontSize: 28, marginBottom: 4 }}>🔎</Text>
                         <Text className="font-inter text-[13px] text-neutral-500">No employees found{search ? ` for "${search}"` : ''}.</Text>
                     </View>
                 ) : (
                     <View style={{ marginTop: 8, gap: 8, opacity: detailFetching ? 0.7 : 1 }}>
-                        {employees.map((emp) => (
-                            <View key={emp.employeeId} style={styles.empCard}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <View style={{ flex: 1, minWidth: 0 }}>
-                                        <Text className="font-inter text-[13.5px] font-bold text-neutral-900" numberOfLines={1}>
-                                            {emp.firstName} {emp.lastName}
-                                        </Text>
-                                        <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
-                                            {emp.employeeCode}{emp.department ? ` • ${emp.department}` : ''}
-                                        </Text>
+                        {filteredEmployees.map((emp) => {
+                            const isChecked = selectedIds.has(emp.employeeId);
+                            return (
+                                <Pressable
+                                    key={emp.employeeId}
+                                    onPress={() => toggleSelect(emp.employeeId)}
+                                    style={[styles.empCard, isChecked && { backgroundColor: colors.primary[50], borderColor: colors.primary[200] }]}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                        <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+                                            {isChecked ? <Text style={{ color: colors.white, fontSize: 11, fontWeight: '800' }}>✓</Text> : null}
+                                        </View>
+                                        <View style={{ flex: 1, minWidth: 0 }}>
+                                            <Text className="font-inter text-[13.5px] font-bold text-neutral-900" numberOfLines={1}>
+                                                {emp.firstName} {emp.lastName}
+                                            </Text>
+                                            <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
+                                                {emp.employeeCode}{emp.department ? ` • ${emp.department}` : ''}
+                                            </Text>
+                                        </View>
+                                        <StatusBadge status={emp.status} />
+                                        <Pressable
+                                            onPress={() => rowDetailSheetRef.current?.present({
+                                                employeeCode: emp.employeeCode,
+                                                firstName: emp.firstName,
+                                                lastName: emp.lastName,
+                                                department: emp.department,
+                                                status: emp.status,
+                                                workingDays: emp.workingDays,
+                                                present: emp.present,
+                                                absent: emp.absent,
+                                                lop: emp.lop,
+                                                otHours: emp.otHours,
+                                                reasons: emp.reasons,
+                                                suggestions: emp.suggestions,
+                                            })}
+                                            hitSlop={8}
+                                            style={styles.eyeBtn}
+                                        >
+                                            <Text style={{ fontSize: 14, color: colors.primary[600] }}>👁</Text>
+                                        </Pressable>
                                     </View>
-                                    <StatusBadge status={emp.status} />
-                                </View>
-                                <View style={styles.empMetricsRow}>
-                                    <Metric label="Working" value={emp.workingDays} />
-                                    <Metric label="Present" value={emp.present} />
-                                    <Metric label="LOP" value={emp.lop.toFixed(1)} accent={emp.lop > 0 ? colors.danger[600] : undefined} />
-                                    <Metric label="OT (Hrs)" value={emp.otHours.toFixed(1)} />
-                                </View>
-                            </View>
-                        ))}
+                                    <View style={styles.empMetricsRow}>
+                                        <Metric label="Working" value={emp.workingDays} />
+                                        <Metric label="Present" value={emp.present} />
+                                        <Metric label="LOP" value={emp.lop.toFixed(1)} accent={emp.lop > 0 ? colors.danger[600] : undefined} />
+                                        <Metric label="OT (Hrs)" value={emp.otHours.toFixed(1)} />
+                                    </View>
+                                </Pressable>
+                            );
+                        })}
                     </View>
                 )}
 
@@ -449,6 +751,33 @@ export function PhaseCStep1Screen() {
                             </View>
                             <PageBtn disabled={page === totalPages} onPress={() => setPage(p => p + 1)} label="›" />
                             <PageBtn disabled={page === totalPages} onPress={() => setPage(totalPages)} label="»" />
+                        </View>
+                    </View>
+                )}
+
+                {/* Lock Disclosure */}
+                {!isAlreadyLocked && (
+                    <View style={styles.disclosureCard}>
+                        <Text style={{ color: colors.info[600], fontSize: 16, marginRight: 8, marginTop: 2 }}>🛡</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text className="font-inter text-[12.5px] font-bold text-info-900">What gets locked when you proceed?</Text>
+                            <Text className="mt-2 font-inter text-[11.5px] leading-[18px] text-info-900/90">
+                                When you lock attendance for this period, the following becomes immutable:
+                            </Text>
+                            {[
+                                'Daily attendance records (in/out, late, half-day)',
+                                'Leave applications already approved for this period',
+                                'Overtime entries logged in-period',
+                                'Any manual attendance adjustments',
+                            ].map((item) => (
+                                <View key={item} style={{ flexDirection: 'row', marginTop: 6, paddingLeft: 4 }}>
+                                    <Text className="font-inter text-[11.5px] text-info-900/90" style={{ marginRight: 6 }}>•</Text>
+                                    <Text className="flex-1 font-inter text-[11.5px] leading-[18px] text-info-900/90">{item}</Text>
+                                </View>
+                            ))}
+                            <Text className="mt-2 font-inter text-[11.5px] leading-[18px] text-info-900/90">
+                                Once locked, only an admin override can modify these. Make sure all attendance corrections are completed before locking.
+                            </Text>
                         </View>
                     </View>
                 )}
@@ -503,6 +832,19 @@ export function PhaseCStep1Screen() {
             </View>
 
             <ConfirmModal {...confirmModal.modalProps} />
+
+            <BulkActionsSheet
+                ref={bulkSheetRef}
+                selectedCount={selectedIds.size}
+                onLock={onBulkLock}
+                onUnlock={onBulkUnlock}
+                onExport={onBulkExport}
+            />
+            <InfoSheet ref={infoSheetRef} />
+            <AttendanceRowDetailSheet
+                ref={rowDetailSheetRef}
+                onNavigate={(screen) => router.push(screen as any)}
+            />
         </View>
     );
 }
@@ -511,12 +853,19 @@ export function PhaseCStep1Screen() {
 /* Small atoms                                                              */
 /* ──────────────────────────────────────────────────────────────────────── */
 
-function MetaPill({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+function MetaPill({ emoji, label, value, onPressInfo }: { emoji: string; label: string; value: string; onPressInfo?: () => void }) {
     return (
         <View style={styles.metaPill}>
             <Text style={{ fontSize: 14, marginRight: 6 }}>{emoji}</Text>
             <View style={{ flex: 1, minWidth: 0 }}>
-                <Text className="font-inter text-[9.5px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text className="font-inter text-[9.5px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
+                    {onPressInfo ? (
+                        <Pressable onPress={onPressInfo} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                            <Text style={{ fontFamily: 'Inter', fontSize: 11, color: colors.info[500], fontWeight: '800' }}>ⓘ</Text>
+                        </Pressable>
+                    ) : null}
+                </View>
                 <Text className="font-inter text-[11.5px] font-bold text-neutral-900" numberOfLines={1}>{value}</Text>
             </View>
         </View>
@@ -725,6 +1074,68 @@ const styles = StyleSheet.create({
         padding: 10,
         borderWidth: 1,
         borderColor: colors.neutral[100],
+    },
+    toolbarBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 10,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    filtersPanel: {
+        marginBottom: 8,
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    filterChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: colors.neutral[100],
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
+    },
+    filterChipActive: {
+        backgroundColor: colors.primary[600],
+        borderColor: colors.primary[600],
+    },
+    checkbox: {
+        width: 18,
+        height: 18,
+        borderRadius: 4,
+        borderWidth: 1.5,
+        borderColor: colors.neutral[300],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkboxChecked: {
+        backgroundColor: colors.primary[600],
+        borderColor: colors.primary[600],
+    },
+    disclosureCard: {
+        marginTop: 16,
+        backgroundColor: colors.info[50] + '99',
+        borderRadius: 14,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        borderWidth: 1,
+        borderColor: colors.info[200],
+    },
+    eyeBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        backgroundColor: colors.primary[50],
+        borderWidth: 1,
+        borderColor: colors.primary[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 4,
     },
 });
 

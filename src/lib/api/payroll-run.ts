@@ -137,6 +137,60 @@ export const payrollRunApi = {
   getApprovalSummary: (runId: string) =>
     client.get(`/hr/payroll-runs/${runId}/approval-summary`),
 
+  /** Per-employee statutory rows (PF | ESI | PT | TDS | LWF). May return 404 until backend deployed. */
+  getStatutoryDetails: (runId: string, category: 'PF' | 'ESI' | 'PT' | 'TDS' | 'LWF') =>
+    client.get(`/hr/payroll-runs/${runId}/statutory-details`, { params: { category } }),
+
+  /** Audit log of computation events. May return 404 until backend deployed. */
+  getComputationLog: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/computation-log`),
+
+  /** Configured approval workflow with per-step status. May return 404 if not configured. */
+  getApprovalWorkflow: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/approval-workflow`),
+
+  /** Earnings/Deductions component breakdown. May return 404 until backend deployed. */
+  getComponentBreakdown: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/component-breakdown`),
+
+  /** Disbursement summary (Step 6). May 404 — handle gracefully. */
+  getDisbursementSummary: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/disbursement-summary`),
+
+  /** Disbursement batches (Step 6). May 404 — handle gracefully. */
+  getDisbursementBatches: (runId: string) =>
+    client.get(`/hr/payroll-runs/${runId}/disbursement-batches`),
+
+  /** Bulk lock attendance for selected employees (Step 1). */
+  bulkLockAttendance: (runId: string, employeeIds: string[]) =>
+    client.post(`/hr/payroll-runs/${runId}/attendance/bulk-lock`, { employeeIds }),
+
+  /** Bulk unlock attendance for selected employees (Step 1). */
+  bulkUnlockAttendance: (runId: string, employeeIds: string[]) =>
+    client.post(`/hr/payroll-runs/${runId}/attendance/bulk-unlock`, { employeeIds }),
+
+  /** Export selected employees' attendance as Excel (Step 1). Returns ArrayBuffer.
+   *  NOTE: For arraybuffer responses the client interceptor returns the AxiosResponse;
+   *  we destructure `.data` so callers receive the buffer directly (matches ess.ts pattern). */
+  exportAttendance: async (runId: string, employeeIds?: string[]) => {
+    const r = await client.get(`/hr/payroll-runs/${runId}/attendance/export`, {
+      params: employeeIds && employeeIds.length > 0 ? { employeeIds: employeeIds.join(',') } : {},
+      responseType: 'arraybuffer' as const,
+    });
+    return r.data as ArrayBuffer;
+  },
+
+  /** Download a statutory file (PF ECR / ESI / PT / TDS) for the run (Step 4). Returns ArrayBuffer. */
+  downloadStatutoryFile: async (
+    runId: string,
+    type: 'pf-ecr' | 'esi-return' | 'pt-return' | 'tds-return',
+  ) => {
+    const r = await client.get(`/hr/payroll-runs/${runId}/statutory-files/${type}`, {
+      responseType: 'arraybuffer' as const,
+    });
+    return r.data as ArrayBuffer;
+  },
+
   resetToCompute: (runId: string) =>
     client.patch(`/hr/payroll-runs/${runId}/reset-compute`),
 

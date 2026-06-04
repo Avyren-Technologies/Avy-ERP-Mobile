@@ -2,6 +2,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import {
+    Modal,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -22,6 +23,8 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import {
     useDisbursementBreakdown,
+    useDisbursementSummary,
+    useDisbursementBatches,
     usePayrollRun,
     usePayrollRuns,
 } from '@/features/company-admin/api/use-payroll-run-queries';
@@ -46,8 +49,14 @@ const MONTHS_SHORT = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'
 /* ──────────────────────────────────────────────────────────────────────── */
 
 function StatTile({
-    label, value, sub, tint,
-}: { label: string; value: React.ReactNode; sub?: string; tint: 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'accent' | 'emerald' | 'neutral' }) {
+    label, value, sub, tint, onPress,
+}: {
+    label: string;
+    value: React.ReactNode;
+    sub?: string;
+    tint: 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'accent' | 'emerald' | 'neutral';
+    onPress?: () => void;
+}) {
     const tintMap = {
         primary: { bg: colors.primary[50], fg: colors.primary[600] },
         success: { bg: colors.success[50], fg: colors.success[600] },
@@ -59,15 +68,16 @@ function StatTile({
         neutral: { bg: colors.neutral[100], fg: colors.neutral[700] },
     } as const;
     const t = tintMap[tint];
+    const Wrap: any = onPress ? Pressable : View;
     return (
-        <View style={styles.statTile}>
+        <Wrap onPress={onPress} style={styles.statTile}>
             <View style={[styles.statBadge, { backgroundColor: t.bg }]}>
                 <View style={[styles.statDot, { backgroundColor: t.fg }]} />
             </View>
             <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</Text>
             <Text className="mt-1 font-inter text-[14px] font-extrabold text-neutral-900" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
             {sub ? <Text className="mt-0.5 font-inter text-[10px] text-neutral-500" numberOfLines={1}>{sub}</Text> : null}
-        </View>
+        </Wrap>
     );
 }
 
@@ -133,17 +143,36 @@ export function PhaseCStep6Screen() {
     const { data: breakdownResp, isLoading, isRefetching, refetch: refetchBreakdown } = useDisbursementBreakdown(inferredRunId);
     const breakdown: any = (breakdownResp as any)?.data ?? null;
 
+    /* New endpoints — may 404; show empty state on failure (no mock data) */
+    const summaryQuery = useDisbursementSummary(inferredRunId);
+    const disbursementSummary: any = (summaryQuery.data as any)?.data ?? null;
+    const summaryUnavailable = (summaryQuery.error as any)?.response?.status === 404 || summaryQuery.isError;
+
+    const batchesQuery = useDisbursementBatches(inferredRunId);
+    const disbursementBatchesData: any = (batchesQuery.data as any)?.data ?? null;
+    const batchesUnavailable = (batchesQuery.error as any)?.response?.status === 404 || batchesQuery.isError;
+    const batches: any[] = React.useMemo(() => {
+        if (!disbursementBatchesData) return [];
+        if (Array.isArray(disbursementBatchesData)) return disbursementBatchesData;
+        if (Array.isArray(disbursementBatchesData.batches)) return disbursementBatchesData.batches;
+        return [];
+    }, [disbursementBatchesData]);
+
     const disburseMutation = useDisburseRun();
     const archiveMutation = useArchiveRun();
     const confirmModal = useConfirmModal();
+
+    /* KPI tap-to-expand */
+    const [kpiDetail, setKpiDetail] = React.useState<{ label: string; value: string; sub?: string } | null>(null);
 
     const status = (runDetail?.status ?? '').toUpperCase();
     const isApproved = ['APPROVED', 'DISBURSED', 'ARCHIVED'].includes(status);
     const isDisbursed = ['DISBURSED', 'ARCHIVED'].includes(status);
     const isArchived = status === 'ARCHIVED';
 
-    const totals = breakdown?.totals ?? {};
-    const distribution = breakdown?.distributionStatus ?? {};
+    /* Prefer disbursementSummary (new endpoint) when available, fall back to legacy breakdown */
+    const totals = disbursementSummary?.totals ?? breakdown?.totals ?? {};
+    const distribution = disbursementSummary?.distributionStatus ?? breakdown?.distributionStatus ?? {};
     const employees = Number(totals.totalEmployees ?? runDetail?.employeeCount ?? 0);
     const netDisbursed = Number(totals.netDisbursed ?? runDetail?.totalNet ?? 0);
     const successful = Number(distribution?.processed?.count ?? (isDisbursed ? employees : 0));
@@ -237,7 +266,7 @@ export function PhaseCStep6Screen() {
 
             <ScrollView
                 contentContainerStyle={{ padding: 16, paddingBottom: 110 + insets.bottom }}
-                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { refetchRun(); refetchBreakdown(); }} tintColor={colors.primary[600]} />}
+                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { refetchRun(); refetchBreakdown(); summaryQuery.refetch(); batchesQuery.refetch(); }} tintColor={colors.primary[600]} />}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Step header */}
@@ -274,16 +303,24 @@ export function PhaseCStep6Screen() {
                     </View>
                 </View>
 
-                {/* KPI grid */}
+                {/* KPI grid (tap to expand) */}
                 <View style={[styles.kpiGrid, { marginTop: 12 }]}>
-                    <StatTile label="Total Employees"        value={employees} sub="Active" tint="primary" />
-                    <StatTile label="Net Pay Disbursed"      value={formatINRCompact(netDisbursed)} sub={formatINR(netDisbursed)} tint="success" />
-                    <StatTile label="Bank Transfer"          value={formatINRCompact(netDisbursed)} sub={formatINR(netDisbursed)} tint="emerald" />
-                    <StatTile label="Transactions Successful" value={String(successful)} sub={`${successPct.toFixed(0)}%`} tint="success" />
-                    <StatTile label="Transactions Failed"    value={String(failed)} sub={failed > 0 ? 'Action needed' : 'All ok'} tint={failed > 0 ? 'danger' : 'neutral'} />
-                    <StatTile label="Average Net Pay"        value={formatINRCompact(avgNet)} sub={formatINR(avgNet)} tint="accent" />
-                    <StatTile label="Processing Time"        value={processingTime ?? '—'} tint="info" />
-                    <StatTile label="Status"                 value={isArchived ? 'Archived' : isDisbursed ? 'Disbursed' : 'Pending'} tint={isDisbursed ? 'success' : 'warning'} />
+                    <StatTile label="Total Employees" value={employees} sub="Active" tint="primary"
+                        onPress={() => setKpiDetail({ label: 'Total Employees', value: String(employees), sub: 'Employees included in disbursement' })} />
+                    <StatTile label="Net Pay Disbursed" value={formatINRCompact(netDisbursed)} sub={formatINR(netDisbursed)} tint="success"
+                        onPress={() => setKpiDetail({ label: 'Net Pay Disbursed', value: formatINR(netDisbursed), sub: 'Sum of all employee net pay credits' })} />
+                    <StatTile label="Bank Transfer" value={formatINRCompact(netDisbursed)} sub={formatINR(netDisbursed)} tint="emerald"
+                        onPress={() => setKpiDetail({ label: 'Bank Transfer', value: formatINR(netDisbursed), sub: 'Total uploaded to bank for disbursement' })} />
+                    <StatTile label="Transactions Successful" value={String(successful)} sub={`${successPct.toFixed(0)}%`} tint="success"
+                        onPress={() => setKpiDetail({ label: 'Successful Transactions', value: `${successful} (${successPct.toFixed(1)}%)`, sub: `${successful} of ${totalTx} processed successfully` })} />
+                    <StatTile label="Transactions Failed" value={String(failed)} sub={failed > 0 ? 'Action needed' : 'All ok'} tint={failed > 0 ? 'danger' : 'neutral'}
+                        onPress={() => setKpiDetail({ label: 'Failed Transactions', value: String(failed), sub: failed > 0 ? 'These need manual investigation and re-attempt.' : 'No failures.' })} />
+                    <StatTile label="Average Net Pay" value={formatINRCompact(avgNet)} sub={formatINR(avgNet)} tint="accent"
+                        onPress={() => setKpiDetail({ label: 'Average Net Pay', value: formatINR(avgNet), sub: 'Average per-employee net pay for the run' })} />
+                    <StatTile label="Processing Time" value={processingTime ?? '—'} tint="info"
+                        onPress={() => setKpiDetail({ label: 'Processing Time', value: processingTime ?? '—', sub: 'Time between attendance lock and disbursement' })} />
+                    <StatTile label="Status" value={isArchived ? 'Archived' : isDisbursed ? 'Disbursed' : 'Pending'} tint={isDisbursed ? 'success' : 'warning'}
+                        onPress={() => setKpiDetail({ label: 'Status', value: isArchived ? 'Archived' : isDisbursed ? 'Disbursed' : 'Pending', sub: isArchived ? 'Run is locked for audit.' : isDisbursed ? 'Salaries credited; ready to archive.' : 'Awaiting disbursement.' })} />
                 </View>
 
                 {/* Bank Disbursement Status */}
@@ -333,6 +370,57 @@ export function PhaseCStep6Screen() {
                         <LockRow label="Locked On"        value={disbursedAt ? `${fmt.date(disbursedAt)} ${fmt.time(disbursedAt)}` : '—'} />
                         <LockRow label="Unlock Permission" value="CFO Only" />
                     </View>
+                </View>
+
+                {/* Disbursement Batches (real data; empty state on 404) */}
+                <View style={[styles.heroCard, { marginTop: 12 }]}>
+                    <Text className="font-inter text-[13px] font-bold text-neutral-900 mb-2">Disbursement Batches</Text>
+                    {batchesQuery.isLoading ? (
+                        <Text className="font-inter text-[12.5px] text-neutral-500">Loading batches…</Text>
+                    ) : batchesUnavailable ? (
+                        <View style={{ alignItems: 'center', paddingVertical: 14 }}>
+                            <Text style={{ fontSize: 22, marginBottom: 4 }}>📦</Text>
+                            <Text className="font-inter text-[12px] text-neutral-500" style={{ textAlign: 'center' }}>
+                                Disbursement batch data not yet available.
+                            </Text>
+                        </View>
+                    ) : batches.length === 0 ? (
+                        <Text className="font-inter text-[12px] text-neutral-500">No batches recorded yet.</Text>
+                    ) : (
+                        <View style={{ gap: 8 }}>
+                            {batches.map((b: any, idx: number) => {
+                                const batchStatus = String(b.status ?? '').toUpperCase();
+                                const statusBg = batchStatus === 'SUCCESS' || batchStatus === 'PROCESSED' ? colors.success[50]
+                                    : batchStatus === 'FAILED' ? colors.danger[50]
+                                    : colors.warning[50];
+                                const statusFg = batchStatus === 'SUCCESS' || batchStatus === 'PROCESSED' ? colors.success[700]
+                                    : batchStatus === 'FAILED' ? colors.danger[700]
+                                    : colors.warning[700];
+                                return (
+                                    <View key={b.id ?? idx} style={styles.batchRow}>
+                                        <View style={{ flex: 1, minWidth: 0 }}>
+                                            <Text className="font-inter text-[12.5px] font-bold text-neutral-900" numberOfLines={1}>
+                                                {b.batchId ?? b.id ?? `Batch ${idx + 1}`}
+                                            </Text>
+                                            <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>
+                                                {b.bankName ?? b.method ?? '—'} · {Number(b.employees ?? b.count ?? 0)} emp · {formatINR(Number(b.amount ?? 0))}
+                                            </Text>
+                                            {b.scheduledAt && (
+                                                <Text className="font-inter text-[10.5px] text-neutral-500">
+                                                    {fmt.date(b.scheduledAt)} {fmt.time(b.scheduledAt)}
+                                                </Text>
+                                            )}
+                                        </View>
+                                        <View style={[styles.batchStatusPill, { backgroundColor: statusBg }]}>
+                                            <Text style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: '800', color: statusFg, textTransform: 'uppercase' }}>
+                                                {batchStatus || 'PENDING'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
                 </View>
 
                 {/* Bank File Summary */}
@@ -397,9 +485,30 @@ export function PhaseCStep6Screen() {
             </View>
 
             <ConfirmModal {...confirmModal.modalProps} />
+
+            {/* KPI tap-to-expand */}
+            <Modal visible={!!kpiDetail} animationType="fade" transparent onRequestClose={() => setKpiDetail(null)}>
+                <Pressable onPress={() => setKpiDetail(null)} style={kpiSheetStyles.backdrop}>
+                    <Pressable style={kpiSheetStyles.card}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                            <Text className="font-inter text-[12px] font-bold uppercase tracking-wider text-neutral-500">{kpiDetail?.label}</Text>
+                            <Pressable onPress={() => setKpiDetail(null)} hitSlop={10}>
+                                <Text style={{ color: colors.neutral[400], fontSize: 18 }}>✕</Text>
+                            </Pressable>
+                        </View>
+                        <Text className="font-inter text-[26px] font-extrabold text-neutral-900">{kpiDetail?.value}</Text>
+                        {kpiDetail?.sub && <Text className="mt-2 font-inter text-[13px] text-neutral-600">{kpiDetail.sub}</Text>}
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
+
+const kpiSheetStyles = StyleSheet.create({
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+    card: { backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+});
 
 /* ──────────────────────────────────────────────────────────────────────── */
 /* Small atoms                                                              */
@@ -487,6 +596,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', gap: 8,
     },
     actionBtn: { borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, overflow: 'hidden', minWidth: 180, alignItems: 'center', justifyContent: 'center' },
+    batchRow: {
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+        paddingVertical: 8, paddingHorizontal: 10,
+        borderRadius: 10, borderWidth: 1, borderColor: colors.neutral[100],
+        backgroundColor: colors.neutral[50],
+    },
+    batchStatusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
 });
 
 export default PhaseCStep6Screen;

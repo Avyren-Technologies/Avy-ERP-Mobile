@@ -48,9 +48,13 @@ const STATUS_TABS: { id: StatusFilter; label: string }[] = [
     { id: 'archived',    label: 'Archived' },
 ];
 
+/**
+ * Map run.status → wizard step index (0-based). Phase C wizard has 6 visible steps (0..5).
+ * Disbursed/archived runs stay on the last Phase-C step (Disburse) — Phase D is a separate route.
+ */
 const STATUS_STEP_MAP: Record<string, number> = {
     draft: 0, attendance_locked: 1, exceptions_reviewed: 2, computed: 3,
-    statutory_done: 4, approved: 5, disbursed: 6, archived: 6,
+    statutory_done: 4, approved: 5, disbursed: 5, archived: 5,
 };
 
 /* ──────────────────────────────────────────────────────────────────────── */

@@ -16,6 +16,13 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { usePreRunChecklist } from '@/features/company-admin/api/use-payroll-phases-queries';
 import { usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import {
+    EditPeriodSheet,
+    PendingItemsSheet,
+    type EditPeriodSheetHandle,
+    type PendingItem,
+    type PendingItemsSheetHandle,
+} from '@/features/company-admin/hr/payroll-wizard-modals';
 
 /* ──────────────────────────────────────────────────────────────────────── */
 /* Types                                                                    */
@@ -204,7 +211,11 @@ export function PhaseBPreRunScreen() {
     const fmt = useCompanyFormatter();
     const { toggle } = useSidebar();
     const params = useLocalSearchParams<{ runId?: string }>();
-    const explicitRunId = params.runId ?? '';
+    const [runIdOverride, setRunIdOverride] = React.useState<string>('');
+    const explicitRunId = runIdOverride || (params.runId ?? '');
+
+    const editPeriodRef = React.useRef<EditPeriodSheetHandle>(null);
+    const pendingSheetRef = React.useRef<PendingItemsSheetHandle>(null);
 
     /* Fetch runs to discover active runId
        NOTE: mobile axios interceptor + API fn already unwrap to inner payload.
@@ -286,9 +297,43 @@ export function PhaseBPreRunScreen() {
         { label: 'Reimbursement Claims',  sub: `${get('one_time_adjustments')?.pendingCount ?? 0} pending review`,                  ok: (get('one_time_adjustments')?.pendingCount ?? 0) === 0, emoji: '🧾' },
     ];
 
-    const pendingItems = acts
-        .filter(a => a.status === 'BLOCKED' || (a.status === 'PENDING' && (a.pendingCount ?? 0) > 0))
-        .slice(0, 4);
+    const allPendingActivities = acts.filter(a => a.status === 'BLOCKED' || (a.status === 'PENDING' && (a.pendingCount ?? 0) > 0));
+    const pendingItems = allPendingActivities.slice(0, 4);
+
+    const ACTIVITY_OWNER: Record<string, string> = {
+        verify_attendance: 'HR Admin',
+        pending_approvals: 'HR Admin',
+        salary_revisions: 'Payroll Officer',
+        one_time_adjustments: 'Payroll Officer',
+        review_exceptions: 'Payroll Officer',
+        statutory_compliance: 'Compliance',
+        new_joiners_exits: 'HR Admin',
+        loan_adjustments: 'Finance Lead',
+        salary_holds: 'Payroll Officer',
+        payroll_readiness: 'Payroll Officer',
+    };
+    const ACTIVITY_ETA: Record<string, number> = {
+        verify_attendance: 20,
+        pending_approvals: 15,
+        salary_revisions: 30,
+        one_time_adjustments: 20,
+        review_exceptions: 25,
+        statutory_compliance: 20,
+        new_joiners_exits: 20,
+        loan_adjustments: 15,
+        salary_holds: 15,
+        payroll_readiness: 20,
+    };
+    const allPendingForSheet: PendingItem[] = allPendingActivities.map(a => ({
+        id: a.id,
+        title: a.name,
+        description: a.blockerReason || a.description || undefined,
+        severity: a.priority,
+        status: a.status,
+        owner: ACTIVITY_OWNER[a.id],
+        eta: ACTIVITY_ETA[a.id] != null ? `~${ACTIVITY_ETA[a.id]} min` : undefined,
+        actionUrl: a.actionUrl,
+    }));
 
     const periodLabel = `${MONTHS[checklist.run.month]} ${checklist.run.year} Payroll`;
     const monthStart = new Date(checklist.run.year, checklist.run.month - 1, 1).toISOString();
@@ -344,7 +389,7 @@ export function PhaseBPreRunScreen() {
                             </View>
                             <Text className="font-inter text-[11px] font-bold uppercase tracking-wider text-neutral-500">Payroll Period</Text>
                         </View>
-                        <Pressable onPress={() => router.push(`/company/hr/payroll-c-step-1?runId=${checklist.run.id}` as any)}>
+                        <Pressable onPress={() => editPeriodRef.current?.present()}>
                             <Text style={styles.actionText}>✎ Edit Period</Text>
                         </Pressable>
                     </View>
@@ -424,7 +469,17 @@ export function PhaseBPreRunScreen() {
 
                 {/* Pending Items */}
                 <View style={[styles.infoCard, { marginTop: 12 }]}>
-                    <Text className="mb-3 font-inter text-[14px] font-bold text-neutral-900">Pending Items Requiring Attention</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <Text className="font-inter text-[14px] font-bold text-neutral-900">Pending Items Requiring Attention</Text>
+                        <Pressable
+                            disabled={allPendingForSheet.length === 0}
+                            onPress={() => pendingSheetRef.current?.present()}
+                        >
+                            <Text style={[styles.actionText, allPendingForSheet.length === 0 && { color: colors.neutral[400] }]}>
+                                View All
+                            </Text>
+                        </Pressable>
+                    </View>
                     {pendingItems.length === 0 ? (
                         <Text className="font-inter text-[12px] text-neutral-500">No pending items 🎉</Text>
                     ) : (
@@ -530,6 +585,33 @@ export function PhaseBPreRunScreen() {
                     </Text>
                 </Pressable>
             </View>
+
+            {/* Edit Period switcher */}
+            <EditPeriodSheet
+                ref={editPeriodRef}
+                runs={runsList.map(r => ({
+                    id: r.id,
+                    month: r.month,
+                    year: r.year,
+                    status: r.status,
+                    employeeCount: r.employeeCount,
+                }))}
+                currentRunId={checklist.run.id}
+                onSelect={(id) => setRunIdOverride(id)}
+            />
+
+            {/* All Pending Items */}
+            <PendingItemsSheet
+                ref={pendingSheetRef}
+                items={allPendingForSheet}
+                onItemAction={(item) => {
+                    pendingSheetRef.current?.dismiss();
+                    if (item.actionUrl) {
+                        const url = item.actionUrl.replace(/^\/app/, '');
+                        setTimeout(() => router.push(url as any), 200);
+                    }
+                }}
+            />
         </View>
     );
 }

@@ -30,6 +30,10 @@ import {
     useComputeSalaries,
     useResetToCompute,
 } from '@/features/company-admin/api/use-payroll-run-mutations';
+import {
+    RowIssueSheet,
+    type RowIssueSheetHandle,
+} from '@/features/company-admin/hr/payroll-wizard-modals';
 
 const formatINR = (v: unknown): string => `₹${(Number(v) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const formatINRCompact = (v: unknown): string => {
@@ -96,6 +100,8 @@ export function PhaseCStep3Screen() {
 
     const [tab, setTab] = React.useState<'all' | 'exceptions'>('all');
     const [search, setSearch] = React.useState('');
+
+    const rowIssueRef = React.useRef<RowIssueSheetHandle>(null);
 
     /* Resolve runId */
     const { data: runsResp } = usePayrollRuns({ limit: 20 });
@@ -308,7 +314,7 @@ export function PhaseCStep3Screen() {
                         </View>
                     ) : filtered.map((r, i) => (
                         <View key={r.employeeId ?? i} style={[styles.empCard, r.isException && { backgroundColor: colors.warning[50] + '40' }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                                 <View style={{ flex: 1, minWidth: 0 }}>
                                     <Text className="font-inter text-[13.5px] font-bold text-neutral-900" numberOfLines={1}>{r.employeeName}</Text>
                                     <Text className="font-inter text-[11px] text-neutral-500" numberOfLines={1}>{r.employeeCode}{r.department ? ` · ${r.department}` : ''}</Text>
@@ -318,6 +324,31 @@ export function PhaseCStep3Screen() {
                                         <Text style={{ fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: colors.warning[700] }}>⚠ Issue</Text>
                                     </View>
                                 )}
+                                <Pressable
+                                    onPress={() => {
+                                        const matched = exceptionRows.find((ex: any) =>
+                                            ex.employeeId === r.employeeId
+                                            || ex.employeeCode === r.employeeCode
+                                            || ex.employee === r.employeeName,
+                                        );
+                                        rowIssueRef.current?.present({
+                                            employeeName: r.employeeName,
+                                            employeeCode: r.employeeCode,
+                                            department: r.department ?? null,
+                                            exceptionType: matched?.type ?? matched?.exceptionType ?? (r.isException ? 'Computation Exception' : 'Entry Details'),
+                                            severity: matched?.severity ?? (r.isException ? 'HIGH' : 'LOW'),
+                                            note: matched?.message ?? matched?.note ?? r.exceptionNote ?? (r.isException ? 'Computation flagged this employee. Review the variance against last period.' : 'No issues detected. View shows computed values for reference.'),
+                                            suggestedResolution: matched?.suggestion ?? matched?.resolution ?? (r.isException ? 'Review attendance, salary structure and pay-period inputs; re-run computation after corrections.' : undefined),
+                                            grossEarnings: Number(r.grossEarnings ?? 0),
+                                            totalDeductions: Number(r.totalDeductions ?? 0),
+                                            netPay: Number(r.netPay ?? 0),
+                                        });
+                                    }}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    style={styles.eyeBtn}
+                                >
+                                    <Text style={{ fontSize: 16, color: colors.primary[600] }}>👁</Text>
+                                </Pressable>
                             </View>
                             <View style={styles.empMetricsRow}>
                                 <Metric label="Gross" value={formatINR(r.grossEarnings)} accent={colors.neutral[800]} />
@@ -363,6 +394,7 @@ export function PhaseCStep3Screen() {
             </View>
 
             <ConfirmModal {...confirmModal.modalProps} />
+            <RowIssueSheet ref={rowIssueRef} />
         </View>
     );
 }
@@ -418,6 +450,14 @@ const styles = StyleSheet.create({
         borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16,
         overflow: 'hidden', minWidth: 110,
         alignItems: 'center', justifyContent: 'center',
+    },
+    eyeBtn: {
+        width: 30, height: 30,
+        borderRadius: 8,
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: colors.neutral[50],
+        borderWidth: 1,
+        borderColor: colors.neutral[200],
     },
 });
 

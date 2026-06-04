@@ -25,6 +25,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import colors from '@/components/ui/colors';
 import { Text } from '@/components/ui/text';
+import { showWarning } from '@/components/ui/utils';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -42,6 +43,9 @@ export interface SidebarNavItem {
     icon: SidebarIconType;
     badge?: number;
     isActive?: boolean;
+    /** When true, the item is rendered disabled (greyed out, lock icon) and tapping shows the lockReason toast instead of navigating. */
+    locked?: boolean;
+    lockReason?: string;
     children?: { label: string; path: string; isActive?: boolean; onPress?: () => void }[];
     onPress: () => void;
 }
@@ -217,6 +221,15 @@ export function HamburgerButton({
 
 // ============ MEMOIZED NAV ITEM (prevents 79 re-renders) ============
 
+function LockBadgeIcon({ size = 12, color = colors.neutral[500] }: { size?: number; color?: string }) {
+    return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <Rect x={5} y={11} width={14} height={9} rx={2} stroke={color} strokeWidth={2} />
+            <Path d="M8 11V8a4 4 0 018 0v3" stroke={color} strokeWidth={2} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
 const SidebarNavItem = React.memo(function SidebarNavItem({
     item,
     onClose,
@@ -224,42 +237,55 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
     item: SidebarNavItem;
     onClose: () => void;
 }) {
+    const isLocked = item.locked === true;
     return (
         <Pressable
             onPress={() => {
+                if (isLocked) {
+                    showWarning('Locked', item.lockReason ?? 'This action is currently unavailable');
+                    return;
+                }
                 item.onPress();
                 onClose();
             }}
             style={({ pressed }) => [
                 styles.navItem,
-                item.isActive && styles.navItemActive,
-                pressed && !item.isActive && styles.navItemPressed,
+                item.isActive && !isLocked && styles.navItemActive,
+                pressed && !item.isActive && !isLocked && styles.navItemPressed,
+                isLocked && { opacity: 0.5 },
             ]}
         >
             <View
                 style={[
                     styles.navIconWrap,
-                    item.isActive && styles.navIconWrapActive,
+                    item.isActive && !isLocked && styles.navIconWrapActive,
                 ]}
             >
                 <SidebarNavIcon
                     type={item.icon}
                     color={
-                        item.isActive
-                            ? colors.primary[600]
-                            : colors.neutral[500]
+                        isLocked
+                            ? colors.neutral[400]
+                            : item.isActive
+                                ? colors.primary[600]
+                                : colors.neutral[500]
                     }
                     size={20}
                 />
             </View>
             <View style={styles.navLabelRow}>
                 <Text
-                    className={`font-inter text-sm font-semibold ${item.isActive ? 'text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
+                    className={`font-inter text-sm font-semibold ${isLocked ? 'text-neutral-400 dark:text-neutral-500' : item.isActive ? 'text-primary-700' : 'text-neutral-600 dark:text-neutral-400'}`}
                     numberOfLines={1}
                 >
                     {item.label}
                 </Text>
-                {item.badge != null && item.badge > 0 && (
+                {isLocked && (
+                    <View style={{ marginLeft: 6 }}>
+                        <LockBadgeIcon size={12} color={colors.neutral[400]} />
+                    </View>
+                )}
+                {!isLocked && item.badge != null && item.badge > 0 && (
                     <View style={styles.badge}>
                         <Text className="font-inter text-[9px] font-bold text-white">
                             {item.badge > 99 ? '99+' : item.badge}
@@ -270,11 +296,13 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
         </Pressable>
     );
 }, (prev, next) => {
-    // Only re-render if active state, label, or badge changed
+    // Only re-render if active state, label, badge, or locked changed
     return prev.item.id === next.item.id
         && prev.item.isActive === next.item.isActive
         && prev.item.label === next.item.label
-        && prev.item.badge === next.item.badge;
+        && prev.item.badge === next.item.badge
+        && prev.item.locked === next.item.locked
+        && prev.item.lockReason === next.item.lockReason;
 });
 
 // ============ COLLAPSED NAVIGATION ============
@@ -319,26 +347,37 @@ const CollapsedNavItem = React.memo(function CollapsedNavItem({
     item: SidebarNavItem;
     onClose: () => void;
 }) {
+    const isLocked = item.locked === true;
     return (
         <Pressable
             onPress={() => {
+                if (isLocked) {
+                    showWarning('Locked', item.lockReason ?? 'This action is currently unavailable');
+                    return;
+                }
                 item.onPress();
                 onClose();
             }}
             style={({ pressed }) => [
                 collapsedStyles.iconOnlyItem,
-                item.isActive && collapsedStyles.iconOnlyItemActive,
-                pressed && !item.isActive && { opacity: 0.7 },
+                item.isActive && !isLocked && collapsedStyles.iconOnlyItemActive,
+                pressed && !item.isActive && !isLocked && { opacity: 0.7 },
+                isLocked && { opacity: 0.5 },
             ]}
         >
-            <View style={[collapsedStyles.iconOnlyWrap, item.isActive && collapsedStyles.iconOnlyWrapActive]}>
+            <View style={[collapsedStyles.iconOnlyWrap, item.isActive && !isLocked && collapsedStyles.iconOnlyWrapActive]}>
                 <SidebarNavIcon
                     type={item.icon}
-                    color={item.isActive ? colors.primary[600] : colors.neutral[500]}
+                    color={isLocked ? colors.neutral[400] : item.isActive ? colors.primary[600] : colors.neutral[500]}
                     size={20}
                 />
             </View>
-            {item.badge != null && item.badge > 0 && (
+            {isLocked && (
+                <View style={collapsedStyles.collapsedBadge}>
+                    <LockBadgeIcon size={9} color={colors.white} />
+                </View>
+            )}
+            {!isLocked && item.badge != null && item.badge > 0 && (
                 <View style={collapsedStyles.collapsedBadge}>
                     <Text className="font-inter text-[7px] font-bold text-white">
                         {item.badge > 9 ? '9+' : item.badge}

@@ -1,5 +1,6 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
   Image,
@@ -69,9 +70,11 @@ function CreateVehicleModal({
   const [vehicleRegNumber, setVehicleRegNumber] = React.useState('');
   const [vehicleType, setVehicleType] = React.useState('CAR');
   const [driverName, setDriverName] = React.useState('');
+  const [driverMobile, setDriverMobile] = React.useState('');
   const [purpose, setPurpose] = React.useState('');
   const [entryGateId, setEntryGateId] = React.useState('');
   const [plantId, setPlantId] = React.useState('');
+  const [validDays, setValidDays] = React.useState('30');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const { data: locationsResponse } = useCompanyLocations();
@@ -89,7 +92,7 @@ function CreateVehicleModal({
   }, [gatesResponse]);
 
   React.useEffect(() => {
-    if (visible) { setVehicleRegNumber(''); setVehicleType('CAR'); setDriverName(''); setPurpose(''); setEntryGateId(''); setPlantId(''); setErrors({}); }
+    if (visible) { setVehicleRegNumber(''); setVehicleType('CAR'); setDriverName(''); setDriverMobile(''); setPurpose(''); setEntryGateId(''); setPlantId(''); setValidDays('30'); setErrors({}); }
   }, [visible]);
 
   const validate = () => {
@@ -105,13 +108,19 @@ function CreateVehicleModal({
 
   const handleSave = () => {
     if (!validate()) return;
+    const now = new Date();
+    const days = Number(validDays.trim() || 30);
+    const validUntil = new Date(now.getTime() + (Number.isFinite(days) && days > 0 ? days : 30) * 86_400_000);
     onSave({
       vehicleRegNumber: vehicleRegNumber.trim().toUpperCase(),
       vehicleType,
       driverName: driverName.trim(),
+      driverMobile: driverMobile.trim() || undefined,
       purpose: purpose.trim(),
       entryGateId,
       plantId,
+      validFrom: now.toISOString(),
+      validUntil: validUntil.toISOString(),
     });
   };
 
@@ -170,6 +179,13 @@ function CreateVehicleModal({
             </View>
 
             <View style={formStyles.fieldWrap}>
+              <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Driver Mobile</Text>
+              <View style={formStyles.inputWrap}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="10-digit mobile" placeholderTextColor={colors.neutral[400]} value={driverMobile} onChangeText={setDriverMobile} keyboardType="phone-pad" />
+              </View>
+            </View>
+
+            <View style={formStyles.fieldWrap}>
               <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
                 Purpose <Text className="text-danger-500">*</Text>
               </Text>
@@ -198,6 +214,14 @@ function CreateVehicleModal({
               required
               error={errors.plantId}
             />
+
+            <View style={formStyles.fieldWrap}>
+              <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">Pass valid for (days)</Text>
+              <View style={formStyles.inputWrap}>
+                <TextInput style={[formStyles.textInput, isDark && { color: colors.white }]} placeholder="30" placeholderTextColor={colors.neutral[400]} value={validDays} onChangeText={setValidDays} keyboardType="numeric" />
+              </View>
+              <Text className="mt-1 font-inter text-[10px] text-neutral-500">For in-house vehicles, set a long validity (e.g. 365). Single-use deliveries use 1.</Text>
+            </View>
 
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 24 }}>
               <Pressable onPress={onClose} style={formStyles.cancelBtn}>
@@ -300,6 +324,7 @@ function VehicleCard({
 // ============ MAIN COMPONENT ============
 
 export function VehiclePassesScreen() {
+  const router = useRouter();
   const isDark = useIsDark();
   const s = createStyles(isDark);
   const insets = useSafeAreaInsets();
@@ -370,8 +395,18 @@ export function VehiclePassesScreen() {
 
   const renderHeader = () => (
     <Animated.View entering={FadeInDown.duration(400)} style={s.headerContent}>
-      <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Vehicle Passes</Text>
-      <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} pass{items.length !== 1 ? 'es' : ''}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <View style={{ flex: 1 }}>
+          <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Vehicle Passes</Text>
+          <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">{items.length} pass{items.length !== 1 ? 'es' : ''}</Text>
+        </View>
+        <Pressable onPress={() => router.push('/company/visitors/pass-history' as any)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.primary[50] }}>
+          <Svg width={14} height={14} viewBox="0 0 24 24">
+            <Path d="M12 8v4l3 3M3.05 11a9 9 0 11.94 4M3 4v5h5" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+          <Text className="font-inter text-[11px] font-bold text-primary-700">History</Text>
+        </Pressable>
+      </View>
       <View style={{ marginTop: 16 }}>
         <SearchBar value={search} onChangeText={setSearch} placeholder="Search by vehicle reg, driver..." />
       </View>

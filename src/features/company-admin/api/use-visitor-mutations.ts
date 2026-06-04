@@ -314,14 +314,48 @@ export function useCreateVehiclePass() {
   });
 }
 
+/** Record vehicle entry (gate scan) */
+export function useRecordVehicleEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      visitorsApi.recordVehicleEntry(id, data),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePasses() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePass(vars.id) });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsStats() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsRecentActivity() });
+    },
+    onError: showError,
+  });
+}
+
 /** Record vehicle exit */
 export function useRecordVehicleExit() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
       visitorsApi.recordVehicleExit(id, data),
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePasses() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePass(vars.id) });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsStats() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsRecentActivity() });
+    },
+    onError: showError,
+  });
+}
+
+/** Revoke a vehicle pass */
+export function useRevokeVehiclePass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { reason: string } }) =>
+      visitorsApi.revokeVehiclePass(id, data),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePasses() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.vehiclePass(vars.id) });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsStats() });
     },
     onError: showError,
   });
@@ -340,14 +374,50 @@ export function useCreateMaterialPass() {
   });
 }
 
-/** Mark material as returned */
+/** Record material entry (gate scan) */
+export function useRecordMaterialEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
+      visitorsApi.recordMaterialEntry(id, data),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.materialPasses() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.materialPass(vars.id) });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsStats() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsExpectedMaterials() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsRecentActivity() });
+    },
+    onError: showError,
+  });
+}
+
+/** Mark material as returned (PARTIAL or FULLY_RETURNED) */
 export function useMarkMaterialReturned() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
       visitorsApi.markMaterialReturned(id, data),
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
       queryClient.invalidateQueries({ queryKey: visitorKeys.materialPasses() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.materialPass(vars.id) });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsStats() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsRecentActivity() });
+    },
+    onError: showError,
+  });
+}
+
+/** Cancel a material pass */
+export function useCancelMaterialPass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { reason: string } }) =>
+      visitorsApi.cancelMaterialPass(id, data),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.materialPasses() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.materialPass(vars.id) });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsStats() });
+      queryClient.invalidateQueries({ queryKey: visitorKeys.gateOpsExpectedMaterials() });
     },
     onError: showError,
   });

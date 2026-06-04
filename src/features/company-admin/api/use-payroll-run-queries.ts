@@ -78,6 +78,18 @@ export const payrollRunKeys = {
     [...payrollRunKeys.all, 'disbursement-breakdown', runId] as const,
   approvalSummary: (runId: string) =>
     [...payrollRunKeys.all, 'approval-summary', runId] as const,
+  statutoryDetails: (runId: string, category: string) =>
+    [...payrollRunKeys.all, 'statutory-details', runId, category] as const,
+  computationLog: (runId: string) =>
+    [...payrollRunKeys.all, 'computation-log', runId] as const,
+  approvalWorkflow: (runId: string) =>
+    [...payrollRunKeys.all, 'approval-workflow', runId] as const,
+  componentBreakdown: (runId: string) =>
+    [...payrollRunKeys.all, 'component-breakdown', runId] as const,
+  disbursementSummary: (runId: string) =>
+    [...payrollRunKeys.all, 'disbursement-summary', runId] as const,
+  disbursementBatches: (runId: string) =>
+    [...payrollRunKeys.all, 'disbursement-batches', runId] as const,
 
   // Payroll Reports
   salaryRegister: (params?: PayrollReportParams) =>
@@ -361,5 +373,82 @@ export function useApprovalSummary(runId: string) {
     enabled: !!runId,
     staleTime: 0,
     refetchOnMount: true,
+  });
+}
+
+/** Per-employee statutory rows (PF | ESI | PT | TDS | LWF). Lazy-enabled; no retry on 404. */
+export function useStatutoryDetails(
+  runId: string,
+  category: 'PF' | 'ESI' | 'PT' | 'TDS' | 'LWF',
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: payrollRunKeys.statutoryDetails(runId, category),
+    queryFn: () => payrollRunApi.getStatutoryDetails(runId, category),
+    enabled: !!runId && enabled,
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: false,
+  });
+}
+
+/** Computation audit log. Lazy-enabled; no retry on 404. */
+export function useComputationLog(runId: string, enabled = true) {
+  return useQuery({
+    queryKey: payrollRunKeys.computationLog(runId),
+    queryFn: () => payrollRunApi.getComputationLog(runId),
+    enabled: !!runId && enabled,
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: false,
+  });
+}
+
+/** Configured approval workflow with per-step status. No retry on 404 (workflow not configured).
+ *  Named `usePayrollRunApprovalWorkflow` to avoid collision with `useApprovalWorkflow` in use-ess-queries. */
+export function usePayrollRunApprovalWorkflow(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.approvalWorkflow(runId),
+    queryFn: () => payrollRunApi.getApprovalWorkflow(runId),
+    enabled: !!runId,
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: false,
+  });
+}
+
+/** Earnings + deductions component breakdown. No retry on 404. */
+export function useComponentBreakdown(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.componentBreakdown(runId),
+    queryFn: () => payrollRunApi.getComponentBreakdown(runId),
+    enabled: !!runId,
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: false,
+  });
+}
+
+/** Disbursement summary (Step 6). No retry on 404. */
+export function useDisbursementSummary(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.disbursementSummary(runId),
+    queryFn: () => payrollRunApi.getDisbursementSummary(runId),
+    enabled: !!runId,
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: false,
+  });
+}
+
+/** Disbursement batches (Step 6). No retry on 404. */
+export function useDisbursementBatches(runId: string) {
+  return useQuery({
+    queryKey: payrollRunKeys.disbursementBatches(runId),
+    queryFn: () => payrollRunApi.getDisbursementBatches(runId),
+    enabled: !!runId,
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: false,
   });
 }

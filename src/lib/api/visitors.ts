@@ -114,20 +114,60 @@ export const visitorsApi = {
   listVehiclePasses: (params?: Record<string, unknown>) =>
     client.get('/visitors/vehicle-passes', { params }),
 
+  getVehiclePass: (id: string) =>
+    client.get(`/visitors/vehicle-passes/${id}`),
+
+  getVehiclePassEvents: (id: string, params?: Record<string, unknown>) =>
+    client.get(`/visitors/vehicle-passes/${id}/events`, { params }),
+
   createVehiclePass: (data: Record<string, unknown>) =>
     client.post('/visitors/vehicle-passes', data),
+
+  recordVehicleEntry: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/vehicle-passes/${id}/record-entry`, data),
 
   recordVehicleExit: (id: string, data?: Record<string, unknown>) =>
     client.post(`/visitors/vehicle-passes/${id}/exit`, data),
 
+  revokeVehiclePass: (id: string, data: { reason: string }) =>
+    client.post(`/visitors/vehicle-passes/${id}/revoke`, data),
+
   listMaterialPasses: (params?: Record<string, unknown>) =>
     client.get('/visitors/material-passes', { params }),
+
+  getMaterialPass: (id: string) =>
+    client.get(`/visitors/material-passes/${id}`),
+
+  getMaterialPassEvents: (id: string, params?: Record<string, unknown>) =>
+    client.get(`/visitors/material-passes/${id}/events`, { params }),
 
   createMaterialPass: (data: Record<string, unknown>) =>
     client.post('/visitors/material-passes', data),
 
+  recordMaterialEntry: (id: string, data?: Record<string, unknown>) =>
+    client.post(`/visitors/material-passes/${id}/record-entry`, data),
+
   markMaterialReturned: (id: string, data?: Record<string, unknown>) =>
     client.post(`/visitors/material-passes/${id}/return`, data),
+
+  cancelMaterialPass: (id: string, data: { reason: string }) =>
+    client.post(`/visitors/material-passes/${id}/cancel`, data),
+
+  // ── Gate Ops dashboard ──────────────────────────────────────────────
+  getGateOpsStats: (params?: Record<string, unknown>) =>
+    client.get('/visitors/gate-ops/stats', { params }),
+
+  getGateOpsExpectedMaterials: (params?: Record<string, unknown>) =>
+    client.get('/visitors/gate-ops/expected-materials', { params }),
+
+  getGateOpsExpectedVisitors: (params?: Record<string, unknown>) =>
+    client.get('/visitors/gate-ops/expected-visitors', { params }),
+
+  getGateOpsExpectedVehicles: (params?: Record<string, unknown>) =>
+    client.get('/visitors/gate-ops/expected-vehicles', { params }),
+
+  getGateOpsRecentActivity: (params?: Record<string, unknown>) =>
+    client.get('/visitors/gate-ops/recent-activity', { params }),
 
   // ── Group Visits ────────────────────────────────────────────────────
   listGroupVisits: (params?: Record<string, unknown>) =>

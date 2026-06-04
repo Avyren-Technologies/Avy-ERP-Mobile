@@ -23,6 +23,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { usePayrollRun, usePayrollRuns } from '@/features/company-admin/api/use-payroll-run-queries';
 import { useResolveException, useReviewExceptions } from '@/features/company-admin/api/use-payroll-run-mutations';
+import { ExceptionCatalogueInline } from '@/features/company-admin/hr/payroll-wizard-modals';
 
 type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
 type PriorityFilter = 'all' | 'high' | 'medium' | 'low' | 'resolved';
@@ -339,12 +340,18 @@ export function PhaseCStep2Screen() {
                 {/* Exceptions list */}
                 <View style={{ marginTop: 12, gap: 10 }}>
                     {filtered.length === 0 ? (
-                        <View style={[styles.heroCard, { alignItems: 'center', paddingVertical: 24 }]}>
-                            <Text style={{ fontSize: 32, marginBottom: 6 }}>{exceptions.length === 0 ? '✅' : '🔎'}</Text>
-                            <Text className="font-inter text-[13px] text-neutral-500">
-                                {exceptions.length === 0 ? 'No exceptions detected.' : 'No matches in current filter.'}
-                            </Text>
-                        </View>
+                        exceptions.length === 0 ? (
+                            <View style={[styles.heroCard, { paddingVertical: 18, paddingHorizontal: 14 }]}>
+                                <ExceptionCatalogueInline />
+                            </View>
+                        ) : (
+                            <View style={[styles.heroCard, { alignItems: 'center', paddingVertical: 24 }]}>
+                                <Text style={{ fontSize: 32, marginBottom: 6 }}>🔎</Text>
+                                <Text className="font-inter text-[13px] text-neutral-500">
+                                    No matches in current filter.
+                                </Text>
+                            </View>
+                        )
                     ) : filtered.map((exc) => {
                         const impact = Number(exc.impactAmount ?? 0);
                         const impactColor = impact < 0 ? colors.danger[700] : impact > 0 ? colors.success[700] : colors.neutral[500];

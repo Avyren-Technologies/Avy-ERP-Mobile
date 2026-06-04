@@ -179,6 +179,8 @@ function AppSidebar() {
                 label: item.label,
                 icon: mapManifestIcon(item.icon),
                 path: item.path,
+                locked: item.locked === true,
+                lockReason: item.lockReason as string | undefined,
                 childPaths: (item.children ?? []).map((c: any) => c.path),
                 children: (item.children ?? []).map((child: any) => ({
                     label: child.label,
@@ -196,6 +198,8 @@ function AppSidebar() {
                 id: item.id,
                 label: item.label,
                 icon: item.icon,
+                locked: item.locked,
+                lockReason: item.lockReason,
                 isActive: isPathActive(pathname, item.path) || item.childPaths.some((cp: string) => isPathActive(pathname, cp)),
                 children: item.children.map((child: any) => ({
                     label: child.label,

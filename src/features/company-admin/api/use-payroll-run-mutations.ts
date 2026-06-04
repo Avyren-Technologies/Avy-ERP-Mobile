@@ -142,6 +142,26 @@ export function useResetToCompute() {
   });
 }
 
+/** Step 1: Bulk-lock attendance for selected employees */
+export function useBulkLockAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, employeeIds }: { runId: string; employeeIds: string[] }) =>
+      payrollRunApi.bulkLockAttendance(runId, employeeIds),
+    onSuccess: (_, vars) => invalidateRunCaches(queryClient, vars.runId),
+  });
+}
+
+/** Step 1: Bulk-unlock attendance for selected employees */
+export function useBulkUnlockAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, employeeIds }: { runId: string; employeeIds: string[] }) =>
+      payrollRunApi.bulkUnlockAttendance(runId, employeeIds),
+    onSuccess: (_, vars) => invalidateRunCaches(queryClient, vars.runId),
+  });
+}
+
 // ── Payroll Entries ─────────────────────────────────────────────────
 
 /** Override a payroll entry (manual adjustment) */

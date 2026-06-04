@@ -274,11 +274,15 @@ export function useSupportTicket(id: string) {
 
 // --- Navigation Manifest ---
 
-/** Navigation manifest (permission-filtered sidebar sections from backend) */
+/**
+ * Navigation manifest (permission-filtered sidebar sections from backend).
+ * Cached 2 minutes so dynamic lock state (e.g. Phase B → Phase C gating)
+ * refreshes quickly after the user resolves blocking pre-run activities.
+ */
 export function useNavigationManifest() {
   return useQuery({
     queryKey: companyAdminKeys.navigationManifest(),
     queryFn: () => companyAdminApi.getNavigationManifest(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 }

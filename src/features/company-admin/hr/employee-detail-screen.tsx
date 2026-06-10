@@ -117,7 +117,17 @@ interface SalaryForm {
     paymentMode: string;
     structureId: string;
     salaryStructure: Record<string, number> | null;
+    variableOverrides: Record<string, number>;
 }
+
+type SalaryCtcBasis = 'CTC' | 'MONTHLY_CTC' | 'TAKE_HOME' | 'MONTHLY_TAKE_HOME';
+
+const SALARY_CTC_INPUT_LABELS: Record<SalaryCtcBasis, string> = {
+    CTC: 'Annual CTC',
+    MONTHLY_CTC: 'Monthly CTC',
+    TAKE_HOME: 'Annual Take Home',
+    MONTHLY_TAKE_HOME: 'Monthly Take Home',
+};
 
 interface BankForm {
     ifscCode: string;
@@ -173,7 +183,7 @@ const INITIAL_PROFESSIONAL: ProfessionalForm = {
 };
 
 const INITIAL_SALARY: SalaryForm = {
-    annualCtc: '', paymentMode: '', structureId: '', salaryStructure: null,
+    annualCtc: '', paymentMode: '', structureId: '', salaryStructure: null, variableOverrides: {},
 };
 
 const INITIAL_BANK: BankForm = {
@@ -888,29 +898,75 @@ function SalaryTab({
     onChange: (updates: Partial<SalaryForm>) => void;
     structureOptions: { id: string; name: string }[];
     structuresData: any[];
-    onComputeBreakdown: (structure: any, annualCtc: number) => void;
+    onComputeBreakdown: (structure: any, annualCtc: number, variableOverrides?: Record<string, number>) => void;
     editable?: boolean;
 }) {
+    const structure = React.useMemo(
+        () => structuresData.find((s: any) => s.id === form.structureId),
+        [structuresData, form.structureId],
+    );
+    const basis: SalaryCtcBasis = ((structure?.ctcBasis as SalaryCtcBasis) ?? 'CTC');
+    const isMonthlyBasis = basis === 'MONTHLY_CTC' || basis === 'MONTHLY_TAKE_HOME';
+
+    const resolveCode = (c: any): string =>
+        (c.componentCode ?? c.code ?? c.component?.code ?? c.componentId ?? '').toString();
+
+    const variableComponents = React.useMemo(() => {
+        const comps = (structure?.components as any[]) ?? [];
+        return comps.filter((c: any) => c.calculationMethod === 'VARIABLE').map((c: any) => ({
+            code: resolveCode(c),
+            name: c.componentName ?? c.component?.name ?? resolveCode(c),
+            defaultValue: Number(c.value ?? 0),
+        }));
+    }, [structure]);
+
+    React.useEffect(() => {
+        if (variableComponents.length === 0) return;
+        const current = form.variableOverrides ?? {};
+        const next = { ...current };
+        let changed = false;
+        for (const v of variableComponents) {
+            if (!(v.code in next)) {
+                next[v.code] = v.defaultValue;
+                changed = true;
+            }
+        }
+        if (changed) onChange({ variableOverrides: next });
+    }, [variableComponents, form.variableOverrides, onChange]);
+
+    const annualCtcNum = Number(form.annualCtc) || 0;
+    const monthlyGross = Math.round(annualCtcNum / 12);
+    const totalBeforeBalanceMonthly = form.salaryStructure
+        ? Object.values(form.salaryStructure).reduce((s, v) => s + (typeof v === 'number' ? v / 12 : 0), 0)
+        : 0;
+    const variableOverflowWarning =
+        variableComponents.length > 0 && annualCtcNum > 0 && Math.round(totalBeforeBalanceMonthly) > monthlyGross;
+
+    const inputLabel = SALARY_CTC_INPUT_LABELS[basis];
+    const displayedCtc = isMonthlyBasis && form.annualCtc
+        ? String(Math.round(Number(form.annualCtc) / 12))
+        : form.annualCtc;
+
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Compensation" />
             <View style={st.field}>
                 <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                    Annual CTC
+                    {inputLabel}
                 </Text>
                 <View style={[st.input, !editable && st.inputReadOnly, { flexDirection: 'row', alignItems: 'center' }]}>
                     <Text className="mr-2 font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">INR</Text>
                     <TextInput
                         style={[st.textInner, { flex: 1 }]}
-                        placeholder="e.g. 12,00,000"
+                        placeholder={isMonthlyBasis ? 'e.g. 1,00,000' : 'e.g. 12,00,000'}
                         placeholderTextColor={colors.neutral[400]}
-                        value={form.annualCtc}
+                        value={displayedCtc}
                         onChangeText={(v) => {
                             const cleaned = v.replaceAll(/[^0-9]/g as any, '');
-                            onChange({ annualCtc: cleaned });
-                            if (form.structureId && cleaned) {
-                                const structure = structuresData.find((s: any) => s.id === form.structureId);
-                                if (structure) onComputeBreakdown(structure, Number.parseFloat(cleaned));
+                            const annual = cleaned ? (isMonthlyBasis ? Number.parseInt(cleaned, 10) * 12 : Number.parseInt(cleaned, 10)) : 0;
+                            onChange({ annualCtc: annual ? String(annual) : '' });
+                            if (form.structureId && annual && structure) {
+                                onComputeBreakdown(structure, annual, form.variableOverrides);
                             }
                         }}
                         keyboardType="number-pad"
@@ -933,8 +989,8 @@ function SalaryTab({
                 onSelect={(sid) => {
                     onChange({ structureId: sid });
                     if (sid && form.annualCtc) {
-                        const structure = structuresData.find((s: any) => s.id === sid);
-                        if (structure) onComputeBreakdown(structure, parseFloat(form.annualCtc));
+                        const struct = structuresData.find((s: any) => s.id === sid);
+                        if (struct) onComputeBreakdown(struct, Number.parseFloat(form.annualCtc), form.variableOverrides);
                     } else {
                         onChange({ salaryStructure: null });
                     }
@@ -942,6 +998,45 @@ function SalaryTab({
                 placeholder="Select structure..."
                 editable={editable}
             />
+
+            {variableComponents.length > 0 && (
+                <>
+                    <SectionTitle title="Variable Components" />
+                    <View style={st.readOnlyCard}>
+                        {variableComponents.map((vc) => (
+                            <View key={vc.code} style={st.field}>
+                                <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{vc.name}</Text>
+                                <View style={[st.input, !editable && st.inputReadOnly, { flexDirection: 'row', alignItems: 'center' }]}>
+                                    <Text className="mr-2 font-inter text-sm font-semibold text-neutral-500 dark:text-neutral-400">INR</Text>
+                                    <TextInput
+                                        style={[st.textInner, { flex: 1 }]}
+                                        placeholder="Monthly amount (Rs.)"
+                                        placeholderTextColor={colors.neutral[400]}
+                                        value={
+                                            form.variableOverrides?.[vc.code] !== undefined
+                                                ? String(form.variableOverrides[vc.code])
+                                                : ''
+                                        }
+                                        onChangeText={(v) => {
+                                            const next = { ...(form.variableOverrides ?? {}), [vc.code]: Number(v) || 0 };
+                                            onChange({ variableOverrides: next });
+                                            if (annualCtcNum > 0 && structure) {
+                                                onComputeBreakdown(structure, annualCtcNum, next);
+                                            }
+                                        }}
+                                        keyboardType="decimal-pad"
+                                        editable={editable}
+                                    />
+                                </View>
+                                <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Monthly amount (Rs.)</Text>
+                            </View>
+                        ))}
+                        {variableOverflowWarning && (
+                            <Text className="mt-1 font-inter text-[11px] font-semibold text-danger-600">Variable amounts exceed remaining CTC. Balance component will be Rs. 0.</Text>
+                        )}
+                    </View>
+                </>
+            )}
 
             {form.salaryStructure && Object.keys(form.salaryStructure).length > 0 ? (
                 <View style={st.breakdownCard}>
@@ -975,7 +1070,7 @@ function SalaryTab({
             ) : (
                 <View style={st.readOnlyCard}>
                     <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
-                        {form.structureId ? 'Enter Annual CTC to see breakdown' : 'No salary structure selected'}
+                        {form.structureId ? `Enter ${inputLabel} to see breakdown` : 'No salary structure selected'}
                     </Text>
                 </View>
             )}
@@ -1386,6 +1481,7 @@ export function EmployeeDetailScreen() {
             paymentMode: d.paymentMode ?? '',
             structureId: d.salaryStructureId ?? '',
             salaryStructure: d.salaryStructure ?? null,
+            variableOverrides: (d.variableOverrides as Record<string, number>) ?? {},
         });
 
         setBank({
@@ -1668,39 +1764,87 @@ export function EmployeeDetailScreen() {
         return Array.isArray(raw) ? raw : [];
     }, [structuresResponse]);
 
-    const computeSalaryBreakdown = React.useCallback((structure: any, annualCtc: number) => {
-        const comps = (structure.components as any[]) ?? [];
-        const breakdown: Record<string, number> = {};
-        let basicAmount = 0;
+    const computeSalaryBreakdown = React.useCallback(
+        (structure: any, annualCtc: number, variableOverrides?: Record<string, number>) => {
+            const comps = (structure.components as any[]) ?? [];
+            const breakdown: Record<string, number> = {};
+            const monthlyGross = annualCtc / 12;
+            let basicMonthly = 0;
 
-        // Pass 1: PERCENT_OF_GROSS
-        for (const c of comps) {
-            if (c.calculationMethod === 'PERCENT_OF_GROSS') {
-                const annual = (c.value / 100) * annualCtc;
-                const label = c.component?.name ?? c.componentId;
-                breakdown[label] = Math.round(annual);
-                if ((c.component?.code ?? c.component?.name ?? '').toUpperCase().includes('BASIC')) {
-                    basicAmount = annual;
+            const resolveCode = (c: any): string =>
+                (c.componentCode ?? c.code ?? c.component?.code ?? c.componentId ?? '').toString();
+            const isBasicComp = (c: any) => {
+                const code = resolveCode(c).toUpperCase();
+                const name = (c.component?.name ?? '').toLowerCase();
+                return code === 'BASIC' || name.includes('basic');
+            };
+            const label = (c: any) => c.component?.name ?? c.componentName ?? c.componentId;
+
+            // Pass 1: FIXED
+            for (const c of comps) {
+                if (c.calculationMethod === 'FIXED') {
+                    const monthly = Number(c.value) || 0;
+                    breakdown[label(c)] = Math.round(monthly * 12);
+                    if (isBasicComp(c)) basicMonthly = monthly;
                 }
             }
-        }
-        // Pass 2: PERCENT_OF_BASIC
-        for (const c of comps) {
-            if (c.calculationMethod === 'PERCENT_OF_BASIC') {
-                const label = c.component?.name ?? c.componentId;
-                breakdown[label] = Math.round((c.value / 100) * basicAmount);
+            // Pass 2: PERCENT_OF_GROSS
+            for (const c of comps) {
+                if (c.calculationMethod === 'PERCENT_OF_GROSS') {
+                    const monthly = ((Number(c.value) || 0) / 100) * monthlyGross;
+                    breakdown[label(c)] = Math.round(monthly * 12);
+                    if (isBasicComp(c)) basicMonthly = monthly;
+                    else if (!basicMonthly) basicMonthly = monthly;
+                }
             }
-        }
-        // Pass 3: FIXED (monthly value x 12)
-        for (const c of comps) {
-            if (c.calculationMethod === 'FIXED') {
-                const label = c.component?.name ?? c.componentId;
-                breakdown[label] = Math.round(c.value * 12);
-            }
-        }
+            if (!basicMonthly) basicMonthly = monthlyGross * 0.4;
 
-        setSalary((p) => ({ ...p, salaryStructure: breakdown }));
-    }, []);
+            // Pass 3: PERCENT_OF_BASIC
+            for (const c of comps) {
+                if (c.calculationMethod === 'PERCENT_OF_BASIC') {
+                    const monthly = ((Number(c.value) || 0) / 100) * basicMonthly;
+                    breakdown[label(c)] = Math.round(monthly * 12);
+                }
+            }
+            // Pass 4: FORMULA — best-effort "X% of gross|basic"
+            for (const c of comps) {
+                if (c.calculationMethod === 'FORMULA') {
+                    const formula = (c.formula ?? '').toString().toLowerCase();
+                    const match = formula.match(/([\d.]+)%?\s*of\s*(gross|basic)/);
+                    if (match) {
+                        const pct = parseFloat(match[1]);
+                        const monthly = match[2] === 'basic' ? basicMonthly * pct / 100 : monthlyGross * pct / 100;
+                        breakdown[label(c)] = Math.round(monthly * 12);
+                    } else {
+                        breakdown[label(c)] = Math.round((Number(c.value) || 0) * 12);
+                    }
+                }
+            }
+            // Pass 5: VARIABLE — overrides[code] ?? structure default (monthly)
+            for (const c of comps) {
+                if (c.calculationMethod === 'VARIABLE') {
+                    const code = resolveCode(c);
+                    const override = variableOverrides?.[code];
+                    const monthly = Number(override ?? c.value ?? 0);
+                    breakdown[label(c)] = Math.round(monthly * 12);
+                    if (isBasicComp(c)) basicMonthly = monthly;
+                }
+            }
+            // Pass 6: BALANCE — fill remainder, clamp at 0 (monthly basis)
+            const totalAnnualSoFar = Object.values(breakdown).reduce((s, v) => s + v, 0);
+            let balanceFilled = false;
+            for (const c of comps) {
+                if (c.calculationMethod === 'BALANCE' && !balanceFilled) {
+                    const remainingAnnual = Math.max(0, annualCtc - totalAnnualSoFar);
+                    breakdown[label(c)] = Math.round(remainingAnnual);
+                    balanceFilled = true;
+                }
+            }
+
+            setSalary((p) => ({ ...p, salaryStructure: breakdown }));
+        },
+        [],
+    );
 
     const docItems: DocItem[] = React.useMemo(() => {
         const raw = (docsResponse as any)?.data ?? docsResponse ?? [];
@@ -1792,6 +1936,7 @@ export function EmployeeDetailScreen() {
             paymentMode: d.paymentMode ?? '',
             structureId: d.salaryStructureId ?? '',
             salaryStructure: d.salaryStructure ?? null,
+            variableOverrides: (d.variableOverrides as Record<string, number>) ?? {},
         });
 
         setBank({
@@ -1988,6 +2133,7 @@ export function EmployeeDetailScreen() {
         annualCtc: salary.annualCtc ? parseFloat(salary.annualCtc) : undefined,
         paymentMode: salary.paymentMode || undefined,
         salaryStructure: salary.salaryStructure || undefined,
+        variableOverrides: salary.variableOverrides && Object.keys(salary.variableOverrides).length > 0 ? salary.variableOverrides : undefined,
         // Bank
         bankDetails: {
             ifscCode: bank.ifscCode || '',

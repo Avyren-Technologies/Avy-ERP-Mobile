@@ -2,6 +2,45 @@ import { client } from '@/lib/api/client';
 
 // --- Types ---
 
+export type CalculationMethod =
+  | 'FIXED'
+  | 'PERCENT_OF_BASIC'
+  | 'PERCENT_OF_GROSS'
+  | 'FORMULA'
+  | 'VARIABLE'
+  | 'BALANCE';
+
+export type CtcBasis = 'CTC' | 'MONTHLY_CTC' | 'TAKE_HOME' | 'MONTHLY_TAKE_HOME';
+
+export interface AssignEmployeeSalaryRequest {
+  employeeId: string;
+  structureId?: string;
+  annualCtc: number;
+  components?: Record<string, number>;
+  variableOverrides?: Record<string, number>;
+  effectiveFrom: string;
+}
+
+export interface UpdateEmployeeSalaryRequest {
+  annualCtc?: number;
+  components?: Record<string, number>;
+  variableOverrides?: Record<string, number>;
+  effectiveFrom?: string;
+  structureId?: string;
+}
+
+export interface EmployeeSalaryResponse {
+  id: string;
+  employeeId: string;
+  structureId?: string | null;
+  annualCtc: number | string;
+  monthlyGross?: number | string;
+  components?: Record<string, number> | null;
+  variableOverrides?: Record<string, number> | null;
+  effectiveFrom: string;
+  isCurrent: boolean;
+}
+
 export interface SalaryComponentListParams {
   page?: number;
   limit?: number;

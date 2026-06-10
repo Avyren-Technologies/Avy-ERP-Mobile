@@ -45,6 +45,7 @@ import {
     useUpdateBalance,
     useValidateBalanceUpload,
 } from '@/features/company-admin/api/use-leave-mutations';
+import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
     useBalanceTransactions,
     useLeaveBalances,
@@ -1392,7 +1393,18 @@ export function LeaveBalanceScreen() {
 
     const insets = useSafeAreaInsets();
     const { toggle } = useSidebar();
-    const { data: response, isLoading, error, refetch, isFetching } = useLeaveBalances({ limit: 100 });
+    // Fetch the full employee list (high limit, virtualized FlashList handles it)
+    // so the balance query can scope to a complete employee set.
+    const { data: empResponse } = useEmployees({ limit: 1000 });
+    const allEmployeeIds = React.useMemo(() => {
+        const raw = (empResponse as any)?.data ?? empResponse ?? [];
+        if (!Array.isArray(raw)) return [] as string[];
+        return raw.map((e: any) => e.id).filter(Boolean) as string[];
+    }, [empResponse]);
+    const { data: response, isLoading, error, refetch, isFetching } = useLeaveBalances({
+        employeeIds: allEmployeeIds.length > 0 ? allEmployeeIds : undefined,
+        limit: 1000,
+    });
     const { data: ltResponse } = useLeaveTypes();
     const adjustMutation = useAdjustLeaveBalance();
     const initMutation = useInitializeLeaveBalances();

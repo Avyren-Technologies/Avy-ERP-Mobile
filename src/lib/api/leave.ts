@@ -18,6 +18,7 @@ export interface LeaveBalanceListParams {
   page?: number;
   limit?: number;
   employeeId?: string;
+  employeeIds?: string[];
   year?: number;
 }
 
@@ -68,8 +69,13 @@ export const leaveApi = {
     client.delete(`/hr/leave-policies/${id}`),
 
   // ── Leave Balances ─────────────────────────────────────────────────
-  listBalances: (params?: LeaveBalanceListParams) =>
-    client.get('/hr/leave-balances', { params }),
+  listBalances: (params?: LeaveBalanceListParams) => {
+    // Serialize employeeIds as CSV for axios params (backend accepts both).
+    const { employeeIds, ...rest } = params ?? {};
+    const finalParams: Record<string, unknown> = { ...rest };
+    if (employeeIds && employeeIds.length > 0) finalParams.employeeIds = employeeIds.join(',');
+    return client.get('/hr/leave-balances', { params: finalParams });
+  },
 
   adjustBalance: (data: Record<string, unknown>) =>
     client.post('/hr/leave-balances/adjust', data),

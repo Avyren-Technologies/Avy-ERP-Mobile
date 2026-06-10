@@ -43,7 +43,17 @@ interface EmployeeSalaryItem {
     effectiveFrom: string;
     isCurrent: boolean;
     components: { name: string; monthly: number }[];
+    variableOverrides: Record<string, number> | null;
 }
+
+type CtcBasis = 'CTC' | 'MONTHLY_CTC' | 'TAKE_HOME' | 'MONTHLY_TAKE_HOME';
+
+const CTC_INPUT_LABELS: Record<CtcBasis, string> = {
+    CTC: 'Annual CTC',
+    MONTHLY_CTC: 'Monthly CTC',
+    TAKE_HOME: 'Annual Take Home',
+    MONTHLY_TAKE_HOME: 'Monthly Take Home',
+};
 
 // ============ HELPERS ============
 
@@ -111,90 +121,175 @@ function AssignSalaryModal({
     const insets = useSafeAreaInsets();
     const [employeeId, setEmployeeId] = React.useState('');
     const [structureId, setStructureId] = React.useState('');
-    const [annualCTC, setAnnualCTC] = React.useState('');
+    const [ctcInput, setCtcInput] = React.useState('');
     const [effectiveFrom, setEffectiveFrom] = React.useState('');
+    const [variableOverrides, setVariableOverrides] = React.useState<Record<string, number>>({});
+
+    const struct = React.useMemo(() => structureData.find((s: any) => (s.id ?? '') === structureId), [structureData, structureId]);
+    const ctcBasis: CtcBasis = ((struct?.ctcBasis as CtcBasis) ?? 'CTC');
+    const isMonthlyBasis = ctcBasis === 'MONTHLY_CTC' || ctcBasis === 'MONTHLY_TAKE_HOME';
+
+    // Method normalization handles legacy display strings and current enum values
+    const getMethod = (c: any) => {
+        const m = (c.calculationMethod ?? c.method ?? '').toString();
+        if (m === 'Fixed' || m === 'FIXED') return 'FIXED';
+        if (m === '% of Gross' || m === 'PERCENT_OF_GROSS' || m === 'PERCENTAGE_OF_CTC') return 'PERCENT_OF_GROSS';
+        if (m === '% of Basic' || m === 'PERCENT_OF_BASIC' || m === 'PERCENTAGE_OF_BASIC') return 'PERCENT_OF_BASIC';
+        if (m === 'Formula' || m === 'FORMULA') return 'FORMULA';
+        if (m === 'Variable' || m === 'VARIABLE') return 'VARIABLE';
+        if (m === 'Balance' || m === 'BALANCE' || m === 'Balance (Auto)') return 'BALANCE';
+        return m.toUpperCase();
+    };
+
+    const resolveCode = React.useCallback((c: any): string => {
+        return (c.componentCode ?? c.code ?? c.component?.code ?? c.componentId ?? '').toString();
+    }, []);
 
     React.useEffect(() => {
         if (visible) {
             if (initialData) {
                 setEmployeeId(initialData.employeeId);
                 setStructureId(initialData.structureId);
-                setAnnualCTC(String(initialData.annualCTC));
+                const stored = Number(initialData.annualCTC) || 0;
+                const initStruct = structureData.find((s: any) => (s.id ?? '') === initialData.structureId);
+                const initBasis: CtcBasis = ((initStruct?.ctcBasis as CtcBasis) ?? 'CTC');
+                const initMonthly = initBasis === 'MONTHLY_CTC' || initBasis === 'MONTHLY_TAKE_HOME';
+                setCtcInput(initMonthly ? String(Math.round(stored / 12)) : String(stored));
                 setEffectiveFrom(initialData.effectiveFrom);
+                setVariableOverrides(initialData.variableOverrides ?? {});
             } else {
-                setEmployeeId(''); setStructureId(''); setAnnualCTC(''); setEffectiveFrom('');
+                setEmployeeId(''); setStructureId(''); setCtcInput(''); setEffectiveFrom('');
+                setVariableOverrides({});
             }
         }
-    }, [visible, initialData]);
+    }, [visible, initialData, structureData]);
 
-    const ctcNum = Number(annualCTC) || 0;
+    // Hydrate variable defaults from structure when structure changes (only fill missing keys)
+    React.useEffect(() => {
+        if (!struct?.components) return;
+        const comps = struct.components as any[];
+        const variableComps = comps.filter((c: any) => getMethod(c) === 'VARIABLE');
+        if (variableComps.length === 0) return;
+        setVariableOverrides(prev => {
+            const next = { ...prev };
+            let changed = false;
+            for (const c of variableComps) {
+                const code = resolveCode(c);
+                if (!(code in next)) {
+                    next[code] = Number(c.value ?? 0);
+                    changed = true;
+                }
+            }
+            return changed ? next : prev;
+        });
+    }, [struct, resolveCode]);
+
+    const inputNum = Number(ctcInput) || 0;
+    const ctcNum = isMonthlyBasis ? inputNum * 12 : inputNum;
     const monthlyGross = Math.round(ctcNum / 12);
 
-    // Compute breakup from structure
+    const variableComponents = React.useMemo(() => {
+        if (!struct?.components) return [] as { code: string; name: string }[];
+        return (struct.components as any[]).filter((c: any) => getMethod(c) === 'VARIABLE').map((c: any) => ({
+            code: resolveCode(c),
+            name: c.componentName ?? c.component?.name ?? resolveCode(c),
+        }));
+    }, [struct, resolveCode]);
+
+    // 6-pass compute mirroring the backend
     const breakup = React.useMemo(() => {
         if (!structureId || ctcNum <= 0) return [];
-        const struct = structureData.find((s: any) => (s.id ?? '') === structureId);
         if (!struct?.components) return [];
         const comps = struct.components as any[];
 
-        // Normalize calculation method to uppercase enum form
-        const getMethod = (c: any) => {
-            const m = (c.calculationMethod ?? c.method ?? '').toString();
-            // Handle both display strings and enum values
-            if (m === 'Fixed' || m === 'FIXED') return 'FIXED';
-            if (m === '% of Gross' || m === 'PERCENT_OF_GROSS' || m === 'PERCENTAGE_OF_CTC') return 'PERCENT_OF_GROSS';
-            if (m === '% of Basic' || m === 'PERCENT_OF_BASIC' || m === 'PERCENTAGE_OF_BASIC') return 'PERCENT_OF_BASIC';
-            if (m === 'Formula' || m === 'FORMULA') return 'FORMULA';
-            if (m === 'Balance' || m === 'BALANCE' || m === 'Balance (Auto)') return 'BALANCE';
-            return m.toUpperCase();
+        const isBasicComp = (c: any) => {
+            const code = resolveCode(c).toUpperCase();
+            const name = (c.componentName ?? c.component?.name ?? '').toLowerCase();
+            return code === 'BASIC' || name.includes('basic');
         };
 
-        // First pass: find basic amount
+        const rows = comps.map((c: any) => ({
+            name: c.componentName ?? c.component?.name ?? 'Component',
+            code: resolveCode(c),
+            monthly: 0,
+            isBalance: getMethod(c) === 'BALANCE',
+            componentId: c.componentId,
+            method: getMethod(c) as string,
+            value: Number(c.value) || 0,
+            formula: (c.formula ?? c.formulaValue ?? '').toString(),
+            _comp: c,
+        }));
+
         let basicAmt = 0;
-        for (const c of comps) {
-            const name = (c.componentName ?? '').toLowerCase();
-            const code = (c.componentCode ?? '').toUpperCase();
-            const isBasic = code === 'BASIC' || name.includes('basic');
-            if (isBasic) {
-                const m = getMethod(c);
-                if (m === 'FIXED') basicAmt = c.value ?? 0;
-                else if (m === 'PERCENT_OF_GROSS') basicAmt = Math.round(monthlyGross * ((c.value ?? 0) / 100));
+
+        // Pass 1: FIXED
+        for (const r of rows) {
+            if (r.method === 'FIXED') {
+                r.monthly = r.value;
+                if (isBasicComp(r._comp)) basicAmt = r.value;
+            }
+        }
+
+        // Pass 2: PERCENT_OF_GROSS
+        for (const r of rows) {
+            if (r.method === 'PERCENT_OF_GROSS') {
+                const amount = Math.round(monthlyGross * (r.value / 100));
+                r.monthly = amount;
+                if (isBasicComp(r._comp)) basicAmt = amount;
+                else if (!basicAmt) basicAmt = amount;
             }
         }
         if (!basicAmt) basicAmt = Math.round(monthlyGross * 0.4);
 
-        // Second pass: compute all non-BALANCE components
-        const rows = comps.map((c: any) => {
-            const m = getMethod(c);
-            const val = Number(c.value) || 0;
-            const isBalance = m === 'BALANCE';
-            let monthly = 0;
-            if (m === 'FIXED') monthly = val;
-            else if (m === 'PERCENT_OF_GROSS') monthly = Math.round(monthlyGross * (val / 100));
-            else if (m === 'PERCENT_OF_BASIC') monthly = Math.round(basicAmt * (val / 100));
-            else if (m === 'FORMULA') {
-                const formula = (c.formula ?? c.formulaValue ?? '').toString().toLowerCase();
-                const match = formula.match(/([\d.]+)%?\s*of\s*(gross|basic)/);
+        // Pass 3: PERCENT_OF_BASIC
+        for (const r of rows) {
+            if (r.method === 'PERCENT_OF_BASIC') {
+                r.monthly = Math.round(basicAmt * (r.value / 100));
+            }
+        }
+
+        // Pass 4: FORMULA
+        for (const r of rows) {
+            if (r.method === 'FORMULA') {
+                const match = r.formula.toLowerCase().match(/([\d.]+)%?\s*of\s*(gross|basic)/);
                 if (match) {
-                    const pct = parseFloat(match[1]);
-                    monthly = match[2] === 'basic' ? Math.round(basicAmt * pct / 100) : Math.round(monthlyGross * pct / 100);
+                    const pct = Number.parseFloat(match[1]);
+                    r.monthly = match[2] === 'basic' ? Math.round(basicAmt * pct / 100) : Math.round(monthlyGross * pct / 100);
+                } else {
+                    r.monthly = r.value;
                 }
             }
-            return { name: c.componentName ?? 'Component', monthly, isBalance, componentId: c.componentId };
-        });
+        }
 
-        // Third pass: fill BALANCE components with remainder
+        // Pass 5: VARIABLE — use variableOverrides[code] ?? structure default
+        for (const r of rows) {
+            if (r.method === 'VARIABLE') {
+                const override = variableOverrides[r.code];
+                const amount = Math.round(Number(override ?? r.value ?? 0));
+                r.monthly = amount;
+                if (isBasicComp(r._comp)) basicAmt = amount;
+            }
+        }
+
+        // Pass 6: BALANCE — fill remainder; clamps at 0
         const totalBeforeBalance = rows.filter(r => !r.isBalance).reduce((s, r) => s + r.monthly, 0);
         let balanceFilled = false;
-        for (const row of rows) {
-            if (row.isBalance && !balanceFilled) {
-                row.monthly = Math.max(0, Math.round(monthlyGross - totalBeforeBalance));
+        for (const r of rows) {
+            if (r.isBalance && !balanceFilled) {
+                r.monthly = Math.max(0, Math.round(monthlyGross - totalBeforeBalance));
                 balanceFilled = true;
             }
         }
 
-        return rows;
-    }, [structureId, ctcNum, structureData, monthlyGross]);
+        return rows.map(r => ({ name: r.name, monthly: r.monthly, isBalance: r.isBalance, componentId: r.componentId, code: r.code }));
+    }, [structureId, ctcNum, struct, monthlyGross, variableOverrides, resolveCode]);
+
+    // Variable warning: FIXED + % + FORMULA + VARIABLE > monthlyGross before BALANCE
+    const variableOverflowWarning = React.useMemo(() => {
+        if (variableComponents.length === 0 || ctcNum <= 0) return false;
+        const totalBeforeBalance = breakup.filter(r => !r.isBalance).reduce((s, r) => s + r.monthly, 0);
+        return totalBeforeBalance > monthlyGross;
+    }, [variableComponents.length, breakup, monthlyGross, ctcNum]);
 
     // Statutory estimates
     const { data: compResponse } = useSalaryComponents();
@@ -258,7 +353,23 @@ function AssignSalaryModal({
 
     const handleSave = () => {
         if (!employeeId || !structureId || ctcNum <= 0) return;
-        onSave({ employeeId, structureId, annualCTC: ctcNum, effectiveFrom, components: breakup });
+        const payload: Record<string, unknown> = {
+            employeeId,
+            structureId,
+            annualCtc: ctcNum,
+            effectiveFrom,
+            components: breakup.reduce((acc, r) => { acc[r.code] = r.monthly; return acc; }, {} as Record<string, number>),
+        };
+        if (variableComponents.length > 0) {
+            const filtered: Record<string, number> = {};
+            for (const v of variableComponents) {
+                if (variableOverrides[v.code] !== undefined) {
+                    filtered[v.code] = Number(variableOverrides[v.code]) || 0;
+                }
+            }
+            if (Object.keys(filtered).length > 0) payload.variableOverrides = filtered;
+        }
+        onSave(payload);
     };
 
     const isValid = employeeId && structureId && ctcNum > 0;
@@ -276,16 +387,44 @@ function AssignSalaryModal({
                         <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Search employee..." searchable />
                         <Dropdown label="Salary Structure" value={structureId} options={structureOptions} onSelect={setStructureId} placeholder="Select structure..." />
                         <View style={styles.fieldWrap}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Annual CTC <Text className="text-danger-500">*</Text></Text>
+                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{CTC_INPUT_LABELS[ctcBasis]} <Text className="text-danger-500">*</Text></Text>
                             <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
                                 <Text className="mr-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">&#8377;</Text>
-                                <TextInput style={[styles.textInput, { flex: 1 }]} placeholder="1000000" placeholderTextColor={colors.neutral[400]} value={annualCTC} onChangeText={setAnnualCTC} keyboardType="number-pad" />
+                                <TextInput style={[styles.textInput, { flex: 1 }]} placeholder={isMonthlyBasis ? '83333' : '1000000'} placeholderTextColor={colors.neutral[400]} value={ctcInput} onChangeText={setCtcInput} keyboardType="number-pad" />
                             </View>
                         </View>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Effective From</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={effectiveFrom} onChangeText={setEffectiveFrom} /></View>
                         </View>
+
+                        {variableComponents.length > 0 && (
+                            <>
+                                <Text className="mb-2 mt-3 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Variable Components</Text>
+                                <View style={styles.previewCard}>
+                                    {variableComponents.map(vc => (
+                                        <View key={vc.code} style={styles.fieldWrap}>
+                                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{vc.name}</Text>
+                                            <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
+                                                <Text className="mr-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">&#8377;</Text>
+                                                <TextInput
+                                                    style={[styles.textInput, { flex: 1 }]}
+                                                    placeholder="Monthly amount (₹)"
+                                                    placeholderTextColor={colors.neutral[400]}
+                                                    value={variableOverrides[vc.code] !== undefined ? String(variableOverrides[vc.code]) : ''}
+                                                    onChangeText={v => setVariableOverrides(prev => ({ ...prev, [vc.code]: Number(v) || 0 }))}
+                                                    keyboardType="decimal-pad"
+                                                />
+                                            </View>
+                                            <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Monthly amount (₹)</Text>
+                                        </View>
+                                    ))}
+                                    {variableOverflowWarning && (
+                                        <Text className="mt-1 font-inter text-[11px] font-semibold text-danger-600">Variable amounts exceed remaining CTC. Balance component will be ₹0.</Text>
+                                    )}
+                                </View>
+                            </>
+                        )}
 
                         {breakup.length > 0 && (
                             <>
@@ -435,11 +574,12 @@ export function EmployeeSalaryScreen() {
                 employeeName: empName,
                 structureId: item.structureId ?? '',
                 structureName: item.structure?.name ?? '',
-                annualCTC: ctc,
-                monthlyGross: Math.round(ctc / 12),
+                annualCTC: Number(ctc),
+                monthlyGross: Math.round(Number(ctc) / 12),
                 effectiveFrom: item.effectiveFrom ?? '',
                 isCurrent: item.isCurrent ?? true,
                 components: item.components ?? [],
+                variableOverrides: item.variableOverrides ?? null,
             };
         });
     }, [response]);

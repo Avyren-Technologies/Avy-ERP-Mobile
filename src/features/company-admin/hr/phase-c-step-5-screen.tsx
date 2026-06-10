@@ -171,7 +171,10 @@ export function PhaseCStep5Screen() {
     const statutory: any = (statutoryResp as any)?.data ?? null;
 
     const workflowQuery = usePayrollRunApprovalWorkflow(inferredRunId);
-    const workflow: any = (workflowQuery.data as any)?.data ?? null;
+    // Backend returns: { success, data: { workflow, approvalRequest, message } }.
+    // Drill one extra level to extract the actual workflow object (with `steps`).
+    const workflowResponse: any = (workflowQuery.data as any)?.data ?? null;
+    const workflow: any = workflowResponse?.workflow ?? null;
 
     const componentQuery = useComponentBreakdown(inferredRunId);
     const components: any = (componentQuery.data as any)?.data ?? null;
@@ -590,10 +593,10 @@ export function PhaseCStep5Screen() {
                         <View style={{ padding: 12, backgroundColor: colors.warning[50], borderRadius: 10, borderWidth: 1, borderColor: colors.warning[200] }}>
                             <Text className="font-inter text-[12.5px] font-bold text-warning-900 mb-1">No approval workflow configured</Text>
                             <Text className="font-inter text-[11.5px] text-warning-800">
-                                Configure the workflow under HR → Approval Workflow Config (trigger: PAYROLL_RUN_APPROVAL).
+                                Configure the workflow under HR → Approval Workflow Config (trigger: Payroll Approval).
                             </Text>
                             <Pressable
-                                onPress={() => router.push('/company/hr/approval-workflow' as any)}
+                                onPress={() => router.push('/company/hr/approval-workflows' as any)}
                                 style={[styles.actionBtn, { marginTop: 10, backgroundColor: colors.primary[600], paddingHorizontal: 14, alignSelf: 'flex-start' }]}
                             >
                                 <Text className="font-inter text-[12px] font-bold text-white">Open Workflow Config  ›</Text>

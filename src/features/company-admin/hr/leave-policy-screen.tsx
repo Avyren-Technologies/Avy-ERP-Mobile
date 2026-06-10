@@ -50,15 +50,25 @@ import { useIsDark } from '@/hooks/use-is-dark';
 
 type AssignmentLevel = 'company' | 'department' | 'designation' | 'grade' | 'employeeType' | 'individual';
 
-interface LeavePolicyItem {
-    id: string;
+interface SavePolicyPayload {
+    leaveTypeId: string;
+    assignmentLevel: AssignmentLevel;
+    assignmentIds: string[];
+    annualEntitlementOverride: number | null;
+    carryForwardDaysOverride: number | null;
+}
+
+interface LeavePolicyGroup {
+    groupKey: string;
     leaveTypeId: string;
     leaveTypeName: string;
     assignmentLevel: AssignmentLevel;
-    assignmentTargetId: string;
-    assignmentTargetName: string;
+    overrides: Record<string, any> | null;
     annualEntitlementOverride: number | null;
     carryForwardDaysOverride: number | null;
+    policyIds: string[];
+    assignmentIds: string[];
+    assignmentTargetNames: string[];
 }
 
 // ============ CONSTANTS ============
@@ -160,6 +170,135 @@ function Dropdown({
     );
 }
 
+function MultiDropdown({
+    label, values, options, onChange, placeholder, required,
+}: {
+    label: string;
+    values: string[];
+    options: { id: string; label: string }[];
+    onChange: (ids: string[]) => void;
+    placeholder?: string;
+    required?: boolean;
+}) {
+    const [open, setOpen] = React.useState(false);
+    const [searchText, setSearchText] = React.useState('');
+
+    const filteredOptions = React.useMemo(() => {
+        if (!searchText.trim()) return options;
+        const q = searchText.toLowerCase();
+        return options.filter(o => o.label.toLowerCase().includes(q));
+    }, [options, searchText]);
+
+    const toggle = (id: string) => {
+        if (values.includes(id)) {
+            onChange(values.filter(v => v !== id));
+        } else {
+            onChange([...values, id]);
+        }
+    };
+
+    const selectedLabels = values
+        .map(v => options.find(o => o.id === v)?.label)
+        .filter(Boolean) as string[];
+
+    const summary =
+        values.length === 0
+            ? placeholder || 'Select one or more...'
+            : values.length === 1
+                ? (selectedLabels[0] ?? `${values.length} selected`)
+                : `${values.length} targets selected`;
+
+    return (
+        <View style={styles.fieldWrap}>
+            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                {label} {required && <Text className="text-danger-500">*</Text>}
+            </Text>
+            <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
+                <Text
+                    className={`font-inter text-sm ${values.length > 0 ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}
+                    numberOfLines={1}
+                >
+                    {summary}
+                </Text>
+                <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+            </Pressable>
+
+            {values.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {values.map(id => {
+                        const lbl = options.find(o => o.id === id)?.label ?? id;
+                        return (
+                            <View key={id} style={styles.chipSelected}>
+                                <Text className="font-inter text-[11px] font-semibold text-primary-700 dark:text-primary-300">{lbl}</Text>
+                                <Pressable onPress={() => toggle(id)} hitSlop={6} style={{ marginLeft: 6 }}>
+                                    <Svg width={11} height={11} viewBox="0 0 24 24"><Path d="M18 6L6 18M6 6l12 12" stroke={colors.primary[600]} strokeWidth="2.5" strokeLinecap="round" /></Svg>
+                                </Pressable>
+                            </View>
+                        );
+                    })}
+                </View>
+            )}
+
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
+                    <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
+                    <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '70%' }]}>
+                        <View style={styles.sheetHandle} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">{label}</Text>
+                            <Text className="font-inter text-xs font-bold text-primary-600">{values.length} selected</Text>
+                        </View>
+                        <View style={[styles.inputWrap, { marginBottom: 12 }]}>
+                            <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {filteredOptions.map(opt => {
+                                const selected = values.includes(opt.id);
+                                return (
+                                    <Pressable
+                                        key={opt.id}
+                                        onPress={() => toggle(opt.id)}
+                                        style={{
+                                            flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6,
+                                            borderBottomWidth: 1, borderBottomColor: colors.neutral[100],
+                                            backgroundColor: selected ? colors.primary[50] : undefined, borderRadius: 8,
+                                        }}
+                                    >
+                                        <View
+                                            style={{
+                                                width: 18, height: 18, borderRadius: 4, marginRight: 10,
+                                                borderWidth: 1.5,
+                                                borderColor: selected ? colors.primary[600] : colors.neutral[300],
+                                                backgroundColor: selected ? colors.primary[600] : 'transparent',
+                                                alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >
+                                            {selected && (
+                                                <Svg width={11} height={11} viewBox="0 0 24 24"><Path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                            )}
+                                        </View>
+                                        <Text className={`flex-1 font-inter text-sm ${selected ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>
+                                            {opt.label}
+                                        </Text>
+                                    </Pressable>
+                                );
+                            })}
+                            {filteredOptions.length === 0 && (
+                                <Text className="py-4 text-center font-inter text-sm text-neutral-400">No options found</Text>
+                            )}
+                        </ScrollView>
+                        <Pressable onPress={() => setOpen(false)} style={[styles.saveBtn, { marginTop: 12 }]}>
+                            <Text className="font-inter text-sm font-bold text-white uppercase">
+                                Done ({values.length} selected)
+                            </Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+}
+
 // ============ TOAST COMPONENT ============
  
 function StatusToast({ message, visible, type = 'success' }: { readonly message: string; readonly visible: boolean; readonly type?: 'success' | 'error' }) {
@@ -190,8 +329,8 @@ function LeavePolicyFormModal({
     leaveTypeOptions, departmentOptions, designationOptions, gradeOptions, employeeTypeOptions,
 }: {
     visible: boolean; onClose: () => void;
-    onSave: (data: Omit<LeavePolicyItem, 'id' | 'leaveTypeName' | 'assignmentTargetName'>) => void;
-    initialData?: LeavePolicyItem | null; isSaving: boolean;
+    onSave: (data: SavePolicyPayload) => void;
+    initialData?: LeavePolicyGroup | null; isSaving: boolean;
     leaveTypeOptions: { id: string; label: string }[];
     departmentOptions: { id: string; label: string }[];
     designationOptions: { id: string; label: string }[];
@@ -201,7 +340,8 @@ function LeavePolicyFormModal({
     const insets = useSafeAreaInsets();
     const [leaveTypeId, setLeaveTypeId] = React.useState('');
     const [assignmentLevel, setAssignmentLevel] = React.useState<AssignmentLevel>('company');
-    const [assignmentTargetId, setAssignmentTargetId] = React.useState('');
+    const [assignmentTargetIds, setAssignmentTargetIds] = React.useState<string[]>([]);
+    const [individualTargetId, setIndividualTargetId] = React.useState('');
     const [annualOverride, setAnnualOverride] = React.useState('');
     const [cfOverride, setCfOverride] = React.useState('');
 
@@ -209,15 +349,17 @@ function LeavePolicyFormModal({
         if (visible) {
             if (initialData) {
                 setLeaveTypeId(initialData.leaveTypeId || '');
-                const level = String(initialData.assignmentLevel || 'company').toLowerCase() as AssignmentLevel;
+                const level = (initialData.assignmentLevel || 'company') as AssignmentLevel;
                 setAssignmentLevel(ASSIGNMENT_LEVELS.includes(level) ? level : 'company');
-                setAssignmentTargetId(initialData.assignmentTargetId || '');
+                setAssignmentTargetIds([...initialData.assignmentIds]);
+                setIndividualTargetId(initialData.assignmentIds[0] ?? '');
                 setAnnualOverride(initialData.annualEntitlementOverride != null ? String(initialData.annualEntitlementOverride) : '');
                 setCfOverride(initialData.carryForwardDaysOverride != null ? String(initialData.carryForwardDaysOverride) : '');
             } else {
                 setLeaveTypeId('');
                 setAssignmentLevel('company');
-                setAssignmentTargetId('');
+                setAssignmentTargetIds([]);
+                setIndividualTargetId('');
                 setAnnualOverride('');
                 setCfOverride('');
             }
@@ -226,7 +368,8 @@ function LeavePolicyFormModal({
 
     // Reset target when level changes
     React.useEffect(() => {
-        setAssignmentTargetId('');
+        setAssignmentTargetIds([]);
+        setIndividualTargetId('');
     }, [assignmentLevel]);
 
     const targetOptions = React.useMemo(() => {
@@ -239,20 +382,27 @@ function LeavePolicyFormModal({
         }
     }, [assignmentLevel, departmentOptions, designationOptions, gradeOptions, employeeTypeOptions]);
 
-    const needsTarget = assignmentLevel !== 'company' && assignmentLevel !== 'individual';
+    const needsMultiTarget = assignmentLevel === 'department' || assignmentLevel === 'designation' || assignmentLevel === 'grade' || assignmentLevel === 'employeeType';
 
     const handleSave = () => {
         if (!leaveTypeId) return;
+        let ids: string[] = [];
+        if (needsMultiTarget) ids = assignmentTargetIds;
+        else if (assignmentLevel === 'individual') ids = individualTargetId ? [individualTargetId] : [];
         onSave({
             leaveTypeId,
             assignmentLevel,
-            assignmentTargetId,
+            assignmentIds: ids,
             annualEntitlementOverride: annualOverride ? Number(annualOverride) : null,
             carryForwardDaysOverride: cfOverride ? Number(cfOverride) : null,
         });
     };
 
-    const isValid = leaveTypeId && (assignmentLevel === 'company' || assignmentLevel === 'individual' || assignmentTargetId);
+    const isValid =
+        !!leaveTypeId &&
+        (assignmentLevel === 'company' ||
+            (needsMultiTarget && assignmentTargetIds.length > 0) ||
+            (assignmentLevel === 'individual' && individualTargetId.length > 0));
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -278,9 +428,34 @@ function LeavePolicyFormModal({
                             <Dropdown label="LEAVE TYPE" value={leaveTypeId} options={leaveTypeOptions} onSelect={setLeaveTypeId} placeholder="Select type..." required />
                             
                             <ChipSelector label="ASSIGNMENT LEVEL" options={ASSIGNMENT_LEVELS} value={assignmentLevel} onSelect={v => setAssignmentLevel(v as AssignmentLevel)} />
-                            
-                            {needsTarget && (
-                                <Dropdown label="ASSIGNMENT TARGET" value={assignmentTargetId} options={targetOptions} onSelect={setAssignmentTargetId} placeholder="Select target..." required />
+
+                            {needsMultiTarget && (
+                                <MultiDropdown
+                                    label="ASSIGNMENT TARGETS"
+                                    values={assignmentTargetIds}
+                                    options={targetOptions}
+                                    onChange={setAssignmentTargetIds}
+                                    placeholder="Select one or more targets..."
+                                    required
+                                />
+                            )}
+
+                            {assignmentLevel === 'individual' && (
+                                <View style={styles.fieldWrap}>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                        EMPLOYEE ID <Text className="text-danger-500">*</Text>
+                                    </Text>
+                                    <View style={styles.inputWrap}>
+                                        <TextInput
+                                            style={styles.textInput}
+                                            placeholder="Enter employee ID..."
+                                            placeholderTextColor={colors.neutral[400]}
+                                            value={individualTargetId}
+                                            onChangeText={setIndividualTargetId}
+                                            autoCapitalize="none"
+                                        />
+                                    </View>
+                                </View>
                             )}
                             
                             <Text className="mb-3 mt-2 font-inter text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Override Configuration</Text>
@@ -317,34 +492,54 @@ function LeavePolicyFormModal({
 
 // ============ POLICY CARD ============
 
-function PolicyCard({ item, index, onEdit, onDelete }: { item: LeavePolicyItem; index: number; onEdit: () => void; onDelete: () => void }) {
-    const levelColor = LEVEL_COLORS[item.assignmentLevel] ?? LEVEL_COLORS.company;
+function PolicyCard({ group, index, onEdit, onDelete }: { group: LeavePolicyGroup; index: number; onEdit: () => void; onDelete: () => void }) {
+    const levelColor = LEVEL_COLORS[group.assignmentLevel] ?? LEVEL_COLORS.company;
+    const targetNames = group.assignmentTargetNames.filter(Boolean);
+    const visibleNames = targetNames.slice(0, 3);
+    const extra = targetNames.length - visibleNames.length;
     return (
         <Animated.View entering={FadeInUp.duration(350).delay(100 + index * 60)}>
             <Pressable onPress={onEdit} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.leaveTypeName}</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{group.leaveTypeName}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
                             <View style={[styles.levelBadge, { backgroundColor: levelColor.bg }]}>
-                                <Text style={{ color: levelColor.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{LEVEL_LABELS[item.assignmentLevel]?.toUpperCase() || item.assignmentLevel.toUpperCase()}</Text>
+                                <Text style={{ color: levelColor.text, fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{LEVEL_LABELS[group.assignmentLevel]?.toUpperCase() || group.assignmentLevel.toUpperCase()}</Text>
                             </View>
-                            {item.assignmentTargetName ? (
-                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.assignmentTargetName}</Text>
-                            ) : null}
+                            {group.assignmentLevel === 'company' && (
+                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">All Employees</Text>
+                            )}
+                            {group.assignmentLevel !== 'company' && targetNames.length === 0 && (
+                                <Text className="font-inter text-xs text-neutral-400">—</Text>
+                            )}
                         </View>
+                        {group.assignmentLevel !== 'company' && targetNames.length > 0 && (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                                {visibleNames.map((n) => (
+                                    <View key={n} style={styles.targetChip}>
+                                        <Text className="font-inter text-[10px] font-semibold text-neutral-700 dark:text-neutral-300">{n}</Text>
+                                    </View>
+                                ))}
+                                {extra > 0 && (
+                                    <View style={styles.targetChipMore}>
+                                        <Text className="font-inter text-[10px] font-bold text-primary-700 dark:text-primary-300">+{extra} more</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
                     <Pressable onPress={onDelete} hitSlop={8}>
                         <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
                     </Pressable>
                 </View>
-                {(item.annualEntitlementOverride != null || item.carryForwardDaysOverride != null) && (
+                {(group.annualEntitlementOverride != null || group.carryForwardDaysOverride != null) && (
                     <View style={styles.cardMeta}>
-                        {item.annualEntitlementOverride != null && (
-                            <View style={styles.overrideBadge}><Text className="font-inter text-[10px] text-neutral-600 dark:text-neutral-400">Entitlement: {item.annualEntitlementOverride}d</Text></View>
+                        {group.annualEntitlementOverride != null && (
+                            <View style={styles.overrideBadge}><Text className="font-inter text-[10px] text-neutral-600 dark:text-neutral-400">Entitlement: {group.annualEntitlementOverride}d</Text></View>
                         )}
-                        {item.carryForwardDaysOverride != null && (
-                            <View style={styles.overrideBadge}><Text className="font-inter text-[10px] text-neutral-600 dark:text-neutral-400">CF: {item.carryForwardDaysOverride}d</Text></View>
+                        {group.carryForwardDaysOverride != null && (
+                            <View style={styles.overrideBadge}><Text className="font-inter text-[10px] text-neutral-600 dark:text-neutral-400">CF: {group.carryForwardDaysOverride}d</Text></View>
                         )}
                     </View>
                 )}
@@ -375,7 +570,7 @@ export function LeavePolicyScreen() {
     const { data: empTypeResponse } = useEmployeeTypes();
 
     const [formVisible, setFormVisible] = React.useState(false);
-    const [editingItem, setEditingItem] = React.useState<LeavePolicyItem | null>(null);
+    const [editingGroup, setEditingGroup] = React.useState<LeavePolicyGroup | null>(null);
     const [search, setSearch] = React.useState('');
     const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({ message: '', type: 'success', visible: false });
 
@@ -396,55 +591,127 @@ export function LeavePolicyScreen() {
     const gradeOptions = React.useMemo(() => mapOptions(gradeResponse), [gradeResponse]);
     const employeeTypeOptions = React.useMemo(() => mapOptions(empTypeResponse), [empTypeResponse]);
 
-    const policies: LeavePolicyItem[] = React.useMemo(() => {
+    /* Group raw policies by (leaveType, level, overrides) so multiple targets
+       sharing the same override profile collapse into a single card. */
+    const groups: LeavePolicyGroup[] = React.useMemo(() => {
+        const stableStringify = (val: any): string => {
+            if (val === null || val === undefined) return 'null';
+            if (typeof val !== 'object') return JSON.stringify(val);
+            if (Array.isArray(val)) return `[${val.map(stableStringify).join(',')}]`;
+            const keys = Object.keys(val).sort();
+            return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(val[k])}`).join(',')}}`;
+        };
+        const resolveName = (level: string, targetId: string | null | undefined): string => {
+            if (!targetId) return '';
+            const lookup: Record<string, { id: string; label: string }[]> = {
+                department: departmentOptions,
+                designation: designationOptions,
+                grade: gradeOptions,
+                employeeType: employeeTypeOptions,
+            };
+            return (lookup[level] ?? []).find(o => o.id === targetId)?.label ?? '';
+        };
         const raw = (response as any)?.data ?? response ?? [];
         if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({
-            id: item.id ?? '',
-            leaveTypeId: item.leaveTypeId ?? '',
-            leaveTypeName: item.leaveTypeName ?? leaveTypeOptions.find((o: any) => o.id === item.leaveTypeId)?.label ?? '',
-            assignmentLevel: (item.assignmentLevel || 'company').toLowerCase() as AssignmentLevel,
-            assignmentTargetId: item.assignmentTargetId ?? '',
-            assignmentTargetName: item.assignmentTargetName ?? '',
-            annualEntitlementOverride: item.annualEntitlementOverride ?? null,
-            carryForwardDaysOverride: item.carryForwardDaysOverride ?? null,
-        }));
-    }, [response, leaveTypeOptions]);
+
+        const map = new Map<string, LeavePolicyGroup>();
+        for (const item of raw as any[]) {
+            const lvlRaw = item.assignmentLevel || 'company';
+            const lvl = (lvlRaw === 'employeeType' || lvlRaw === 'individual' ? lvlRaw : String(lvlRaw).toLowerCase()) as AssignmentLevel;
+            const lvlNormalised = ASSIGNMENT_LEVELS.includes(lvl) ? lvl : 'company';
+            const overrides = (item.overrides ?? null) as Record<string, any> | null;
+            const key = `${item.leaveTypeId}::${lvlNormalised}::${stableStringify(overrides)}`;
+            const targetId = item.assignmentId ?? item.assignmentTargetId ?? '';
+            const targetName = resolveName(lvlNormalised, targetId);
+
+            const existing = map.get(key);
+            if (existing) {
+                existing.policyIds.push(item.id);
+                if (targetId) existing.assignmentIds.push(targetId);
+                if (targetName) existing.assignmentTargetNames.push(targetName);
+            } else {
+                map.set(key, {
+                    groupKey: key,
+                    leaveTypeId: item.leaveTypeId ?? '',
+                    leaveTypeName: item.leaveType?.name ?? item.leaveTypeName ?? leaveTypeOptions.find((o: any) => o.id === item.leaveTypeId)?.label ?? '',
+                    assignmentLevel: lvlNormalised,
+                    overrides,
+                    annualEntitlementOverride: overrides?.annualEntitlement != null ? Number(overrides.annualEntitlement) : null,
+                    carryForwardDaysOverride: overrides?.maxCarryForwardDays != null ? Number(overrides.maxCarryForwardDays) : null,
+                    policyIds: [item.id],
+                    assignmentIds: targetId ? [targetId] : [],
+                    assignmentTargetNames: targetName ? [targetName] : [],
+                });
+            }
+        }
+        return Array.from(map.values());
+    }, [response, leaveTypeOptions, departmentOptions, designationOptions, gradeOptions, employeeTypeOptions]);
 
     const filtered = React.useMemo(() => {
-        if (!search.trim()) return policies;
+        if (!search.trim()) return groups;
         const q = search.toLowerCase();
-        return policies.filter(p => p.leaveTypeName.toLowerCase().includes(q) || p.assignmentLevel.toLowerCase().includes(q) || p.assignmentTargetName.toLowerCase().includes(q));
-    }, [policies, search]);
+        return groups.filter(g =>
+            g.leaveTypeName.toLowerCase().includes(q) ||
+            g.assignmentLevel.toLowerCase().includes(q) ||
+            g.assignmentTargetNames.some(n => n.toLowerCase().includes(q)),
+        );
+    }, [groups, search]);
 
-    const handleAdd = () => { setEditingItem(null); setFormVisible(true); };
-    const handleEdit = (item: LeavePolicyItem) => { setEditingItem(item); setFormVisible(true); };
+    const handleAdd = () => { setEditingGroup(null); setFormVisible(true); };
+    const handleEdit = (group: LeavePolicyGroup) => { setEditingGroup(group); setFormVisible(true); };
 
-    const handleDelete = (item: LeavePolicyItem) => {
+    const handleDelete = (group: LeavePolicyGroup) => {
+        const targetCount = group.policyIds.length;
         showConfirm({
             title: 'Delete Policy',
-            message: `Are you sure you want to delete this policy for "${item.leaveTypeName}"? This action cannot be undone.`,
+            message: targetCount > 1
+                ? `Delete this leave policy from all ${targetCount} targets? This action cannot be undone.`
+                : `Are you sure you want to delete this policy for "${group.leaveTypeName}"? This action cannot be undone.`,
             confirmText: 'Delete', variant: 'danger',
-            onConfirm: () => { deleteMutation.mutate(item.id); },
+            onConfirm: async () => {
+                for (const pid of group.policyIds) {
+                    // Sequential delete keeps backend transactions simple.
+                    // eslint-disable-next-line no-await-in-loop
+                    await deleteMutation.mutateAsync(pid).catch(() => undefined);
+                }
+            },
         });
     };
 
-    const handleSave = (data: Omit<LeavePolicyItem, 'id' | 'leaveTypeName' | 'assignmentTargetName'>) => {
-        if (editingItem) {
-            updateMutation.mutate({ id: editingItem.id, data: data as unknown as Record<string, unknown> }, { 
-                onSuccess: () => { setFormVisible(false); triggerToast('Policy updated successfully'); },
+    const handleSave = (data: SavePolicyPayload) => {
+        const overrides: Record<string, any> = {};
+        if (data.annualEntitlementOverride != null) overrides.annualEntitlement = data.annualEntitlementOverride;
+        if (data.carryForwardDaysOverride != null) overrides.maxCarryForwardDays = data.carryForwardDaysOverride;
+
+        const basePayload: Record<string, any> = {
+            leaveTypeId: data.leaveTypeId,
+            assignmentLevel: data.assignmentLevel,
+            overrides: Object.keys(overrides).length > 0 ? overrides : null,
+        };
+        if (data.assignmentLevel !== 'company') {
+            basePayload.assignmentIds = data.assignmentIds;
+        }
+        const count = data.assignmentIds.length;
+        const multiSuffix = count > 1 ? ` for ${count} targets` : '';
+
+        if (editingGroup) {
+            // Pass all policyIds so the backend can delete removed targets.
+            basePayload.policyIds = editingGroup.policyIds;
+            const anchorId = editingGroup.policyIds[0]!;
+            updateMutation.mutate({ id: anchorId, data: basePayload }, {
+                onSuccess: () => { setFormVisible(false); triggerToast(`Policy updated successfully${multiSuffix}`); },
                 onError: (err: any) => triggerToast(err.response?.data?.message || 'Failed to update policy', 'error'),
             });
         } else {
-            createMutation.mutate(data as unknown as Record<string, unknown>, { 
-                onSuccess: () => { setFormVisible(false); triggerToast('Policy created successfully'); },
+            createMutation.mutate(basePayload, {
+                onSuccess: () => { setFormVisible(false); triggerToast(`Policy created successfully${multiSuffix}`); },
                 onError: (err: any) => triggerToast(err.response?.data?.message || 'Failed to create policy', 'error'),
             });
         }
     };
 
-    const renderItem = ({ item, index }: { item: LeavePolicyItem; index: number }) => (
-        <PolicyCard item={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
+    const renderItem = ({ item, index }: { item: LeavePolicyGroup; index: number }) => (
+        <PolicyCard group={item} index={index} onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
     );
 
     const renderHeader = () => (
@@ -464,12 +731,12 @@ export function LeavePolicyScreen() {
         <View style={styles.container}>
             <LinearGradient colors={[colors.gradient.surface, colors.white, colors.accent[50]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <AppTopHeader title="Leave Policy Management" onMenuPress={toggle} />
-            <FlashList data={filtered} renderItem={renderItem} keyExtractor={item => item.id} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
+            <FlashList data={filtered} renderItem={renderItem} keyExtractor={item => item.groupKey} ListHeaderComponent={renderHeader} ListEmptyComponent={renderEmpty}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
             <FAB onPress={handleAdd} />
-            <LeavePolicyFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingItem} isSaving={createMutation.isPending || updateMutation.isPending}
+            <LeavePolicyFormModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave} initialData={editingGroup} isSaving={createMutation.isPending || updateMutation.isPending}
                 leaveTypeOptions={leaveTypeOptions} departmentOptions={departmentOptions} designationOptions={designationOptions} gradeOptions={gradeOptions} employeeTypeOptions={employeeTypeOptions}
             />
             <ConfirmModal {...confirmModalProps} />
@@ -507,6 +774,9 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
     },
     chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#1A1730' : colors.white, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     chipActive: { backgroundColor: colors.primary[600], borderColor: colors.primary[600] },
+    chipSelected: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.primary[50], borderWidth: 1, borderColor: colors.primary[200] },
+    targetChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100] },
+    targetChipMore: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: isDark ? colors.primary[900] : colors.primary[50] },
     cancelBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: isDark ? '#1E1B4B' : colors.neutral[100], justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: isDark ? colors.neutral[700] : colors.neutral[200] },
     saveBtn: { flex: 1, height: 52, borderRadius: 14, backgroundColor: colors.primary[600], justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
     toastContainer: { position: 'absolute', top: 60, left: 20, right: 20, zIndex: 9999, alignItems: 'center' },

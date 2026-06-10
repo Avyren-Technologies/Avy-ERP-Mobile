@@ -37,12 +37,13 @@ import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
 
-type CTCBasis = 'CTC' | 'Take Home';
-type CalcMethod = 'FIXED' | 'PERCENT_OF_BASIC' | 'PERCENT_OF_GROSS' | 'FORMULA' | 'BALANCE';
+type CTCBasis = 'CTC' | 'MONTHLY_CTC' | 'TAKE_HOME' | 'MONTHLY_TAKE_HOME';
+type CalcMethod = 'FIXED' | 'PERCENT_OF_BASIC' | 'PERCENT_OF_GROSS' | 'FORMULA' | 'VARIABLE' | 'BALANCE';
 
 interface StructureComponent {
     componentId: string;
     componentName: string;
+    componentCode?: string;
     calculationMethod: CalcMethod;
     value: number;
     formula: string;
@@ -61,14 +62,26 @@ interface SalaryStructureItem {
 
 // ============ CONSTANTS ============
 
-const CTC_OPTIONS: CTCBasis[] = ['CTC', 'Take Home'];
-const CALC_METHODS: CalcMethod[] = ['FIXED', 'PERCENT_OF_BASIC', 'PERCENT_OF_GROSS', 'FORMULA', 'BALANCE'];
+const CTC_OPTIONS: { value: CTCBasis; label: string }[] = [
+    { value: 'CTC', label: 'Annual CTC' },
+    { value: 'MONTHLY_CTC', label: 'Monthly CTC' },
+    { value: 'TAKE_HOME', label: 'Annual Take Home' },
+    { value: 'MONTHLY_TAKE_HOME', label: 'Monthly Take Home' },
+];
+const CALC_METHODS: CalcMethod[] = ['FIXED', 'PERCENT_OF_BASIC', 'PERCENT_OF_GROSS', 'FORMULA', 'VARIABLE', 'BALANCE'];
 const CALC_LABELS: Record<string, string> = {
     'FIXED': 'Fixed',
     'PERCENT_OF_BASIC': '% of Basic',
     'PERCENT_OF_GROSS': '% of Gross',
     'FORMULA': 'Formula',
+    'VARIABLE': 'Variable',
     'BALANCE': 'Balance',
+};
+const CTC_SAMPLE_LABELS: Record<CTCBasis, string> = {
+    CTC: 'Sample Annual CTC',
+    MONTHLY_CTC: 'Sample Monthly CTC',
+    TAKE_HOME: 'Sample Annual Take-Home',
+    MONTHLY_TAKE_HOME: 'Sample Monthly Take-Home',
 };
 
 // ============ SHARED ATOMS ============
@@ -223,35 +236,89 @@ function SalaryStructureForm({
 
     const isValid = name.trim() && code.trim();
 
-    // Preview calculation
-    const ctcNum = Number(sampleCTC) || 0;
-    const monthlyGross = Math.round(ctcNum / 12);
+    // Preview calculation — input is per-basis; convert to annual then derive monthly gross
+    const sampleInput = Number(sampleCTC) || 0;
+    const annualCtcForPreview = (ctcBasis === 'MONTHLY_CTC' || ctcBasis === 'MONTHLY_TAKE_HOME') ? sampleInput * 12 : sampleInput;
+    const monthlyGross = Math.round(annualCtcForPreview / 12);
 
     // Statutory estimates
     const { data: compResponse } = useSalaryComponents();
     const allComps: any[] = (compResponse as any)?.data ?? [];
 
     const previewRows = React.useMemo(() => {
-        // First pass: compute basic amount
-        const basicComp = components.find(cc => cc.componentName?.toLowerCase().includes('basic'));
-        const basicVal = basicComp?.calculationMethod === 'FIXED' ? basicComp.value : Math.round(monthlyGross * 0.4);
+        // BASIC detection: prefer code === 'BASIC', fallback to name contains 'basic'
+        const resolveCode = (c: StructureComponent) => {
+            const master = allComps.find((mc: any) => mc.id === c.componentId);
+            return (c.componentCode ?? master?.code ?? '').toUpperCase();
+        };
+        const isBasic = (c: StructureComponent) => {
+            const code = resolveCode(c);
+            return code === 'BASIC' || (c.componentName?.toLowerCase()?.includes('basic') ?? false);
+        };
 
-        const rows = components.filter(c => c.componentId).map(c => {
-            let monthly = 0;
-            if (c.calculationMethod === 'FIXED') {
-                monthly = c.value;
-            } else if (c.calculationMethod === 'PERCENT_OF_BASIC') {
-                monthly = Math.round(basicVal * (c.value / 100));
-            } else if (c.calculationMethod === 'PERCENT_OF_GROSS') {
-                monthly = Math.round(monthlyGross * (c.value / 100));
-            }
-            // BALANCE handled below
+        let basicVal = 0;
+        const rowMap = new Map<number, { name: string; monthly: number; isBalance: boolean; type: string }>();
+        const filtered = components.filter(c => c.componentId);
+
+        // Pass 1: FIXED
+        filtered.forEach((c, i) => {
             const master = allComps.find((mc: any) => mc.id === c.componentId);
             const type: string = master?.type ?? 'EARNING';
-            return { name: c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component', monthly, isBalance: c.calculationMethod === 'BALANCE', type };
+            const name = c.componentName || componentOptions.find(o => o.id === c.componentId)?.label || 'Component';
+            rowMap.set(i, { name, monthly: 0, isBalance: c.calculationMethod === 'BALANCE', type });
+            if (c.calculationMethod === 'FIXED') {
+                const row = rowMap.get(i)!;
+                row.monthly = c.value;
+                if (isBasic(c)) basicVal = c.value;
+            }
         });
 
-        // Fill BALANCE components with the remainder
+        // Pass 2: PERCENT_OF_GROSS
+        filtered.forEach((c, i) => {
+            if (c.calculationMethod === 'PERCENT_OF_GROSS') {
+                const amount = Math.round(monthlyGross * (c.value / 100));
+                rowMap.get(i)!.monthly = amount;
+                if (isBasic(c)) basicVal = amount;
+                else if (!basicVal) basicVal = amount;
+            }
+        });
+
+        if (!basicVal) basicVal = Math.round(monthlyGross * 0.4);
+
+        // Pass 3: PERCENT_OF_BASIC
+        filtered.forEach((c, i) => {
+            if (c.calculationMethod === 'PERCENT_OF_BASIC') {
+                rowMap.get(i)!.monthly = Math.round(basicVal * (c.value / 100));
+            }
+        });
+
+        // Pass 4: FORMULA (best-effort — recognize "X% of gross|basic")
+        filtered.forEach((c, i) => {
+            if (c.calculationMethod === 'FORMULA') {
+                const formula = (c.formula ?? '').toString().toLowerCase();
+                const match = formula.match(/([\d.]+)%?\s*of\s*(gross|basic)/);
+                if (match) {
+                    const pct = Number.parseFloat(match[1]);
+                    rowMap.get(i)!.monthly = match[2] === 'basic'
+                        ? Math.round(basicVal * pct / 100)
+                        : Math.round(monthlyGross * pct / 100);
+                } else {
+                    rowMap.get(i)!.monthly = c.value || 0;
+                }
+            }
+        });
+
+        // Pass 5: VARIABLE — use structure default value as the monthly amount
+        filtered.forEach((c, i) => {
+            if (c.calculationMethod === 'VARIABLE') {
+                const amount = Math.round(Number(c.value ?? 0));
+                rowMap.get(i)!.monthly = amount;
+                if (isBasic(c)) basicVal = amount;
+            }
+        });
+
+        // Pass 6: BALANCE — fill remainder
+        const rows = filtered.map((_, i) => rowMap.get(i)!);
         const totalBeforeBalance = rows.filter(r => !r.isBalance).reduce((s, r) => s + r.monthly, 0);
         let balanceFilled = false;
         for (const row of rows) {
@@ -331,7 +398,13 @@ function SalaryStructureForm({
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Code <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder='e.g. "STD-CTC"' placeholderTextColor={colors.neutral[400]} value={code} onChangeText={handleCodeChange} autoCapitalize="characters" /></View>
                         </View>
-                        <ChipSelector label="CTC Basis" options={CTC_OPTIONS} value={ctcBasis} onSelect={v => setCtcBasis(v as CTCBasis)} />
+                        <ChipSelector
+                            label="CTC Basis"
+                            options={CTC_OPTIONS.map(o => o.value)}
+                            value={ctcBasis}
+                            onSelect={v => setCtcBasis(v as CTCBasis)}
+                            labels={CTC_OPTIONS.reduce((acc, o) => { acc[o.value] = o.label; return acc; }, {} as Record<string, string>)}
+                        />
                     </View>
 
                     {/* Applicability */}
@@ -368,9 +441,12 @@ function SalaryStructureForm({
                             ) : comp.calculationMethod !== 'FORMULA' ? (
                                 <View style={styles.fieldWrap}>
                                     <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                                        {comp.calculationMethod === 'FIXED' ? 'Amount' : 'Percentage (%)'}
+                                        {comp.calculationMethod === 'FIXED' ? 'Amount' : comp.calculationMethod === 'VARIABLE' ? 'Default Monthly Amount' : 'Percentage (%)'}
                                     </Text>
                                     <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="0" placeholderTextColor={colors.neutral[400]} value={comp.value ? String(comp.value) : ''} onChangeText={v => updateComponent(idx, { value: Number(v) || 0 })} keyboardType="decimal-pad" /></View>
+                                    {comp.calculationMethod === 'VARIABLE' && (
+                                        <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">Per-employee default (editable when assigning)</Text>
+                                    )}
                                 </View>
                             ) : (
                                 <View style={styles.fieldWrap}>
@@ -391,7 +467,7 @@ function SalaryStructureForm({
                             <Text className="mb-2 mt-4 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Monthly Breakup Preview</Text>
                             <View style={styles.sectionCard}>
                                 <View style={styles.fieldWrap}>
-                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Sample Annual CTC</Text>
+                                    <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{CTC_SAMPLE_LABELS[ctcBasis]}</Text>
                                     <View style={[styles.inputWrap, { flexDirection: 'row', alignItems: 'center' }]}>
                                         <Text className="mr-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">&#8377;</Text>
                                         <TextInput style={[styles.textInput, { flex: 1 }]} value={sampleCTC} onChangeText={setSampleCTC} keyboardType="number-pad" placeholder="1000000" placeholderTextColor={colors.neutral[400]} />
@@ -526,8 +602,8 @@ function SalaryStructureCard({ item, index, onEdit, onDelete }: { item: SalarySt
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white" numberOfLines={1}>{item.name}</Text>
                             <View style={styles.codeBadge}><Text className="font-inter text-[10px] font-bold text-primary-600">{item.code}</Text></View>
-                            <View style={[styles.ctcBadge, { backgroundColor: item.ctcBasis === 'CTC' ? colors.info[50] : colors.accent[50] }]}>
-                                <Text style={{ color: item.ctcBasis === 'CTC' ? colors.info[700] : colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{item.ctcBasis}</Text>
+                            <View style={[styles.ctcBadge, { backgroundColor: (item.ctcBasis === 'CTC' || item.ctcBasis === 'MONTHLY_CTC') ? colors.info[50] : colors.accent[50] }]}>
+                                <Text style={{ color: (item.ctcBasis === 'CTC' || item.ctcBasis === 'MONTHLY_CTC') ? colors.info[700] : colors.accent[700], fontFamily: 'Inter', fontSize: 10, fontWeight: '700' }}>{CTC_OPTIONS.find(o => o.value === item.ctcBasis)?.label ?? item.ctcBasis}</Text>
                             </View>
                         </View>
                         <Text className="mt-1 font-inter text-xs text-neutral-500 dark:text-neutral-400">
@@ -605,9 +681,10 @@ export function SalaryStructureScreen() {
             applicableEmployeeTypes: item.applicableEmployeeTypes ?? [],
             components: (item.components ?? []).map((c: any) => ({
                 componentId: c.componentId ?? '',
-                componentName: c.componentName ?? '',
+                componentName: c.componentName ?? c.component?.name ?? '',
+                componentCode: c.componentCode ?? c.component?.code ?? '',
                 calculationMethod: c.calculationMethod ?? 'FIXED',
-                value: c.value ?? 0,
+                value: Number(c.value ?? 0),
                 formula: c.formula ?? '',
             })),
         }));

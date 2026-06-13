@@ -1,10 +1,13 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
-import { LinearGradient } from 'expo-linear-gradient';
+import type { ManageModalItem } from '@/components/ui/manage-modal';
 
+import type { EmployeeDropdownItem } from '@/lib/api/hr';
+import type { PipIncentiveConfig, PipSlabConfig } from '@/lib/api/pip';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import {
   ActivityIndicator,
-  Modal as RNModal,
   Platform,
   Pressable,
   ScrollView,
@@ -12,44 +15,45 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
-
 import { Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
-import { ManageModal } from '@/components/ui/manage-modal';
-import type { ManageModalItem } from '@/components/ui/manage-modal';
-import { SearchBar } from '@/components/ui/search-bar';
-import { EmptyState } from '@/components/ui/empty-state';
-import { SkeletonCard } from '@/components/ui/skeleton';
-import { useSidebar } from '@/components/ui/sidebar';
-import { HamburgerButton } from '@/components/ui/sidebar';
-import { showWarning } from '@/components/ui/utils';
 import { EmployeePicker } from '@/components/ui/employee-picker';
-import type { EmployeeDropdownItem } from '@/lib/api/hr';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ManageModal } from '@/components/ui/manage-modal';
+import { SearchBar } from '@/components/ui/search-bar';
+import { HamburgerButton, useSidebar  } from '@/components/ui/sidebar';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { showWarning } from '@/components/ui/utils';
 import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 import {
-  usePipConfig,
-  usePipSlabConfigs,
-  usePipDailyEntries,
+  useCreateDowntimeReason,
+  useDeleteDowntimeReason,
+  useSaveExtraHoursEntries,
+  useSavePipDailyEntries,
+  useUpdateDowntimeReason,
+  useUpdatePipConfig,
+} from '@/features/production/pip/api/use-pip-mutations';
+import {
   useDowntimeReasons,
+  usePipConfig,
+  usePipDailyEntries,
+  usePipExtraHoursEntries,
+  usePipSlabConfigs,
 } from '@/features/production/pip/api/use-pip-queries';
 import {
-  useSavePipDailyEntries,
-  useCreateDowntimeReason,
-  useUpdateDowntimeReason,
-  useDeleteDowntimeReason,
-} from '@/features/production/pip/api/use-pip-mutations';
+  calculateExtraHoursIncentive,
+  computeShiftWorkingHours,
+} from '@/features/production/pip/lib/extra-hours';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
-import type { PipIncentiveConfig, PipSlabConfig } from '@/lib/api/pip';
 
 // ============ TYPES ============
 
@@ -100,6 +104,34 @@ interface MachineSession {
   parts: PartEntry[];
 }
 
+/** Slab-configured part eligible for the extra-hours picker (one per part on the machine). */
+interface ExtraHoursMachinePart {
+  partId: string;
+  partNumber: string;
+  partName: string;
+  slabConfigId: string;
+  operationId: string | null;
+  shiftTargetQty: number;
+  slab1Rate: number;
+}
+
+/** A staged (not-yet-saved) extra-hours entry for one part. */
+interface PendingExtraHoursEntry {
+  machineId: string;
+  machineCode: string;
+  partId: string;
+  partNumber: string;
+  partName: string;
+  slabConfigId: string;
+  operationId: string | null;
+  shiftTargetQty: number;
+  slab1Rate: number;
+  qtyProduced: number;
+  extraHoursTarget: number;
+  incentiveQty: number;
+  incentiveAmount: number;
+}
+
 // ============ HELPERS ============
 
 function formatDate(date: Date): string {
@@ -111,7 +143,7 @@ function formatDate(date: Date): string {
 
 /** Move a calendar day by `delta` (-1 / +1) while keeping YYYY-MM-DD in local date. */
 function bumpCalendarDay(ymd: string, delta: number): string {
-  const [y, mo, da] = ymd.split('-').map((x) => parseInt(x, 10));
+  const [y, mo, da] = ymd.split('-').map((x) => Number.parseInt(x, 10));
   const dt = new Date(y, mo - 1, da);
   dt.setDate(dt.getDate() + delta);
   return formatDate(dt);
@@ -176,6 +208,17 @@ export function PipDailyEntryScreen() {
   }, [slabsRaw]);
 
   const saveMutation = useSavePipDailyEntries();
+  const updateConfigMutation = useUpdatePipConfig();
+  const saveExtraHoursMutation = useSaveExtraHoursEntries();
+
+  // ── Extra Hours state ──
+  const [extraHoursWorked, setExtraHoursWorked] = React.useState('');
+  const [extraHoursPartId, setExtraHoursPartId] = React.useState<string | null>(null);
+  const [extraHoursQty, setExtraHoursQty] = React.useState('');
+  const [pendingExtraHours, setPendingExtraHours] = React.useState<PendingExtraHoursEntry[]>([]);
+  const [extraHoursPartPickerOpen, setExtraHoursPartPickerOpen] = React.useState(false);
+  // Operator-keyed extra-hours incentive surfaced on the saved confirmation
+  const [lastExtraHoursIncentive, setLastExtraHoursIncentive] = React.useState(0);
 
   // Downtime reasons
   const [manageDowntimeVisible, setManageDowntimeVisible] = React.useState(false);
@@ -290,6 +333,127 @@ export function PipDailyEntryScreen() {
       }));
   }, [slabConfigs, currentMachineId]);
 
+  // ============ EXTRA HOURS DERIVED ============
+
+  const differentiateExtraHours = config?.differentiateExtraHours ?? false;
+
+  // The currently-focused machine session (last selected machine in the wizard)
+  const currentSession = React.useMemo(
+    () => machineSessions.find((ms) => ms.machineId === currentMachineId) ?? null,
+    [machineSessions, currentMachineId],
+  );
+
+  const selectedShiftObj = React.useMemo(
+    () => (shifts as any[]).find((x: any) => x.id === selectedShift) ?? null,
+    [shifts, selectedShift],
+  );
+
+  // Resolve shift hours: derive from selected shift times/breaks, else config default
+  const shiftHours = React.useMemo(() => {
+    if (selectedShiftObj?.startTime && selectedShiftObj?.endTime) {
+      const computed = computeShiftWorkingHours(
+        {
+          startTime: selectedShiftObj.startTime,
+          endTime: selectedShiftObj.endTime,
+          isCrossDay: Boolean(selectedShiftObj.isCrossDay),
+        },
+        ((selectedShiftObj.breaks ?? []) as any[]).map((b) => ({
+          duration: Number(b.duration) || 0,
+          isPaid: Boolean(b.isPaid),
+        })),
+      );
+      if (computed != null && computed > 0) return computed;
+    }
+    return Number(config?.defaultShiftHours) || 8;
+  }, [selectedShiftObj, config?.defaultShiftHours]);
+
+  // Slab-configured parts for the current machine (for the extra-hours picker)
+  const extraHoursMachineParts: ExtraHoursMachinePart[] = React.useMemo(() => {
+    if (!currentMachineId) return [];
+    const seen = new Set<string>();
+    const result: ExtraHoursMachinePart[] = [];
+    for (const sc of slabConfigs) {
+      if (sc.machineId !== currentMachineId || !sc.isActive) continue;
+      if (currentSession?.operationId && sc.operationId && sc.operationId !== currentSession.operationId) continue;
+      if (seen.has(sc.partId)) continue;
+      seen.add(sc.partId);
+      result.push({
+        partId: sc.partId,
+        partNumber: sc.part?.partNumber ?? '',
+        partName: sc.part?.name ?? '',
+        slabConfigId: sc.id,
+        operationId: sc.operationId ?? null,
+        shiftTargetQty: sc.shiftTargetQty,
+        slab1Rate: sc.slabTiers.length > 0 ? Number(sc.slabTiers[0].ratePerPiece) : 0,
+      });
+    }
+    return result;
+  }, [currentMachineId, currentSession, slabConfigs]);
+
+  const selectedExtraHoursPart = React.useMemo(
+    () => extraHoursMachineParts.find((p) => p.partId === extraHoursPartId) ?? null,
+    [extraHoursMachineParts, extraHoursPartId],
+  );
+
+  // ≥1 shift part already added (with qty > 0) for the current machine
+  const hasShiftPartForMachine = React.useMemo(() => {
+    if (!currentSession) return false;
+    return currentSession.parts.some((p) => Number(p.qtyProduced) > 0);
+  }, [currentSession]);
+
+  // Show the Extra Hours block?
+  const showExtraHoursBlock =
+    differentiateExtraHours && !!selectedOperator && !!currentMachineId && hasShiftPartForMachine;
+
+  const extraHoursWorkedNum = Number(extraHoursWorked) || 0;
+  const extraHoursQtyNum = Number(extraHoursQty) || 0;
+  const maxExtraHours = Math.max(0, 24 - shiftHours);
+  const extraHoursOverThreshold =
+    config?.extraHoursWarnThreshold != null && extraHoursWorkedNum > Number(config.extraHoursWarnThreshold);
+  const extraHoursOverMax = extraHoursWorkedNum > maxExtraHours;
+
+  // Live preview for the part currently being entered
+  const extraHoursLivePreview = React.useMemo(() => {
+    if (!selectedExtraHoursPart || !currentSession || extraHoursWorkedNum <= 0 || extraHoursQtyNum <= 0) return null;
+    return calculateExtraHoursIncentive(
+      [{
+        partId: selectedExtraHoursPart.partId,
+        partNumber: selectedExtraHoursPart.partNumber,
+        partName: selectedExtraHoursPart.partName,
+        machineId: currentSession.machineId,
+        machineCode: currentSession.machineCode,
+        qtyProduced: extraHoursQtyNum,
+        shiftTargetQty: selectedExtraHoursPart.shiftTargetQty,
+        slab1Rate: selectedExtraHoursPart.slab1Rate,
+      }],
+      extraHoursWorkedNum,
+      shiftHours,
+    );
+  }, [selectedExtraHoursPart, currentSession, extraHoursWorkedNum, extraHoursQtyNum, shiftHours]);
+
+  // Computed target/rate for the selected part (display even before qty entered)
+  const selectedPartHourlyRate =
+    selectedExtraHoursPart && shiftHours > 0 ? selectedExtraHoursPart.shiftTargetQty / shiftHours : 0;
+  const selectedPartExtraTarget = Math.ceil(selectedPartHourlyRate * extraHoursWorkedNum);
+
+  const pendingExtraHoursTotal = pendingExtraHours.reduce((sum, e) => sum + e.incentiveAmount, 0);
+  const extraHoursCardTotal = pendingExtraHoursTotal + (extraHoursLivePreview?.totalIncentive ?? 0);
+
+  // Saved extra-hours entries (toggle ON only)
+  const extraHoursEntriesParams = React.useMemo(
+    () => ({ entryDate: selectedDate, ...(selectedShift ? { shiftId: selectedShift } : {}) }),
+    [selectedDate, selectedShift],
+  );
+  const { data: extraHoursSavedRaw, refetch: refetchExtraHours } = usePipExtraHoursEntries(
+    extraHoursEntriesParams,
+    { enabled: Boolean(differentiateExtraHours && selectedDate && selectedShift) },
+  );
+  const extraHoursSaved = React.useMemo(() => {
+    if (!differentiateExtraHours) return [];
+    const raw = (extraHoursSavedRaw as any)?.data ?? extraHoursSavedRaw ?? [];
+    return Array.isArray(raw) ? raw : [];
+  }, [differentiateExtraHours, extraHoursSavedRaw]);
+
   const methodBadge = getActiveMethodBadge(config);
 
   // Calculate totals for review
@@ -398,6 +562,82 @@ export function PipDailyEntryScreen() {
     setMachineSessions((prev) => prev.filter((ms) => ms.machineId !== machineId));
   };
 
+  // ── Extra Hours handlers ──
+
+  const handleToggleExtraHours = () => {
+    const next = !differentiateExtraHours;
+    updateConfigMutation.mutate(
+      { differentiateExtraHours: next },
+      {
+        onSuccess: () => {
+          refetchConfig();
+          if (!next) {
+            // Reset extra-hours staging when turned off
+            setExtraHoursWorked('');
+            setExtraHoursPartId(null);
+            setExtraHoursQty('');
+            setPendingExtraHours([]);
+            setExtraHoursPartPickerOpen(false);
+          }
+        },
+      },
+    );
+  };
+
+  const handleAddExtraHoursPart = () => {
+    if (!currentSession || !selectedExtraHoursPart) return;
+    if (extraHoursWorkedNum <= 0 || extraHoursWorkedNum > maxExtraHours) return;
+    if (extraHoursQtyNum <= 0) return;
+    const preview = calculateExtraHoursIncentive(
+      [{
+        partId: selectedExtraHoursPart.partId,
+        partNumber: selectedExtraHoursPart.partNumber,
+        partName: selectedExtraHoursPart.partName,
+        machineId: currentSession.machineId,
+        machineCode: currentSession.machineCode,
+        qtyProduced: extraHoursQtyNum,
+        shiftTargetQty: selectedExtraHoursPart.shiftTargetQty,
+        slab1Rate: selectedExtraHoursPart.slab1Rate,
+      }],
+      extraHoursWorkedNum,
+      shiftHours,
+    );
+    const part = preview.parts[0];
+    if (!part) return;
+    setPendingExtraHours((prev) => [
+      ...prev.filter((e) => !(e.partId === selectedExtraHoursPart.partId && e.machineId === currentSession.machineId)),
+      {
+        machineId: currentSession.machineId,
+        machineCode: currentSession.machineCode,
+        partId: selectedExtraHoursPart.partId,
+        partNumber: selectedExtraHoursPart.partNumber,
+        partName: selectedExtraHoursPart.partName,
+        slabConfigId: selectedExtraHoursPart.slabConfigId,
+        operationId: selectedExtraHoursPart.operationId,
+        shiftTargetQty: selectedExtraHoursPart.shiftTargetQty,
+        slab1Rate: selectedExtraHoursPart.slab1Rate,
+        qtyProduced: extraHoursQtyNum,
+        extraHoursTarget: part.extraHoursTarget,
+        incentiveQty: part.incentiveQty,
+        incentiveAmount: part.incentiveAmount,
+      },
+    ]);
+    setExtraHoursPartId(null);
+    setExtraHoursQty('');
+  };
+
+  const handleRemovePendingExtraHours = (machineId: string, partId: string) => {
+    confirmModal.show({
+      title: 'Remove entry',
+      message: "Remove this part's extra hours entry?",
+      confirmText: 'Remove',
+      variant: 'danger',
+      onConfirm: () => {
+        setPendingExtraHours((prev) => prev.filter((e) => !(e.machineId === machineId && e.partId === partId)));
+      },
+    });
+  };
+
   const handleSave = () => {
     if (!selectedOperator || machineSessions.length === 0) return;
     if (shifts.length > 0 && !selectedShift) {
@@ -422,28 +662,64 @@ export function PipDailyEntryScreen() {
 
     if (entries.length === 0) return;
 
+    const operatorId = selectedOperator.id;
     setIsSaving(true);
-    saveMutation.mutate(
-      {
-        entryDate: selectedDate,
-        shiftId: selectedShift,
-        operatorId: selectedOperator.id,
-        entries,
-      },
-      {
-        onSuccess: () => {
-          setIsSaving(false);
-          // Reset wizard
-          setCurrentStep(0);
-          setSelectedOperator(null);
-          setMachineSessions([]);
-          setCurrentMachineId('');
-          setPendingMachine(null);
-          setPendingOperations([]);
-        },
-        onSettled: () => setIsSaving(false),
-      },
-    );
+    void (async () => {
+      try {
+        const saveResult = await saveMutation.mutateAsync({
+          entryDate: selectedDate,
+          shiftId: selectedShift,
+          operatorId,
+          entries,
+        });
+
+        // ── Auto-commit pending Extra Hours entries (cascade via shared sessionRef) ──
+        let extraHoursIncentiveForOperator = 0;
+        const pendingForOperator = pendingExtraHours;
+        if (differentiateExtraHours && pendingForOperator.length > 0 && extraHoursWorkedNum > 0) {
+          const savedRows = ((saveResult as any)?.data?.entries
+            ?? (saveResult as any)?.data
+            ?? []) as Array<{ sessionRef?: string }>;
+          const sessionRef = Array.isArray(savedRows)
+            ? savedRows.find((r) => r?.sessionRef)?.sessionRef
+            : undefined;
+          const ehResult = await saveExtraHoursMutation.mutateAsync({
+            entryDate: selectedDate,
+            shiftId: selectedShift,
+            operatorId,
+            ...(sessionRef ? { sessionRef } : {}),
+            extraHoursWorked: extraHoursWorkedNum,
+            entries: pendingForOperator.map((e) => ({
+              machineId: e.machineId,
+              partId: e.partId,
+              slabConfigId: e.slabConfigId,
+              ...(e.operationId ? { operationId: e.operationId } : {}),
+              qtyProduced: e.qtyProduced,
+            })),
+          });
+          extraHoursIncentiveForOperator = Number((ehResult as any)?.data?.calculation?.totalIncentive ?? 0);
+          refetchExtraHours();
+        }
+
+        setLastExtraHoursIncentive(extraHoursIncentiveForOperator);
+        // Reset wizard + extra-hours staging
+        setCurrentStep(0);
+        setSelectedOperator(null);
+        setMachineSessions([]);
+        setCurrentMachineId('');
+        setPendingMachine(null);
+        setPendingOperations([]);
+        setExtraHoursWorked('');
+        setExtraHoursPartId(null);
+        setExtraHoursQty('');
+        setPendingExtraHours([]);
+        setExtraHoursPartPickerOpen(false);
+      } catch {
+        // Mutation onError surfaces the toast; keep the wizard intact for retry.
+      } finally {
+        setIsSaving(false);
+      }
+    })();
   };
 
   const canProceed = () => {
@@ -628,6 +904,46 @@ export function PipDailyEntryScreen() {
             </>
           )}
 
+          {/* Extra Hours toggle (two-way sync with PIP config) */}
+          <Pressable
+            onPress={handleToggleExtraHours}
+            disabled={updateConfigMutation.isPending}
+            style={[
+              styles.extraToggleRow,
+              {
+                backgroundColor: differentiateExtraHours
+                  ? (isDark ? colors.success[900] : colors.success[50])
+                  : (isDark ? '#1A1730' : colors.white),
+                borderColor: differentiateExtraHours
+                  ? colors.success[400]
+                  : (isDark ? colors.neutral[700] : colors.neutral[200]),
+                opacity: updateConfigMutation.isPending ? 0.6 : 1,
+              },
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white">
+                Extra Hrs
+              </Text>
+              <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                Differentiate extra-hours production incentive
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.toggleTrack,
+                { backgroundColor: differentiateExtraHours ? colors.success[500] : (isDark ? colors.neutral[700] : colors.neutral[300]) },
+              ]}
+            >
+              <View
+                style={[
+                  styles.toggleThumb,
+                  { alignSelf: differentiateExtraHours ? 'flex-end' : 'flex-start' },
+                ]}
+              />
+            </View>
+          </Pressable>
+
           <View style={[styles.savedSection, { borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
             <View style={styles.savedSectionHeader}>
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
@@ -701,6 +1017,67 @@ export function PipDailyEntryScreen() {
               })
             )}
           </View>
+
+          {/* Extra Hours Saved Entries (toggle ON only) */}
+          {differentiateExtraHours && selectedShift && (
+            <View style={[styles.savedSection, { borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
+              <View style={styles.savedSectionHeader}>
+                <Text className="font-inter text-sm font-bold text-success-700 dark:text-success-300">
+                  Extra Hours Saved Entries
+                </Text>
+                {extraHoursSaved.length > 0 && (
+                  <View style={[styles.savedCountBadge, { backgroundColor: isDark ? colors.success[900] : colors.success[100] }]}>
+                    <Text className="font-inter text-[10px] font-bold text-success-700">{extraHoursSaved.length}</Text>
+                  </View>
+                )}
+              </View>
+              {extraHoursSaved.length === 0 ? (
+                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
+                  No extra hours entries for this date and shift yet.
+                </Text>
+              ) : (
+                extraHoursSaved.map((entry: any) => {
+                  const opName = entry.operator
+                    ? `${entry.operator.firstName ?? ''} ${entry.operator.lastName ?? ''}`.trim()
+                    : '';
+                  const machineLabel = entry.slabConfig?.machine?.assetCode ?? entry.machineId ?? '';
+                  const partNo = entry.slabConfig?.part?.partNumber ?? entry.partId ?? '';
+                  return (
+                    <View
+                      key={entry.id ?? `${opName}-${partNo}-${entry.qtyProduced}`}
+                      style={[
+                        styles.savedRowCard,
+                        {
+                          backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                          borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-xs font-bold text-primary-950 dark:text-white" numberOfLines={1}>
+                          {opName || '—'}
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                          {machineLabel} · {partNo} · {Number(entry.extraHoursWorked ?? 0).toFixed(2)}h extra
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                          ₹{Number(entry.hourlyRate ?? 0).toFixed(2)}/hr · target {entry.shiftTargetQty ?? 0} · extra tgt {entry.extraHoursTarget ?? 0}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text className="font-inter text-xs font-bold text-success-600">
+                          ₹{Number(entry.incentiveAmount ?? 0).toFixed(2)}
+                        </Text>
+                        <Text className="font-inter text-[10px] text-neutral-500">
+                          {entry.qtyProduced ?? 0} − {entry.extraHoursTarget ?? 0} = {entry.incentiveQty ?? 0} pcs
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          )}
         </Animated.View>
 
         {/* Step 0: Select Operator */}
@@ -1224,6 +1601,273 @@ export function PipDailyEntryScreen() {
               </View>
               );
             })}
+
+            {/* ── Extra Hours Production block ── */}
+            {showExtraHoursBlock && currentSession && (
+              <View
+                style={[
+                  styles.extraBlock,
+                  {
+                    backgroundColor: isDark ? colors.success[900] : colors.success[50],
+                    borderColor: colors.success[400],
+                  },
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Svg width={16} height={16} viewBox="0 0 24 24">
+                    <Path d="M12 6v6l4 2" stroke={colors.success[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <Path d="M12 22a10 10 0 100-20 10 10 0 000 20z" stroke={colors.success[600]} strokeWidth="2" fill="none" />
+                  </Svg>
+                  <Text className="font-inter text-sm font-bold text-success-700 dark:text-success-300">
+                    Extra Hours Production
+                  </Text>
+                </View>
+                <Text className="mb-3 font-inter text-[10px] text-success-700 dark:text-success-400">
+                  {currentSession.machineName} ({currentSession.machineCode}) · Slab-1 flat rate, per-part independent
+                </Text>
+
+                {/* Total Extra Hours Worked Today */}
+                <Text className="mb-1 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">
+                  Total Extra Hours Worked Today
+                </Text>
+                <TextInput
+                  style={[
+                    styles.qtyInput,
+                    {
+                      backgroundColor: isDark ? '#0F0D1A' : colors.white,
+                      color: isDark ? colors.white : colors.primary[950],
+                      borderColor: extraHoursOverMax
+                        ? colors.danger[400]
+                        : isDark ? colors.neutral[700] : colors.neutral[200],
+                    },
+                  ]}
+                  value={extraHoursWorked}
+                  onChangeText={setExtraHoursWorked}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.neutral[400]}
+                />
+                <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                  Shift hours: {shiftHours.toFixed(2)}h · max extra: {maxExtraHours.toFixed(2)}h
+                </Text>
+                {extraHoursOverThreshold && (
+                  <Text className="mt-1 font-inter text-[10px] font-semibold text-warning-700 dark:text-warning-400">
+                    {extraHoursWorkedNum}h exceeds the {Number(config?.extraHoursWarnThreshold)}h warning threshold — please verify.
+                  </Text>
+                )}
+                {extraHoursOverMax && (
+                  <Text className="mt-1 font-inter text-[10px] font-semibold text-danger-500">
+                    Extra hours cannot exceed {maxExtraHours.toFixed(2)}h (24 − shift hours).
+                  </Text>
+                )}
+
+                {/* Part picker */}
+                <Text className="mb-1 mt-3 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">
+                  Select Part
+                </Text>
+                <Pressable
+                  onPress={() => setExtraHoursPartPickerOpen((o) => !o)}
+                  style={[
+                    styles.downtimePickerBtn,
+                    {
+                      backgroundColor: isDark ? '#0F0D1A' : colors.white,
+                      borderColor: selectedExtraHoursPart ? colors.success[400] : isDark ? colors.neutral[700] : colors.neutral[200],
+                    },
+                  ]}
+                >
+                  <Text
+                    className={`font-inter text-xs ${selectedExtraHoursPart ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}
+                    numberOfLines={1}
+                  >
+                    {selectedExtraHoursPart
+                      ? `${selectedExtraHoursPart.partNumber} — ${selectedExtraHoursPart.partName}`
+                      : 'Select a slab-configured part'}
+                  </Text>
+                  <Svg width={14} height={14} viewBox="0 0 24 24" style={{ transform: [{ rotate: extraHoursPartPickerOpen ? '180deg' : '0deg' }] }}>
+                    <Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </Pressable>
+
+                {extraHoursPartPickerOpen && (
+                  <View style={{ marginTop: 4, borderWidth: 1, borderColor: isDark ? colors.neutral[700] : colors.neutral[200], borderRadius: 8, backgroundColor: isDark ? '#0F0D1A' : colors.white, maxHeight: 220, overflow: 'hidden' }}>
+                    {extraHoursMachineParts.length === 0 ? (
+                      <View style={{ padding: 16, alignItems: 'center' }}>
+                        <Text className="font-inter text-xs text-neutral-500">No slab-configured parts.</Text>
+                      </View>
+                    ) : (
+                      <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
+                        {extraHoursMachineParts.map((p) => {
+                          const added = pendingExtraHours.some((e) => e.partId === p.partId && e.machineId === currentSession.machineId);
+                          const isSelected = extraHoursPartId === p.partId;
+                          const hourly = shiftHours > 0 ? p.shiftTargetQty / shiftHours : 0;
+                          return (
+                            <Pressable
+                              key={p.partId}
+                              onPress={() => { setExtraHoursPartId(p.partId); setExtraHoursQty(''); setExtraHoursPartPickerOpen(false); }}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 12,
+                                backgroundColor: isSelected ? (isDark ? colors.success[900] : colors.success[50]) : 'transparent',
+                                borderBottomWidth: 1, borderBottomColor: isDark ? colors.neutral[800] : colors.neutral[100],
+                              }}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text className={`font-inter text-xs ${isSelected ? 'font-bold text-primary-950 dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}`} numberOfLines={1}>
+                                  {p.partNumber} — {p.partName}
+                                </Text>
+                                <Text className="font-inter text-[10px] text-neutral-500">
+                                  Target {p.shiftTargetQty} · ₹{Number(hourly).toFixed(2)}/hr
+                                </Text>
+                              </View>
+                              {added && (
+                                <View style={[styles.addedTag, { backgroundColor: isDark ? colors.success[800] : colors.success[100] }]}>
+                                  <Text className="font-inter text-[9px] font-bold text-success-700">✓ added</Text>
+                                </View>
+                              )}
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+                    )}
+                  </View>
+                )}
+
+                {/* Per-part row */}
+                {selectedExtraHoursPart && (
+                  <View
+                    style={[
+                      styles.extraPartCard,
+                      {
+                        backgroundColor: isDark ? '#0F0D1A' : colors.white,
+                        borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                      },
+                    ]}
+                  >
+                    <View style={styles.extraStatsRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-[9px] text-neutral-500 dark:text-neutral-400">Shift Target</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{selectedExtraHoursPart.shiftTargetQty}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-[9px] text-neutral-500 dark:text-neutral-400">Hourly Rate</Text>
+                        <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">{Number(selectedPartHourlyRate).toFixed(2)}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text className="font-inter text-[9px] text-neutral-500 dark:text-neutral-400">Extra Hrs Target</Text>
+                        <Text className="font-inter text-sm font-bold text-warning-700 dark:text-warning-400">{selectedPartExtraTarget}</Text>
+                      </View>
+                    </View>
+
+                    <Text className="mb-1 mt-2 font-inter text-[10px] font-bold text-primary-900 dark:text-primary-100">
+                      Qty Produced (extra hours)
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.qtyInput,
+                        {
+                          backgroundColor: isDark ? '#1A1730' : colors.neutral[50],
+                          color: isDark ? colors.white : colors.primary[950],
+                          borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
+                        },
+                      ]}
+                      value={extraHoursQty}
+                      onChangeText={setExtraHoursQty}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={colors.neutral[400]}
+                    />
+
+                    {/* Live incentive preview */}
+                    <View style={styles.extraPreviewRow}>
+                      <Text className="flex-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400" numberOfLines={2}>
+                        {extraHoursLivePreview?.parts[0]?.breakdown ?? 'Enter extra hours and quantity to preview.'}
+                      </Text>
+                      <Text
+                        className="font-inter text-sm font-bold"
+                        style={{ color: (extraHoursLivePreview?.totalIncentive ?? 0) > 0 ? colors.success[600] : colors.neutral[400] }}
+                      >
+                        ₹{Number(extraHoursLivePreview?.totalIncentive ?? 0).toFixed(2)}
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      onPress={handleAddExtraHoursPart}
+                      disabled={extraHoursWorkedNum <= 0 || extraHoursOverMax || extraHoursQtyNum <= 0}
+                      style={({ pressed }) => [
+                        styles.addExtraBtn,
+                        pressed && { opacity: 0.85 },
+                        (extraHoursWorkedNum <= 0 || extraHoursOverMax || extraHoursQtyNum <= 0) && { opacity: 0.5 },
+                      ]}
+                    >
+                      <Text className="font-inter text-xs font-bold text-white">Add This Part's Extra Hours Entry</Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                {/* Extra Hours Entries Added */}
+                {pendingExtraHours.length > 0 && (
+                  <View style={{ marginTop: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text className="font-inter text-xs font-bold text-success-700 dark:text-success-300">
+                        Extra Hours Entries Added ({pendingExtraHours.length})
+                      </Text>
+                      <Text className="font-inter text-xs font-bold text-success-700 dark:text-success-300">
+                        ₹{Number(pendingExtraHoursTotal).toFixed(2)}
+                      </Text>
+                    </View>
+                    {pendingExtraHours.map((e) => (
+                      <View
+                        key={`${e.machineId}-${e.partId}`}
+                        style={[
+                          styles.pendingExtraRow,
+                          {
+                            backgroundColor: isDark ? '#0F0D1A' : colors.white,
+                            borderColor: isDark ? colors.neutral[800] : colors.neutral[100],
+                          },
+                        ]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text className="font-inter text-xs font-semibold text-primary-950 dark:text-white" numberOfLines={1}>
+                            {e.partNumber} — {e.partName}
+                          </Text>
+                          <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                            {e.machineCode} · {e.qtyProduced} − {e.extraHoursTarget} = {e.incentiveQty} @ ₹{Number(e.slab1Rate).toFixed(2)}
+                          </Text>
+                        </View>
+                        <Text className="mr-2 font-inter text-xs font-bold text-success-600">
+                          ₹{Number(e.incentiveAmount).toFixed(2)}
+                        </Text>
+                        <Pressable onPress={() => handleRemovePendingExtraHours(e.machineId, e.partId)} hitSlop={8}>
+                          <Svg width={16} height={16} viewBox="0 0 24 24">
+                            <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[500]} strokeWidth="2" strokeLinecap="round" />
+                          </Svg>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Live cards: Extra Hours + Combined Total */}
+                <View style={styles.extraCardsRow}>
+                  <View style={[styles.extraCard, { backgroundColor: colors.success[600] }]}>
+                    <Text className="font-inter text-[9px] font-semibold text-white/70">EXTRA HOURS</Text>
+                    <Text className="font-inter text-lg font-bold text-white">₹{Number(extraHoursCardTotal).toFixed(2)}</Text>
+                    <Text className="font-inter text-[9px] text-white/70">
+                      {pendingExtraHours.length} added · {Number(extraHoursWorkedNum).toFixed(2)}h
+                    </Text>
+                  </View>
+                  <View style={[styles.extraCard, { backgroundColor: colors.primary[600] }]}>
+                    <Text className="font-inter text-[9px] font-semibold text-white/70">COMBINED TOTAL</Text>
+                    <Text className="font-inter text-lg font-bold text-white">
+                      ₹{Number(extraHoursCardTotal).toFixed(2)}
+                      <Text className="font-inter text-[10px] font-semibold text-white/70"> + shift</Text>
+                    </Text>
+                    <Text className="font-inter text-[9px] text-white/70">
+                      {sessionTotals.totalProduced} pcs @ {sessionTotals.achievementPct}% on save
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </Animated.View>
         )}
 
@@ -1344,6 +1988,13 @@ export function PipDailyEntryScreen() {
               <Text className="mt-2 text-center font-inter text-sm text-neutral-500 dark:text-neutral-400">
                 Production entries have been recorded successfully.
               </Text>
+              {lastExtraHoursIncentive > 0 && (
+                <View style={[styles.extraSavedPill, { backgroundColor: isDark ? colors.success[900] : colors.success[50] }]}>
+                  <Text className="font-inter text-xs font-bold text-success-700 dark:text-success-300">
+                    +₹{Number(lastExtraHoursIncentive).toFixed(2)} extra hrs
+                  </Text>
+                </View>
+              )}
               <Pressable
                 style={({ pressed }) => [styles.newEntryBtn, pressed && { opacity: 0.85 }]}
                 onPress={() => {
@@ -1800,5 +2451,87 @@ const createStyles = (isDark: boolean) =>
       shadowOpacity: 0.25,
       shadowRadius: 8,
       elevation: 4,
+    },
+    extraToggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 16,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      gap: 12,
+    },
+    toggleTrack: {
+      width: 40,
+      height: 22,
+      borderRadius: 11,
+      padding: 2,
+      justifyContent: 'center',
+    },
+    toggleThumb: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: colors.white,
+    },
+    extraBlock: {
+      marginTop: 8,
+      marginBottom: 8,
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1.5,
+    },
+    addedTag: {
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    extraPartCard: {
+      marginTop: 10,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    extraStatsRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    extraPreviewRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 8,
+    },
+    addExtraBtn: {
+      marginTop: 10,
+      backgroundColor: colors.success[600],
+      borderRadius: 10,
+      paddingVertical: 11,
+      alignItems: 'center',
+    },
+    pendingExtraRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      marginBottom: 6,
+      gap: 4,
+    },
+    extraCardsRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 12,
+    },
+    extraCard: {
+      flex: 1,
+      borderRadius: 12,
+      padding: 12,
+    },
+    extraSavedPill: {
+      marginTop: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 20,
     },
   });

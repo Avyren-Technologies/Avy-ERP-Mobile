@@ -10,11 +10,11 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { shareQrCode } from '@/lib/share-qr';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,12 +28,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { DropdownField } from '@/components/ui/dropdown-field';
+import { EmployeePicker } from '@/components/ui/employee-picker';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess, showWarning } from '@/components/ui/utils';
 
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateMaterialPass, useMarkMaterialReturned } from '@/features/company-admin/api/use-visitor-mutations';
 import { useGates, useMaterialPasses } from '@/features/company-admin/api/use-visitor-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -97,17 +97,8 @@ function CreateMaterialModal({
   const [purpose, setPurpose] = React.useState('');
   const [gateId, setGateId] = React.useState('');
   const [plantId, setPlantId] = React.useState('');
+  const [expectedReturnDate, setExpectedReturnDate] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-
-  const { data: employeesResponse } = useEmployees({ limit: 500 });
-  const employeeOptions = React.useMemo(() => {
-    const raw = (employeesResponse as any)?.data ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({
-      id: e.id,
-      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
-    }));
-  }, [employeesResponse]);
 
   const { data: locationsResponse } = useCompanyLocations();
   const locationOptions = React.useMemo(() => {
@@ -124,7 +115,7 @@ function CreateMaterialModal({
   }, [gatesResponse]);
 
   React.useEffect(() => {
-    if (visible) { setType('INWARD'); setDescription(''); setQuantityIssued(''); setAuthorizedBy(''); setPurpose(''); setGateId(''); setPlantId(''); setErrors({}); }
+    if (visible) { setType('INWARD'); setDescription(''); setQuantityIssued(''); setAuthorizedBy(''); setPurpose(''); setGateId(''); setPlantId(''); setExpectedReturnDate(''); setErrors({}); }
   }, [visible]);
 
   const validate = () => {
@@ -134,6 +125,11 @@ function CreateMaterialModal({
     if (!purpose.trim()) e.purpose = 'Purpose is required';
     if (!gateId) e.gateId = 'Gate is required';
     if (!plantId) e.plantId = 'Plant is required';
+    if (type === 'RETURNABLE' && !expectedReturnDate.trim()) {
+      e.expectedReturnDate = 'Expected return date is required for returnable materials';
+    } else if (type === 'RETURNABLE' && !/^\d{4}-\d{2}-\d{2}$/.test(expectedReturnDate.trim())) {
+      e.expectedReturnDate = 'Date must be in YYYY-MM-DD format';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -148,6 +144,7 @@ function CreateMaterialModal({
       purpose: purpose.trim(),
       gateId,
       plantId,
+      ...(type === 'RETURNABLE' ? { expectedReturnDate: expectedReturnDate.trim() } : {}),
     });
   };
 
@@ -200,11 +197,13 @@ function CreateMaterialModal({
               </View>
             </View>
 
-            <DropdownField
+            <EmployeePicker
               label="Authorized By"
-              selected={authorizedBy}
-              onSelect={(v) => { setAuthorizedBy(v); if (errors.authorizedBy) setErrors(prev => ({ ...prev, authorizedBy: '' })); }}
-              options={employeeOptions}
+              value={authorizedBy || null}
+              onChange={(id) => {
+                setAuthorizedBy(id ?? '');
+                if (errors.authorizedBy) setErrors(prev => ({ ...prev, authorizedBy: '' }));
+              }}
               placeholder="Select authorized person..."
               required
               error={errors.authorizedBy}
@@ -239,6 +238,27 @@ function CreateMaterialModal({
               required
               error={errors.plantId}
             />
+
+            {type === 'RETURNABLE' && (
+              <View style={formStyles.fieldWrap}>
+                <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100 uppercase tracking-wider">
+                  Expected Return Date <Text className="text-danger-500">*</Text>
+                </Text>
+                <View style={[formStyles.inputWrap, !!errors.expectedReturnDate && { borderColor: colors.danger[300] }]}>
+                  <TextInput
+                    style={[formStyles.textInput, isDark && { color: colors.white }]}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.neutral[400]}
+                    value={expectedReturnDate}
+                    onChangeText={(v) => { setExpectedReturnDate(v); if (errors.expectedReturnDate) setErrors(prev => ({ ...prev, expectedReturnDate: '' })); }}
+                    autoCapitalize="none"
+                  />
+                </View>
+                {!!errors.expectedReturnDate
+                  ? <Text className="mt-1 font-inter text-[10px] text-danger-500 font-medium">{errors.expectedReturnDate}</Text>
+                  : <Text className="mt-1 font-inter text-[10px] text-neutral-500">Required for returnable materials (e.g. 2026-12-31)</Text>}
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', gap: 16, marginTop: 24 }}>
               <Pressable onPress={onClose} style={formStyles.cancelBtn}>
@@ -580,12 +600,12 @@ export function MaterialPassesScreen() {
               <Pressable
                 onPress={async () => {
                   if (qrModalItem?.passNumber) {
-                    try {
-                      await Share.share({
-                        message: `Material Gate Pass: ${qrModalItem.passNumber}\nMaterial: ${qrModalItem.description}\nType: ${qrModalItem.type}`,
-                        title: `Material Pass - ${qrModalItem.passNumber}`,
-                      });
-                    } catch { /* user cancelled */ }
+                    await shareQrCode({
+                      qrCodeDataUrl: qrModalItem.qrCode,
+                      passNumber: qrModalItem.passNumber,
+                      caption: `Material Gate Pass: ${qrModalItem.passNumber}\nMaterial: ${qrModalItem.description}\nType: ${qrModalItem.type}`,
+                      title: `Material Pass - ${qrModalItem.passNumber}`,
+                    });
                   }
                 }}
                 style={[formStyles.cancelBtn, { height: 48 }]}

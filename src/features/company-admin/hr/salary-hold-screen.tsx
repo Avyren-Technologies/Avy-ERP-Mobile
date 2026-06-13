@@ -16,7 +16,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
@@ -26,7 +26,6 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateSalaryHold, useReleaseSalaryHold } from '@/features/company-admin/api/use-payroll-run-mutations';
 import { usePayrollRuns, useSalaryHolds  } from '@/features/company-admin/api/use-payroll-run-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -172,10 +171,9 @@ function MultiChipSelector({ label, options, value, onToggle }: { label: string;
 
 // ============ CREATE HOLD MODAL ============
 
-function CreateHoldModal({ visible, onClose, onSave, isSaving, employeeOptions, runOptions }: {
+function CreateHoldModal({ visible, onClose, onSave, isSaving, runOptions }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void; isSaving: boolean;
-    employeeOptions: { id: string; label: string }[];
     runOptions: { id: string; label: string }[];
 }) {
     const insets = useSafeAreaInsets();
@@ -209,7 +207,13 @@ function CreateHoldModal({ visible, onClose, onSave, isSaving, employeeOptions, 
                     <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">New Salary Hold</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <Dropdown label="Payroll Run" value={payrollRunId} options={runOptions} onSelect={setPayrollRunId} placeholder="Select run..." />
-                        <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Search employee..." searchable />
+                        <EmployeePicker
+                            label="Employee"
+                            value={employeeId || null}
+                            onChange={(id) => setEmployeeId(id ?? '')}
+                            placeholder="Search employee..."
+                            required
+                        />
                         <ChipSelector label="Hold Type" options={['Full', 'Partial']} value={holdType} onSelect={setHoldType} />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Reason <Text className="text-danger-500">*</Text></Text>
@@ -284,18 +288,11 @@ export function SalaryHoldScreen() {
 
     const { data: response, isLoading, error, refetch, isFetching } = useSalaryHolds();
     const { data: runResponse } = usePayrollRuns();
-    const { data: empResponse } = useEmployees();
     const createMutation = useCreateSalaryHold();
     const releaseMutation = useReleaseSalaryHold();
 
     const [formVisible, setFormVisible] = React.useState(false);
     const [search, setSearch] = React.useState('');
-
-    const employeeOptions = React.useMemo(() => {
-        const raw = (empResponse as any)?.data ?? empResponse ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.name || '' }));
-    }, [empResponse]);
 
     const runOptions = React.useMemo(() => {
         const raw = (runResponse as any)?.data ?? runResponse ?? [];
@@ -369,7 +366,7 @@ export function SalaryHoldScreen() {
             />
             <FAB onPress={() => setFormVisible(true)} />
             <CreateHoldModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave}
-                isSaving={createMutation.isPending} employeeOptions={employeeOptions} runOptions={runOptions}
+                isSaving={createMutation.isPending} runOptions={runOptions}
             />
             <ConfirmModal {...confirmModalProps} />
         </View>

@@ -9,11 +9,11 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { shareQrCode } from '@/lib/share-qr';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,12 +27,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FAB } from '@/components/ui/fab';
 import { SearchBar } from '@/components/ui/search-bar';
 import { DropdownField } from '@/components/ui/dropdown-field';
+import { EmployeePicker } from '@/components/ui/employee-picker';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess } from '@/components/ui/utils';
 
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateRecurringPass, useRevokeRecurringPass, useCheckInRecurringPass } from '@/features/company-admin/api/use-visitor-mutations';
 import { useRecurringPasses, useGates } from '@/features/company-admin/api/use-visitor-queries';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
@@ -98,16 +98,6 @@ function CreatePassModal({
   const [validUntil, setValidUntil] = React.useState('');
   const [plantId, setPlantId] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-
-  const { data: employeesResponse } = useEmployees({ limit: 500 });
-  const employeeOptions = React.useMemo(() => {
-    const raw = (employeesResponse as any)?.data ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({
-      id: e.id,
-      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
-    }));
-  }, [employeesResponse]);
 
   const { data: locationsResponse } = useCompanyLocations();
   const locationOptions = React.useMemo(() => {
@@ -231,11 +221,13 @@ function CreatePassModal({
             </View>
 
             {/* Host Employee */}
-            <DropdownField
+            <EmployeePicker
               label="Host Employee"
-              selected={hostEmployeeId}
-              onSelect={(v) => { setHostEmployeeId(v); if (errors.hostEmployeeId) setErrors(prev => ({ ...prev, hostEmployeeId: '' })); }}
-              options={employeeOptions}
+              value={hostEmployeeId || null}
+              onChange={(id) => {
+                setHostEmployeeId(id ?? '');
+                if (errors.hostEmployeeId) setErrors(prev => ({ ...prev, hostEmployeeId: '' }));
+              }}
               placeholder="Select host employee..."
               required
               error={errors.hostEmployeeId}
@@ -480,14 +472,12 @@ export function RecurringPassesScreen() {
   };
 
   const handleShareQr = async (item: RecurringPassItem) => {
-    try {
-      await Share.share({
-        message: `Recurring Pass: ${item.passNumber}\nVisitor: ${item.visitorName}\nCompany: ${item.visitorCompany}`,
-        title: `Pass ${item.passNumber}`,
-      });
-    } catch {
-      // User cancelled share
-    }
+    await shareQrCode({
+      qrCodeDataUrl: item.qrCode,
+      passNumber: item.passNumber,
+      caption: `Recurring Pass: ${item.passNumber}\nVisitor: ${item.visitorName}\nCompany: ${item.visitorCompany}`,
+      title: `Pass ${item.passNumber}`,
+    });
   };
 
   const renderItem = ({ item, index }: { readonly item: RecurringPassItem; readonly index: number }) => (

@@ -17,7 +17,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -28,7 +28,6 @@ import { HamburgerButton, useSidebar } from '@/components/ui/sidebar';
 
 import { useExitRequests } from '@/features/company-admin/api/use-offboarding-queries';
 import { useCreateExitRequest, useUpdateExitRequest } from '@/features/company-admin/api/use-offboarding-mutations';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -101,59 +100,6 @@ function AvatarCircle({ name }: { name: string }) {
   );
 }
 
-function Dropdown({
-  label, value, options, onSelect, placeholder, required,
-}: {
-  label: string; value: string; options: { id: string; label: string }[];
-  onSelect: (id: string) => void; placeholder?: string; required?: boolean;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const [searchText, setSearchText] = React.useState('');
-
-  const filteredOptions = React.useMemo(() => {
-    if (!searchText.trim()) return options;
-    const q = searchText.toLowerCase();
-    return options.filter(o => o.label.toLowerCase().includes(q));
-  }, [options, searchText]);
-
-  return (
-    <View style={styles.fieldWrap}>
-      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-        {label} {required && <Text className="text-danger-500">*</Text>}
-      </Text>
-      <Pressable onPress={() => { setOpen(true); setSearchText(''); }} style={styles.dropdownBtn}>
-        <Text className={`font-inter text-sm ${value ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`} numberOfLines={1}>
-          {options.find(o => o.id === value)?.label || placeholder || 'Select...'}
-        </Text>
-        <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M6 9l6 6 6-6" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-      </Pressable>
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 15, 40, 0.32)' }}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(false)} />
-          <View style={[styles.formSheet, { paddingBottom: 40, maxHeight: '60%' }]}>
-            <View style={styles.sheetHandle} />
-            <Text className="font-inter text-base font-bold text-primary-950 dark:text-white mb-3">{label}</Text>
-            <View style={[styles.inputWrap, { marginBottom: 12 }]}>
-              <TextInput style={styles.textInput} placeholder="Search..." placeholderTextColor={colors.neutral[400]} value={searchText} onChangeText={setSearchText} autoCapitalize="none" />
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {filteredOptions.map(opt => (
-                <Pressable key={opt.id} onPress={() => { onSelect(opt.id); setOpen(false); }}
-                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.neutral[100], backgroundColor: opt.id === value ? colors.primary[50] : undefined, paddingHorizontal: 4, borderRadius: 8 }}>
-                  <Text className={`font-inter text-sm ${opt.id === value ? 'font-bold text-primary-700' : 'text-primary-950 dark:text-white'}`}>{opt.label}</Text>
-                </Pressable>
-              ))}
-              {filteredOptions.length === 0 && (
-                <Text className="py-4 text-center font-inter text-sm text-neutral-400">No options found</Text>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
 function ChipSelector({ label, options, value, onSelect }: { label: string; options: string[]; value: string; onSelect: (v: string) => void }) {
   return (
     <View style={styles.fieldWrap}>
@@ -175,12 +121,11 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 // ============ INITIATE EXIT MODAL ============
 
 function InitiateExitModal({
-  visible, onClose, onSave, isSaving, employeeOptions,
+  visible, onClose, onSave, isSaving,
 }: {
   visible: boolean; onClose: () => void;
   onSave: (data: Record<string, unknown>) => void;
   isSaving: boolean;
-  employeeOptions: { id: string; label: string }[];
 }) {
   const insets = useSafeAreaInsets();
   const [employeeId, setEmployeeId] = React.useState('');
@@ -206,9 +151,12 @@ function InitiateExitModal({
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Initiate Exit</Text>
 
-            <Dropdown
-              label="Employee" value={employeeId} options={employeeOptions}
-              onSelect={setEmployeeId} placeholder="Select Employee" required
+            <EmployeePicker
+              label="Employee"
+              value={employeeId || null}
+              onChange={(id) => setEmployeeId(id ?? '')}
+              placeholder="Select Employee"
+              required
             />
 
             <ChipSelector
@@ -311,7 +259,6 @@ export function ExitRequestScreen() {
   const [showForm, setShowForm] = React.useState(false);
 
   const { data: exitData, isLoading, refetch } = useExitRequests();
-  const { data: empData } = useEmployees();
   const createMutation = useCreateExitRequest();
 
   const confirmModal = useConfirmModal();
@@ -320,12 +267,6 @@ export function ExitRequestScreen() {
     const raw = (exitData as any)?.data ?? (exitData as any) ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [exitData]);
-
-  const employeeOptions = React.useMemo(() => {
-    const raw = (empData as any)?.data ?? (empData as any) ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({ id: e.id, label: e.name || `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() }));
-  }, [empData]);
 
   const filtered = React.useMemo(() => {
     let list = exitRequests;
@@ -398,7 +339,6 @@ export function ExitRequestScreen() {
       <InitiateExitModal
         visible={showForm} onClose={() => setShowForm(false)}
         onSave={handleSave} isSaving={createMutation.isPending}
-        employeeOptions={employeeOptions}
       />
 
       <ConfirmModal {...confirmModal.modalProps} />

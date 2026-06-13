@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { payrollApi } from '@/lib/api/payroll';
+import { payrollApi, type StatutoryToggles, type StatutoryTogglesPatch } from '@/lib/api/payroll';
 import { payrollKeys } from '@/features/company-admin/api/use-payroll-queries';
 
 // ── Salary Components ───────────────────────────────────────────────
@@ -108,6 +108,47 @@ export function useUpdateEmployeeSalary() {
       queryClient.invalidateQueries({
         queryKey: payrollKeys.employeeSalary(variables.id),
       });
+    },
+  });
+}
+
+// ── Statutory Toggles ───────────────────────────────────────────────
+
+/** Update statutory toggles with optimistic update */
+export function useUpdateStatutoryToggles() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: StatutoryTogglesPatch) =>
+      payrollApi.updateStatutoryToggles(data),
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: payrollKeys.statutoryToggles() });
+      const previous = queryClient.getQueryData<unknown>(payrollKeys.statutoryToggles());
+      queryClient.setQueryData(payrollKeys.statutoryToggles(), (old: unknown) => {
+        const prev = old as { data?: StatutoryToggles } | StatutoryToggles | undefined;
+        const current = (prev as { data?: StatutoryToggles })?.data ?? (prev as StatutoryToggles | undefined);
+        const next: StatutoryToggles = {
+          pfEnabled: current?.pfEnabled ?? true,
+          esiEnabled: current?.esiEnabled ?? true,
+          ptEnabled: current?.ptEnabled ?? true,
+          lwfEnabled: current?.lwfEnabled ?? true,
+          gratuityEnabled: current?.gratuityEnabled ?? true,
+          bonusEnabled: current?.bonusEnabled ?? true,
+          ...patch,
+        };
+        if (prev && typeof prev === 'object' && 'data' in (prev as object)) {
+          return { ...(prev as object), data: next };
+        }
+        return next;
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(payrollKeys.statutoryToggles(), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.statutoryToggles() });
     },
   });
 }

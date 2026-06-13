@@ -15,7 +15,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { HelpDrawer } from '@/components/ui/help-drawer';
@@ -273,164 +273,58 @@ function HoldSheet({ visible, onClose, onSubmit, isSubmitting }: {
     );
 }
 
-// ── Assign Sheet (self-contained, inline employee search) ──
-function AssignSheet({ visible, onClose, onSubmit, isSubmitting, employees, empLoading }: {
+// ── Assign Sheet — uses shared <EmployeePicker> (server search + pagination) ──
+function AssignSheet({ visible, onClose, onSubmit, isSubmitting }: {
     visible: boolean;
     onClose: () => void;
     onSubmit: (data: { leadTechnicianId: string }) => void;
     isSubmitting: boolean;
-    employees: { id: string; name: string; code: string; sublabel: string }[];
-    empLoading: boolean;
 }) {
     const insets = useSafeAreaInsets();
     const isDark = useIsDark();
-    const [showList, setShowList] = React.useState(false);
-    const [query, setQuery] = React.useState('');
-    const [selectedId, setSelectedId] = React.useState('');
-    const [selectedName, setSelectedName] = React.useState('');
+    const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        if (visible) { setShowList(false); setQuery(''); setSelectedId(''); setSelectedName(''); }
+        if (visible) { setSelectedId(null); }
     }, [visible]);
-
-    const filtered = React.useMemo(() => {
-        if (!query.trim()) return employees;
-        const q = query.toLowerCase();
-        return employees.filter(e =>
-            e.name.toLowerCase().includes(q) ||
-            e.code.toLowerCase().includes(q) ||
-            e.sublabel.toLowerCase().includes(q),
-        );
-    }, [employees, query]);
 
     return (
         <RNModal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={[sheetStyles.container, { paddingTop: insets.top + 8, backgroundColor: isDark ? '#1A1730' : colors.white }]}>
-                {/* Header */}
                 <View style={[sheetStyles.header, { borderBottomColor: isDark ? colors.neutral[700] : colors.neutral[100] }]}>
-                    {showList ? (
-                        <Pressable onPress={() => { setShowList(false); setQuery(''); }}>
-                            <Text className="font-inter text-sm font-semibold text-primary-600 dark:text-primary-400">Back</Text>
-                        </Pressable>
-                    ) : (
-                        <Pressable onPress={onClose}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
-                    )}
-                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">
-                        {showList ? 'Select Technician' : 'Assign Technician'}
-                    </Text>
+                    <Pressable onPress={onClose}><Text className="font-inter text-sm font-semibold text-neutral-500">Cancel</Text></Pressable>
+                    <Text className="font-inter text-base font-bold text-primary-950 dark:text-white">Assign Technician</Text>
                     <View style={{ width: 52 }} />
                 </View>
 
-                {/* ── View A: Trigger (default) ── */}
-                {!showList && (
-                    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
-                        <View style={sheetStyles.field}>
-                            <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
-                                Lead Technician <Text className="text-danger-500">*</Text>
-                            </Text>
-                            <Pressable
-                                onPress={() => setShowList(true)}
-                                style={[sheetStyles.pickerTrigger, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}
-                            >
-                                <Text
-                                    className={`font-inter text-sm ${selectedName ? 'font-semibold text-primary-950 dark:text-white' : 'text-neutral-400'}`}
-                                    numberOfLines={1}
-                                    style={{ flex: 1 }}
-                                >
-                                    {empLoading ? 'Loading employees...' : (selectedName || 'Tap to search & select a technician...')}
-                                </Text>
-                                <Svg width={16} height={16} viewBox="0 0 24 24">
-                                    <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                </Svg>
-                            </Pressable>
-                            {selectedId ? (() => {
-                                const emp = employees.find(e => e.id === selectedId);
-                                return emp ? (
-                                    <Text className="mt-1.5 font-inter text-xs text-neutral-400">{emp.sublabel}</Text>
-                                ) : null;
-                            })() : null}
-                            {selectedName ? (
-                                <Text className="mt-1 font-inter text-xs font-semibold text-success-600 dark:text-success-400">✓ Technician selected</Text>
-                            ) : null}
-                        </View>
-                    </ScrollView>
-                )}
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <EmployeePicker
+                        label="Lead Technician"
+                        required
+                        value={selectedId}
+                        onChange={(id) => setSelectedId(id)}
+                        placeholder="Tap to search & select a technician..."
+                    />
+                    {selectedId ? (
+                        <Text className="mt-1 font-inter text-xs font-semibold text-success-600 dark:text-success-400">
+                            ✓ Technician selected
+                        </Text>
+                    ) : null}
+                </ScrollView>
 
-                {/* ── View B: Inline search list ── */}
-                {showList && (
-                    <View style={{ flex: 1 }}>
-                        {/* Search bar */}
-                        <View style={[sheetStyles.inlineSearch, { backgroundColor: isDark ? '#1E1B4B' : colors.neutral[50], borderColor: isDark ? colors.neutral[700] : colors.neutral[200] }]}>
-                            <Svg width={16} height={16} viewBox="0 0 24 24" style={{ marginRight: 8 }}>
-                                <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={colors.neutral[400]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                            </Svg>
-                            <TextInput
-                                style={{ flex: 1, fontFamily: 'Inter', fontSize: 14, color: isDark ? colors.white : colors.primary[950] }}
-                                placeholder="Search by name, ID or department..."
-                                placeholderTextColor={colors.neutral[400]}
-                                value={query}
-                                onChangeText={setQuery}
-                                autoFocus
-                            />
-                            {query.length > 0 && (
-                                <Pressable onPress={() => setQuery('')}>
-                                    <Text className="font-inter text-xs text-neutral-400 px-1">×</Text>
-                                </Pressable>
-                            )}
-                        </View>
-                        {/* Employee list */}
-                        <ScrollView
-                            style={{ flex: 1 }}
-                            keyboardShouldPersistTaps="handled"
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 16 }}
-                        >
-                            {empLoading ? (
-                                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-                                    <ActivityIndicator color={colors.primary[500]} />
-                                    <Text className="font-inter text-sm text-neutral-400 mt-2">Loading employees...</Text>
-                                </View>
-                            ) : filtered.length === 0 ? (
-                                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-                                    <Text className="font-inter text-sm text-neutral-400">No employees found</Text>
-                                </View>
-                            ) : filtered.map(emp => (
-                                <Pressable
-                                    key={emp.id}
-                                    onPress={() => {
-                                        setSelectedId(emp.id);
-                                        setSelectedName(emp.name);
-                                        setShowList(false);
-                                        setQuery('');
-                                    }}
-                                    style={[
-                                        sheetStyles.pickerItem,
-                                        { borderBottomColor: isDark ? colors.neutral[800] : colors.neutral[100] },
-                                        emp.id === selectedId && { backgroundColor: isDark ? colors.primary[900] : colors.primary[50], borderRadius: 10 },
-                                    ]}
-                                >
-                                    <Text className={`font-inter text-sm font-semibold ${emp.id === selectedId ? 'text-primary-700 dark:text-primary-300' : 'text-primary-950 dark:text-white'}`}>
-                                        {emp.name}
-                                    </Text>
-                                    <Text className="font-inter text-xs text-neutral-400 mt-0.5">{emp.sublabel || emp.code}</Text>
-                                </Pressable>
-                            ))}
-                        </ScrollView>
-                    </View>
-                )}
-
-                {/* Submit button — only visible in trigger view */}
-                {!showList && (
-                    <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
-                        <Pressable
-                            style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, (isSubmitting || !selectedId) && { opacity: 0.6 }]}
-                            onPress={() => { if (selectedId) onSubmit({ leadTechnicianId: selectedId }); }}
-                            disabled={isSubmitting || !selectedId}
-                        >
-                            {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Assign</Text>}
-                        </Pressable>
-                    </View>
-                )}
+                <View style={[sheetStyles.submitContainer, { paddingBottom: insets.bottom + 16, borderTopColor: isDark ? colors.neutral[700] : colors.neutral[100], backgroundColor: isDark ? '#1A1730' : colors.white }]}>
+                    <Pressable
+                        style={({ pressed }) => [sheetStyles.submitBtn, pressed && { opacity: 0.85 }, (isSubmitting || !selectedId) && { opacity: 0.6 }]}
+                        onPress={() => { if (selectedId) onSubmit({ leadTechnicianId: selectedId }); }}
+                        disabled={isSubmitting || !selectedId}
+                    >
+                        {isSubmitting ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-inter text-base font-bold text-white">Assign</Text>}
+                    </Pressable>
+                </View>
             </View>
         </RNModal>
     );
@@ -521,8 +415,11 @@ export function WorkOrderDetailScreen() {
     const [closeVisible, setCloseVisible] = React.useState(false);
     const [reopenVisible, setReopenVisible] = React.useState(false);
 
-    // Employee list for AssignSheet picker
-    const { data: empData, isLoading: empLoading } = useEmployees({ limit: 500 });
+    // Employee list — retained ONLY for fallback name resolution on the
+    // Lead Technician / labour log rows where the response doesn't include
+    // a nested technician object. The Assign sheet's picker now uses
+    // <EmployeePicker> with proper server-side search + pagination.
+    const { data: empData } = useEmployees({ limit: 500 });
     const employeeOptions = React.useMemo(() => {
         const raw: any[] = (empData as any)?.data ?? [];
         return raw.map((e: any) => ({
@@ -1109,8 +1006,6 @@ export function WorkOrderDetailScreen() {
                 onClose={() => setAssignVisible(false)}
                 onSubmit={handleAssign}
                 isSubmitting={assignMut.isPending}
-                employees={employeeOptions}
-                empLoading={empLoading}
             />
             <ReasonSheet
                 visible={closeVisible}

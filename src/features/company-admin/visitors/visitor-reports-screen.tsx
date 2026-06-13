@@ -25,6 +25,7 @@ import {
   useVisitorAnalytics,
 } from '@/features/company-admin/api/use-visitor-queries';
 import { VisitStatusBadge } from '@/features/company-admin/visitors/components/visit-status-badge';
+import { useReportExport } from '@/features/company-admin/visitors/use-report-export';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -262,6 +263,7 @@ export function VisitorReportsScreen() {
   const fmt = useCompanyFormatter();
 
   const [activeTab, setActiveTab] = React.useState<TabKey>('daily');
+  const { exportActiveTab } = useReportExport(activeTab);
 
   const renderTab = () => {
     switch (activeTab) {
@@ -279,8 +281,20 @@ export function VisitorReportsScreen() {
       <AppTopHeader title="Visitor Reports" onMenuPress={toggle} />
 
       <Animated.View entering={FadeInDown.duration(400)} style={s.headerContent}>
-        <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Reports</Text>
-        <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Visitor data and insights</Text>
+        <View style={s.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Text className="font-inter text-2xl font-bold text-primary-950 dark:text-white">Reports</Text>
+            <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">Visitor data and insights</Text>
+          </View>
+          <Pressable
+            onPress={() => exportActiveTab('csv')}
+            accessibilityRole="button"
+            accessibilityLabel="Export current report as CSV"
+            style={({ pressed }) => [s.exportBtn, pressed && { transform: [{ scale: 0.96 }] }]}
+          >
+            <Text className="font-inter text-xs font-bold text-white">Export CSV</Text>
+          </Pressable>
+        </View>
 
         {/* Tab Row */}
         <View style={s.tabRow}>
@@ -304,6 +318,8 @@ export function VisitorReportsScreen() {
 const createStyles = (isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: isDark ? '#0F0D1A' : colors.gradient.surface },
   headerContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  exportBtn: { backgroundColor: colors.primary[600], paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
   tabRow: { flexDirection: 'row', marginTop: 16, backgroundColor: isDark ? '#1A1730' : colors.neutral[100], borderRadius: 12, padding: 4 },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 },
   tabActive: { backgroundColor: colors.primary[600] },

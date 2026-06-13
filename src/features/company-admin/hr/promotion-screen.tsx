@@ -16,7 +16,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
@@ -27,7 +27,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useDesignations, useEmployees, useGrades } from '@/features/company-admin/api/use-hr-queries';
+import { useDesignations, useGrades } from '@/features/company-admin/api/use-hr-queries';
 import {
     useApplyPromotion,
     useApprovePromotion,
@@ -149,11 +149,10 @@ function Dropdown({
 // ============ CREATE MODAL ============
 
 function CreatePromotionModal({
-    visible, onClose, onSave, isSaving, employeeOptions, designationOptions, gradeOptions,
+    visible, onClose, onSave, isSaving, designationOptions, gradeOptions,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void; isSaving: boolean;
-    employeeOptions: { id: string; label: string }[];
     designationOptions: { id: string; label: string }[];
     gradeOptions: { id: string; label: string }[];
 }) {
@@ -193,7 +192,13 @@ function CreatePromotionModal({
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Initiate Promotion</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                        <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Search employee..." required searchable />
+                        <EmployeePicker
+                            label="Employee"
+                            value={employeeId || null}
+                            onChange={(id) => setEmployeeId(id ?? '')}
+                            placeholder="Search employee..."
+                            required
+                        />
                         <Dropdown label="To Designation" value={toDesignation} options={designationOptions} onSelect={setToDesignation} placeholder="Select designation..." required />
                         <Dropdown label="To Grade" value={toGrade} options={gradeOptions} onSelect={setToGrade} placeholder="Select grade..." />
                         <View style={styles.fieldWrap}>
@@ -361,7 +366,6 @@ export function PromotionScreen() {
     const rejectMutation = useRejectPromotion();
     const cancelMutation = useCancelPromotion();
 
-    const { data: empResponse } = useEmployees();
     const { data: desigResponse } = useDesignations();
     const { data: gradeResponse } = useGrades();
 
@@ -370,12 +374,6 @@ export function PromotionScreen() {
     const [rejectingId, setRejectingId] = React.useState('');
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<'All' | PromotionStatus>('All');
-
-    const employeeOptions = React.useMemo(() => {
-        const raw = (empResponse as any)?.data ?? empResponse ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.name || '' }));
-    }, [empResponse]);
 
     const designationOptions = React.useMemo(() => {
         const raw = (desigResponse as any)?.data ?? desigResponse ?? [];
@@ -474,7 +472,7 @@ export function PromotionScreen() {
             />
             <FAB onPress={() => setFormVisible(true)} />
             <CreatePromotionModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleCreate} isSaving={createMutation.isPending}
-                employeeOptions={employeeOptions} designationOptions={designationOptions} gradeOptions={gradeOptions} />
+                designationOptions={designationOptions} gradeOptions={gradeOptions} />
             <RejectionNoteModal visible={rejectionModalVisible} onClose={() => setRejectionModalVisible(false)} onSubmit={handleRejectSubmit} isSubmitting={rejectMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>

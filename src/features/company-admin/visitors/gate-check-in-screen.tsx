@@ -26,12 +26,12 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { DropdownField } from '@/components/ui/dropdown-field';
+import { EmployeePicker } from '@/components/ui/employee-picker';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showSuccess, showWarning } from '@/components/ui/utils';
 
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
   useCheckInRecurringPass,
   useCheckInVisit,
@@ -96,16 +96,6 @@ function WalkInForm({
   const [selectedTypeId, setSelectedTypeId] = React.useState('');
   const [visitorPhoto, setVisitorPhoto] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-
-  const { data: employeesResponse } = useEmployees({ limit: 500 });
-  const employeeOptions = React.useMemo(() => {
-    const raw = (employeesResponse as any)?.data ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({
-      id: e.id,
-      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
-    }));
-  }, [employeesResponse]);
 
   const { data: locationsResponse } = useCompanyLocations();
   const locationOptions = React.useMemo(() => {
@@ -228,11 +218,10 @@ function WalkInForm({
       </View>
 
       {/* Host */}
-      <DropdownField
+      <EmployeePicker
         label="Host Employee"
-        selected={hostEmployeeId}
-        onSelect={setHostEmployeeId}
-        options={employeeOptions}
+        value={hostEmployeeId || null}
+        onChange={(id) => setHostEmployeeId(id ?? '')}
         placeholder="Select host employee..."
       />
 
@@ -957,14 +946,12 @@ function QuickCreateMaterialModal({
   onCreated,
   gates,
   locations,
-  employees,
 }: {
   visible: boolean;
   onClose: () => void;
   onCreated: (passId: string, type: typeof MATERIAL_TYPES[number]) => void;
   gates: { id: string; name: string; plantId?: string }[];
   locations: { id: string; name: string }[];
-  employees: { id: string; name: string }[];
 }) {
   const isDark = useIsDark();
   const insets = useSafeAreaInsets();
@@ -1036,7 +1023,13 @@ function QuickCreateMaterialModal({
             <FieldText label="Description *" value={description} onChange={setDescription} multiline />
             <FieldText label="Quantity" value={qty} onChange={setQty} keyboardType="decimal-pad" placeholder="e.g. 1500" />
             <FieldText label="Vendor / Source" value={vendor} onChange={setVendor} />
-            <FieldDropdown label="Authorized By *" value={authorizedBy} onChange={setAuthorizedBy} options={employees} searchable />
+            <EmployeePicker
+              label="Authorized By"
+              value={authorizedBy || null}
+              onChange={(id) => setAuthorizedBy(id ?? '')}
+              placeholder="Select authorized person..."
+              required
+            />
             <FieldText label="Purpose *" value={purpose} onChange={setPurpose} multiline />
             <FieldDropdown label="Plant *" value={plantId} onChange={(v) => { setPlantId(v); setGateId(''); }} options={locations} />
             <FieldDropdown label="Gate *" value={gateId} onChange={setGateId} options={filteredGates} />
@@ -1335,7 +1328,6 @@ export function GateCheckInScreen() {
   const { data: configResponse } = useVMSConfig();
   const { data: gatesResponse } = useGates();
   const { data: locationsResponse } = useCompanyLocations();
-  const { data: employeesResponse } = useEmployees({ limit: 500 });
   const { data: gateOpsStatsResp, refetch: refetchStats, isFetching: isFetchingStats } = useGateOpsStats();
   const { data: expectedMaterialsResp, refetch: refetchExpected, isFetching: isFetchingExpected } = useGateOpsExpectedMaterials({ limit: 5 });
   const { data: expectedVisitorsResp, refetch: refetchExpectedVisitors } = useGateOpsExpectedVisitors({ limit: 5 });
@@ -1379,15 +1371,6 @@ export function GateCheckInScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((l: any) => ({ id: l.id, name: l.name ?? l.code ?? l.id }));
   }, [locationsResponse]);
-
-  const employeesList = React.useMemo(() => {
-    const raw = (employeesResponse as any)?.data ?? employeesResponse ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({
-      id: e.id,
-      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
-    }));
-  }, [employeesResponse]);
 
   const refreshAll = React.useCallback(() => {
     refetchStats();
@@ -1474,6 +1457,18 @@ export function GateCheckInScreen() {
 
   const handleRecordVehicleEntry = () => {
     if (!passInfo || passInfo.type !== 'vehicle_pass') return;
+    // Block duplicate check-in: if vehicle is currently inside (last event
+    // was ENTRY with no EXIT), prompt the user to check it out instead.
+    if (passInfo.data.currentlyInside) {
+      confirm({
+        title: 'Already Checked In',
+        message: 'Vehicle is already checked in. Click Check-Out to process exit.',
+        confirmText: 'Record Exit',
+        variant: 'primary',
+        onConfirm: () => setScanCaptureMode({ kind: 'vehicle-exit', pass: passInfo.data }),
+      });
+      return;
+    }
     setScanCaptureMode({ kind: 'vehicle-entry', pass: passInfo.data });
   };
 
@@ -1875,24 +1870,33 @@ export function GateCheckInScreen() {
                 <View style={{ marginTop: 16, gap: 10 }}>
                   {passInfo.data.status === 'ACTIVE' ? (
                     <>
-                      <Pressable
-                        onPress={handleRecordVehicleEntry}
-                        disabled={recordVehicleEntryMutation.isPending}
-                        style={[preCheckInStyles.checkInBtn, recordVehicleEntryMutation.isPending && { opacity: 0.5 }]}
-                      >
-                        <Text className="font-inter text-sm font-bold text-white">
-                          {recordVehicleEntryMutation.isPending ? 'Recording…' : '↓ Record Entry'}
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={handleRecordVehicleExit}
-                        disabled={recordVehicleExitMutation.isPending}
-                        style={[preCheckInStyles.checkInBtn, { backgroundColor: colors.warning[600] }, recordVehicleExitMutation.isPending && { opacity: 0.5 }]}
-                      >
-                        <Text className="font-inter text-sm font-bold text-white">
-                          {recordVehicleExitMutation.isPending ? 'Recording…' : '↑ Record Exit'}
-                        </Text>
-                      </Pressable>
+                      {passInfo.data.currentlyInside ? (
+                        <View style={[preCheckInStyles.sectionCard, { borderColor: colors.info[300], borderWidth: 1.5, backgroundColor: colors.info[50] }]}>
+                          <Text className="font-inter text-sm font-bold text-info-700 text-center">Vehicle is already checked in.</Text>
+                          <Text className="font-inter text-xs text-info-600 text-center mt-1">Click Check-Out to process exit.</Text>
+                        </View>
+                      ) : (
+                        <Pressable
+                          onPress={handleRecordVehicleEntry}
+                          disabled={recordVehicleEntryMutation.isPending}
+                          style={[preCheckInStyles.checkInBtn, recordVehicleEntryMutation.isPending && { opacity: 0.5 }]}
+                        >
+                          <Text className="font-inter text-sm font-bold text-white">
+                            {recordVehicleEntryMutation.isPending ? 'Recording…' : '↓ Record Entry'}
+                          </Text>
+                        </Pressable>
+                      )}
+                      {passInfo.data.currentlyInside && (
+                        <Pressable
+                          onPress={handleRecordVehicleExit}
+                          disabled={recordVehicleExitMutation.isPending}
+                          style={[preCheckInStyles.checkInBtn, { backgroundColor: colors.warning[600] }, recordVehicleExitMutation.isPending && { opacity: 0.5 }]}
+                        >
+                          <Text className="font-inter text-sm font-bold text-white">
+                            {recordVehicleExitMutation.isPending ? 'Recording…' : '↑ Record Check-Out'}
+                          </Text>
+                        </Pressable>
+                      )}
                       <Text className="font-inter text-[11px] text-neutral-500 text-center">
                         Valid until: {passInfo.data.validUntil ? fmt.date(passInfo.data.validUntil) : '—'}
                       </Text>
@@ -1990,7 +1994,6 @@ export function GateCheckInScreen() {
         }}
         gates={gatesList}
         locations={locationsList}
-        employees={employeesList}
       />
 
       {/* Scan Capture Modal — quantity / notes / odometer */}

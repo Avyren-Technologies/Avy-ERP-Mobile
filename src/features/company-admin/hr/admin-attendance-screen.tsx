@@ -475,6 +475,17 @@ export function AdminAttendanceScreen() {
   const bookMeta = (bookData as any)?.meta;
 
   // Initialize row states from fetched book employees
+  // Convert an ISO punch timestamp to "HH:mm" in the company timezone so it
+  // can be put back into the time picker on refresh.
+  const isoToHHmm = React.useCallback((iso: string | null | undefined): string => {
+    if (!iso) return '';
+    try {
+      return fmt.parseToZoned(iso).toFormat('HH:mm');
+    } catch {
+      return '';
+    }
+  }, [fmt]);
+
   React.useEffect(() => {
     if (mode !== 'book' || !bookEmployees.length) return;
     setBookRowStates(prev => {
@@ -488,9 +499,11 @@ export function AdminAttendanceScreen() {
           firstHalfLeaveTypeId: firstHalfRecord?.leaveTypeId ?? undefined,
           secondHalf: (secondHalfRecord?.status as HalfDayStatus) ?? 'PRESENT',
           secondHalfLeaveTypeId: secondHalfRecord?.leaveTypeId ?? undefined,
-          punchInOverride: '',
-          punchOutOverride: '',
-          remarks: '',
+          // Seed previously saved punch times so a refresh keeps them visible
+          // instead of resetting the input to empty.
+          punchInOverride: isoToHHmm(emp.existingRecord?.punchIn),
+          punchOutOverride: isoToHHmm(emp.existingRecord?.punchOut),
+          remarks: emp.existingRecord?.remarks ?? '',
           forceOverride: false,
           dirty: false,
           saving: false,
@@ -501,7 +514,7 @@ export function AdminAttendanceScreen() {
       }
       return next;
     });
-  }, [bookEmployees, mode]);
+  }, [bookEmployees, mode, isoToHHmm]);
 
   // Book mark mutation (single row auto-save)
   const bookMarkMut = useMutation({
@@ -554,6 +567,15 @@ export function AdminAttendanceScreen() {
     },
   });
 
+  // A row is only safe to submit when any half marked ON_LEAVE has a leave
+  // type chosen — the backend rejects ON_LEAVE without a leaveTypeId.
+  const isRowReadyToSave = React.useCallback((row: BookRowState | undefined): boolean => {
+    if (!row) return false;
+    if (row.firstHalf === 'ON_LEAVE' && !row.firstHalfLeaveTypeId) return false;
+    if (row.secondHalf === 'ON_LEAVE' && !row.secondHalfLeaveTypeId) return false;
+    return true;
+  }, []);
+
   // Book mode handlers
   const updateBookRow = React.useCallback((employeeId: string, updates: Partial<BookRowState>) => {
     setBookRowStates(prev => {
@@ -570,6 +592,9 @@ export function AdminAttendanceScreen() {
         const row = prev[employeeId];
         if (!row || !row.dirty) return prev;
         const merged = { ...row, ...updates };
+        // Defer auto-save until the user picks a leave type for any ON_LEAVE
+        // half. Row stays dirty; next change restarts the debounce and saves.
+        if (!isRowReadyToSave(merged)) return prev;
         bookMarkMut.mutate({
           employeeId,
           date: bookDate,
@@ -584,15 +609,21 @@ export function AdminAttendanceScreen() {
         return { ...prev, [employeeId]: { ...row, saving: true } };
       });
     }, 500);
-  }, [bookDate, bookMarkMut]);
+  }, [bookDate, bookMarkMut, isRowReadyToSave]);
 
   const handleBookOverride = React.useCallback((employeeId: string) => {
     updateBookRow(employeeId, { forceOverride: true });
   }, [updateBookRow]);
 
   const handleSaveAllUnsaved = React.useCallback(() => {
+    const skippedEmployeeIds: string[] = [];
     const dirtyEntries = Object.entries(bookRowStates)
       .filter(([, row]) => row.dirty && !row.saving)
+      .filter(([empId, row]) => {
+        if (isRowReadyToSave(row)) return true;
+        skippedEmployeeIds.push(empId);
+        return false;
+      })
       .map(([empId, row]) => ({
         employeeId: empId,
         firstHalf: { status: row.firstHalf, leaveTypeId: row.firstHalf === 'ON_LEAVE' ? row.firstHalfLeaveTypeId : undefined },
@@ -603,11 +634,27 @@ export function AdminAttendanceScreen() {
         forceOverride: row.forceOverride || undefined,
         existingRecordUpdatedAt: row.existingRecordUpdatedAt,
       }));
+
+    if (skippedEmployeeIds.length > 0) {
+      setBookRowStates(prev => {
+        const next = { ...prev };
+        for (const empId of skippedEmployeeIds) {
+          if (next[empId]) {
+            next[empId] = { ...next[empId], error: 'Pick a leave type for the half marked On Leave to enable save.' };
+          }
+        }
+        return next;
+      });
+    }
+
     if (dirtyEntries.length === 0) return;
     bookSaveAllMut.mutate({ date: bookDate, entries: dirtyEntries });
-  }, [bookRowStates, bookDate, bookSaveAllMut]);
+  }, [bookRowStates, bookDate, bookSaveAllMut, isRowReadyToSave]);
 
-  const dirtyCount = React.useMemo(() => Object.values(bookRowStates).filter(r => r.dirty && !r.saving).length, [bookRowStates]);
+  const dirtyCount = React.useMemo(
+    () => Object.values(bookRowStates).filter(r => r.dirty && !r.saving && isRowReadyToSave(r)).length,
+    [bookRowStates, isRowReadyToSave],
+  );
 
   // Handlers
   const handleSelectEmployee = React.useCallback((emp: any) => {

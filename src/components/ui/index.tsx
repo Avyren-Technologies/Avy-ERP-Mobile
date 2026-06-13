@@ -7,6 +7,7 @@ export * from './checkbox';
 export { default as colors } from './colors';
 export * from './confirm-modal';
 export * from './dropdown-field';
+export * from './employee-picker';
 export * from './empty-state';
 export * from './focus-aware-status-bar';
 export { HelpDrawer } from './help-drawer';

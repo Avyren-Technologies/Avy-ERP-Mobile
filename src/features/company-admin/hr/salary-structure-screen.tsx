@@ -32,7 +32,7 @@ import {
     useDeleteSalaryStructure,
     useUpdateSalaryStructure,
 } from '@/features/company-admin/api/use-payroll-mutations';
-import { useSalaryComponents, useSalaryStructures, usePFConfig, useESIConfig, useGratuityConfig } from '@/features/company-admin/api/use-payroll-queries';
+import { useSalaryComponents, useSalaryStructures, usePFConfig, useESIConfig, useGratuityConfig, useStatutoryToggles } from '@/features/company-admin/api/use-payroll-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -336,6 +336,15 @@ function SalaryStructureForm({
     const esiCfg = (esiCfgData as any)?.data;
     const { data: gratCfgData } = useGratuityConfig();
     const gratCfg = (gratCfgData as any)?.data;
+    const { data: togglesData } = useStatutoryToggles();
+    const statToggles = React.useMemo(() => {
+        const d = (togglesData as any)?.data ?? togglesData ?? {};
+        return {
+            pfEnabled: d?.pfEnabled ?? true,
+            esiEnabled: d?.esiEnabled ?? true,
+            gratuityEnabled: d?.gratuityEnabled ?? true,
+        };
+    }, [togglesData]);
 
     const statutoryRows = React.useMemo(() => {
         const rows: { label: string; monthly: number; category: 'deduction' | 'employer' }[] = [];
@@ -349,27 +358,27 @@ function SalaryStructureForm({
             if (master.esiInclusion) esiBase += val;
             if (master.gratuityInclusion) gratBase += val;
         }
-        if (pfCfg && pfBase > 0) {
+        if (statToggles.pfEnabled && pfCfg && pfBase > 0) {
             const capped = Math.min(pfBase, Number(pfCfg.wageCeiling ?? 15000));
             rows.push({ label: 'PF (Employee)', monthly: Math.round(capped * Number(pfCfg.employeeRate ?? 12) / 100), category: 'deduction' });
             const epfRate = Number(pfCfg.employerEpfRate ?? 3.67);
             const epsRate = Number(pfCfg.employerEpsRate ?? 8.33);
             rows.push({ label: 'PF (Employer)', monthly: Math.round(capped * (epfRate + epsRate) / 100), category: 'employer' });
         }
-        if (esiCfg) {
+        if (statToggles.esiEnabled && esiCfg) {
             const base = esiBase > 0 ? esiBase : monthlyGross;
             if (base <= Number(esiCfg.wageCeiling ?? 21000)) {
                 rows.push({ label: 'ESI (Employee)', monthly: Math.round(base * Number(esiCfg.employeeRate ?? 0.75) / 100), category: 'deduction' });
                 rows.push({ label: 'ESI (Employer)', monthly: Math.round(base * Number(esiCfg.employerRate ?? 3.25) / 100), category: 'employer' });
             }
         }
-        if (gratCfg?.provisionMethod === 'MONTHLY' && gratBase > 0) {
+        if (statToggles.gratuityEnabled && gratCfg?.provisionMethod === 'MONTHLY' && gratBase > 0) {
             const annual = (gratBase * 15 * 1) / 26;
             const capped = Math.min(annual, Number(gratCfg.maxAmount ?? 2000000));
             rows.push({ label: 'Gratuity (Employer)', monthly: Math.round(capped / 12), category: 'employer' });
         }
         return rows;
-    }, [components, previewRows, allComps, pfCfg, esiCfg, gratCfg, monthlyGross]);
+    }, [components, previewRows, allComps, pfCfg, esiCfg, gratCfg, monthlyGross, statToggles]);
 
     if (!visible) return null;
 

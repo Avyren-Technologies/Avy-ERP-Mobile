@@ -64,6 +64,17 @@ export interface PTConfigListParams {
   limit?: number;
 }
 
+export interface StatutoryToggles {
+  pfEnabled: boolean;
+  esiEnabled: boolean;
+  ptEnabled: boolean;
+  lwfEnabled: boolean;
+  gratuityEnabled: boolean;
+  bonusEnabled: boolean;
+}
+
+export type StatutoryTogglesPatch = Partial<StatutoryToggles>;
+
 export interface LWFConfigListParams {
   page?: number;
   limit?: number;
@@ -135,6 +146,12 @@ export const payrollApi = {
 
   updateEmployeeSalary: (id: string, data: Record<string, unknown>) =>
     client.patch(`/hr/employee-salaries/${id}`, data),
+
+  // ── Statutory Toggles (enable/disable per component) ──────────────
+  getStatutoryToggles: () => client.get('/hr/statutory-config/toggles'),
+
+  updateStatutoryToggles: (data: StatutoryTogglesPatch) =>
+    client.patch('/hr/statutory-config/toggles', data),
 
   // ── Statutory Config — PF ─────────────────────────────────────────
   getPFConfig: () => client.get('/hr/payroll/pf-config'),

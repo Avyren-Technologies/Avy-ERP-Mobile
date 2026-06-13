@@ -24,7 +24,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
@@ -36,7 +36,6 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { showError, showErrorMessage, showSuccess } from '@/components/ui/utils';
 
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
     useApproveLeaveRequest,
     useCancelLeaveRequest,
@@ -179,13 +178,12 @@ function ChipSelector({ label, options, value, onSelect }: { label: string; opti
 // ============ APPLY LEAVE MODAL ============
 
 function ApplyLeaveModal({
-    visible, onClose, onSave, isSaving, leaveTypeOptions, employeeOptions,
+    visible, onClose, onSave, isSaving, leaveTypeOptions,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     isSaving: boolean;
     leaveTypeOptions: { id: string; label: string }[];
-    employeeOptions: { id: string; label: string }[];
 }) {
     const insets = useSafeAreaInsets();
     const [employeeId, setEmployeeId] = React.useState('');
@@ -253,15 +251,14 @@ function ApplyLeaveModal({
                 </View>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 60 }}>
-                        <Dropdown
+                        <EmployeePicker
                             label="EMPLOYEE NAME"
-                            value={employeeId}
-                            options={employeeOptions}
-                            onSelect={setEmployeeId}
+                            value={employeeId || null}
+                            onChange={(id) => setEmployeeId(id ?? '')}
                             placeholder="SELECT EMPLOYEE"
                             required
                         />
-                        
+
                         <Dropdown label="LEAVE TYPE" value={leaveTypeId} options={leaveTypeOptions} onSelect={setLeaveTypeId} placeholder="SELECT LEAVE TYPE" required />
                         
                         <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -480,7 +477,6 @@ export function LeaveRequestScreen() {
     const cancelMutation = useCancelLeaveRequest();
 
     const { data: ltResponse } = useLeaveTypes();
-    const { data: empResponse } = useEmployees();
 
     const [formVisible, setFormVisible] = React.useState(false);
     const [rejectionModalVisible, setRejectionModalVisible] = React.useState(false);
@@ -496,11 +492,6 @@ export function LeaveRequestScreen() {
     };
 
     const leaveTypeOptions = React.useMemo(() => mapOptions(ltResponse), [ltResponse]);
-    const employeeOptions = React.useMemo(() => {
-        const raw = (empResponse as any)?.data ?? empResponse ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.name || '' }));
-    }, [empResponse]);
 
     const requests: LeaveRequestItem[] = React.useMemo(() => {
         const raw = (response as any)?.data ?? response ?? [];
@@ -670,13 +661,12 @@ export function LeaveRequestScreen() {
                 refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} tintColor={colors.primary[500]} colors={[colors.primary[500]]} />}
             />
             <FAB onPress={() => setFormVisible(true)} />
-            <ApplyLeaveModal 
-                visible={formVisible} 
-                onClose={() => setFormVisible(false)} 
-                onSave={handleApplyLeave} 
-                isSaving={createMutation.isPending} 
-                leaveTypeOptions={leaveTypeOptions} 
-                employeeOptions={employeeOptions}
+            <ApplyLeaveModal
+                visible={formVisible}
+                onClose={() => setFormVisible(false)}
+                onSave={handleApplyLeave}
+                isSaving={createMutation.isPending}
+                leaveTypeOptions={leaveTypeOptions}
             />
             <RejectionNoteModal visible={rejectionModalVisible} onClose={() => setRejectionModalVisible(false)} onSubmit={handleRejectSubmit} isSubmitting={rejectMutation.isPending} />
             <ConfirmModal {...confirmModalProps} />

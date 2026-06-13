@@ -4,11 +4,13 @@ import {
   attendanceApi,
   getWeeklyReview,
   getWeeklyReviewSummary,
+  type AttendanceCalendarParams,
   type AttendanceListParams,
   type AttendanceOverrideListParams,
+  type AttendanceRangeSummaryParams,
   type HolidayListParams,
-  type RosterListParams,
   type OvertimeRequestListParams,
+  type RosterListParams,
 } from '@/lib/api/attendance';
 
 // --- Query keys ---
@@ -23,6 +25,14 @@ export const attendanceKeys = {
 
   // Summary / Dashboard
   summary: () => [...attendanceKeys.all, 'summary'] as const,
+
+  // Range Summary (Monthly / Custom)
+  rangeSummary: (params: AttendanceRangeSummaryParams) =>
+    [...attendanceKeys.all, 'range-summary', params] as const,
+
+  // Calendar
+  calendar: (params: AttendanceCalendarParams) =>
+    [...attendanceKeys.all, 'calendar', params] as const,
 
   // Rules
   rules: () => [...attendanceKeys.all, 'rules'] as const,
@@ -79,6 +89,30 @@ export function useAttendanceSummary() {
   return useQuery({
     queryKey: attendanceKeys.summary(),
     queryFn: () => attendanceApi.getSummary(),
+  });
+}
+
+// --- Range Summary (Monthly / Custom) ---
+
+/** Aggregated summary for a date range (KPIs, department breakdown, daily trend) */
+export function useAttendanceRangeSummary(params: Partial<AttendanceRangeSummaryParams>) {
+  const enabled = !!params.dateFrom && !!params.dateTo;
+  return useQuery({
+    queryKey: attendanceKeys.rangeSummary(params as AttendanceRangeSummaryParams),
+    queryFn: () => attendanceApi.getRangeSummary(params as AttendanceRangeSummaryParams),
+    enabled,
+  });
+}
+
+// --- Calendar (per-employee day grid) ---
+
+/** Per-employee calendar grid for a date range */
+export function useAttendanceCalendar(params: Partial<AttendanceCalendarParams>) {
+  const enabled = !!params.dateFrom && !!params.dateTo;
+  return useQuery({
+    queryKey: attendanceKeys.calendar(params as AttendanceCalendarParams),
+    queryFn: () => attendanceApi.getCalendar(params as AttendanceCalendarParams),
+    enabled,
   });
 }
 

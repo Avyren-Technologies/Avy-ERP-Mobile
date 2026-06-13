@@ -19,10 +19,11 @@ import Svg, { Path } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
-import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
+import { ConfirmModal, useConfirmModal, type ConfirmModalVariant } from '@/components/ui/confirm-modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 
 import {
     useCreateLWFConfig,
@@ -33,6 +34,7 @@ import {
     useUpdateESIConfig,
     useUpdateGratuityConfig,
     useUpdatePFConfig,
+    useUpdateStatutoryToggles,
 } from '@/features/company-admin/api/use-payroll-mutations';
 import {
     useBonusConfig,
@@ -41,7 +43,9 @@ import {
     useLWFConfigs,
     usePFConfig,
     usePTConfigs,
+    useStatutoryToggles,
 } from '@/features/company-admin/api/use-payroll-queries';
+import { PT_SLAB_EXAMPLES, type PTGender, type PTSlabExample } from '@/features/company-admin/hr/pt-slab-examples';
 import { useIsDark } from '@/hooks/use-is-dark';
 
 // ============ TYPES ============
@@ -53,7 +57,16 @@ interface PFForm {
 
 interface ESIForm { employeeRate: string; employerRate: string; wageCeiling: string; }
 
-interface PTConfigItem { id: string; state: string; slabs: { fromAmount: number; toAmount: number; taxAmount: number }[]; frequency: string; registrationNumber: string; financialYear?: string; monthlyOverrides?: Record<string, number>; }
+interface PTConfigItem { id: string; state: string; slabs: { fromAmount: number; toAmount: number; taxAmount: number; gender?: PTGender }[]; frequency: string; registrationNumber: string; financialYear?: string; monthlyOverrides?: Record<string, number>; }
+
+interface StatutoryTogglesState {
+    pfEnabled: boolean;
+    esiEnabled: boolean;
+    ptEnabled: boolean;
+    lwfEnabled: boolean;
+    gratuityEnabled: boolean;
+    bonusEnabled: boolean;
+}
 
 interface GratuityForm { formula: string; baseSalary: string; maxAmount: string; provisionMethod: string; trustExists: boolean; }
 
@@ -73,6 +86,19 @@ const INDIAN_STATES = [
 
 const PT_FREQUENCIES = ['Monthly', 'Half-Yearly', 'Annual'];
 const LWF_FREQUENCIES = ['Monthly', 'Half-Yearly', 'Annual'];
+
+const STATUTORY_TOGGLE_LABEL: Record<string, string> = {
+    pfEnabled: 'Provident Fund (PF)',
+    esiEnabled: "Employees' State Insurance (ESI)",
+    ptEnabled: 'Professional Tax (PT)',
+    lwfEnabled: 'Labour Welfare Fund (LWF)',
+    gratuityEnabled: 'Gratuity',
+    bonusEnabled: 'Bonus',
+};
+
+function labelForToggle(key: string): string {
+    return STATUTORY_TOGGLE_LABEL[key] ?? key;
+}
 
 // ============ SHARED ATOMS ============
 
@@ -143,6 +169,23 @@ function SaveSectionBtn({ onPress, isPending, hasChanges }: { onPress: () => voi
     );
 }
 
+function DisabledOverlay({ disabled, children }: { disabled: boolean; children: React.ReactNode }) {
+    return (
+        <View>
+            <View style={disabled ? { opacity: 0.45 } : undefined} pointerEvents={disabled ? 'none' : 'auto'}>
+                {children}
+            </View>
+            {disabled && (
+                <View pointerEvents="box-only" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 18 }}>
+                    <View style={{ backgroundColor: 'rgba(15, 13, 26, 0.78)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 6 }}>
+                        <Text className="font-inter text-[10px] font-bold uppercase tracking-wider text-white">Disabled in Statutory Components</Text>
+                    </View>
+                </View>
+            )}
+        </View>
+    );
+}
+
 function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: string) => void }) {
     const [open, setOpen] = React.useState(false);
     return (
@@ -175,22 +218,50 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
 
 // ============ PT FORM MODAL ============
 
-function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean; onClose: () => void; onSave: (data: Record<string, unknown>) => void; isSaving: boolean }) {
+const PT_GENDER_OPTIONS: { value: PTGender; label: string }[] = [
+    { value: 'ALL', label: 'All Genders' },
+    { value: 'MALE', label: 'Male' },
+    { value: 'FEMALE', label: 'Female' },
+];
+
+interface PTSlabFormRow { from: string; to: string; tax: string; gender: PTGender }
+
+function PTFormModal({ visible, onClose, onSave, isSaving, showConfirm }: { visible: boolean; onClose: () => void; onSave: (data: Record<string, unknown>) => void; isSaving: boolean; showConfirm: (opts: { title: string; message: string; confirmText?: string; cancelText?: string; variant?: ConfirmModalVariant; onConfirm: () => void }) => void }) {
     const insets = useSafeAreaInsets();
     const [state, setState] = React.useState('');
-    const [slabs, setSlabs] = React.useState<{ from: string; to: string; tax: string }[]>([{ from: '0', to: '15000', tax: '0' }]);
+    const [slabs, setSlabs] = React.useState<PTSlabFormRow[]>([{ from: '0', to: '15000', tax: '0', gender: 'ALL' }]);
     const [frequency, setFrequency] = React.useState('Monthly');
     const [regNumber, setRegNumber] = React.useState('');
     const [financialYear, setFinancialYear] = React.useState('');
     const [monthlyOverrides, setMonthlyOverrides] = React.useState<Record<string, string>>({});
+    const [examplesCollapsed, setExamplesCollapsed] = React.useState(true);
 
     React.useEffect(() => {
-        if (visible) { setState(''); setSlabs([{ from: '0', to: '15000', tax: '0' }]); setFrequency('Monthly'); setRegNumber(''); setFinancialYear(''); setMonthlyOverrides({}); }
+        if (visible) { setState(''); setSlabs([{ from: '0', to: '15000', tax: '0', gender: 'ALL' }]); setFrequency('Monthly'); setRegNumber(''); setFinancialYear(''); setMonthlyOverrides({}); setExamplesCollapsed(true); }
     }, [visible]);
 
-    const addSlab = () => setSlabs(prev => [...prev, { from: '', to: '', tax: '' }]);
+    const addSlab = () => setSlabs(prev => [...prev, { from: '', to: '', tax: '', gender: 'ALL' }]);
     const removeSlab = (idx: number) => setSlabs(prev => prev.filter((_, i) => i !== idx));
-    const updateSlab = (idx: number, key: string, val: string) => setSlabs(prev => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s));
+    const updateSlab = (idx: number, key: keyof PTSlabFormRow, val: string) => setSlabs(prev => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s));
+
+    const applyExample = (example: PTSlabExample) => {
+        showConfirm({
+            title: 'Replace current slabs?',
+            message: `Replace current slabs with the "${example.label}" preset?`,
+            confirmText: 'Replace',
+            variant: 'danger',
+            onConfirm: () => {
+                if (!state) setState(example.state);
+                if (!financialYear) setFinancialYear(example.financialYear);
+                setSlabs(example.slabs.map(s => ({
+                    from: String(s.fromAmount),
+                    to: String(s.toAmount),
+                    tax: String(s.taxAmount),
+                    gender: s.gender,
+                })));
+            },
+        });
+    };
 
     const handleSave = () => {
         if (!state) return;
@@ -202,7 +273,7 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
             registrationNumber: regNumber,
             financialYear: financialYear || undefined,
             monthlyOverrides: Object.keys(overridesPayload).length > 0 ? overridesPayload : undefined,
-            slabs: slabs.map(s => ({ fromAmount: Number(s.from) || 0, toAmount: Number(s.to) || 0, taxAmount: Number(s.tax) || 0 })),
+            slabs: slabs.map(s => ({ fromAmount: Number(s.from) || 0, toAmount: Number(s.to) || 0, taxAmount: Number(s.tax) || 0, gender: s.gender })),
         });
     };
 
@@ -224,30 +295,73 @@ function PTFormModal({ visible, onClose, onSave, isSaving }: { visible: boolean;
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Financial Year</Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="e.g. 2025-26" placeholderTextColor={colors.neutral[400]} value={financialYear} onChangeText={setFinancialYear} /></View>
                         </View>
-                        <Text className="mb-2 mt-2 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Tax Slabs</Text>
-                        {slabs.map((slab, idx) => (
-                            <View key={idx} style={styles.slabRow}>
+                        {/* Example Configurations */}
+                        <View style={{ marginTop: 12, marginBottom: 4, borderRadius: 12, borderWidth: 1, borderColor: colors.primary[100], backgroundColor: colors.primary[50], padding: 12 }}>
+                            <Pressable onPress={() => setExamplesCollapsed(c => !c)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <View style={{ flex: 1 }}>
-                                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text className="mb-1 font-inter text-[10px] text-neutral-400">From</Text>
-                                            <View style={styles.inputWrapSmall}><TextInput style={styles.textInputSmall} value={slab.from} onChangeText={v => updateSlab(idx, 'from', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.neutral[400]} /></View>
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text className="mb-1 font-inter text-[10px] text-neutral-400">To</Text>
-                                            <View style={styles.inputWrapSmall}><TextInput style={styles.textInputSmall} value={slab.to} onChangeText={v => updateSlab(idx, 'to', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.neutral[400]} /></View>
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text className="mb-1 font-inter text-[10px] text-neutral-400">Tax</Text>
-                                            <View style={styles.inputWrapSmall}><TextInput style={styles.textInputSmall} value={slab.tax} onChangeText={v => updateSlab(idx, 'tax', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.neutral[400]} /></View>
+                                    <Text className="font-inter text-xs font-bold uppercase tracking-wider text-primary-700">Example Configurations</Text>
+                                    <Text className="mt-0.5 font-inter text-[10px] text-primary-600">Pre-built PT slabs by state</Text>
+                                </View>
+                                <Svg width={14} height={14} viewBox="0 0 24 24">
+                                    <Path d={examplesCollapsed ? 'M6 9l6 6 6-6' : 'M18 15l-6-6-6 6'} stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                </Svg>
+                            </Pressable>
+                            {!examplesCollapsed && (
+                                <View style={{ marginTop: 10, gap: 8 }}>
+                                    {PT_SLAB_EXAMPLES.map(example => (
+                                        <Pressable key={example.id} onPress={() => applyExample(example)}
+                                            style={{ flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 10, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary[100] }}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text className="font-inter text-sm font-bold text-primary-950">{example.label}</Text>
+                                                <Text className="mt-0.5 font-inter text-[10px] text-neutral-500">{example.description}</Text>
+                                                <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">{example.slabs.length} slabs · FY {example.financialYear}</Text>
+                                            </View>
+                                            <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M9 18l6-6-6-6" stroke={colors.primary[600]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+
+                        <Text className="mb-2 mt-3 font-inter text-xs font-bold text-neutral-500 dark:text-neutral-400">Tax Slabs</Text>
+                        {slabs.map((slab, idx) => (
+                            <View key={idx} style={[styles.slabRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text className="mb-1 font-inter text-[10px] text-neutral-400">From</Text>
+                                                <View style={styles.inputWrapSmall}><TextInput style={styles.textInputSmall} value={slab.from} onChangeText={v => updateSlab(idx, 'from', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.neutral[400]} /></View>
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text className="mb-1 font-inter text-[10px] text-neutral-400">To</Text>
+                                                <View style={styles.inputWrapSmall}><TextInput style={styles.textInputSmall} value={slab.to} onChangeText={v => updateSlab(idx, 'to', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.neutral[400]} /></View>
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text className="mb-1 font-inter text-[10px] text-neutral-400">Tax</Text>
+                                                <View style={styles.inputWrapSmall}><TextInput style={styles.textInputSmall} value={slab.tax} onChangeText={v => updateSlab(idx, 'tax', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.neutral[400]} /></View>
+                                            </View>
                                         </View>
                                     </View>
+                                    {slabs.length > 1 && (
+                                        <Pressable onPress={() => removeSlab(idx)} hitSlop={8} style={{ marginLeft: 8, marginTop: 16 }}>
+                                            <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
+                                        </Pressable>
+                                    )}
                                 </View>
-                                {slabs.length > 1 && (
-                                    <Pressable onPress={() => removeSlab(idx)} hitSlop={8} style={{ marginLeft: 8, marginTop: 16 }}>
-                                        <Svg width={16} height={16} viewBox="0 0 24 24"><Path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={colors.danger[400]} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
-                                    </Pressable>
-                                )}
+                                <View style={{ marginTop: 6 }}>
+                                    <Text className="mb-1 font-inter text-[10px] text-neutral-400">Gender</Text>
+                                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                                        {PT_GENDER_OPTIONS.map(opt => {
+                                            const selected = slab.gender === opt.value;
+                                            return (
+                                                <Pressable key={opt.value} onPress={() => updateSlab(idx, 'gender', opt.value)} style={[styles.chip, selected && styles.chipActive]}>
+                                                    <Text className={`font-inter text-[10px] font-semibold ${selected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>{opt.label}</Text>
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
                             </View>
                         ))}
                         <Pressable onPress={addSlab} style={styles.addBtn}>
@@ -347,6 +461,7 @@ export function StatutoryConfigScreen() {
     const { data: gratuityResponse } = useGratuityConfig();
     const { data: bonusResponse } = useBonusConfig();
     const { data: lwfResponse } = useLWFConfigs();
+    const { data: togglesResponse } = useStatutoryToggles();
 
     // Mutations
     const updatePF = useUpdatePFConfig();
@@ -357,6 +472,27 @@ export function StatutoryConfigScreen() {
     const updateBonus = useUpdateBonusConfig();
     const createLWF = useCreateLWFConfig();
     const deleteLWF = useDeleteLWFConfig();
+    const updateToggles = useUpdateStatutoryToggles();
+
+    // Statutory toggles (default: all enabled)
+    const toggles: StatutoryTogglesState = React.useMemo(() => {
+        const d = (togglesResponse as any)?.data ?? togglesResponse ?? {};
+        return {
+            pfEnabled: d?.pfEnabled ?? true,
+            esiEnabled: d?.esiEnabled ?? true,
+            ptEnabled: d?.ptEnabled ?? true,
+            lwfEnabled: d?.lwfEnabled ?? true,
+            gratuityEnabled: d?.gratuityEnabled ?? true,
+            bonusEnabled: d?.bonusEnabled ?? true,
+        };
+    }, [togglesResponse]);
+
+    const handleToggleStatutory = (key: keyof StatutoryTogglesState, value: boolean) => {
+        updateToggles.mutate({ [key]: value }, {
+            onSuccess: () => { showSuccess('Statutory updated', `${labelForToggle(key)} ${value ? 'enabled' : 'disabled'}.`); },
+            onError: () => { showErrorMessage(`Failed to ${value ? 'enable' : 'disable'} ${labelForToggle(key)}.`); },
+        });
+    };
 
     // Section collapse state
     const [collapsed, setCollapsed] = React.useState({ pf: false, esi: true, pt: true, gratuity: true, bonus: true, lwf: true });
@@ -408,7 +544,12 @@ export function StatutoryConfigScreen() {
         const raw = (ptResponse as any)?.data ?? ptResponse ?? [];
         if (!Array.isArray(raw)) return [];
         return raw.map((item: any) => ({
-            id: item.id ?? '', state: item.state ?? '', slabs: item.slabs ?? [], frequency: item.frequency ?? 'Monthly', registrationNumber: item.registrationNumber ?? '',
+            id: item.id ?? '', state: item.state ?? '',
+            slabs: Array.isArray(item.slabs) ? item.slabs.map((s: any) => ({
+                fromAmount: Number(s?.fromAmount ?? 0), toAmount: Number(s?.toAmount ?? 0),
+                taxAmount: Number(s?.taxAmount ?? 0), gender: (s?.gender ?? 'ALL') as PTGender,
+            })) : [],
+            frequency: item.frequency ?? 'Monthly', registrationNumber: item.registrationNumber ?? '',
             financialYear: item.financialYear ?? '', monthlyOverrides: item.monthlyOverrides ?? {},
         }));
     }, [ptResponse]);
@@ -540,8 +681,28 @@ export function StatutoryConfigScreen() {
                     <Text className="mt-1 font-inter text-sm text-neutral-500 dark:text-neutral-400">PF, ESI, PT, Gratuity, Bonus, LWF</Text>
                 </Animated.View>
 
+                <Animated.View entering={FadeInUp.duration(350).delay(50)}>
+                    {/* Statutory Components Toggle Card */}
+                    <View style={styles.sectionCard}>
+                        <Text className="font-inter text-xs font-bold uppercase tracking-wider text-neutral-400">Statutory Components</Text>
+                        <Text className="mt-0.5 font-inter text-[10px] text-neutral-400">Disabling a component skips it in new salary structures and future payroll runs. Existing runs are unaffected.</Text>
+                        <View style={{ marginTop: 8 }}>
+                            <ToggleRow label="Provident Fund (PF)" value={toggles.pfEnabled} onToggle={v => handleToggleStatutory('pfEnabled', v)} />
+                            <ToggleRow label="Employees' State Insurance (ESI)" value={toggles.esiEnabled} onToggle={v => handleToggleStatutory('esiEnabled', v)} />
+                            <ToggleRow label="Professional Tax (PT)" value={toggles.ptEnabled} onToggle={v => handleToggleStatutory('ptEnabled', v)} />
+                            <ToggleRow label="Labour Welfare Fund (LWF)" value={toggles.lwfEnabled} onToggle={v => handleToggleStatutory('lwfEnabled', v)} />
+                            <ToggleRow label="Gratuity" value={toggles.gratuityEnabled} onToggle={v => handleToggleStatutory('gratuityEnabled', v)} />
+                            <ToggleRow label="Bonus" value={toggles.bonusEnabled} onToggle={v => handleToggleStatutory('bonusEnabled', v)} />
+                        </View>
+                    </View>
+                </Animated.View>
+
                 <Animated.View entering={FadeInUp.duration(350).delay(100)}>
                     {/* PF */}
+                    <DisabledOverlay disabled={!toggles.pfEnabled}>
+                    {!toggles.pfEnabled && (
+                        <View style={styles.disabledBanner}><Text className="font-inter text-[10px] font-semibold text-warning-700">This statutory is currently disabled. Enable it from Statutory Components.</Text></View>
+                    )}
                     <SectionCard title="PF Configuration" subtitle="Provident Fund rates and limits" collapsed={collapsed.pf} onToggle={() => toggleSection('pf')}>
                         <NumberField label="Employee Rate" value={pfForm.employeeRate} onChange={v => { setPFForm(p => ({ ...p, employeeRate: v })); setPFDirty(true); }} placeholder="12" suffix="%" />
                         <NumberField label="Employer EPF Rate" value={pfForm.employerEpfRate} onChange={v => { setPFForm(p => ({ ...p, employerEpfRate: v })); setPFDirty(true); }} placeholder="3.67" suffix="%" />
@@ -562,16 +723,26 @@ export function StatutoryConfigScreen() {
                         </View>
                         <SaveSectionBtn onPress={handleSavePF} isPending={updatePF.isPending} hasChanges={pfDirty} />
                     </SectionCard>
+                    </DisabledOverlay>
 
                     {/* ESI */}
+                    <DisabledOverlay disabled={!toggles.esiEnabled}>
+                    {!toggles.esiEnabled && (
+                        <View style={styles.disabledBanner}><Text className="font-inter text-[10px] font-semibold text-warning-700">This statutory is currently disabled. Enable it from Statutory Components.</Text></View>
+                    )}
                     <SectionCard title="ESI Configuration" subtitle="Employee State Insurance rates" collapsed={collapsed.esi} onToggle={() => toggleSection('esi')}>
                         <NumberField label="Employee Rate" value={esiForm.employeeRate} onChange={v => { setESIForm(p => ({ ...p, employeeRate: v })); setESIDirty(true); }} placeholder="0.75" suffix="%" />
                         <NumberField label="Employer Rate" value={esiForm.employerRate} onChange={v => { setESIForm(p => ({ ...p, employerRate: v })); setESIDirty(true); }} placeholder="3.25" suffix="%" />
                         <NumberField label="Wage Ceiling" value={esiForm.wageCeiling} onChange={v => { setESIForm(p => ({ ...p, wageCeiling: v })); setESIDirty(true); }} placeholder="21000" suffix="₹" />
                         <SaveSectionBtn onPress={handleSaveESI} isPending={updateESI.isPending} hasChanges={esiDirty} />
                     </SectionCard>
+                    </DisabledOverlay>
 
                     {/* PT */}
+                    <DisabledOverlay disabled={!toggles.ptEnabled}>
+                    {!toggles.ptEnabled && (
+                        <View style={styles.disabledBanner}><Text className="font-inter text-[10px] font-semibold text-warning-700">This statutory is currently disabled. Enable it from Statutory Components.</Text></View>
+                    )}
                     <SectionCard title="Professional Tax" subtitle="State-wise PT configuration" collapsed={collapsed.pt} onToggle={() => toggleSection('pt')}>
                         {ptConfigs.map(pt => (
                             <View key={pt.id} style={styles.listItem}>
@@ -589,8 +760,13 @@ export function StatutoryConfigScreen() {
                             <Text className="ml-2 font-inter text-xs font-semibold text-primary-600">Add State</Text>
                         </Pressable>
                     </SectionCard>
+                    </DisabledOverlay>
 
                     {/* Gratuity */}
+                    <DisabledOverlay disabled={!toggles.gratuityEnabled}>
+                    {!toggles.gratuityEnabled && (
+                        <View style={styles.disabledBanner}><Text className="font-inter text-[10px] font-semibold text-warning-700">This statutory is currently disabled. Enable it from Statutory Components.</Text></View>
+                    )}
                     <SectionCard title="Gratuity" subtitle="Gratuity calculation settings" collapsed={collapsed.gratuity} onToggle={() => toggleSection('gratuity')}>
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Formula</Text>
@@ -602,8 +778,13 @@ export function StatutoryConfigScreen() {
                         <ToggleRow label="Gratuity Trust" subtitle="Company-managed gratuity trust" value={gratuityForm.trustExists} onToggle={v => { setGratuityForm(p => ({ ...p, trustExists: v })); setGratuityDirty(true); }} />
                         <SaveSectionBtn onPress={handleSaveGratuity} isPending={updateGratuity.isPending} hasChanges={gratuityDirty} />
                     </SectionCard>
+                    </DisabledOverlay>
 
                     {/* Bonus */}
+                    <DisabledOverlay disabled={!toggles.bonusEnabled}>
+                    {!toggles.bonusEnabled && (
+                        <View style={styles.disabledBanner}><Text className="font-inter text-[10px] font-semibold text-warning-700">This statutory is currently disabled. Enable it from Statutory Components.</Text></View>
+                    )}
                     <SectionCard title="Bonus" subtitle="Statutory bonus calculation" collapsed={collapsed.bonus} onToggle={() => toggleSection('bonus')}>
                         <NumberField label="Wage Ceiling" value={bonusForm.wageCeiling} onChange={v => { setBonusForm(p => ({ ...p, wageCeiling: v })); setBonusDirty(true); }} placeholder="21000" suffix="₹" />
                         <NumberField label="Min Bonus %" value={bonusForm.minBonusPercent} onChange={v => { setBonusForm(p => ({ ...p, minBonusPercent: v })); setBonusDirty(true); }} placeholder="8.33" suffix="%" />
@@ -612,8 +793,13 @@ export function StatutoryConfigScreen() {
                         <ChipSelector label="Calculation Period" options={['APR_MAR', 'JAN_DEC']} value={bonusForm.calculationPeriod} onSelect={v => { setBonusForm(p => ({ ...p, calculationPeriod: v })); setBonusDirty(true); }} />
                         <SaveSectionBtn onPress={handleSaveBonus} isPending={updateBonus.isPending} hasChanges={bonusDirty} />
                     </SectionCard>
+                    </DisabledOverlay>
 
                     {/* LWF */}
+                    <DisabledOverlay disabled={!toggles.lwfEnabled}>
+                    {!toggles.lwfEnabled && (
+                        <View style={styles.disabledBanner}><Text className="font-inter text-[10px] font-semibold text-warning-700">This statutory is currently disabled. Enable it from Statutory Components.</Text></View>
+                    )}
                     <SectionCard title="Labour Welfare Fund" subtitle="State-wise LWF contributions" collapsed={collapsed.lwf} onToggle={() => toggleSection('lwf')}>
                         {lwfConfigs.map(lwf => (
                             <View key={lwf.id} style={styles.listItem}>
@@ -631,12 +817,14 @@ export function StatutoryConfigScreen() {
                             <Text className="ml-2 font-inter text-xs font-semibold text-primary-600">Add State</Text>
                         </Pressable>
                     </SectionCard>
+                    </DisabledOverlay>
                 </Animated.View>
             </ScrollView>
 
             <PTFormModal visible={ptFormVisible} onClose={() => setPTFormVisible(false)}
                 onSave={data => { createPT.mutate(data as Record<string, unknown>, { onSuccess: () => { setPTFormVisible(false); triggerToast('PT config added'); } }); }}
                 isSaving={createPT.isPending}
+                showConfirm={showConfirm}
             />
             <LWFFormModal visible={lwfFormVisible} onClose={() => setLWFFormVisible(false)}
                 onSave={data => { createLWF.mutate(data as Record<string, unknown>, { onSuccess: () => { setLWFFormVisible(false); triggerToast('LWF config added'); } }); }}
@@ -698,6 +886,15 @@ const createStyles = (isDark: boolean) => StyleSheet.create({
         padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8,
         borderWidth: 1, borderColor: colors.success[200],
         shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+    },
+    disabledBanner: {
+        marginBottom: 8,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: colors.warning[50],
+        borderWidth: 1,
+        borderColor: colors.warning[200],
     },
 });
 const styles = createStyles(false);

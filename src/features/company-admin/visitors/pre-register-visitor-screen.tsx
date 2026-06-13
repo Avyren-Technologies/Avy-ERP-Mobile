@@ -21,11 +21,11 @@ import { Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { DropdownField } from '@/components/ui/dropdown-field';
+import { EmployeePicker } from '@/components/ui/employee-picker';
 import { useSidebar } from '@/components/ui/sidebar';
 import { showSuccess, showWarning } from '@/components/ui/utils';
 
 import { useCompanyLocations } from '@/features/company-admin/api/use-company-admin-queries';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useCreateVisit } from '@/features/company-admin/api/use-visitor-mutations';
 import { useVisitorTypes } from '@/features/company-admin/api/use-visitor-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -54,7 +54,6 @@ export function PreRegisterVisitorScreen() {
 
   const createMutation = useCreateVisit();
   const { data: typesResponse } = useVisitorTypes();
-  const { data: employeesResponse } = useEmployees({ limit: 500 });
   const { data: locationsResponse } = useCompanyLocations();
 
   const visitorTypes = React.useMemo(() => {
@@ -62,15 +61,6 @@ export function PreRegisterVisitorScreen() {
     if (!Array.isArray(raw)) return [];
     return raw.map((t: any) => ({ id: t.id ?? '', name: t.name ?? '' }));
   }, [typesResponse]);
-
-  const employeeOptions = React.useMemo(() => {
-    const raw = (employeesResponse as any)?.data ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({
-      id: e.id,
-      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.employeeCode || e.id,
-    }));
-  }, [employeesResponse]);
 
   const locationOptions = React.useMemo(() => {
     const raw = (locationsResponse as any)?.data ?? [];
@@ -260,11 +250,10 @@ export function PreRegisterVisitorScreen() {
                 error={errors.purpose}
               />
 
-              <DropdownField
+              <EmployeePicker
                 label="Host Employee"
-                selected={hostEmployeeId}
-                onSelect={setHostEmployeeId}
-                options={employeeOptions}
+                value={hostEmployeeId || null}
+                onChange={(id) => setHostEmployeeId(id ?? '')}
                 placeholder="Select host employee..."
               />
 

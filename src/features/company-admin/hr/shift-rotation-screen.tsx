@@ -20,7 +20,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
@@ -31,7 +31,6 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
 import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
-import { useEmployeesInfinite } from '@/features/company-admin/api/use-hr-queries';
 import {
     useAssignShiftSchedule,
     useCreateShiftSchedule,
@@ -65,13 +64,6 @@ interface CompanyShift {
     name: string;
     fromTime: string;
     toTime: string;
-}
-
-interface Employee {
-    id: string;
-    firstName: string;
-    lastName: string;
-    employeeId: string;
 }
 
 const PATTERNS = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'];
@@ -337,52 +329,37 @@ function AssignModal({ visible, onClose, onAssign, isAssigning }: {
     visible: boolean; onClose: () => void; onAssign: (ids: string[]) => void; isAssigning: boolean;
 }) {
     const insets = useSafeAreaInsets();
-    const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
-    const [searchText, setSearchText] = React.useState('');
-    const [debouncedSearch, setDebouncedSearch] = React.useState('');
+    const [selected, setSelected] = React.useState<{ id: string; name: string; employeeId: string }[]>([]);
+    const [pickerValue, setPickerValue] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         if (visible) {
-            setSelectedIds([]);
-            setSearchText('');
-            setDebouncedSearch('');
+            setSelected([]);
+            setPickerValue(null);
         }
     }, [visible]);
 
-    React.useEffect(() => {
-        const timer = setTimeout(() => setDebouncedSearch(searchText), 300);
-        return () => clearTimeout(timer);
-    }, [searchText]);
+    const selectedIds = React.useMemo(() => selected.map(s => s.id), [selected]);
 
-    const {
-        data: employeesData,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-        isLoading,
-    } = useEmployeesInfinite(debouncedSearch, visible);
-
-    const employees = React.useMemo(() => {
-        const seen = new Set<string>();
-        const list: Employee[] = [];
-        for (const page of employeesData?.pages ?? []) {
-            const raw = (page as { data?: Employee[] })?.data ?? [];
-            for (const e of raw) {
-                if (!e.id || seen.has(e.id)) continue;
-                seen.add(e.id);
-                list.push({
-                    id: e.id,
-                    firstName: e.firstName ?? '',
-                    lastName: e.lastName ?? '',
-                    employeeId: e.employeeId ?? '',
-                });
-            }
+    const handlePickerChange = React.useCallback((id: string | null, employee?: { id: string; firstName: string; middleName?: string | null; lastName: string; employeeId: string }) => {
+        if (!id || !employee) {
+            setPickerValue(null);
+            return;
         }
-        return list;
-    }, [employeesData]);
+        setSelected(prev => {
+            if (prev.some(s => s.id === id)) return prev;
+            const name = [employee.firstName, employee.middleName, employee.lastName]
+                .filter((p): p is string => !!p && p.trim().length > 0)
+                .join(' ')
+                .trim();
+            return [...prev, { id, name, employeeId: employee.employeeId ?? '' }];
+        });
+        // Reset so the picker is ready for the next selection.
+        setPickerValue(null);
+    }, []);
 
-    const toggleEmployee = (id: string) => {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const removeSelected = (id: string) => {
+        setSelected(prev => prev.filter(s => s.id !== id));
     };
 
     return (
@@ -392,71 +369,50 @@ function AssignModal({ visible, onClose, onAssign, isAssigning }: {
                 <View style={[styles.formSheet, { paddingBottom: insets.bottom + 20, maxHeight: '80%' }]}>
                     <View style={styles.sheetHandle} />
                     <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-2">Assign Employees</Text>
-                    <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400 mb-3">Select employees to assign to this schedule.</Text>
-                    <View style={[styles.inputWrap, { marginBottom: 12, height: 42 }]}>
-                        <TextInput
-                            style={[styles.textInput, { fontSize: 13 }]}
-                            placeholder="Search employees..."
-                            placeholderTextColor={colors.neutral[400]}
-                            value={searchText}
-                            onChangeText={setSearchText}
-                        />
-                    </View>
-                    <FlashList
-                        data={employees}
-                        keyExtractor={item => item.id}
-                        onEndReached={() => {
-                            if (hasNextPage && !isFetchingNextPage) {
-                                void fetchNextPage();
-                            }
-                        }}
-                        onEndReachedThreshold={0.3}
-                        renderItem={({ item }) => {
-                            const isSelected = selectedIds.includes(item.id);
-                            return (
-                                <Pressable
-                                    onPress={() => toggleEmployee(item.id)}
-                                    style={[styles.pickerRow, isSelected && { backgroundColor: colors.primary[50] }]}
-                                >
-                                    <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
-                                        {isSelected && (
-                                            <Svg width={12} height={12} viewBox="0 0 24 24">
-                                                <Path d="M20 6L9 17l-5-5" stroke={colors.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                                            </Svg>
-                                        )}
-                                    </View>
-                                    <View style={{ flex: 1, marginLeft: 10 }}>
-                                        <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{item.firstName} {item.lastName}</Text>
-                                        <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{item.employeeId}</Text>
-                                    </View>
-                                </Pressable>
-                            );
-                        }}
-                        ListEmptyComponent={
-                            <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-                                <Text className="font-inter text-sm text-neutral-400">
-                                    {isLoading ? 'Loading employees...' : 'No employees found.'}
-                                </Text>
-                            </View>
-                        }
-                        ListFooterComponent={
-                            isFetchingNextPage ? (
-                                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-                                    <Text className="font-inter text-xs text-neutral-400">Loading more...</Text>
-                                </View>
-                            ) : null
-                        }
-                        showsVerticalScrollIndicator={false}
-                        style={{ maxHeight: 300 }}
+                    <Text className="font-inter text-sm text-neutral-500 dark:text-neutral-400 mb-3">Add employees to assign to this schedule.</Text>
+                    <EmployeePicker
+                        label="Add Employee"
+                        value={pickerValue}
+                        onChange={handlePickerChange}
+                        placeholder="Search and select an employee..."
+                        status="ACTIVE"
+                        excludeIds={selectedIds}
                     />
+                    {selected.length > 0 && (
+                        <>
+                            <Text className="mb-2 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                                Selected ({selected.length})
+                            </Text>
+                            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 240 }}>
+                                {selected.map(s => (
+                                    <View
+                                        key={s.id}
+                                        style={[styles.pickerRow, { backgroundColor: colors.primary[50] }]}
+                                    >
+                                        <View style={{ flex: 1 }}>
+                                            <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">{s.name}</Text>
+                                            {s.employeeId ? (
+                                                <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">{s.employeeId}</Text>
+                                            ) : null}
+                                        </View>
+                                        <Pressable onPress={() => removeSelected(s.id)} hitSlop={8}>
+                                            <Svg width={14} height={14} viewBox="0 0 24 24">
+                                                <Path d="M18 6L6 18M6 6l12 12" stroke={colors.danger[400]} strokeWidth="2" strokeLinecap="round" />
+                                            </Svg>
+                                        </Pressable>
+                                    </View>
+                                ))}
+                            </ScrollView>
+                        </>
+                    )}
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
                         <Pressable
                             onPress={() => onAssign(selectedIds)}
-                            disabled={selectedIds.length === 0 || isAssigning}
-                            style={[styles.saveBtn, (selectedIds.length === 0 || isAssigning) && { opacity: 0.5 }]}
+                            disabled={selected.length === 0 || isAssigning}
+                            style={[styles.saveBtn, (selected.length === 0 || isAssigning) && { opacity: 0.5 }]}
                         >
-                            <Text className="font-inter text-sm font-bold text-white">{isAssigning ? 'Assigning...' : `Assign (${selectedIds.length})`}</Text>
+                            <Text className="font-inter text-sm font-bold text-white">{isAssigning ? 'Assigning...' : `Assign (${selected.length})`}</Text>
                         </Pressable>
                     </View>
                 </View>

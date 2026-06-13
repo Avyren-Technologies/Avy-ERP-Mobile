@@ -10,11 +10,11 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { shareQrCode } from '@/lib/share-qr';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -494,12 +494,12 @@ export function VehiclePassesScreen() {
               <Pressable
                 onPress={async () => {
                   if (qrModalItem?.passNumber) {
-                    try {
-                      await Share.share({
-                        message: `Vehicle Gate Pass: ${qrModalItem.passNumber}\nVehicle: ${qrModalItem.vehicleRegNumber}\nDriver: ${qrModalItem.driverName}`,
-                        title: `Vehicle Pass - ${qrModalItem.passNumber}`,
-                      });
-                    } catch { /* user cancelled */ }
+                    await shareQrCode({
+                      qrCodeDataUrl: qrModalItem.qrCode,
+                      passNumber: qrModalItem.passNumber,
+                      caption: `Vehicle Gate Pass: ${qrModalItem.passNumber}\nVehicle: ${qrModalItem.vehicleRegNumber}\nDriver: ${qrModalItem.driverName}`,
+                      title: `Vehicle Pass - ${qrModalItem.passNumber}`,
+                    });
                   }
                 }}
                 style={[formStyles.cancelBtn, { height: 48 }]}

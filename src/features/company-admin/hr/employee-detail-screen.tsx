@@ -19,7 +19,9 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
+// eslint-disable-next-line perfectionist/sort-imports -- type import grouped with related EmployeePicker.
+import type { EmployeePickerInitialEmployee } from '@/components/ui/employee-picker';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
@@ -42,7 +44,6 @@ import {
     useEmployeeDocuments,
     useEmployeeTimeline,
     useEmployeeTypes,
-    useEmployees,
     useGrades,
 } from '@/features/company-admin/api/use-hr-queries';
 import { useRbacRoles, useCompanyLocations, useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
@@ -812,7 +813,6 @@ function ProfessionalTab({
     employeeTypes,
     grades,
     costCentres,
-    employees,
     locations,
     shifts,
     geofenceOptions,
@@ -820,6 +820,9 @@ function ProfessionalTab({
     employeeStatus,
     onStatusChange,
     editable = true,
+    currentEmployeeId,
+    initialReportingManager,
+    initialFunctionalManager,
 }: {
     form: ProfessionalForm;
     onChange: (updates: Partial<ProfessionalForm>) => void;
@@ -828,7 +831,6 @@ function ProfessionalTab({
     employeeTypes: { id: string; name: string }[];
     grades: { id: string; name: string }[];
     costCentres: { id: string; name: string }[];
-    employees: { id: string; name: string }[];
     locations?: { id: string; name: string }[];
     shifts?: { id: string; name: string }[];
     geofenceOptions?: { id: string; name: string }[];
@@ -836,7 +838,14 @@ function ProfessionalTab({
     employeeStatus?: EmployeeStatus;
     onStatusChange?: (status: EmployeeStatus) => void;
     editable?: boolean;
+    currentEmployeeId?: string;
+    initialReportingManager?: EmployeePickerInitialEmployee;
+    initialFunctionalManager?: EmployeePickerInitialEmployee;
 }) {
+    const excludeIds = React.useMemo(
+        () => (currentEmployeeId ? [currentEmployeeId] : undefined),
+        [currentEmployeeId],
+    );
     return (
         <Animated.View entering={FadeIn.duration(300)}>
             <SectionTitle title="Employment" />
@@ -856,8 +865,26 @@ function ProfessionalTab({
             <DropdownField label="Grade" options={grades} selected={form.gradeId} onSelect={(v) => onChange({ gradeId: v })} createRoute={{ route: '/company/hr/grades', label: 'Create Grade' }} editable={editable} />
 
             <SectionTitle title="Reporting" />
-            <DropdownField label="Reporting Manager" options={employees} selected={form.reportingManagerId} onSelect={(v) => onChange({ reportingManagerId: v })} placeholder="Search manager..." editable={editable} />
-            <DropdownField label="Functional Manager" options={employees} selected={form.functionalManagerId} onSelect={(v) => onChange({ functionalManagerId: v })} placeholder="Search manager..." editable={editable} />
+            <EmployeePicker
+                label="Reporting Manager"
+                value={form.reportingManagerId || null}
+                onChange={(id) => onChange({ reportingManagerId: id ?? '' })}
+                placeholder="Search manager..."
+                status="ACTIVE"
+                disabled={!editable}
+                {...(excludeIds ? { excludeIds } : {})}
+                {...(initialReportingManager ? { initialEmployee: initialReportingManager } : {})}
+            />
+            <EmployeePicker
+                label="Functional Manager"
+                value={form.functionalManagerId || null}
+                onChange={(id) => onChange({ functionalManagerId: id ?? '' })}
+                placeholder="Search manager..."
+                status="ACTIVE"
+                disabled={!editable}
+                {...(excludeIds ? { excludeIds } : {})}
+                {...(initialFunctionalManager ? { initialEmployee: initialFunctionalManager } : {})}
+            />
 
             <SectionTitle title="Work Setup" />
             <DropdownField label="Location" options={locations || []} selected={form.locationId} onSelect={(v) => onChange({ locationId: v, geofenceId: '' })} placeholder="Select location..." createRoute={{ route: '/company/locations', label: 'Create Location' }} editable={editable} />
@@ -1368,7 +1395,6 @@ export function EmployeeDetailScreen() {
     const { data: locationResponse } = useCompanyLocations();
     const { data: shiftResponse } = useCompanyShifts();
     const { data: geofenceDropdownResponse } = useGeofencesForDropdown(professional.locationId || undefined);
-    const { data: empListResponse } = useEmployees({ limit: 100 });
     const { data: docsResponse } = useEmployeeDocuments(employeeId);
     const { data: timelineResponse, isLoading: timelineLoading } = useEmployeeTimeline(employeeId);
     const { data: structuresResponse } = useSalaryStructures();
@@ -1708,17 +1734,32 @@ export function EmployeeDetailScreen() {
         }
     }, [professional.designationId, professional.gradeId, professional.joiningDate, designationsFull, gradesFull, isCreateMode]);
 
-    const employeeOptions = React.useMemo(() => {
-        const raw = (empListResponse as any)?.data ?? empListResponse ?? [];
-        return Array.isArray(raw) ? raw.map((e: any) => {
-            const fullName = [e.firstName, e.lastName].filter(Boolean).join(' ') || e.fullName || e.name || '';
-            const empId = e.employeeId ?? '';
-            // Tenant RBAC role name; fallback to designation when employee has no login / tenant role.
-            const roleLabel = e.rbacRoleName ?? e.designation?.name ?? e.designationName ?? '';
-            const parts = [fullName, empId && `(${empId})`, roleLabel && `— ${roleLabel}`].filter(Boolean);
-            return { id: e.id ?? '', name: parts.join(' ') };
-        }) : [];
-    }, [empListResponse]);
+    // Initial manager metadata for EmployeePicker hydration on edit screens.
+    const initialReportingManager = React.useMemo<EmployeePickerInitialEmployee | undefined>(() => {
+        const d: any = (employeeData as any)?.data ?? employeeData;
+        const rm = d?.reportingManager;
+        if (!rm?.id) return undefined;
+        return {
+            id: rm.id,
+            firstName: rm.firstName ?? '',
+            middleName: rm.middleName ?? null,
+            lastName: rm.lastName ?? '',
+            employeeId: rm.employeeId ?? '',
+        };
+    }, [employeeData]);
+
+    const initialFunctionalManager = React.useMemo<EmployeePickerInitialEmployee | undefined>(() => {
+        const d: any = (employeeData as any)?.data ?? employeeData;
+        const fm = d?.functionalManager;
+        if (!fm?.id) return undefined;
+        return {
+            id: fm.id,
+            firstName: fm.firstName ?? '',
+            middleName: fm.middleName ?? null,
+            lastName: fm.lastName ?? '',
+            employeeId: fm.employeeId ?? '',
+        };
+    }, [employeeData]);
 
     const locationOptions = React.useMemo(() => {
         const raw = (locationResponse as any)?.data ?? locationResponse ?? [];
@@ -2469,7 +2510,6 @@ export function EmployeeDetailScreen() {
                         employeeTypes={empTypeOptions}
                         grades={gradeOptions}
                         costCentres={costCentreOptions}
-                        employees={employeeOptions}
                         locations={locationOptions}
                         shifts={shiftOptions}
                         geofenceOptions={geofenceOptions}
@@ -2477,6 +2517,9 @@ export function EmployeeDetailScreen() {
                         employeeStatus={employeeStatus}
                         onStatusChange={setEmployeeStatus}
                         editable={editing}
+                        {...(employeeId ? { currentEmployeeId: employeeId } : {})}
+                        {...(initialReportingManager ? { initialReportingManager } : {})}
+                        {...(initialFunctionalManager ? { initialFunctionalManager } : {})}
                     />
                 )}
                 {activeTab === 'salary' && (

@@ -24,6 +24,42 @@ export interface EmployeeListParams extends HrListParams {
   type?: string;
 }
 
+// --- Employee Dropdown (paginated picker) ---
+
+export type EmployeeDropdownStatus =
+  | 'ACTIVE'
+  | 'PROBATION'
+  | 'CONFIRMED'
+  | 'ON_NOTICE'
+  | 'SUSPENDED'
+  | 'EXITED';
+
+export interface EmployeeDropdownItem {
+  id: string;
+  employeeId: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  profilePhotoUrl: string | null;
+  status: EmployeeDropdownStatus;
+  department: { id: string; name: string; code: string } | null;
+  designation: { id: string; name: string; code: string } | null;
+}
+
+export interface EmployeeDropdownListParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+  status?: 'ACTIVE' | 'ALL';
+  departmentId?: string;
+  locationId?: string;
+}
+
+export interface EmployeeDropdownResponse {
+  data: EmployeeDropdownItem[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
+
 // --- API Service ---
 
 /**
@@ -111,6 +147,23 @@ export const hrApi = {
   // ── Employees ───────────────────────────────────────────────────────
   listEmployees: (params?: EmployeeListParams) =>
     client.get('/hr/employees', { params }),
+
+  /**
+   * Paginated employee dropdown — backed by `/hr/employees/dropdown`.
+   * Returns lightweight items suitable for pickers / autocomplete.
+   * The response interceptor unwraps `response.data`, so this resolves
+   * with the API envelope `{ success, data, message, meta }` directly.
+   * We cast to `EmployeeDropdownResponse` for downstream consumers.
+   */
+  listEmployeesDropdown: (
+    params: EmployeeDropdownListParams = {},
+  ): Promise<EmployeeDropdownResponse> =>
+    client
+      .get('/hr/employees/dropdown', { params })
+      .then(
+        (response) =>
+          response as unknown as EmployeeDropdownResponse,
+      ),
 
   getEmployee: (id: string) => client.get(`/hr/employees/${id}`),
 

@@ -34,6 +34,9 @@ export const payrollKeys = {
   employeeSalary: (id: string) =>
     [...payrollKeys.all, 'employee-salary', id] as const,
 
+  // Statutory Toggles (enable/disable per component)
+  statutoryToggles: () => [...payrollKeys.all, 'statutory-toggles'] as const,
+
   // Statutory Configs (singletons)
   pfConfig: () => [...payrollKeys.all, 'pf-config'] as const,
   esiConfig: () => [...payrollKeys.all, 'esi-config'] as const,
@@ -121,6 +124,16 @@ export function useEmployeeSalary(id: string) {
     queryKey: payrollKeys.employeeSalary(id),
     queryFn: () => payrollApi.getEmployeeSalary(id),
     enabled: !!id,
+  });
+}
+
+// --- Statutory Toggles Query ---
+
+/** Get statutory component enable/disable toggles */
+export function useStatutoryToggles() {
+  return useQuery({
+    queryKey: payrollKeys.statutoryToggles(),
+    queryFn: () => payrollApi.getStatutoryToggles(),
   });
 }
 

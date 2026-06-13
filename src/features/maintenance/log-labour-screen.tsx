@@ -17,7 +17,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import colors from '@/components/ui/colors';
 import { HelpDrawer } from '@/components/ui/help-drawer';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
@@ -25,7 +25,6 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { showErrorMessage, showSuccess } from '@/components/ui/utils';
 import { useCompanySettings } from '@/features/company-admin/api/use-company-admin-queries';
 import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
-import { EmployeePickerField } from '@/features/maintenance/components/employee-picker-field';
 import { useLogWOLabour } from '@/features/maintenance/api/use-maintenance-mutations';
 import { logLabourHelp } from '@/features/maintenance/help';
 import { useWorkOrder } from '@/features/maintenance/api/use-maintenance-queries';
@@ -54,11 +53,24 @@ export function LogLabourScreen() {
         DEFAULT_FORMAT_SETTINGS.timezone;
 
     const { data: response, isLoading, refetch } = useWorkOrder(workOrderId ?? '');
-    const wo: { leadTechnicianId?: string; labourLogs?: unknown[] } | null =
-        (response as { data?: typeof wo } | undefined)?.data ?? null;
+    const wo: {
+        leadTechnicianId?: string;
+        leadTechnician?: {
+            id?: string;
+            firstName?: string;
+            middleName?: string | null;
+            lastName?: string;
+            employeeId?: string;
+        };
+        labourLogs?: unknown[];
+    } | null = (response as { data?: typeof wo } | undefined)?.data ?? null;
     const labourLogs: Record<string, unknown>[] = (wo?.labourLogs as Record<string, unknown>[]) ?? [];
 
-    const { data: empData, isLoading: empLoading } = useEmployees({ limit: 500 });
+    // NOTE: `useEmployees({ limit: 500 })` is retained ONLY for resolving
+    // technician names in the "Previous logs" history block below. The
+    // technician picker itself uses <EmployeePicker> which fetches its own
+    // paginated/searchable data — so no client-side filtering pagination bug.
+    const { data: empData } = useEmployees({ limit: 500 });
     const employeeOptions = React.useMemo<EmployeeOption[]>(() => {
         const raw: Record<string, unknown>[] = (empData as { data?: Record<string, unknown>[] } | undefined)?.data ?? [];
         return raw.map((e) => ({
@@ -98,12 +110,24 @@ export function LogLabourScreen() {
 
     React.useEffect(() => {
         if (!wo?.leadTechnicianId || technicianId) return;
+        // Prefer nested leadTechnician object (no extra fetch needed); fall
+        // back to employeeOptions lookup for legacy responses.
+        const nested = wo.leadTechnician;
+        if (nested) {
+            const fullName = [nested.firstName, nested.lastName]
+                .filter((p): p is string => !!p && p.trim().length > 0)
+                .join(' ')
+                .trim();
+            setTechnicianId(wo.leadTechnicianId);
+            setTechnicianName(fullName || wo.leadTechnicianId);
+            return;
+        }
         const emp = employeeOptions.find((e) => e.id === wo.leadTechnicianId);
         if (emp) {
             setTechnicianId(emp.id);
             setTechnicianName(emp.name);
         }
-    }, [wo?.leadTechnicianId, employeeOptions, technicianId]);
+    }, [wo?.leadTechnicianId, wo?.leadTechnician, employeeOptions, technicianId]);
 
     React.useEffect(() => {
         if (!timerRunning || !timerStartMs) return;
@@ -267,19 +291,36 @@ export function LogLabourScreen() {
                                 Record technician time and optional cost
                             </Text>
 
-                            <EmployeePickerField
+                            <EmployeePicker
                                 label="Technician"
                                 required
-                                value={technicianId}
-                                displayName={technicianName}
-                                onChange={(id, name) => {
-                                    setTechnicianId(id);
-                                    setTechnicianName(name);
+                                value={technicianId || null}
+                                onChange={(id, employee) => {
+                                    setTechnicianId(id ?? '');
+                                    if (employee) {
+                                        const fullName = [employee.firstName, employee.middleName, employee.lastName]
+                                            .filter((p): p is string => !!p && p.trim().length > 0)
+                                            .join(' ')
+                                            .trim();
+                                        setTechnicianName(fullName);
+                                    } else if (!id) {
+                                        setTechnicianName('');
+                                    }
                                     if (errors.technicianId) setErrors((p) => ({ ...p, technicianId: '' }));
                                 }}
-                                employees={employeeOptions}
-                                loading={empLoading}
+                                placeholder="Tap to search & select a technician..."
                                 error={errors.technicianId}
+                                initialEmployee={
+                                    wo?.leadTechnicianId && wo.leadTechnician
+                                        ? {
+                                              id: wo.leadTechnicianId,
+                                              firstName: wo.leadTechnician.firstName ?? '',
+                                              middleName: wo.leadTechnician.middleName ?? null,
+                                              lastName: wo.leadTechnician.lastName ?? '',
+                                              employeeId: wo.leadTechnician.employeeId,
+                                          }
+                                        : undefined
+                                }
                             />
 
                             <SectionLabel text="Time & duration" />

@@ -134,6 +134,36 @@ export interface AttendanceListParams {
   to?: string;
   status?: string;
   departmentId?: string;
+  locationId?: string;
+  designationId?: string;
+  employeeTypeId?: string;
+  shiftId?: string;
+  source?: string;
+  search?: string;
+}
+
+export interface AttendanceRangeSummaryParams {
+  dateFrom: string;
+  dateTo: string;
+  departmentId?: string;
+  locationId?: string;
+  designationId?: string;
+  employeeTypeId?: string;
+  shiftId?: string;
+}
+
+export interface AttendanceCalendarParams {
+  dateFrom: string;
+  dateTo: string;
+  page?: number;
+  limit?: number;
+  employeeIds?: string[];
+  departmentId?: string;
+  locationId?: string;
+  designationId?: string;
+  employeeTypeId?: string;
+  shiftId?: string;
+  search?: string;
 }
 
 export interface AttendanceOverrideListParams {
@@ -199,6 +229,20 @@ export const attendanceApi = {
 
   // ── Attendance Summary / Dashboard ─────────────────────────────────
   getSummary: () => client.get('/hr/attendance/summary'),
+
+  // ── Range Summary (Monthly / Custom) ───────────────────────────────
+  getRangeSummary: (params: AttendanceRangeSummaryParams) =>
+    client.get('/hr/attendance/range-summary', { params }),
+
+  // ── Calendar (per-employee day grid) ───────────────────────────────
+  getCalendar: (params: AttendanceCalendarParams) => {
+    const { employeeIds, ...rest } = params;
+    const query: Record<string, unknown> = { ...rest };
+    if (employeeIds && employeeIds.length > 0) {
+      query.employeeIds = employeeIds.join(',');
+    }
+    return client.get('/hr/attendance/calendar', { params: query });
+  },
 
   // ── Attendance Rules ───────────────────────────────────────────────
   getRules: () => client.get('/hr/attendance/rules'),

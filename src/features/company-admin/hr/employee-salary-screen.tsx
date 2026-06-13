@@ -16,7 +16,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -25,7 +25,6 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import { useAssignEmployeeSalary, useUpdateEmployeeSalary } from '@/features/company-admin/api/use-payroll-mutations';
 import { useEmployeeSalaries, useSalaryStructures, useSalaryComponents, usePFConfig, useESIConfig, useGratuityConfig } from '@/features/company-admin/api/use-payroll-queries';
 import { useIsDark } from '@/hooks/use-is-dark';
@@ -44,6 +43,13 @@ interface EmployeeSalaryItem {
     isCurrent: boolean;
     components: { name: string; monthly: number }[];
     variableOverrides: Record<string, number> | null;
+    employee?: {
+        id: string;
+        firstName: string;
+        middleName?: string | null;
+        lastName: string;
+        employeeId?: string;
+    } | null;
 }
 
 type CtcBasis = 'CTC' | 'MONTHLY_CTC' | 'TAKE_HOME' | 'MONTHLY_TAKE_HOME';
@@ -109,12 +115,11 @@ function Dropdown({ label, value, options, onSelect, placeholder, searchable }: 
 // ============ FORM MODAL ============
 
 function AssignSalaryModal({
-    visible, onClose, onSave, initialData, isSaving, employeeOptions, structureOptions, structureData,
+    visible, onClose, onSave, initialData, isSaving, structureOptions, structureData,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     initialData?: EmployeeSalaryItem | null; isSaving: boolean;
-    employeeOptions: { id: string; label: string }[];
     structureOptions: { id: string; label: string }[];
     structureData: any[];
 }) {
@@ -384,7 +389,15 @@ function AssignSalaryModal({
                         {initialData ? 'Edit Salary' : 'Assign Salary'}
                     </Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                        <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Search employee..." searchable />
+                        <EmployeePicker
+                            label="Employee"
+                            value={employeeId || null}
+                            onChange={(id) => setEmployeeId(id ?? '')}
+                            placeholder="Search employee..."
+                            required
+                            status="ACTIVE"
+                            initialEmployee={initialData?.employee ?? undefined}
+                        />
                         <Dropdown label="Salary Structure" value={structureId} options={structureOptions} onSelect={setStructureId} placeholder="Select structure..." />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">{CTC_INPUT_LABELS[ctcBasis]} <Text className="text-danger-500">*</Text></Text>
@@ -539,7 +552,6 @@ export function EmployeeSalaryScreen() {
     const assignMutation = useAssignEmployeeSalary();
     const updateMutation = useUpdateEmployeeSalary();
 
-    const { data: empResponse } = useEmployees();
     const { data: structResponse } = useSalaryStructures();
 
     const [formVisible, setFormVisible] = React.useState(false);
@@ -552,7 +564,6 @@ export function EmployeeSalaryScreen() {
         return raw.map((item: any) => ({ id: item.id ?? '', label: item.name ?? '' }));
     };
 
-    const employeeOptions = React.useMemo(() => toOptions(empResponse), [empResponse]);
     const structureOptions = React.useMemo(() => toOptions(structResponse), [structResponse]);
     const structureData = React.useMemo(() => {
         const raw = (structResponse as any)?.data ?? structResponse ?? [];
@@ -565,12 +576,12 @@ export function EmployeeSalaryScreen() {
         return raw.map((item: any) => {
             const emp = item.employee;
             const empName = emp
-                ? [emp.firstName, emp.lastName].filter(Boolean).join(' ')
+                ? [emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(' ')
                 : '';
             const ctc = item.annualCtc ?? item.annualCTC ?? 0;
             return {
                 id: item.id ?? '',
-                employeeId: item.employeeId ?? emp?.employeeId ?? '',
+                employeeId: item.employeeId ?? emp?.id ?? emp?.employeeId ?? '',
                 employeeName: empName,
                 structureId: item.structureId ?? '',
                 structureName: item.structure?.name ?? '',
@@ -580,6 +591,15 @@ export function EmployeeSalaryScreen() {
                 isCurrent: item.isCurrent ?? true,
                 components: item.components ?? [],
                 variableOverrides: item.variableOverrides ?? null,
+                employee: emp
+                    ? {
+                          id: emp.id ?? item.employeeId ?? '',
+                          firstName: emp.firstName ?? '',
+                          middleName: emp.middleName ?? null,
+                          lastName: emp.lastName ?? '',
+                          employeeId: emp.employeeId ?? '',
+                      }
+                    : null,
             };
         });
     }, [response]);
@@ -630,7 +650,7 @@ export function EmployeeSalaryScreen() {
             <FAB onPress={handleAdd} />
             <AssignSalaryModal visible={formVisible} onClose={() => setFormVisible(false)} onSave={handleSave}
                 initialData={editingItem} isSaving={assignMutation.isPending || updateMutation.isPending}
-                employeeOptions={employeeOptions} structureOptions={structureOptions} structureData={structureData}
+                structureOptions={structureOptions} structureData={structureData}
             />
         </View>
     );

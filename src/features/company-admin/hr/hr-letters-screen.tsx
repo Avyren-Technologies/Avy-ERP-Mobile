@@ -16,7 +16,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Text } from '@/components/ui';
+import { EmployeePicker, Text } from '@/components/ui';
 import { AppTopHeader } from '@/components/ui/app-top-header';
 import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
@@ -26,7 +26,6 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
 
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
 import {
     useCreateLetter,
     useCreateLetterTemplate,
@@ -238,21 +237,21 @@ function TemplateFormModal({
 // ============ GENERATE LETTER MODAL ============
 
 function GenerateLetterModal({
-    visible, onClose, onSave, templateOptions, employeeOptions, isSaving,
+    visible, onClose, onSave, templateOptions, isSaving,
 }: {
     visible: boolean; onClose: () => void;
     onSave: (data: Record<string, unknown>) => void;
     templateOptions: { id: string; label: string; type: LetterType }[];
-    employeeOptions: { id: string; label: string }[];
     isSaving: boolean;
 }) {
     const insets = useSafeAreaInsets();
     const [templateId, setTemplateId] = React.useState('');
-    const [employeeId, setEmployeeId] = React.useState('');
+    const [employeeId, setEmployeeId] = React.useState<string | null>(null);
+    const [employeeName, setEmployeeName] = React.useState('');
     const [effectiveDate, setEffectiveDate] = React.useState('');
 
     React.useEffect(() => {
-        if (visible) { setTemplateId(''); setEmployeeId(''); setEffectiveDate(new Date().toISOString().split('T')[0]); }
+        if (visible) { setTemplateId(''); setEmployeeId(null); setEmployeeName(''); setEffectiveDate(new Date().toISOString().split('T')[0]); }
     }, [visible]);
 
     const isValid = templateId && employeeId && effectiveDate.trim();
@@ -267,7 +266,25 @@ function GenerateLetterModal({
                     <Text className="font-inter text-lg font-bold text-primary-950 dark:text-white mb-4">Generate Letter</Text>
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
                         <Dropdown label="Template" value={templateId} options={templateOptions.map(t => ({ id: t.id, label: `${t.type} - ${t.label}` }))} onSelect={setTemplateId} placeholder="Select template..." required />
-                        <Dropdown label="Employee" value={employeeId} options={employeeOptions} onSelect={setEmployeeId} placeholder="Select employee..." required />
+                        <EmployeePicker
+                            label="Employee"
+                            value={employeeId}
+                            onChange={(id, employee) => {
+                                setEmployeeId(id);
+                                if (employee) {
+                                    const fullName = [employee.firstName, employee.middleName, employee.lastName]
+                                        .filter((p): p is string => !!p && p.trim().length > 0)
+                                        .join(' ')
+                                        .trim();
+                                    setEmployeeName(fullName);
+                                } else {
+                                    setEmployeeName('');
+                                }
+                            }}
+                            placeholder="Select employee..."
+                            required
+                            status="ACTIVE"
+                        />
                         <View style={styles.fieldWrap}>
                             <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">Effective Date <Text className="text-danger-500">*</Text></Text>
                             <View style={styles.inputWrap}><TextInput style={styles.textInput} placeholder="YYYY-MM-DD" placeholderTextColor={colors.neutral[400]} value={effectiveDate} onChangeText={setEffectiveDate} /></View>
@@ -275,7 +292,7 @@ function GenerateLetterModal({
                     </ScrollView>
                     <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                         <Pressable onPress={onClose} style={styles.cancelBtn}><Text className="font-inter text-sm font-semibold text-neutral-600 dark:text-neutral-400">Cancel</Text></Pressable>
-                        <Pressable onPress={() => onSave({ templateId, employeeId, employeeName: employeeOptions.find(e => e.id === employeeId)?.label ?? '', letterType: selectedTemplate?.type ?? 'Other', effectiveDate: effectiveDate.trim(), pdfGenerated: false, eSigned: false })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
+                        <Pressable onPress={() => onSave({ templateId, employeeId, employeeName, letterType: selectedTemplate?.type ?? 'Other', effectiveDate: effectiveDate.trim(), pdfGenerated: false, eSigned: false })} disabled={!isValid || isSaving} style={[styles.saveBtn, (!isValid || isSaving) && { opacity: 0.5 }]}>
                             <Text className="font-inter text-sm font-bold text-white">{isSaving ? 'Generating...' : 'Generate'}</Text>
                         </Pressable>
                     </View>
@@ -364,7 +381,6 @@ export function HRLettersScreen() {
 
     const { data: tplResponse, isLoading: tplLoading, error: tplError, refetch: tplRefetch, isFetching: tplFetching } = useLetterTemplates();
     const { data: letResponse, isLoading: letLoading, error: letError, refetch: letRefetch, isFetching: letFetching } = useLetters();
-    const { data: empResponse } = useEmployees();
 
     const createTpl = useCreateLetterTemplate();
     const updateTpl = useUpdateLetterTemplate();
@@ -394,12 +410,6 @@ export function HRLettersScreen() {
             eSigned: item.eSigned ?? false, createdAt: item.createdAt ?? '',
         }));
     }, [letResponse]);
-
-    const employeeOptions = React.useMemo(() => {
-        const raw = (empResponse as any)?.data ?? empResponse ?? [];
-        if (!Array.isArray(raw)) return [];
-        return raw.map((item: any) => ({ id: item.id ?? '', label: `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim() || item.name || '' }));
-    }, [empResponse]);
 
     const templateOptions = React.useMemo(() => templates.map(t => ({ id: t.id, label: t.name, type: t.type })), [templates]);
 
@@ -505,7 +515,7 @@ export function HRLettersScreen() {
             />
             <FAB onPress={handleFAB} />
             <TemplateFormModal visible={tplFormVisible} onClose={() => setTplFormVisible(false)} onSave={handleSaveTemplate} initialData={editingTpl} isSaving={createTpl.isPending || updateTpl.isPending} />
-            <GenerateLetterModal visible={letFormVisible} onClose={() => setLetFormVisible(false)} onSave={handleSaveLetter} templateOptions={templateOptions} employeeOptions={employeeOptions} isSaving={createLet.isPending} />
+            <GenerateLetterModal visible={letFormVisible} onClose={() => setLetFormVisible(false)} onSave={handleSaveLetter} templateOptions={templateOptions} isSaving={createLet.isPending} />
             <ConfirmModal {...confirmModalProps} />
         </View>
     );

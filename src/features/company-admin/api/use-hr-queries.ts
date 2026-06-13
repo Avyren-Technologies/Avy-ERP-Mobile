@@ -11,9 +11,15 @@ import {
   hrApi,
   type DepartmentListParams,
   type DesignationListParams,
+  type EmployeeDropdownListParams,
   type EmployeeListParams,
   type HrListParams,
 } from '@/lib/api/hr';
+
+/** Page size for the standardised paginated employee dropdown picker. */
+export const EMPLOYEE_DROPDOWN_PAGE_SIZE = 50;
+
+type EmployeeDropdownQueryParams = Omit<EmployeeDropdownListParams, 'page' | 'limit'>;
 
 // --- Query keys ---
 
@@ -50,6 +56,23 @@ export const hrKeys = {
   employees: (params?: EmployeeListParams) =>
     [...hrKeys.all, 'employees', params] as const,
   employee: (id: string) => [...hrKeys.all, 'employee', id] as const,
+
+  /**
+   * Paginated employee dropdown picker key.
+   * Returns prefix-only when no params are provided to avoid trailing
+   * `undefined` (which breaks `queryClient.invalidateQueries` matching).
+   */
+  employeesDropdown: (params?: EmployeeDropdownQueryParams) => {
+    const hasParams =
+      !!params &&
+      (params.search !== undefined ||
+        params.status !== undefined ||
+        params.departmentId !== undefined ||
+        params.locationId !== undefined);
+    return hasParams
+      ? ([...hrKeys.all, 'employees-dropdown', params] as const)
+      : ([...hrKeys.all, 'employees-dropdown'] as const);
+  },
 
   // Employee Sub-resources
   nominees: (employeeId: string) =>
@@ -192,6 +215,39 @@ export function useEmployeesInfinite(search: string, enabled = true) {
       if (!meta) return undefined;
       return meta.page < meta.totalPages ? meta.page + 1 : undefined;
     },
+    enabled,
+  });
+}
+
+/**
+ * Standardised paginated employee picker source.
+ *
+ * Backed by `GET /hr/employees/dropdown` with `limit=50`. Supports search,
+ * status (`ACTIVE` | `ALL`), department, and location filtering. The
+ * underlying `useInfiniteQuery` exposes `fetchNextPage` / `hasNextPage`
+ * so consumers can drive `FlatList.onEndReached` for lazy pagination.
+ */
+export function useEmployeesDropdown(
+  params: {
+    search?: string;
+    status?: 'ACTIVE' | 'ALL';
+    departmentId?: string;
+    locationId?: string;
+  } = {},
+  enabled: boolean = true,
+) {
+  return useInfiniteQuery({
+    queryKey: hrKeys.employeesDropdown(params),
+    queryFn: ({ pageParam = 1 }) =>
+      hrApi.listEmployeesDropdown({
+        ...params,
+        page: pageParam,
+        limit: EMPLOYEE_DROPDOWN_PAGE_SIZE,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.meta.page < last.meta.totalPages ? last.meta.page + 1 : undefined,
+    staleTime: 60 * 1000,
     enabled,
   });
 }

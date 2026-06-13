@@ -1,6 +1,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes */
 import type { ManageModalItem } from '@/components/ui/manage-modal';
 
+import type { PartEntry as ShiftPartInput, SlabTier } from '@/features/production/pip/lib/shift-incentive';
 import type { EmployeeDropdownItem } from '@/lib/api/hr';
 import type { PipIncentiveConfig, PipSlabConfig } from '@/lib/api/pip';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,6 +53,7 @@ import {
   calculateExtraHoursIncentive,
   computeShiftWorkingHours,
 } from '@/features/production/pip/lib/extra-hours';
+import { calculateIncentive } from '@/features/production/pip/lib/shift-incentive';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
 import { useIsDark } from '@/hooks/use-is-dark';
 
@@ -455,6 +457,55 @@ export function PipDailyEntryScreen() {
   }, [differentiateExtraHours, extraHoursSavedRaw]);
 
   const methodBadge = getActiveMethodBadge(config);
+
+  // ── Live shift incentive (mirrors web "Live Incentive" panel) ──
+  // Active method number: 1 = Excess Ratio, 2 = Milestone Rounding, null = none configured
+  const methodNumber: 1 | 2 | null = React.useMemo(() => {
+    if (config?.method1Enabled) return 1;
+    if (config?.method2Enabled) return 2;
+    return null;
+  }, [config?.method1Enabled, config?.method2Enabled]);
+
+  // Fast lookup of slab tiers for a part on a machine, keyed by slabConfigId.
+  const slabTiersByConfigId = React.useMemo(() => {
+    const map = new Map<string, SlabTier[]>();
+    slabConfigs.forEach((sc) => {
+      map.set(sc.id, (sc.slabTiers ?? []) as SlabTier[]);
+    });
+    return map;
+  }, [slabConfigs]);
+
+  // All in-progress shift parts (with a qty entered) across every machine session,
+  // in entry order — Method 1 needs the full set together for the cumulative ratio.
+  const liveShiftParts: ShiftPartInput[] = React.useMemo(() => {
+    const parts: ShiftPartInput[] = [];
+    machineSessions.forEach((ms) => {
+      ms.parts.forEach((p) => {
+        const qty = Number(p.qtyProduced) || 0;
+        if (qty <= 0) return;
+        parts.push({
+          partId: p.partId,
+          partNumber: p.partNumber,
+          partName: p.partName,
+          machineId: ms.machineId,
+          machineCode: ms.machineCode,
+          qtyProduced: qty,
+          shiftTargetQty: Number(p.shiftTargetQty) || 0,
+          slabTiers: slabTiersByConfigId.get(p.slabConfigId) ?? [],
+        });
+      });
+    });
+    return parts;
+  }, [machineSessions, slabTiersByConfigId]);
+
+  const liveShift = React.useMemo(
+    () => (methodNumber ? calculateIncentive(liveShiftParts, methodNumber) : null),
+    [liveShiftParts, methodNumber],
+  );
+
+  // Combined Total = live shift incentive + live extra-hours total (extra only when toggle ON).
+  const liveShiftTotal = Number(liveShift?.totalIncentive ?? 0);
+  const combinedTotal = liveShiftTotal + (differentiateExtraHours ? Number(extraHoursCardTotal) : 0);
 
   // Calculate totals for review
   const sessionTotals = React.useMemo(() => {
@@ -1602,6 +1653,90 @@ export function PipDailyEntryScreen() {
               );
             })}
 
+            {/* ── Live Shift Incentive card (mirrors web "Live Incentive" panel) ── */}
+            {methodNumber == null ? (
+              <View
+                style={[
+                  styles.liveShiftCard,
+                  {
+                    backgroundColor: isDark ? '#1A1730' : colors.white,
+                    borderColor: isDark ? colors.danger[800] : colors.danger[200],
+                  },
+                ]}
+              >
+                <View style={styles.liveShiftHeader}>
+                  <Text className="font-inter text-xs font-bold text-danger-600 dark:text-danger-400">
+                    No incentive method active
+                  </Text>
+                  <Text className="mt-1 font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                    Enable Method 1 or Method 2 in PIP configuration to preview incentive.
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.liveShiftCard,
+                  {
+                    backgroundColor: isDark ? '#1A1730' : colors.white,
+                    borderColor: liveShift?.isEligible
+                      ? colors.success[400]
+                      : isDark ? colors.neutral[700] : colors.neutral[200],
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.liveShiftHeader,
+                    { backgroundColor: liveShift?.isEligible ? colors.success[600] : colors.warning[600] },
+                  ]}
+                >
+                  <Text className="font-inter text-[9px] font-semibold text-white/70">LIVE INCENTIVE</Text>
+                  <Text className="font-inter text-xl font-bold text-white">
+                    ₹{Number(liveShift?.totalIncentive ?? 0).toFixed(2)}
+                  </Text>
+                  <Text className="mt-0.5 font-inter text-[10px] text-white/80">
+                    {methodNumber === 2
+                      ? `${Number(liveShift?.cumulativeRatio ?? 0).toFixed(0)}% milestones ${liveShift?.isEligible ? '✓' : '— need ≥ 100%'}`
+                      : `${Number(liveShift?.cumulativeRatio ?? 0).toFixed(1)}% ${liveShift?.isEligible ? 'eligible ✓' : '— need 100%'}`}
+                  </Text>
+                </View>
+
+                {(liveShift?.parts ?? []).length === 0 ? (
+                  <View style={[styles.liveShiftPartRow, { borderTopColor: isDark ? colors.neutral[800] : colors.neutral[100] }]}>
+                    <Text className="font-inter text-[10px] text-neutral-500 dark:text-neutral-400">
+                      Enter quantities to preview the shift incentive.
+                    </Text>
+                  </View>
+                ) : (
+                  (liveShift?.parts ?? []).map((p) => {
+                    const earned = Number(p.incentiveAmount) > 0;
+                    return (
+                      <View
+                        key={`${p.machineId}-${p.partId}`}
+                        style={[styles.liveShiftPartRow, { borderTopColor: isDark ? colors.neutral[800] : colors.neutral[100] }]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text className="font-inter text-[11px] font-semibold text-primary-950 dark:text-white" numberOfLines={1}>
+                            {p.partNumber} — {p.partName}
+                          </Text>
+                          <Text className="font-inter text-[10px] text-neutral-500" numberOfLines={1}>
+                            {p.machineCode} · {Number(p.qtyProduced)}/{Number(p.shiftTargetQty)} · {Number(p.achievementPct).toFixed(0)}%
+                          </Text>
+                        </View>
+                        <Text
+                          className="font-inter text-xs font-bold"
+                          style={{ color: earned ? colors.success[600] : colors.neutral[400] }}
+                        >
+                          ₹{Number(p.incentiveAmount).toFixed(2)}
+                        </Text>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            )}
+
             {/* ── Extra Hours Production block ── */}
             {showExtraHoursBlock && currentSession && (
               <View
@@ -1858,11 +1993,10 @@ export function PipDailyEntryScreen() {
                   <View style={[styles.extraCard, { backgroundColor: colors.primary[600] }]}>
                     <Text className="font-inter text-[9px] font-semibold text-white/70">COMBINED TOTAL</Text>
                     <Text className="font-inter text-lg font-bold text-white">
-                      ₹{Number(extraHoursCardTotal).toFixed(2)}
-                      <Text className="font-inter text-[10px] font-semibold text-white/70"> + shift</Text>
+                      ₹{Number(combinedTotal).toFixed(2)}
                     </Text>
                     <Text className="font-inter text-[9px] text-white/70">
-                      {sessionTotals.totalProduced} pcs @ {sessionTotals.achievementPct}% on save
+                      Shift ₹{Number(liveShiftTotal).toFixed(2)} + Extra ₹{Number(extraHoursCardTotal).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -2527,6 +2661,26 @@ const createStyles = (isDark: boolean) =>
       flex: 1,
       borderRadius: 12,
       padding: 12,
+    },
+    liveShiftCard: {
+      marginTop: 4,
+      marginBottom: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    liveShiftHeader: {
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    liveShiftPartRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderTopWidth: 1,
     },
     extraSavedPill: {
       marginTop: 12,

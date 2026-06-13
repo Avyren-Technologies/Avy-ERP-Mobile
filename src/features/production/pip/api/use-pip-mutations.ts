@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { showError, showSuccess } from '@/components/ui/utils';
-import { pipApi } from '@/lib/api/pip';
+import { pipApi, SaveExtraHoursEntriesPayload } from '@/lib/api/pip';
 import { pipKeys } from '@/features/production/pip/api/use-pip-queries';
 
 // ── Process Categories ────────────────────────────────────────────────
@@ -206,6 +206,32 @@ export function useDeletePipDailyEntries() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (sessionRef: string) => pipApi.deleteDailyEntries(sessionRef),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.all });
+      showSuccess('Entries deleted');
+    },
+    onError: showError,
+  });
+}
+
+// ── Extra Hours ────────────────────────────────────────────────────────
+
+export function useSaveExtraHoursEntries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: SaveExtraHoursEntriesPayload) => pipApi.saveExtraHoursEntries(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipKeys.all });
+      showSuccess('Entries saved', 'Extra hours entries have been recorded');
+    },
+    onError: showError,
+  });
+}
+
+export function useDeleteExtraHoursEntries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionRef: string) => pipApi.deleteExtraHoursEntries(sessionRef),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: pipKeys.all });
       showSuccess('Entries deleted');

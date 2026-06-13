@@ -106,6 +106,77 @@ export interface PipIncentiveConfig {
   method1Name: string;
   method2Enabled: boolean;
   method2Name: string;
+  differentiateExtraHours: boolean;
+  defaultShiftHours: number;
+  extraHoursWarnThreshold: number;
+  splitExtraHoursEarning: boolean;
+  extraHoursEarningCode: string;
+}
+
+export interface PipExtraHoursEntry {
+  id: string;
+  companyId: string;
+  locationId?: string;
+  entryDate: string;
+  shiftId: string;
+  operatorId: string;
+  sessionRef?: string;
+  machineId: string;
+  partId: string;
+  slabConfigId: string;
+  operationId?: string;
+  extraHoursWorked: number;
+  shiftHours: number;
+  shiftTargetQty: number;
+  hourlyRate: number;
+  extraHoursTarget: number;
+  qtyProduced: number;
+  incentiveQty: number;
+  slab1Rate: number;
+  incentiveAmount: number;
+  calcBreakdown?: Record<string, unknown>;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  operator?: { id: string; employeeCode: string; firstName: string; lastName: string };
+  slabConfig?: { id: string; machineId: string; partId: string; operationId: string };
+}
+
+export interface ExtraHoursResult {
+  totalIncentive: number;
+  extraHoursWorked: number;
+  shiftHours: number;
+  parts: Array<{
+    partId: string;
+    partNumber: string;
+    partName: string;
+    machineId: string;
+    machineCode: string;
+    qtyProduced: number;
+    shiftTargetQty: number;
+    slab1Rate: number;
+    hourlyRate: number;
+    extraHoursTarget: number;
+    incentiveQty: number;
+    incentiveAmount: number;
+    breakdown: string;
+  }>;
+}
+
+export interface SaveExtraHoursEntriesPayload {
+  entryDate: string;
+  shiftId: string;
+  operatorId: string;
+  sessionRef?: string;
+  locationId?: string;
+  extraHoursWorked: number;
+  entries: Array<{
+    machineId: string;
+    partId: string;
+    slabConfigId: string;
+    operationId?: string;
+    qtyProduced: number;
+  }>;
 }
 
 export interface PipMonthlyReport {
@@ -228,6 +299,14 @@ export const pipApi = {
     client.get('/production/pip/daily-entries/summary', { params }),
   deleteDailyEntries: (sessionRef: string) =>
     client.delete(`/production/pip/daily-entries/${sessionRef}`),
+
+  // Extra Hours Entries
+  saveExtraHoursEntries: (data: SaveExtraHoursEntriesPayload) =>
+    client.post('/production/pip/extra-hours-entries', data),
+  listExtraHoursEntries: (params?: Record<string, unknown>) =>
+    client.get('/production/pip/extra-hours-entries', { params }),
+  deleteExtraHoursEntries: (sessionRef: string) =>
+    client.delete(`/production/pip/extra-hours-entries/${sessionRef}`),
 
   // Calculator
   simulateIncentive: (data: Record<string, unknown>) =>

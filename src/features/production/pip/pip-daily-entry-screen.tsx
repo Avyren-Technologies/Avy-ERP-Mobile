@@ -32,7 +32,8 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSidebar } from '@/components/ui/sidebar';
 import { HamburgerButton } from '@/components/ui/sidebar';
 import { showWarning } from '@/components/ui/utils';
-import { useEmployees } from '@/features/company-admin/api/use-hr-queries';
+import { EmployeePicker } from '@/components/ui/employee-picker';
+import type { EmployeeDropdownItem } from '@/lib/api/hr';
 import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 import {
   usePipConfig,
@@ -158,7 +159,6 @@ export function PipDailyEntryScreen() {
   // Operation picker: null = no pending machine, otherwise picking operation for this machine
   const [pendingMachine, setPendingMachine] = React.useState<MachineOption | null>(null);
   const [pendingOperations, setPendingOperations] = React.useState<OperationOption[]>([]);
-  const [operatorSearch, setOperatorSearch] = React.useState('');
   const [partFilter, setPartFilter] = React.useState('');
   const [isSaving, setIsSaving] = React.useState(false);
 
@@ -174,20 +174,6 @@ export function PipDailyEntryScreen() {
     const raw = (slabsRaw as any)?.data ?? slabsRaw ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [slabsRaw]);
-
-  const { data: employeesRaw, isLoading: employeesLoading, refetch: refetchEmployees } = useEmployees({
-    limit: 100,
-  });
-  const operators: OperatorOption[] = React.useMemo(() => {
-    const raw = (employeesRaw as any)?.data ?? employeesRaw ?? [];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((e: any) => ({
-      id: e.id ?? '',
-      name: `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || e.email || 'Unknown',
-      initials: getInitials(`${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || '?'),
-      employeeNumber: e.employeeNumber ?? '',
-    }));
-  }, [employeesRaw]);
 
   const saveMutation = useSavePipDailyEntries();
 
@@ -242,13 +228,12 @@ export function PipDailyEntryScreen() {
     React.useCallback(() => {
       refetchConfig();
       refetchSlabs();
-      refetchEmployees();
       refetchDowntime();
       refetchShifts();
       if (selectedDate && selectedShift) {
         refetchEntries();
       }
-    }, [refetchConfig, refetchSlabs, refetchEmployees, refetchDowntime, refetchShifts, refetchEntries, selectedDate, selectedShift])
+    }, [refetchConfig, refetchSlabs, refetchDowntime, refetchShifts, refetchEntries, selectedDate, selectedShift])
   );
 
   React.useEffect(() => {
@@ -304,14 +289,6 @@ export function PipDailyEntryScreen() {
         shiftTargetQty: sc.shiftTargetQty,
       }));
   }, [slabConfigs, currentMachineId]);
-
-  const filteredOperators = React.useMemo(() => {
-    if (!operatorSearch.trim()) return operators;
-    const q = operatorSearch.toLowerCase();
-    return operators.filter(
-      (o) => o.name.toLowerCase().includes(q) || (o.employeeNumber ?? '').toLowerCase().includes(q),
-    );
-  }, [operators, operatorSearch]);
 
   const methodBadge = getActiveMethodBadge(config);
 
@@ -483,7 +460,7 @@ export function PipDailyEntryScreen() {
   };
 
   // Loading state
-  if (slabsLoading || employeesLoading) {
+  if (slabsLoading) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -732,77 +709,27 @@ export function PipDailyEntryScreen() {
             <Text className="mb-4 font-inter text-base font-bold text-primary-950 dark:text-white">
               Select Operator
             </Text>
-            <TextInput
-              style={[
-                styles.searchInput,
-                {
-                  backgroundColor: isDark ? '#1A1730' : colors.white,
-                  color: isDark ? colors.white : colors.primary[950],
-                  borderColor: isDark ? colors.neutral[700] : colors.neutral[200],
-                },
-              ]}
-              placeholder="Search by name or employee number..."
-              placeholderTextColor={colors.neutral[400]}
-              value={operatorSearch}
-              onChangeText={setOperatorSearch}
+            <EmployeePicker
+              value={selectedOperator?.id ?? null}
+              onChange={(id, employee?: EmployeeDropdownItem) => {
+                if (!id || !employee) {
+                  setSelectedOperator(null);
+                  return;
+                }
+                const fullName = [employee.firstName, employee.middleName, employee.lastName]
+                  .filter((p): p is string => !!p && p.trim().length > 0)
+                  .join(' ')
+                  .trim() || 'Unknown';
+                setSelectedOperator({
+                  id: employee.id,
+                  name: fullName,
+                  initials: getInitials(fullName),
+                  employeeNumber: employee.employeeId,
+                });
+              }}
+              placeholder="Select operator..."
+              status="ACTIVE"
             />
-            {filteredOperators.map((op) => (
-              <Pressable
-                key={op.id}
-                onPress={() => setSelectedOperator(op)}
-                style={[
-                  styles.optionCard,
-                  {
-                    backgroundColor: selectedOperator?.id === op.id
-                      ? isDark ? colors.primary[900] : colors.primary[50]
-                      : isDark ? '#1A1730' : colors.white,
-                    borderColor: selectedOperator?.id === op.id
-                      ? colors.primary[400]
-                      : isDark ? colors.neutral[700] : colors.neutral[200],
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.avatar,
-                    {
-                      backgroundColor: selectedOperator?.id === op.id
-                        ? colors.primary[600]
-                        : isDark ? colors.primary[900] : colors.primary[100],
-                    },
-                  ]}
-                >
-                  <Text
-                    className="font-inter text-xs font-bold"
-                    style={{ color: selectedOperator?.id === op.id ? colors.white : colors.primary[600] }}
-                  >
-                    {op.initials}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text className="font-inter text-sm font-semibold text-primary-950 dark:text-white">
-                    {op.name}
-                  </Text>
-                  {op.employeeNumber ? (
-                    <Text className="font-inter text-[11px] text-neutral-500 dark:text-neutral-400">
-                      {op.employeeNumber}
-                    </Text>
-                  ) : null}
-                </View>
-                {selectedOperator?.id === op.id && (
-                  <Svg width={18} height={18} viewBox="0 0 24 24">
-                    <Path
-                      d="M5 12l5 5L20 7"
-                      stroke={colors.primary[600]}
-                      strokeWidth="2.5"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                )}
-              </Pressable>
-            ))}
           </Animated.View>
         )}
 

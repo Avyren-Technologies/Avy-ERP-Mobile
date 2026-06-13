@@ -28,6 +28,7 @@ import { analyticsApi } from '@/lib/api/analytics';
 
 const PIP_REPORTS = [
   { key: 'pip-daily-production', title: 'Daily Production', description: 'Day-wise output by operator, machine, and operation', sheets: 3 },
+  { key: 'pip-extra-hours-entries', title: 'Extra Hours Entries', description: 'Extra-hours production incentives by operator and part', sheets: 2 },
   { key: 'pip-incentive-summary', title: 'Incentive Summary', description: 'Monthly incentive consolidation with breakdowns', sheets: 5 },
   { key: 'pip-operator-performance', title: 'Operator Performance', description: 'Achievement rates and operator ranking', sheets: 3 },
   { key: 'pip-machine-utilization', title: 'Machine Utilization', description: 'Machine productivity and downtime analysis', sheets: 4 },

@@ -4,6 +4,7 @@ import type { ManageModalItem } from '@/components/ui/manage-modal';
 import type { PartEntry as ShiftPartInput, SlabTier } from '@/features/production/pip/lib/shift-incentive';
 import type { EmployeeDropdownItem } from '@/lib/api/hr';
 import type { PipIncentiveConfig, PipSlabConfig } from '@/lib/api/pip';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import * as React from 'react';
@@ -28,11 +29,12 @@ import colors from '@/components/ui/colors';
 import { ConfirmModal, useConfirmModal } from '@/components/ui/confirm-modal';
 import { EmployeePicker } from '@/components/ui/employee-picker';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ExportSheet } from '@/components/ui/export-sheet';
 import { ManageModal } from '@/components/ui/manage-modal';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HamburgerButton, useSidebar  } from '@/components/ui/sidebar';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { showWarning } from '@/components/ui/utils';
+import { showErrorMessage, showWarning } from '@/components/ui/utils';
 import { useCompanyShifts } from '@/features/company-admin/api/use-company-admin-queries';
 import {
   useCreateDowntimeReason,
@@ -49,13 +51,16 @@ import {
   usePipExtraHoursEntries,
   usePipSlabConfigs,
 } from '@/features/production/pip/api/use-pip-queries';
+import { DownloadIcon } from '@/features/production/pip/download-icon';
 import {
   calculateExtraHoursIncentive,
   computeShiftWorkingHours,
 } from '@/features/production/pip/lib/extra-hours';
 import { calculateIncentive } from '@/features/production/pip/lib/shift-incentive';
 import { useCompanyFormatter } from '@/hooks/use-company-formatter';
+import { useFileDownload } from '@/hooks/use-file-download';
 import { useIsDark } from '@/hooks/use-is-dark';
+import { analyticsApi } from '@/lib/api/analytics';
 
 // ============ TYPES ============
 
@@ -182,6 +187,11 @@ export function PipDailyEntryScreen() {
   const tabBarHeight = (Platform.OS === 'ios' ? 54 : 68) + insets.bottom;
   const { toggle } = useSidebar();
   const confirmModal = useConfirmModal();
+
+  // Export sheets — one for the saved daily-production entries, one for extra-hours
+  const savedExportRef = React.useRef<BottomSheet>(null);
+  const extraExportRef = React.useRef<BottomSheet>(null);
+  const { download, isDownloading } = useFileDownload();
 
   // State
   const [currentStep, setCurrentStep] = React.useState(0);
@@ -773,6 +783,58 @@ export function PipDailyEntryScreen() {
     })();
   };
 
+  // ── Export handlers (mirror pip-daily-report-screen) ──
+
+  const handleExportSaved = React.useCallback(async (format: 'excel' | 'pdf') => {
+    savedExportRef.current?.close();
+    try {
+      const response = await analyticsApi.exportReport('pip-daily-production', {
+        dateFrom: selectedDate,
+        dateTo: selectedDate,
+        ...(selectedShift ? { shiftId: selectedShift } : {}),
+        format,
+      });
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await download(response.data, {
+        fileName: `daily-production-${selectedDate}.${ext}`,
+        mimeType: mime,
+      });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || '';
+      if (msg === 'RATE_LIMIT_EXCEEDED' || msg.includes('rate limit')) {
+        showErrorMessage('You have reached the export limit (50/hour). Please wait and try again.');
+      } else {
+        showErrorMessage('Failed to export report');
+      }
+    }
+  }, [selectedDate, selectedShift, download]);
+
+  const handleExportExtraHours = React.useCallback(async (format: 'excel' | 'pdf') => {
+    extraExportRef.current?.close();
+    try {
+      const response = await analyticsApi.exportReport('pip-extra-hours-entries', {
+        dateFrom: selectedDate,
+        dateTo: selectedDate,
+        ...(selectedShift ? { shiftId: selectedShift } : {}),
+        format,
+      });
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await download(response.data, {
+        fileName: `extra-hours-entries-${selectedDate}.${ext}`,
+        mimeType: mime,
+      });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || '';
+      if (msg === 'RATE_LIMIT_EXCEEDED' || msg.includes('rate limit')) {
+        showErrorMessage('You have reached the export limit (50/hour). Please wait and try again.');
+      } else {
+        showErrorMessage('Failed to export report');
+      }
+    }
+  }, [selectedDate, selectedShift, download]);
+
   const canProceed = () => {
     switch (currentStep) {
       case 0: return !!selectedOperator;
@@ -1000,11 +1062,22 @@ export function PipDailyEntryScreen() {
               <Text className="font-inter text-sm font-bold text-primary-950 dark:text-white">
                 Saved entries
               </Text>
-              {todayEntries.length > 0 && (
-                <View style={styles.savedCountBadge}>
-                  <Text className="font-inter text-[10px] font-bold text-primary-700">{todayEntries.length}</Text>
-                </View>
-              )}
+              <View style={styles.savedHeaderRight}>
+                {todayEntries.length > 0 && (
+                  <View style={styles.savedCountBadge}>
+                    <Text className="font-inter text-[10px] font-bold text-primary-700">{todayEntries.length}</Text>
+                  </View>
+                )}
+                {todayEntries.length > 0 && (
+                  <Pressable
+                    onPress={() => savedExportRef.current?.expand()}
+                    style={[styles.exportBtn, { backgroundColor: isDark ? colors.primary[900] : colors.primary[50] }]}
+                    hitSlop={8}
+                  >
+                    <DownloadIcon size={16} color={colors.primary[600]} />
+                  </Pressable>
+                )}
+              </View>
             </View>
             {!selectedShift ? (
               <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
@@ -1076,11 +1149,22 @@ export function PipDailyEntryScreen() {
                 <Text className="font-inter text-sm font-bold text-success-700 dark:text-success-300">
                   Extra Hours Saved Entries
                 </Text>
-                {extraHoursSaved.length > 0 && (
-                  <View style={[styles.savedCountBadge, { backgroundColor: isDark ? colors.success[900] : colors.success[100] }]}>
-                    <Text className="font-inter text-[10px] font-bold text-success-700">{extraHoursSaved.length}</Text>
-                  </View>
-                )}
+                <View style={styles.savedHeaderRight}>
+                  {extraHoursSaved.length > 0 && (
+                    <View style={[styles.savedCountBadge, { backgroundColor: isDark ? colors.success[900] : colors.success[100] }]}>
+                      <Text className="font-inter text-[10px] font-bold text-success-700">{extraHoursSaved.length}</Text>
+                    </View>
+                  )}
+                  {extraHoursSaved.length > 0 && (
+                    <Pressable
+                      onPress={() => extraExportRef.current?.expand()}
+                      style={[styles.exportBtn, { backgroundColor: isDark ? colors.success[900] : colors.success[100] }]}
+                      hitSlop={8}
+                    >
+                      <DownloadIcon size={16} color={colors.success[600]} />
+                    </Pressable>
+                  )}
+                </View>
               </View>
               {extraHoursSaved.length === 0 ? (
                 <Text className="font-inter text-xs text-neutral-500 dark:text-neutral-400">
@@ -2218,6 +2302,9 @@ export function PipDailyEntryScreen() {
       />
 
       <ConfirmModal {...confirmModal.modalProps} />
+
+      <ExportSheet ref={savedExportRef} onExport={handleExportSaved} isDownloading={isDownloading} />
+      <ExportSheet ref={extraExportRef} onExport={handleExportExtraHours} isDownloading={isDownloading} />
     </View>
   );
 }
@@ -2466,6 +2553,18 @@ const createStyles = (isDark: boolean) =>
       paddingVertical: 3,
       borderRadius: 10,
       backgroundColor: isDark ? colors.primary[900] : colors.primary[100],
+    },
+    savedHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    exportBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     savedRowCard: {
       flexDirection: 'row',

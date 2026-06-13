@@ -214,13 +214,33 @@ export function PipIncentiveConfigScreen() {
   const [method2Name, setMethod2Name] = React.useState('');
   const [namesDirty, setNamesDirty] = React.useState(false);
 
+  // Advanced (Extra Hours) settings — local state, committed on Save
+  const [defaultShiftHours, setDefaultShiftHours] = React.useState('8');
+  const [extraHoursWarnThreshold, setExtraHoursWarnThreshold] = React.useState('0');
+  const [splitExtraHoursEarning, setSplitExtraHoursEarning] = React.useState(false);
+  const [extraHoursEarningCode, setExtraHoursEarningCode] = React.useState('');
+  const [advancedDirty, setAdvancedDirty] = React.useState(false);
+
   React.useEffect(() => {
     if (config) {
       setMethod1Name(config.method1Name ?? '');
       setMethod2Name(config.method2Name ?? '');
       setNamesDirty(false);
+      setDefaultShiftHours(String(config.defaultShiftHours ?? 8));
+      setExtraHoursWarnThreshold(String(config.extraHoursWarnThreshold ?? 0));
+      setSplitExtraHoursEarning(config.splitExtraHoursEarning ?? false);
+      setExtraHoursEarningCode(config.extraHoursEarningCode ?? '');
+      setAdvancedDirty(false);
     }
   }, [config]);
+
+  const dirty = namesDirty || advancedDirty;
+
+  // Parsed shift hours for live preview (guard divide-by-zero)
+  const shiftHoursNum = React.useMemo(() => {
+    const n = Number(defaultShiftHours);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }, [defaultShiftHours]);
 
   const handleToggle = (method: 1 | 2, value: boolean) => {
     const data: Record<string, unknown> = {};
@@ -240,9 +260,32 @@ export function PipIncentiveConfigScreen() {
   };
 
   const handleSaveNames = () => {
+    // Clamp Default Shift Hours to [1, 24]
+    const parsedShiftHours = Number(defaultShiftHours);
+    const safeShiftHours = Number.isFinite(parsedShiftHours)
+      ? Math.min(24, Math.max(1, Math.round(parsedShiftHours)))
+      : 8;
+    // Warn threshold must be >= 0
+    const parsedWarn = Number(extraHoursWarnThreshold);
+    const safeWarn = Number.isFinite(parsedWarn) ? Math.max(0, parsedWarn) : 0;
+
     updateConfig.mutate(
-      { method1Name: method1Name.trim(), method2Name: method2Name.trim() },
-      { onSuccess: () => setNamesDirty(false) },
+      {
+        method1Name: method1Name.trim(),
+        method2Name: method2Name.trim(),
+        defaultShiftHours: safeShiftHours,
+        extraHoursWarnThreshold: safeWarn,
+        splitExtraHoursEarning,
+        extraHoursEarningCode: extraHoursEarningCode.trim(),
+      },
+      {
+        onSuccess: () => {
+          setNamesDirty(false);
+          setAdvancedDirty(false);
+          setDefaultShiftHours(String(safeShiftHours));
+          setExtraHoursWarnThreshold(String(safeWarn));
+        },
+      },
     );
   };
 
@@ -250,6 +293,11 @@ export function PipIncentiveConfigScreen() {
     if (method === 1) setMethod1Name(value);
     else setMethod2Name(value);
     setNamesDirty(true);
+  };
+
+  // Differentiate Extra Hours toggle = immediate save (mirrors method 1/2 toggles)
+  const handleDifferentiateToggle = (value: boolean) => {
+    updateConfig.mutate({ differentiateExtraHours: value });
   };
 
   const neitherEnabled = config && !config.method1Enabled && !config.method2Enabled;
@@ -425,8 +473,238 @@ export function PipIncentiveConfigScreen() {
             workedExample="Parts A, B worked. Cumulative ratio = (120/100 + 80/100) / 2 = 100%. Since ratio >= 100%, Part A excess 20 pcs and Part B (no excess) are calculated. Only Part A earns incentive."
           />
 
+          {/* Advanced Setting — Extra Hours Production */}
+          {config && (
+            <Animated.View entering={FadeInUp.duration(400).delay(250)}>
+              <View
+                style={[
+                  cardStyles.card,
+                  {
+                    backgroundColor: isDark ? '#1A1730' : colors.white,
+                    borderColor: config.differentiateExtraHours
+                      ? colors.accent[400]
+                      : isDark
+                        ? colors.neutral[700]
+                        : colors.neutral[200],
+                  },
+                ]}
+              >
+                {/* Header */}
+                <View style={cardStyles.cardHeader}>
+                  <View style={cardStyles.advHeaderLeft}>
+                    {/* Clock icon */}
+                    <View style={cardStyles.advClockIcon}>
+                      <Svg width={18} height={18} viewBox="0 0 24 24">
+                        <Path
+                          d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2"
+                          stroke={colors.accent[600]}
+                          strokeWidth="1.8"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                    </View>
+                    <View>
+                      <View
+                        style={[
+                          cardStyles.methodBadge,
+                          { backgroundColor: colors.accent[50] },
+                        ]}
+                      >
+                        <Text
+                          className="font-inter text-[10px] font-bold"
+                          style={{ color: colors.accent[700] }}
+                        >
+                          ADVANCED SETTING
+                        </Text>
+                      </View>
+                      <Text className="mt-1 font-inter text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
+                        Extra Hrs
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={cardStyles.toggleRow}>
+                    {updateConfig.isPending ? (
+                      <ActivityIndicator size="small" color={colors.accent[600]} />
+                    ) : (
+                      <Switch
+                        value={config.differentiateExtraHours ?? false}
+                        onValueChange={handleDifferentiateToggle}
+                        trackColor={{
+                          false: colors.neutral[200],
+                          true: colors.accent[400],
+                        }}
+                        thumbColor={
+                          config.differentiateExtraHours
+                            ? colors.accent[600]
+                            : colors.neutral[300]
+                        }
+                      />
+                    )}
+                  </View>
+                </View>
+
+                <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                  Differentiate Extra Hours Production
+                </Text>
+                <Text className="mt-1 font-inter text-[11px] leading-4 text-neutral-500 dark:text-neutral-400">
+                  Track production beyond standard shift hours separately so extra-hours
+                  targets and incentives are computed on their own.
+                </Text>
+
+                {/* Expanded fields when ON */}
+                {config.differentiateExtraHours && (
+                  <View style={cardStyles.advExpanded}>
+                    {/* Default Shift Hours */}
+                    <View style={cardStyles.fieldWrap}>
+                      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                        Default Shift Hours
+                      </Text>
+                      <TextInput
+                        style={[
+                          cardStyles.input,
+                          {
+                            backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                            color: isDark ? colors.white : colors.primary[950],
+                            borderColor: isDark
+                              ? colors.neutral[700]
+                              : colors.neutral[200],
+                          },
+                        ]}
+                        keyboardType="number-pad"
+                        placeholder="8"
+                        placeholderTextColor={colors.neutral[400]}
+                        value={defaultShiftHours}
+                        onChangeText={(v) => {
+                          setDefaultShiftHours(v.replace(/\D/g, ''));
+                          setAdvancedDirty(true);
+                        }}
+                      />
+                      <Text className="mt-1 font-inter text-[11px] leading-4 text-neutral-500 dark:text-neutral-400">
+                        Fallback used when a shift has no defined times (min 1, max 24).
+                      </Text>
+                    </View>
+
+                    {/* Hourly Target Rate (read-only) */}
+                    <View
+                      style={[
+                        cardStyles.exampleBox,
+                        { backgroundColor: isDark ? '#0F0D1A' : colors.accent[50] },
+                      ]}
+                    >
+                      <Text
+                        className="font-inter text-[10px] font-bold"
+                        style={{ color: colors.accent[700] }}
+                      >
+                        HOURLY TARGET RATE
+                      </Text>
+                      <Text className="mt-1 font-inter text-[11px] leading-4 text-neutral-600 dark:text-neutral-300">
+                        Auto-calculated per part = Shift Target ÷ Shift Hours
+                      </Text>
+                      <Text className="mt-2 font-inter text-[11px] font-semibold leading-4 text-neutral-700 dark:text-neutral-200">
+                        {shiftHoursNum > 0
+                          ? `800 pcs ÷ ${shiftHoursNum} hrs = ${(800 / shiftHoursNum).toFixed(1)} pcs/hr; 2 extra hrs → ${Math.ceil((800 / shiftHoursNum) * 2)} pcs target`
+                          : 'Enter shift hours to preview the hourly target.'}
+                      </Text>
+                    </View>
+
+                    {/* Warn threshold */}
+                    <View style={cardStyles.fieldWrap}>
+                      <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                        Warn when extra hours exceed (hrs)
+                      </Text>
+                      <TextInput
+                        style={[
+                          cardStyles.input,
+                          {
+                            backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                            color: isDark ? colors.white : colors.primary[950],
+                            borderColor: isDark
+                              ? colors.neutral[700]
+                              : colors.neutral[200],
+                          },
+                        ]}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor={colors.neutral[400]}
+                        value={extraHoursWarnThreshold}
+                        onChangeText={(v) => {
+                          setExtraHoursWarnThreshold(v.replace(/\D/g, ''));
+                          setAdvancedDirty(true);
+                        }}
+                      />
+                      <Text className="mt-1 font-inter text-[11px] leading-4 text-neutral-500 dark:text-neutral-400">
+                        Show a warning during entry when logged extra hours exceed this
+                        value. Set 0 to disable.
+                      </Text>
+                    </View>
+
+                    {/* Split Extra Hours Earning toggle */}
+                    <View style={cardStyles.advSplitRow}>
+                      <View style={cardStyles.advSplitText}>
+                        <Text className="font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                          Split Extra Hours Earning
+                        </Text>
+                        <Text className="mt-1 font-inter text-[11px] leading-4 text-neutral-500 dark:text-neutral-400">
+                          Post extra hours as a separate payroll earning
+                          (PIP_EXTRA_HOURS) instead of combining into PIP_INCENTIVE.
+                        </Text>
+                      </View>
+                      <Switch
+                        value={splitExtraHoursEarning}
+                        onValueChange={(v) => {
+                          setSplitExtraHoursEarning(v);
+                          setAdvancedDirty(true);
+                        }}
+                        trackColor={{
+                          false: colors.neutral[200],
+                          true: colors.accent[400],
+                        }}
+                        thumbColor={
+                          splitExtraHoursEarning
+                            ? colors.accent[600]
+                            : colors.neutral[300]
+                        }
+                      />
+                    </View>
+
+                    {/* Earning code input when split ON */}
+                    {splitExtraHoursEarning && (
+                      <View style={cardStyles.fieldWrap}>
+                        <Text className="mb-1.5 font-inter text-xs font-bold text-primary-900 dark:text-primary-100">
+                          Extra Hours Earning Code
+                        </Text>
+                        <TextInput
+                          style={[
+                            cardStyles.input,
+                            {
+                              backgroundColor: isDark ? '#0F0D1A' : colors.neutral[50],
+                              color: isDark ? colors.white : colors.primary[950],
+                              borderColor: isDark
+                                ? colors.neutral[700]
+                                : colors.neutral[200],
+                            },
+                          ]}
+                          autoCapitalize="characters"
+                          placeholder="PIP_EXTRA_HOURS"
+                          placeholderTextColor={colors.neutral[400]}
+                          value={extraHoursEarningCode}
+                          onChangeText={(v) => {
+                            setExtraHoursEarningCode(v);
+                            setAdvancedDirty(true);
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          )}
+
           {/* Save Names Button */}
-          {namesDirty && (
+          {dirty && (
             <Animated.View entering={FadeInUp.duration(300)}>
               <Pressable
                 style={({ pressed }) => [
@@ -594,5 +872,34 @@ const cardStyles = StyleSheet.create({
     height: 52,
     borderWidth: 1.5,
     marginBottom: 12,
+  },
+  advHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  advClockIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.accent[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  advExpanded: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
+  },
+  advSplitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 14,
+  },
+  advSplitText: {
+    flex: 1,
   },
 });
